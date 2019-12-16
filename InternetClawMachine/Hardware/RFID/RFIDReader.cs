@@ -4,18 +4,18 @@ using System.Text;
 
 namespace InternetClawMachine.Hardware.RFID
 {
-    public delegate void TagEventHanlder(EPC_data epcData);
+    public delegate void TagEventHanlder(EpcData epcData);
 
-    public static class RFIDReader
+    public static class RfidReader
     {
-        public static bool isConnected { set; get; }
+        public static bool IsConnected { set; get; }
         public const byte READING_MODE_SINGLE = 0;
         public const byte READING_MODE_MULTI = 1;
 
         public static event TagEventHanlder NewTagFound;
 
-        public static Dis.HANDLE_FUN f = new Dis.HANDLE_FUN(HandleData);
-        private static string epc;
+        public static Dis.HandleFun F = new Dis.HandleFun(HandleData);
+        private static string _epc;
         private static byte _deviceNo = 0;
         private static string _ipaddress;
         private static int _port;
@@ -28,11 +28,11 @@ namespace InternetClawMachine.Hardware.RFID
             _port = port;
             _power = antPower;
             byte[] ip = Encoding.ASCII.GetBytes(ipAddress);
-            int CommPort = 0;
-            int PortOrBaudRate = port;
+            int commPort = 0;
+            int portOrBaudRate = port;
 
             //init connection
-            if (0 == Dis.DeviceInit(ip, CommPort, PortOrBaudRate))
+            if (0 == Dis.DeviceInit(ip, commPort, portOrBaudRate))
                 throw new Exception("Error during device Init.");
 
             //see connect (blocking statement)
@@ -57,7 +57,7 @@ namespace InternetClawMachine.Hardware.RFID
             res *= Dis.SetSingleParameter(_deviceNo, Dis.ADD_POWER, antPower);
             res *= Dis.SetSingleParameter(_deviceNo, Dis.ADD_SINGLE_OR_MULTI_TAG, READING_MODE_SINGLE);
             Dis.BeepCtrl(_deviceNo, 0);
-            isConnected = true;
+            IsConnected = true;
             return true;
         }
 
@@ -73,7 +73,7 @@ namespace InternetClawMachine.Hardware.RFID
         {
             if (!_isListening)
             {
-                Dis.BeginMultiInv(_deviceNo, f);
+                Dis.BeginMultiInv(_deviceNo, F);
                 _isListening = true;
             }
         }
@@ -96,26 +96,26 @@ namespace InternetClawMachine.Hardware.RFID
 
         public static void HandleData(IntPtr pData, int length)
         {
-            epc = "";
+            _epc = "";
             byte[] data = new byte[32];
             Marshal.Copy(pData, data, 0, length);
             for (int i = 1; i < length - 2; ++i)
             {
-                epc += string.Format("{0:X2} ", data[i]);
+                _epc += string.Format("{0:X2} ", data[i]);
             }
 
-            EPC_data epcdata = new EPC_data();
-            epcdata.epc = epc;
-            epcdata.antNo = data[13];
-            epcdata.devNo = data[0];
-            epcdata.count = 1;
+            EpcData epcdata = new EpcData();
+            epcdata.Epc = _epc;
+            epcdata.AntNo = data[13];
+            epcdata.DevNo = data[0];
+            epcdata.Count = 1;
 
             NewTagFound?.Invoke(epcdata);
         }
 
         internal static void SetAntPower(double value)
         {
-            if (isConnected)
+            if (IsConnected)
             {
                 //StopListening();
                 int res = Dis.SetSingleParameter(_deviceNo, Dis.ADD_USERCODE, _deviceNo);
@@ -125,29 +125,29 @@ namespace InternetClawMachine.Hardware.RFID
         }
     }
 
-    public sealed class EPC_data : IComparable
+    public sealed class EpcData : IComparable
     {
-        public string epc;
-        public int count;
-        public int devNo;
-        public byte antNo;
+        public string Epc;
+        public int Count;
+        public int DevNo;
+        public byte AntNo;
 
         int IComparable.CompareTo(object obj)
         {
-            EPC_data temp = (EPC_data)obj;
+            EpcData temp = (EpcData)obj;
             {
-                return string.Compare(this.epc, temp.epc);
+                return string.Compare(this.Epc, temp.Epc);
             }
         }
     }
 
     internal class TagEvent : EventArgs
     {
-        public EPC_data EPCData { set; get; }
+        public EpcData EpcData { set; get; }
 
-        public TagEvent(EPC_data epcData)
+        public TagEvent(EpcData epcData)
         {
-            EPCData = epcData;
+            EpcData = epcData;
         }
     }
 }

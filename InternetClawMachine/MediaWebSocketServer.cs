@@ -36,7 +36,7 @@ namespace InternetClawMachine
         {
         }
 
-        protected string NewMessageID(int length = 16)
+        protected string NewMessageId(int length = 16)
         {
             const string pool = "abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
             var random = new Random();

@@ -8,7 +8,7 @@ namespace InternetClawMachine.Games
 {
     internal class WaterGunQueue : Game
     {
-        public WaterGunQueue(ChatAPI client, BotConfiguration configuration, OBSWebsocket obs) : base(client, configuration, obs)
+        public WaterGunQueue(IChatApi client, BotConfiguration configuration, OBSWebsocket obs) : base(client, configuration, obs)
         {
             GameMode = GameModeType.WATERGUNQUEUE;
         }
@@ -18,9 +18,9 @@ namespace InternetClawMachine.Games
             base.EndGame();
         }
 
-        public override void HandleMessage(string Username, string Message)
+        public override void HandleMessage(string username, string message)
         {
-            var msg = Message.ToLower();
+            var msg = message.ToLower();
             if (PlayerQueue.Count == 0)
             {
                 //check if it's a stringed command, all commands have to be valid
@@ -39,7 +39,7 @@ namespace InternetClawMachine.Games
                 }
             }
             //all we need to do is verify the only person controlling it is the one who voted for it
-            else if (PlayerQueue.CurrentPlayer != null && Username.ToLower() == PlayerQueue.CurrentPlayer.ToLower())
+            else if (PlayerQueue.CurrentPlayer != null && username.ToLower() == PlayerQueue.CurrentPlayer.ToLower())
             {
                 Configuration.WaterGunSettings.CurrentPlayerHasPlayed = true;
 
@@ -59,7 +59,7 @@ namespace InternetClawMachine.Games
                 if (msg.Trim().Length == 1)
                 {
                     //if not run all directional commands
-                    HandleSingleCommand(Username, Message);
+                    HandleSingleCommand(username, message);
                 }
                 else
                 {
@@ -86,7 +86,7 @@ namespace InternetClawMachine.Games
                                 //grab the next direction
                                 GroupCollection data = match.Groups;
                                 var command = data[2];
-                                HandleSingleCommand(Username, command.Value.Trim());
+                                HandleSingleCommand(username, command.Value.Trim());
 
                                 //wait for the command delay length to send the next direction
                                 await Task.Delay(Configuration.WaterGunSettings.MovementTime + 40);
@@ -101,10 +101,10 @@ namespace InternetClawMachine.Games
             }
         }
 
-        private void HandleSingleCommand(string Username, string Message)
+        private void HandleSingleCommand(string username, string message)
         {
             ClawDirection cmd = ClawDirection.NA;
-            var command = Message.ToLower().Substring(0, 1);
+            var command = message.ToLower().Substring(0, 1);
             switch (command)
             {
                 case "u":
@@ -131,7 +131,7 @@ namespace InternetClawMachine.Games
 
                 case "s":
                 case "spray":
-                    var dur = Message.ToLower().Substring(1);
+                    var dur = message.ToLower().Substring(1);
                     switch (dur)
                     {
                         case "1":
@@ -158,12 +158,12 @@ namespace InternetClawMachine.Games
                     break;
             }
 
-            WriteDBMovementAction(Username, cmd.ToString());
+            WriteDbMovementAction(username, cmd.ToString());
 
             lock (CommandQueue)
             {
                 if (cmd != ClawDirection.NA)
-                    CommandQueue.Add(new ClawCommand() { Direction = cmd, Timestamp = GameModeTimer.ElapsedMilliseconds, Username = Username });
+                    CommandQueue.Add(new ClawCommand() { Direction = cmd, Timestamp = GameModeTimer.ElapsedMilliseconds, Username = username });
             }
         }
 

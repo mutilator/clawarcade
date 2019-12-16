@@ -39,6 +39,7 @@ namespace InternetClawMachine.Hardware.ClawControl
         void LightSwitch(bool on);
 
         void Strobe(int red, int blue, int green, int strobeCount, int strobeDelay);
+
         void DualStrobe(int red, int blue, int green, int red2, int blue2, int green2, int strobeCount, int strobeDelay);
 
         void InsertCoinAsync();

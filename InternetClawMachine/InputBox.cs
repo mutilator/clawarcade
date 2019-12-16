@@ -25,12 +25,12 @@ namespace InternetClawMachine
         #region Private Windows Contols and Constructor
 
         // Create a new instance of the form.
-        private static Form frmInputDialog;
+        private static Form _frmInputDialog;
 
-        private static Label lblPrompt;
-        private static Button btnOK;
-        private static Button btnCancel;
-        private static TextBox txtInput;
+        private static Label _lblPrompt;
+        private static Button _btnOk;
+        private static Button _btnCancel;
+        private static TextBox _txtInput;
 
         #endregion Private Windows Contols and Constructor
 
@@ -50,74 +50,74 @@ namespace InternetClawMachine
         private static void InitializeComponent()
         {
             // Create a new instance of the form.
-            frmInputDialog = new Form();
-            lblPrompt = new Label();
-            btnOK = new Button();
-            btnCancel = new Button();
-            txtInput = new TextBox();
-            frmInputDialog.SuspendLayout();
+            _frmInputDialog = new Form();
+            _lblPrompt = new Label();
+            _btnOk = new Button();
+            _btnCancel = new Button();
+            _txtInput = new TextBox();
+            _frmInputDialog.SuspendLayout();
             //
             // lblPrompt
             //
-            lblPrompt.Anchor = ((AnchorStyles.Top | AnchorStyles.Bottom) | AnchorStyles.Left) | AnchorStyles.Right;
-            lblPrompt.BackColor = SystemColors.Control;
-            lblPrompt.Font = new Font("Microsoft Sans Serif", 8.25F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            lblPrompt.Location = new Point(12, 9);
-            lblPrompt.Name = "lblPrompt";
-            lblPrompt.Size = new Size(302, 82);
-            lblPrompt.TabIndex = 3;
+            _lblPrompt.Anchor = ((AnchorStyles.Top | AnchorStyles.Bottom) | AnchorStyles.Left) | AnchorStyles.Right;
+            _lblPrompt.BackColor = SystemColors.Control;
+            _lblPrompt.Font = new Font("Microsoft Sans Serif", 8.25F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            _lblPrompt.Location = new Point(12, 9);
+            _lblPrompt.Name = "_lblPrompt";
+            _lblPrompt.Size = new Size(302, 82);
+            _lblPrompt.TabIndex = 3;
             //
             // btnOK
             //
-            btnOK.DialogResult = DialogResult.OK;
-            btnOK.FlatStyle = FlatStyle.Popup;
-            btnOK.Location = new Point(326, 8);
-            btnOK.Name = "btnOK";
-            btnOK.Size = new Size(64, 24);
-            btnOK.TabIndex = 1;
-            btnOK.Text = "&OK";
-            btnOK.Click += btnOK_Click;
+            _btnOk.DialogResult = DialogResult.OK;
+            _btnOk.FlatStyle = FlatStyle.Popup;
+            _btnOk.Location = new Point(326, 8);
+            _btnOk.Name = "_btnOk";
+            _btnOk.Size = new Size(64, 24);
+            _btnOk.TabIndex = 1;
+            _btnOk.Text = "&OK";
+            _btnOk.Click += btnOK_Click;
             //
             // btnCancel
             //
-            btnCancel.DialogResult = DialogResult.Cancel;
-            btnCancel.FlatStyle = FlatStyle.Popup;
-            btnCancel.Location = new Point(326, 40);
-            btnCancel.Name = "btnCancel";
-            btnCancel.Size = new Size(64, 24);
-            btnCancel.TabIndex = 2;
-            btnCancel.Text = "&Cancel";
-            btnCancel.Click += btnCancel_Click;
+            _btnCancel.DialogResult = DialogResult.Cancel;
+            _btnCancel.FlatStyle = FlatStyle.Popup;
+            _btnCancel.Location = new Point(326, 40);
+            _btnCancel.Name = "_btnCancel";
+            _btnCancel.Size = new Size(64, 24);
+            _btnCancel.TabIndex = 2;
+            _btnCancel.Text = "&Cancel";
+            _btnCancel.Click += btnCancel_Click;
             //
             // txtInput
             //
-            txtInput.Location = new Point(8, 100);
-            txtInput.Name = "txtInput";
-            txtInput.Size = new Size(379, 20);
-            txtInput.TabIndex = 0;
-            txtInput.Text = "";
-            txtInput.KeyPress += txtInput_KeyPress;
+            _txtInput.Location = new Point(8, 100);
+            _txtInput.Name = "_txtInput";
+            _txtInput.Size = new Size(379, 20);
+            _txtInput.TabIndex = 0;
+            _txtInput.Text = "";
+            _txtInput.KeyPress += txtInput_KeyPress;
 
             //
             // InputBoxDialog
             //
-            frmInputDialog.AutoScaleBaseSize = new Size(5, 13);
-            frmInputDialog.ClientSize = new Size(398, 128);
-            frmInputDialog.Controls.Add(txtInput);
-            frmInputDialog.Controls.Add(btnCancel);
-            frmInputDialog.Controls.Add(btnOK);
-            frmInputDialog.Controls.Add(lblPrompt);
-            frmInputDialog.FormBorderStyle = FormBorderStyle.FixedDialog;
-            frmInputDialog.MaximizeBox = false;
-            frmInputDialog.MinimizeBox = false;
-            frmInputDialog.Name = "InputBoxDialog";
-            frmInputDialog.Shown += frmInputDialog_Shown;
-            frmInputDialog.ResumeLayout(false);
+            _frmInputDialog.AutoScaleBaseSize = new Size(5, 13);
+            _frmInputDialog.ClientSize = new Size(398, 128);
+            _frmInputDialog.Controls.Add(_txtInput);
+            _frmInputDialog.Controls.Add(_btnCancel);
+            _frmInputDialog.Controls.Add(_btnOk);
+            _frmInputDialog.Controls.Add(_lblPrompt);
+            _frmInputDialog.FormBorderStyle = FormBorderStyle.FixedDialog;
+            _frmInputDialog.MaximizeBox = false;
+            _frmInputDialog.MinimizeBox = false;
+            _frmInputDialog.Name = "InputBoxDialog";
+            _frmInputDialog.Shown += frmInputDialog_Shown;
+            _frmInputDialog.ResumeLayout(false);
         }
 
         private static void frmInputDialog_Shown(object sender, EventArgs e)
         {
-            txtInput.Focus();
+            _txtInput.Focus();
         }
 
         private static void txtInput_KeyPress(object sender, KeyPressEventArgs e)
@@ -125,8 +125,8 @@ namespace InternetClawMachine
             if (e.KeyChar == '\r')
             {
                 OutputResponse.ReturnCode = DialogResult.OK;
-                OutputResponse.Text = txtInput.Text;
-                frmInputDialog.Close();
+                OutputResponse.Text = _txtInput.Text;
+                _frmInputDialog.Close();
             }
         }
 
@@ -139,9 +139,9 @@ namespace InternetClawMachine
             OutputResponse.ReturnCode = DialogResult.Ignore;
             OutputResponse.Text = string.Empty;
 
-            txtInput.Text = _defaultValue;
-            lblPrompt.Text = _formPrompt;
-            frmInputDialog.Text = _formCaption;
+            _txtInput.Text = _defaultValue;
+            _lblPrompt.Text = _formPrompt;
+            _frmInputDialog.Text = _formCaption;
 
             // Retrieve the working rectangle from the Screen class
             // using the PrimaryScreen and the WorkingArea properties.
@@ -149,35 +149,35 @@ namespace InternetClawMachine
 
             if ((_xPos >= 0 && _xPos < workingRectangle.Width - 100) && (_yPos >= 0 && _yPos < workingRectangle.Height - 100))
             {
-                frmInputDialog.StartPosition = FormStartPosition.Manual;
-                frmInputDialog.Location = new Point(_xPos, _yPos);
+                _frmInputDialog.StartPosition = FormStartPosition.Manual;
+                _frmInputDialog.Location = new Point(_xPos, _yPos);
             }
             else
-                frmInputDialog.StartPosition = FormStartPosition.CenterScreen;
+                _frmInputDialog.StartPosition = FormStartPosition.CenterScreen;
 
-            var PrompText = lblPrompt.Text;
+            var prompText = _lblPrompt.Text;
 
             var n = 0;
-            var Index = 0;
-            while (PrompText.IndexOf("\n", Index) > -1)
+            var index = 0;
+            while (prompText.IndexOf("\n", index) > -1)
             {
-                Index = PrompText.IndexOf("\n", Index) + 1;
+                index = prompText.IndexOf("\n", index) + 1;
                 n++;
             }
 
             if (n == 0)
                 n = 1;
 
-            var Txt = txtInput.Location;
-            Txt.Y = Txt.Y + (n * 4);
-            txtInput.Location = Txt;
-            var form = frmInputDialog.Size;
+            var txt = _txtInput.Location;
+            txt.Y = txt.Y + (n * 4);
+            _txtInput.Location = txt;
+            var form = _frmInputDialog.Size;
             form.Height = form.Height + (n * 4);
-            frmInputDialog.Size = form;
+            _frmInputDialog.Size = form;
 
-            txtInput.SelectionStart = 0;
-            txtInput.SelectionLength = txtInput.Text.Length;
-            txtInput.Focus();
+            _txtInput.SelectionStart = 0;
+            _txtInput.SelectionLength = _txtInput.Text.Length;
+            _txtInput.Focus();
         }
 
         #endregion Private function, InputBox Form move and change size
@@ -187,71 +187,71 @@ namespace InternetClawMachine
         static private void btnOK_Click(object sender, EventArgs e)
         {
             OutputResponse.ReturnCode = DialogResult.OK;
-            OutputResponse.Text = txtInput.Text;
-            frmInputDialog.Dispose();
+            OutputResponse.Text = _txtInput.Text;
+            _frmInputDialog.Dispose();
         }
 
         static private void btnCancel_Click(object sender, EventArgs e)
         {
             OutputResponse.ReturnCode = DialogResult.Cancel;
             OutputResponse.Text = string.Empty; //Clean output response
-            frmInputDialog.Dispose();
+            _frmInputDialog.Dispose();
         }
 
         #endregion Button control click event
 
         #region Public Static Show functions
 
-        static public InputBoxResult Show(string Prompt)
+        static public InputBoxResult Show(string prompt)
         {
             InitializeComponent();
-            FormPrompt = Prompt;
+            FormPrompt = prompt;
 
             // Display the form as a modal dialog box.
             LoadForm();
-            frmInputDialog.ShowDialog();
+            _frmInputDialog.ShowDialog();
             return OutputResponse;
         }
 
-        static public InputBoxResult Show(string Prompt, string Title)
+        static public InputBoxResult Show(string prompt, string title)
         {
             InitializeComponent();
 
-            FormCaption = Title;
-            FormPrompt = Prompt;
+            FormCaption = title;
+            FormPrompt = prompt;
 
             // Display the form as a modal dialog box.
             LoadForm();
-            frmInputDialog.ShowDialog();
+            _frmInputDialog.ShowDialog();
             return OutputResponse;
         }
 
-        static public InputBoxResult Show(string Prompt, string Title, string Default)
+        static public InputBoxResult Show(string prompt, string title, string @default)
         {
             InitializeComponent();
 
-            FormCaption = Title;
-            FormPrompt = Prompt;
-            DefaultValue = Default;
+            FormCaption = title;
+            FormPrompt = prompt;
+            DefaultValue = @default;
 
             // Display the form as a modal dialog box.
             LoadForm();
-            frmInputDialog.ShowDialog();
+            _frmInputDialog.ShowDialog();
             return OutputResponse;
         }
 
-        static public InputBoxResult Show(string Prompt, string Title, string Default, int XPos, int YPos)
+        static public InputBoxResult Show(string prompt, string title, string @default, int xPos, int yPos)
         {
             InitializeComponent();
-            FormCaption = Title;
-            FormPrompt = Prompt;
-            DefaultValue = Default;
-            XPosition = XPos;
-            YPosition = YPos;
+            FormCaption = title;
+            FormPrompt = prompt;
+            DefaultValue = @default;
+            XPosition = xPos;
+            YPosition = yPos;
 
             // Display the form as a modal dialog box.
             LoadForm();
-            frmInputDialog.ShowDialog();
+            _frmInputDialog.ShowDialog();
             return OutputResponse;
         }
 

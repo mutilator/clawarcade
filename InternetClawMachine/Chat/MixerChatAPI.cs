@@ -11,20 +11,20 @@ using TwitchLib.Client.Models;
 
 namespace InternetClawMachine
 {
-    internal class MixerChatAPI : ChatAPI
+    internal class MixerChatApi : IChatApi
     {
-        private ChatClient Client;
-        private ConnectionCredentials Credentials;
+        private ChatClient _client;
+        private ConnectionCredentials _credentials;
         private string _channel;
 
         public bool IsConnected
         {
             get
             {
-                if (Client != null)
+                if (_client != null)
                     return false;
                 else
-                    return Client.Connected;
+                    return _client.Connected;
             }
         }
 
@@ -59,7 +59,7 @@ namespace InternetClawMachine
         public void Initialze(ConnectionCredentials credentials, string channel)
         {
             _channel = channel;
-            Credentials = credentials;
+            _credentials = credentials;
 
             Task.Run(async delegate ()
             {
@@ -97,19 +97,19 @@ namespace InternetClawMachine
                 UserModel user = connection.Users.GetCurrentUser().Result;
                 ExpandedChannelModel chan = connection.Channels.GetChannel(user.username).Result;
 
-                Client = ChatClient.CreateFromChannel(connection, chan).Result;
+                _client = ChatClient.CreateFromChannel(connection, chan).Result;
 
-                Client.OnDisconnectOccurred += Client_OnDisconnectOccurred;
-                Client.OnMessageOccurred += Client_OnMessageOccurred;
-                Client.OnUserJoinOccurred += Client_OnUserJoinOccurred;
-                Client.OnUserLeaveOccurred += Client_OnUserLeaveOccurred;
-                Client.OnSentOccurred += Client_OnSentOccurred;
+                _client.OnDisconnectOccurred += Client_OnDisconnectOccurred;
+                _client.OnMessageOccurred += Client_OnMessageOccurred;
+                _client.OnUserJoinOccurred += Client_OnUserJoinOccurred;
+                _client.OnUserLeaveOccurred += Client_OnUserLeaveOccurred;
+                _client.OnSentOccurred += Client_OnSentOccurred;
 
-                if (Client.Connect().Result && Client.Authenticate().Result)
+                if (_client.Connect().Result && _client.Authenticate().Result)
                 {
                     System.Console.WriteLine("Chat connection successful!");
 
-                    IEnumerable<ChatUserModel> users = connection.Chats.GetUsers(Client.Channel).Result;
+                    IEnumerable<ChatUserModel> users = connection.Chats.GetUsers(_client.Channel).Result;
                 }
             });
         }
@@ -236,14 +236,14 @@ namespace InternetClawMachine
 
         public void Disconnect()
         {
-            Client.Disconnect();
+            _client.Disconnect();
         }
 
         public void Connect()
         {
-            if (Client.Connected)
-                Client.Disconnect();
-            Client.Connect();
+            if (_client.Connected)
+                _client.Disconnect();
+            _client.Connect();
         }
 
         public void Init(string hostAddress)
@@ -252,14 +252,14 @@ namespace InternetClawMachine
 
         public void SendMessage(string channel, string message)
         {
-            if (Client.Connected)
-                Client.SendMessage(message);
+            if (_client.Connected)
+                _client.SendMessage(message);
         }
 
         public void SendWhisper(string username, string message)
         {
-            if (Client.Connected)
-                Client.Whisper(username, message);
+            if (_client.Connected)
+                _client.Whisper(username, message);
         }
 
         public void ThrottleMessage(int messages, TimeSpan lengthOfTime)

@@ -1,6 +1,6 @@
 ﻿namespace InternetClawMachine.Settings
 {
-    public class OBSSettings
+    public class ObsSettings
     {
         public string Url { set; get; }
         public string Password { set; get; }

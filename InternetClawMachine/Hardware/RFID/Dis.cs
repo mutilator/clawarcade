@@ -62,10 +62,10 @@ namespace InternetClawMachine.Hardware.RFID
         public const byte ANT_BIT_6 = 0x40;
         public const byte ANT_BIT_7 = 0x80;
 
-        public delegate void HANDLE_FUN(IntPtr pData, int length);
+        public delegate void HandleFun(IntPtr pData, int length);
 
         [DllImport("disdll.dll")]
-        public static extern int DeviceInit(byte[] Host, int CommMode, int PortOrBandRate);
+        public static extern int DeviceInit(byte[] host, int commMode, int portOrBandRate);
 
         [DllImport("disdll.dll")]
         public static extern int DeviceConnect();
@@ -80,46 +80,46 @@ namespace InternetClawMachine.Hardware.RFID
         public static extern int ResetReader(byte usercode);
 
         [DllImport("disdll.dll")]
-        public static extern int BeginMultiInv(byte usercode, HANDLE_FUN fun_name);
+        public static extern int BeginMultiInv(byte usercode, HandleFun funName);
 
         [DllImport("disdll.dll")]
         public static extern int StopInv(byte usercode);
 
         [DllImport("disdll.dll")]
-        public static extern int GetDeviceVersion(byte usercode, out int MainVerion, out int SubVersion);
+        public static extern int GetDeviceVersion(byte usercode, out int mainVerion, out int subVersion);
 
         [DllImport("disdll.dll")]
-        public static extern int GetSingleParameter(byte usercode, byte ParaAddr, out int Value);
+        public static extern int GetSingleParameter(byte usercode, byte paraAddr, out int value);
 
         [DllImport("disdll.dll")]
-        public static extern int SetSingleParameter(byte usercode, byte ParaAddr, byte Value);
+        public static extern int SetSingleParameter(byte usercode, byte paraAddr, byte value);
 
         [DllImport("disdll.dll")]
-        public static extern int GetMultiParameters(byte usercode, int addr, int NumOfPara, byte[] Paras);
+        public static extern int GetMultiParameters(byte usercode, int addr, int numOfPara, byte[] paras);
 
         [DllImport("disdll.dll")]
-        public static extern int SetMultiParameters(byte usercode, int addr, int NumOfPara, byte[] Paras);
+        public static extern int SetMultiParameters(byte usercode, int addr, int numOfPara, byte[] paras);
 
         [DllImport("disdll.dll")]
-        public static extern int ReadSingleTag(byte usercode, byte[] TagID, byte[] AntNo);
+        public static extern int ReadSingleTag(byte usercode, byte[] tagId, byte[] antNo);
 
         [DllImport("disdll.dll")]
-        public static extern int ReadTagData(byte usercode, byte bank, byte begin, byte length, byte[] OutData);
+        public static extern int ReadTagData(byte usercode, byte bank, byte begin, byte length, byte[] outData);
 
         [DllImport("disdll.dll")]
-        public static extern int WriteTagData(byte usercode, byte bank, byte begin, byte length, byte[] Data);// 0x81
+        public static extern int WriteTagData(byte usercode, byte bank, byte begin, byte length, byte[] data);// 0x81
 
         [DllImport("disdll.dll")]
-        public static extern int WriteTagMultiWord(byte usercode, byte bank, byte begin, byte length, byte[] Data);// 0xAB
+        public static extern int WriteTagMultiWord(byte usercode, byte bank, byte begin, byte length, byte[] data);// 0xAB
 
         [DllImport("disdll.dll")]
         public static extern int WriteTagSingleWord(byte usercode, byte bank, byte begin, byte data1, byte data2);
 
         [DllImport("disdll.dll")]
-        public static extern int FastWriteTag(byte usercode, byte[] Data, byte length);
+        public static extern int FastWriteTag(byte usercode, byte[] data, byte length);
 
         [DllImport("disdll.dll")]
-        public static extern int ReadTIDByEpc(byte usercode, byte[] pEpc, byte[] TID);
+        public static extern int ReadTIDByEpc(byte usercode, byte[] pEpc, byte[] tid);
 
         [DllImport("disdll.dll")]
         public static extern int InitializeTag(byte usercode);
@@ -128,16 +128,16 @@ namespace InternetClawMachine.Hardware.RFID
         public static extern int BeepCtrl(byte usercode, byte status);
 
         [DllImport("disdll.dll")]
-        public static extern int LockTag(byte usercode, byte lockBank, byte[] Password);
+        public static extern int LockTag(byte usercode, byte lockBank, byte[] password);
 
         [DllImport("disdll.dll")]
-        public static extern int UnlockTag(byte usercode, byte unlockBank, byte[] Password);
+        public static extern int UnlockTag(byte usercode, byte unlockBank, byte[] password);
 
         [DllImport("disdll.dll")]
-        public static extern int KillTag(byte usercode, byte[] Password);
+        public static extern int KillTag(byte usercode, byte[] password);
 
         [DllImport("disdll.dll")]
-        public static extern int SetBaudRate(byte usercode, byte BaudRate);
+        public static extern int SetBaudRate(byte usercode, byte baudRate);
 
         [DllImport("disdll.dll")]
         public static extern int StopWork(byte usercode);
@@ -149,12 +149,12 @@ namespace InternetClawMachine.Hardware.RFID
         public static extern int SetRelayTime(byte usercode, byte time);
 
         [DllImport("disdll.dll")]
-        public static extern int SetAutherPwd(byte usercode, byte[] Pwd);
+        public static extern int SetAutherPwd(byte usercode, byte[] pwd);
 
         [DllImport("disdll.dll")]
         public static extern int TagAuther(byte usercode);
 
         [DllImport("disdll.dll")]
-        public static extern int GetAutherPwd(byte usercode, byte[] Pwd);
+        public static extern int GetAutherPwd(byte usercode, byte[] pwd);
     }
 }

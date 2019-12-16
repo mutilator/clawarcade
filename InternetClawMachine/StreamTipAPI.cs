@@ -1,6 +1,6 @@
 ﻿namespace InternetClawMachine
 {
-    internal class StreamTipAPI
+    internal class StreamTipApi
     {
     }
 }

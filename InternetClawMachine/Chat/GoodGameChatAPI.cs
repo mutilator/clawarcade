@@ -7,17 +7,17 @@ using WebSocketSharp;
 
 namespace InternetClawMachine
 {
-    internal class GoodGameChatAPI : ChatAPI
+    internal class GoodGameChatApi : IChatApi
     {
         private WebSocket _socket;
         private JsonSerializerSettings _jsonSerializerSettings;
         private int _usersInChannel = 0;
-        private List<GGUserObject> _currentUserList;
+        private List<GgUserObject> _currentUserList;
 
         public bool IsConnected { get; set; }
         public string Username { get; set; }
         public string AuthToken { set; get; }
-        public string UserID { get; set; }
+        public string UserId { get; set; }
         public string Channel { get; set; }
 
         public event EventHandler<OnJoinedChannelArgs> OnJoinedChannel;
@@ -70,7 +70,7 @@ namespace InternetClawMachine
                 OnConnected(sender, args);
             }
 
-            _currentUserList = new List<GGUserObject>();
+            _currentUserList = new List<GgUserObject>();
         }
 
         private void _socket_OnMessage(object sender, MessageEventArgs e)
@@ -78,25 +78,25 @@ namespace InternetClawMachine
             // handle all incoming messages
             var data = e.Data;
             _jsonSerializerSettings = new JsonSerializerSettings();
-            var response = JsonConvert.DeserializeObject<GGReturnJsonObject>(data, _jsonSerializerSettings);
+            var response = JsonConvert.DeserializeObject<GgReturnJsonObject>(data, _jsonSerializerSettings);
             if (OnSendReceiveData != null)
             {
-                OnSendReceiveData(this, new OnSendReceiveDataArgs() { Data = data, Direction = SendReceiveDirection.Received });
+                OnSendReceiveData(this, new OnSendReceiveDataArgs() { Data = data, Direction = SendReceiveDirection.RECEIVED });
             }
 
-            switch (response.type)
+            switch (response.Type)
             {
                 case "welcome":
-                    var welcomeResponseData = JsonConvert.DeserializeObject<GGWelcomeResponse>(response.data.ToString(), _jsonSerializerSettings);
+                    var welcomeResponseData = JsonConvert.DeserializeObject<GgWelcomeResponse>(response.Data.ToString(), _jsonSerializerSettings);
 
                     // send auth
-                    var authObj = new GGAuthObj() { type = "auth", data = new GGAuthParams() { token = AuthToken, user_id = UserID } };
+                    var authObj = new GgAuthObj() { Type = "auth", Data = new GgAuthParams() { Token = AuthToken, UserId = UserId } };
                     var authString = JsonConvert.SerializeObject(authObj, Formatting.Indented);
                     SendString(authString);
                     break;
 
                 case "success_auth":
-                    var successAuthResponseData = JsonConvert.DeserializeObject<GGServerAuthResponse>(response.data.ToString(), _jsonSerializerSettings);
+                    var successAuthResponseData = JsonConvert.DeserializeObject<GgServerAuthResponse>(response.Data.ToString(), _jsonSerializerSettings);
                     JoinChannel(Channel);
                     break;
 
@@ -104,18 +104,18 @@ namespace InternetClawMachine
                     break;
 
                 case "success_join":
-                    RunJoinReceived(response.data);
+                    RunJoinReceived(response.Data);
                     break;
 
                 case "unjoin":
                     break;
 
                 case "users_list":
-                    RunUsersListReceived(response.data);
+                    RunUsersListReceived(response.Data);
                     break;
 
                 case "channel_counters":
-                    RunChannelCountersReceived(response.data);
+                    RunChannelCountersReceived(response.Data);
                     break;
 
                 case "ignore_list":
@@ -131,11 +131,11 @@ namespace InternetClawMachine
                     break;
 
                 case "message":
-                    RunMessageReceived(response.data);
+                    RunMessageReceived(response.Data);
                     break;
 
                 case "private_message":
-                    RunPrivateMessageReceived(response.data);
+                    RunPrivateMessageReceived(response.Data);
                     break;
 
                 case "user_ban":
@@ -157,8 +157,8 @@ namespace InternetClawMachine
                     break;
 
                 case "error":
-                    var errorResponseData = JsonConvert.DeserializeObject<GGErrorResponse>(response.data.ToString(), _jsonSerializerSettings);
-                    Console.WriteLine("ERROR: " + errorResponseData.errorMsg);
+                    var errorResponseData = JsonConvert.DeserializeObject<GgErrorResponse>(response.Data.ToString(), _jsonSerializerSettings);
+                    Console.WriteLine("ERROR: " + errorResponseData.ErrorMsg);
                     break;
 
                 default:
@@ -170,14 +170,14 @@ namespace InternetClawMachine
 
         private void JoinChannel(string channel)
         {
-            var joinObj = new GGJoinChannel() { type = "join", data = new GGJoinChannelParams() { channel_id = Channel, hidden = false } };
+            var joinObj = new GgJoinChannel() { Type = "join", Data = new GgJoinChannelParams() { ChannelId = Channel, Hidden = false } };
             var joinString = JsonConvert.SerializeObject(joinObj, Formatting.Indented);
             SendString(joinString);
         }
 
         private void GetUsersList()
         {
-            var gulObj = new GGGetUsersList() { type = "get_users_list", data = new GGGetUsersListParams() { channel_id = Channel } };
+            var gulObj = new GgGetUsersList() { Type = "get_users_list", Data = new GgGetUsersListParams() { ChannelId = Channel } };
             var gulString = JsonConvert.SerializeObject(gulObj, Formatting.Indented);
             SendString(gulString);
         }
@@ -188,22 +188,22 @@ namespace InternetClawMachine
             {
                 if (OnSendReceiveData != null)
                 {
-                    OnSendReceiveData(this, new OnSendReceiveDataArgs() { Data = message, Direction = SendReceiveDirection.Sent });
+                    OnSendReceiveData(this, new OnSendReceiveDataArgs() { Data = message, Direction = SendReceiveDirection.SENT });
                 }
             });
         }
 
         private void RunUsersListReceived(JToken data)
         {
-            var responseData = JsonConvert.DeserializeObject<GGUserListResponse>(data.ToString(), _jsonSerializerSettings);
+            var responseData = JsonConvert.DeserializeObject<GgUserListResponse>(data.ToString(), _jsonSerializerSettings);
 
             // first loop the response, see if we need to add any
-            for (var i = 0; i < responseData.users.Count; i++)
+            for (var i = 0; i < responseData.Users.Count; i++)
             {
-                var user = responseData.users[i];
-                if (_currentUserList.FirstOrDefault(u => u.id == user.id) == null)
+                var user = responseData.Users[i];
+                if (_currentUserList.FirstOrDefault(u => u.Id == user.Id) == null)
                 {
-                    RunJoinReceived(responseData.channel_id, user.id, user.name);
+                    RunJoinReceived(responseData.ChannelId, user.Id, user.Name);
                 }
             }
 
@@ -211,20 +211,20 @@ namespace InternetClawMachine
             for (var i = 0; i < _currentUserList.Count; i++)
             {
                 var user = _currentUserList[i];
-                if (responseData.users.FirstOrDefault(u => u.id == user.id) == null)
+                if (responseData.Users.FirstOrDefault(u => u.Id == user.Id) == null)
                 {
-                    RunPartReceived(responseData.channel_id, user.id, user.username);
+                    RunPartReceived(responseData.ChannelId, user.Id, user.Username);
                     _currentUserList.RemoveAt(i);
                     i--;
                 }
             }
         }
 
-        private void RunPartReceived(string channel_id, string id, string username)
+        private void RunPartReceived(string channelId, string id, string username)
         {
             if (OnUserLeft != null)
             {
-                OnUserLeft(this, new OnUserLeftArgs() { Username = username, Channel = channel_id });
+                OnUserLeft(this, new OnUserLeftArgs() { Username = username, Channel = channelId });
             }
         }
 
@@ -235,14 +235,14 @@ namespace InternetClawMachine
                 OnUserJoined(this, new OnUserJoinedArgs() { Username = username, Channel = channel });
             }
 
-            _currentUserList.Add(new GGUserObject() { id = userid, username = username });
+            _currentUserList.Add(new GgUserObject() { Id = userid, Username = username });
         }
 
         private void RunChannelCountersReceived(JToken data)
         {
-            var responseData = JsonConvert.DeserializeObject<GGChannelCountersResponse>(data.ToString(), _jsonSerializerSettings);
+            var responseData = JsonConvert.DeserializeObject<GgChannelCountersResponse>(data.ToString(), _jsonSerializerSettings);
 
-            if (responseData.users_in_channel > _usersInChannel)
+            if (responseData.UsersInChannel > _usersInChannel)
             {
                 GetUsersList();
             }
@@ -250,15 +250,15 @@ namespace InternetClawMachine
 
         private void RunMessageReceived(JToken data)
         {
-            var responseData = JsonConvert.DeserializeObject<GGMessageResponse>(data.ToString(), _jsonSerializerSettings);
+            var responseData = JsonConvert.DeserializeObject<GgMessageResponse>(data.ToString(), _jsonSerializerSettings);
             if (OnMessageReceived != null)
             {
                 var message = new ChatMessage()
                 {
-                    Channel = responseData.channel_id,
-                    Message = responseData.text,
-                    DisplayName = responseData.user_name,
-                    Username = responseData.user_name
+                    Channel = responseData.ChannelId,
+                    Message = responseData.Text,
+                    DisplayName = responseData.UserName,
+                    Username = responseData.UserName
                 };
                 OnMessageReceived(this, new OnMessageReceivedArgs() { ChatMessage = message });
             }
@@ -266,14 +266,14 @@ namespace InternetClawMachine
 
         private void RunPrivateMessageReceived(JToken data)
         {
-            var responseData = JsonConvert.DeserializeObject<GGMessageResponse>(data.ToString(), _jsonSerializerSettings);
+            var responseData = JsonConvert.DeserializeObject<GgMessageResponse>(data.ToString(), _jsonSerializerSettings);
             if (OnWhisperReceived != null)
             {
                 var message = new WhisperMessage()
                 {
-                    Message = responseData.text,
-                    DisplayName = responseData.user_name,
-                    Username = responseData.user_name
+                    Message = responseData.Text,
+                    DisplayName = responseData.UserName,
+                    Username = responseData.UserName
                 };
                 OnWhisperReceived(this, new OnWhisperReceivedArgs() { WhisperMessage = message });
             }
@@ -281,12 +281,12 @@ namespace InternetClawMachine
 
         private void RunJoinReceived(JToken data)
         {
-            var responseData = JsonConvert.DeserializeObject<GGJoinChannelResponse>(data.ToString(), _jsonSerializerSettings);
+            var responseData = JsonConvert.DeserializeObject<GgJoinChannelResponse>(data.ToString(), _jsonSerializerSettings);
             if (OnJoinedChannel != null)
             {
-                OnJoinedChannel(this, new OnJoinedChannelArgs() { BotUsername = responseData.name, Channel = responseData.channel_name });
+                OnJoinedChannel(this, new OnJoinedChannelArgs() { BotUsername = responseData.Name, Channel = responseData.ChannelName });
             }
-            _currentUserList.Add(new GGUserObject() { id = responseData.user_id, username = responseData.name });
+            _currentUserList.Add(new GgUserObject() { Id = responseData.UserId, Username = responseData.Name });
         }
 
         private void _socket_OnError(object sender, ErrorEventArgs e)
@@ -312,13 +312,13 @@ namespace InternetClawMachine
 
         public void SendMessage(string channel, string message)
         {
-            var msgObj = new GGSendMessage()
+            var msgObj = new GgSendMessage()
             {
-                type = "send_message",
-                data = new GGSendMessageParams()
+                Type = "send_message",
+                Data = new GgSendMessageParams()
                 {
-                    text = message,
-                    channel_id = channel
+                    Text = message,
+                    ChannelId = channel
                 }
             };
             var msgString = JsonConvert.SerializeObject(msgObj, Formatting.Indented);
@@ -346,178 +346,178 @@ namespace InternetClawMachine
         }
     }
 
-    public class GGUserObject
+    public class GgUserObject
     {
-        public string id { set; get; }
-        public string username { set; get; }
+        public string Id { set; get; }
+        public string Username { set; get; }
     }
 
-    public class GGReturnJsonObject
+    public class GgReturnJsonObject
     {
-        public string type { set; get; }
-        public JToken data { set; get; }
+        public string Type { set; get; }
+        public JToken Data { set; get; }
     }
 
     #region client_to_server
 
-    public class GGBaseJsonObject
+    public class GgBaseJsonObject
     {
-        public string type { set; get; }
-        public object data { set; get; }
+        public string Type { set; get; }
+        public object Data { set; get; }
     }
 
-    public class GGAuthObj : GGBaseJsonObject
+    public class GgAuthObj : GgBaseJsonObject
     {
-        public new GGAuthParams data { set; get; }
+        public new GgAuthParams Data { set; get; }
     }
 
-    public class GGAuthParams
+    public class GgAuthParams
     {
-        public string user_id { get; set; }
-        public string token { get; set; }
+        public string UserId { get; set; }
+        public string Token { get; set; }
     }
 
-    public class GGGetUsersList : GGBaseJsonObject
+    public class GgGetUsersList : GgBaseJsonObject
     {
-        public new GGGetUsersListParams data { set; get; }
+        public new GgGetUsersListParams Data { set; get; }
     }
 
-    public class GGGetUsersListParams
+    public class GgGetUsersListParams
     {
-        public string channel_id { get; set; }
+        public string ChannelId { get; set; }
     }
 
-    public class GGJoinChannel : GGBaseJsonObject
+    public class GgJoinChannel : GgBaseJsonObject
     {
-        public new GGJoinChannelParams data { set; get; }
+        public new GgJoinChannelParams Data { set; get; }
     }
 
-    public class GGJoinChannelParams
+    public class GgJoinChannelParams
     {
-        public string channel_id { get; set; }
-        public bool hidden { get; set; }
+        public string ChannelId { get; set; }
+        public bool Hidden { get; set; }
     }
 
-    public class GGGetChannelUsers : GGBaseJsonObject
+    public class GgGetChannelUsers : GgBaseJsonObject
     {
-        public new GGGetChannelUsersParams data { set; get; }
+        public new GgGetChannelUsersParams Data { set; get; }
     }
 
-    public class GGGetChannelUsersParams
+    public class GgGetChannelUsersParams
     {
-        public string channel_id { get; set; }
+        public string ChannelId { get; set; }
     }
 
-    public class GGSendMessage : GGBaseJsonObject
+    public class GgSendMessage : GgBaseJsonObject
     {
-        public new GGSendMessageParams data { set; get; }
+        public new GgSendMessageParams Data { set; get; }
     }
 
-    public class GGSendMessageParams
+    public class GgSendMessageParams
     {
-        public string channel_id { get; set; }
-        public string text { get; set; }
-        public bool hideIcon { get; set; }
-        public bool mobile { get; set; }
+        public string ChannelId { get; set; }
+        public string Text { get; set; }
+        public bool HideIcon { get; set; }
+        public bool Mobile { get; set; }
     }
 
-    public class GGSendPrivateMessage : GGBaseJsonObject
+    public class GgSendPrivateMessage : GgBaseJsonObject
     {
-        public new GGSendPrivateMessageParams data { set; get; }
+        public new GgSendPrivateMessageParams Data { set; get; }
     }
 
-    public class GGSendPrivateMessageParams
+    public class GgSendPrivateMessageParams
     {
-        public string channel_id { get; set; }
-        public string user_id { get; set; }
-        public string text { get; set; }
+        public string ChannelId { get; set; }
+        public string UserId { get; set; }
+        public string Text { get; set; }
     }
 
     #endregion client_to_server
 
     #region server_to_client
 
-    public class GGErrorResponse
+    public class GgErrorResponse
     {
-        public string channel_id { set; get; }
-        public int error_num { set; get; }
-        public string errorMsg { set; get; }
+        public string ChannelId { set; get; }
+        public int ErrorNum { set; get; }
+        public string ErrorMsg { set; get; }
     }
 
-    public class GGWelcomeResponse
+    public class GgWelcomeResponse
     {
-        public string protocolVersion { set; get; }
-        public string serverIdent { set; get; }
+        public string ProtocolVersion { set; get; }
+        public string ServerIdent { set; get; }
     }
 
-    public class GGServerAuthResponse
+    public class GgServerAuthResponse
     {
-        public string user_id { set; get; }
-        public string user_name { set; get; }
+        public string UserId { set; get; }
+        public string UserName { set; get; }
     }
 
-    public class GGJoinChannelResponse
+    public class GgJoinChannelResponse
     {
-        public string channel_id { set; get; }
-        public string channel_name { set; get; }
-        public string motd { set; get; }
-        public int slowmod { set; get; }
-        public int smiles { set; get; }
-        public int smilePeka { set; get; }
-        public int clients_in_channel { set; get; }
-        public int users_in_channel { set; get; }
-        public string user_id { set; get; }
-        public string name { set; get; }
-        public string access_rights { set; get; }
-        public bool premium { set; get; }
-        public bool is_banned { set; get; }
-        public string banned_time { set; get; }
-        public string reason { set; get; }
-        public string payments { set; get; }
-        public List<string> paidsmiles { set; get; }
+        public string ChannelId { set; get; }
+        public string ChannelName { set; get; }
+        public string Motd { set; get; }
+        public int Slowmod { set; get; }
+        public int Smiles { set; get; }
+        public int SmilePeka { set; get; }
+        public int ClientsInChannel { set; get; }
+        public int UsersInChannel { set; get; }
+        public string UserId { set; get; }
+        public string Name { set; get; }
+        public string AccessRights { set; get; }
+        public bool Premium { set; get; }
+        public bool IsBanned { set; get; }
+        public string BannedTime { set; get; }
+        public string Reason { set; get; }
+        public string Payments { set; get; }
+        public List<string> Paidsmiles { set; get; }
     }
 
-    public class GGUserListResponse
+    public class GgUserListResponse
     {
-        public string channel_id { set; get; }
-        public int clients_in_channel { set; get; }
-        public int users_in_channel { set; get; }
-        public List<GGUserResponse> users { set; get; }
+        public string ChannelId { set; get; }
+        public int ClientsInChannel { set; get; }
+        public int UsersInChannel { set; get; }
+        public List<GgUserResponse> Users { set; get; }
     }
 
-    public class GGUserResponse
+    public class GgUserResponse
     {
-        public string id { set; get; }
-        public string name { set; get; }
-        public int rights { set; get; }
-        public bool premium { set; get; }
-        public string payments { set; get; }
-        public bool mobile { set; get; }
-        public bool hidden { set; get; }
+        public string Id { set; get; }
+        public string Name { set; get; }
+        public int Rights { set; get; }
+        public bool Premium { set; get; }
+        public string Payments { set; get; }
+        public bool Mobile { set; get; }
+        public bool Hidden { set; get; }
     }
 
-    public class GGMessageResponse
+    public class GgMessageResponse
     {
-        public string channel_id { set; get; }
-        public string user_id { set; get; }
-        public string user_name { set; get; }
-        public int user_rights { set; get; }
-        public bool premium { set; get; }
-        public bool hideIcon { set; get; }
-        public bool mobile { set; get; }
-        public string payments { set; get; }
-        public List<string> paidsmiles { set; get; }
-        public string message_id { set; get; }
-        public string timestamp { set; get; }
-        public string color { set; get; }
-        public string text { set; get; }
+        public string ChannelId { set; get; }
+        public string UserId { set; get; }
+        public string UserName { set; get; }
+        public int UserRights { set; get; }
+        public bool Premium { set; get; }
+        public bool HideIcon { set; get; }
+        public bool Mobile { set; get; }
+        public string Payments { set; get; }
+        public List<string> Paidsmiles { set; get; }
+        public string MessageId { set; get; }
+        public string Timestamp { set; get; }
+        public string Color { set; get; }
+        public string Text { set; get; }
     }
 
-    public class GGChannelCountersResponse
+    public class GgChannelCountersResponse
     {
-        public string channel_id { set; get; }
-        public int clients_in_channel { set; get; }
-        public int users_in_channel { set; get; }
+        public string ChannelId { set; get; }
+        public int ClientsInChannel { set; get; }
+        public int UsersInChannel { set; get; }
     }
 
     #endregion server_to_client

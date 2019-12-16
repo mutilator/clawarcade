@@ -5,7 +5,6 @@ using System;
 using System.Collections.Generic;
 using System.Data.SQLite;
 using System.Diagnostics;
-using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -21,7 +20,7 @@ namespace InternetClawMachine
         /// <summary>
         /// flag for updating the player queue file
         /// </summary>
-        internal bool _runUpdateTimer;
+        internal bool RunUpdateTimer;
 
         /// <summary>
         /// Simple container for the active bounty
@@ -54,7 +53,7 @@ namespace InternetClawMachine
         /// <summary>
         /// Connection object to OBS
         /// </summary>
-        public OBSWebsocket OBSConnection { set; get; }
+        public OBSWebsocket ObsConnection { set; get; }
 
         //Which type of game is this, used for identifying what's going on in other code
         public GameModeType GameMode { set; get; }
@@ -67,13 +66,13 @@ namespace InternetClawMachine
         /// <summary>
         /// flag for command queue checks
         /// </summary>
-        internal bool _processingQueue;
+        internal bool ProcessingQueue;
 
         /// <summary>
         /// Set when StartGame starts and false when StartGame execution is over
         /// This allows other functions to ignore specific command sequences when initializing a game
         /// </summary>
-        internal bool _startupSequence;
+        internal bool StartupSequence;
 
         /// <summary>
         /// Simple flag to tell the game that there is an upcoming drop command and not allow further drop commands
@@ -141,25 +140,24 @@ namespace InternetClawMachine
         /// <summary>
         /// Reference to the chat client
         /// </summary>
-        public ChatAPI ChatClient { get; private set; }
+        public IChatApi ChatClient { get; private set; }
 
         /// <summary>
         /// Websocket server
         /// </summary>
-        public MediaWebSocketServer WSConnection { set; get; }
+        public MediaWebSocketServer WsConnection { set; get; }
 
         /// <summary>
         /// Message displayed when StartGame is called
         /// </summary>
         public string StartMessage { get; set; }
 
-        public Game(ChatAPI client, BotConfiguration configuration, OBSWebsocket obs)
+        public Game(IChatApi client, BotConfiguration configuration, OBSWebsocket obs)
         {
-
             ChatClient = client;
             //MainWindow = mainWindow;
             Configuration = configuration;
-            OBSConnection = obs;
+            ObsConnection = obs;
 
             WinnersList = new List<string>();
             SecondaryWinnersList = new List<string>();
@@ -170,15 +168,12 @@ namespace InternetClawMachine
             GameModeTimer = new Stopwatch();
             GameRoundTimer = new Stopwatch();
             Votes = new List<GameModeVote>();
-
-
-            
-    }
+        }
 
         ~Game()
         {
             _isEnding = true;
-            _runUpdateTimer = false;
+            RunUpdateTimer = false;
         }
 
         protected virtual void OnGameEnded(EventArgs e)
@@ -187,7 +182,7 @@ namespace InternetClawMachine
             if (handler != null && !_isEnding)
             {
                 _isEnding = true;
-                _runUpdateTimer = false;
+                RunUpdateTimer = false;
                 PlayerQueue.ChangedPlayerQueue -= PlayerQueue_ChangedPlayerQueue;
                 handler(this, e);
             }
@@ -216,12 +211,11 @@ namespace InternetClawMachine
 
         private void PlayerQueue_ChangedPlayerQueue(object sender, EventArgs e)
         {
-            UpdateOBSQueueDisplay();
+            UpdateObsQueueDisplay();
         }
 
-        protected virtual void UpdateOBSQueueDisplay()
+        protected virtual void UpdateObsQueueDisplay()
         {
-            
         }
 
         public void RunScare()
@@ -236,18 +230,18 @@ namespace InternetClawMachine
                 var rnd = _rnd.Next(120000);
                 await Task.Delay(20000 + rnd);
             }
-            OBSConnection.SetSourceRender(Configuration.OBSScreenSourceNames.ThemeHalloweenScare.SourceName, false, Configuration.OBSScreenSourceNames.ThemeHalloweenScare.Scene);
-            OBSConnection.SetSourceRender(Configuration.OBSScreenSourceNames.ThemeHalloweenScare.SourceName, true, Configuration.OBSScreenSourceNames.ThemeHalloweenScare.Scene);
+            ObsConnection.SetSourceRender(Configuration.ObsScreenSourceNames.ThemeHalloweenScare.SourceName, false, Configuration.ObsScreenSourceNames.ThemeHalloweenScare.Scene);
+            ObsConnection.SetSourceRender(Configuration.ObsScreenSourceNames.ThemeHalloweenScare.SourceName, true, Configuration.ObsScreenSourceNames.ThemeHalloweenScare.Scene);
             await Task.Delay(4000);
-            OBSConnection.SetSourceRender(Configuration.OBSScreenSourceNames.ThemeHalloweenScare.SourceName, false, Configuration.OBSScreenSourceNames.ThemeHalloweenScare.Scene);
+            ObsConnection.SetSourceRender(Configuration.ObsScreenSourceNames.ThemeHalloweenScare.SourceName, false, Configuration.ObsScreenSourceNames.ThemeHalloweenScare.Scene);
         }
 
-        public void WriteDBMovementAction(string name, string direction)
+        public void WriteDbMovementAction(string name, string direction)
         {
-            WriteDBMovementAction(name, direction, Configuration.SessionGUID.ToString());
+            WriteDbMovementAction(name, direction, Configuration.SessionGuid.ToString());
         }
 
-        public void WriteDBMovementAction(string name, string direction, string guid)
+        public void WriteDbMovementAction(string name, string direction, string guid)
         {
             if (!Configuration.RecordStats)
                 return;
@@ -274,17 +268,17 @@ namespace InternetClawMachine
             }
         }
 
-        public virtual void HandleMessage(string Username, string Message)
+        public virtual void HandleMessage(string username, string message)
         {
         }
 
         public virtual void HandleCommand(string channel, string username, string chatMessage, bool isSubscriber)
         {
-            var CommandText = chatMessage.Substring(Configuration.CommandPrefix.Length);
+            var commandText = chatMessage.Substring(Configuration.CommandPrefix.Length);
             if (chatMessage.IndexOf(" ") >= 0)
-                CommandText = chatMessage.Substring(Configuration.CommandPrefix.Length, chatMessage.IndexOf(" ") - 1);
+                commandText = chatMessage.Substring(Configuration.CommandPrefix.Length, chatMessage.IndexOf(" ") - 1);
 
-            switch (CommandText.ToLower())
+            switch (commandText.ToLower())
             {
                 case "redeem":
                     var args = chatMessage.Split(' ');
@@ -328,13 +322,13 @@ namespace InternetClawMachine
             OnGameEnded(new EventArgs());
         }
 
-        public virtual void StartGame(string User)
+        public virtual void StartGame(string user)
         {
         }
 
-        public virtual void StartRound(string User)
+        public virtual void StartRound(string user)
         {
-            OnRoundStarted(new RoundStartedArgs() { Username = User, GameMode = GameMode });
+            OnRoundStarted(new RoundStartedArgs() { Username = user, GameMode = GameMode });
         }
 
         public virtual void Run()
@@ -356,9 +350,9 @@ namespace InternetClawMachine
 
         public virtual Task ProcessQueue()
         {
-            if (!_processingQueue)
+            if (!ProcessingQueue)
             {
-                _processingQueue = true;
+                ProcessingQueue = true;
 
                 Console.WriteLine("processing queue: " + Thread.CurrentThread.ManagedThreadId);
                 try
@@ -372,7 +366,7 @@ namespace InternetClawMachine
                 }
                 finally
                 {
-                    _processingQueue = false;
+                    ProcessingQueue = false;
                 }
             }
             return Task.CompletedTask;

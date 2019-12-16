@@ -5,11 +5,11 @@ namespace InternetClawMachine
 {
     internal class AudioManager : WebSocketBehavior
     {
-        private Game GameRef;
+        private Game _gameRef;
 
         public AudioManager(Game mainRef)
         {
-            GameRef = mainRef;
+            _gameRef = mainRef;
         }
 
         protected override void OnMessage(MessageEventArgs e)

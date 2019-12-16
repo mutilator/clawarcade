@@ -7,7 +7,7 @@ using System.ComponentModel;
 using System.Data.SQLite;
 using System.IO;
 
-namespace InternetClawMachine 
+namespace InternetClawMachine
 {
     public class BotConfiguration : INotifyPropertyChanged
     {
@@ -17,36 +17,34 @@ namespace InternetClawMachine
         /// initially intended as the only object to sync, but.. now it sends full config
         /// TODO - fix this
         /// </summary>
-        public JSONDataExchange DataExchanger { set; get; }
+        public JsonDataExchange DataExchanger { set; get; }
 
         public string Username { set; get; }
         public string Channel { set; get; }
-        
 
         public VoteSettings VoteSettings { set; get; }
         public ClawGameSettings ClawSettings { set; get; }
         public GolfGameSettings GolfSettings { set; get; }
-        public OBSSettings OBSSettings { set; get; }
+        public ObsSettings ObsSettings { set; get; }
         public TwitchSettings TwitchSettings { set; get; }
         public MixerSettings MixerSettings { set; get; }
         public GoodGameSettings GoodGameSettings { set; get; }
         public WaterGunSettings WaterGunSettings { set; get; }
         public DrawingSettings DrawingSettings { set; get; }
-        public OBSScreenSourceNames OBSScreenSourceNames { set; get; }
+        public ObsScreenSourceNames ObsScreenSourceNames { set; get; }
 
         public string ErrorLogPrefix { set; get; }
         public string MachineLogPrefix { set; get; }
 
-        public string DiscordURL { set; get; }
-        public string TwitterURL { set; get; }
-
-        
+        public string DiscordUrl { set; get; }
+        public string TwitterUrl { set; get; }
 
         public string CommandPrefix { set; get; }
 
-        public string WebserverURI { set; get; }
+        public string WebserverUri { set; get; }
 
         private long _latency;
+
         /// <summary>
         /// last ping to controller
         /// </summary>
@@ -60,6 +58,7 @@ namespace InternetClawMachine
         }
 
         private int _reconnectAttempts;
+
         /// <summary>
         /// How many times controller reconnected
         /// </summary>
@@ -86,13 +85,13 @@ namespace InternetClawMachine
             }
             get { return _chatReconnectAttempts; }
         }
-            
 
         #region Files
 
         public string FileScans { set; get; }
         public string FileMissedPlushes { set; get; }
         public string FileRecordsDatabase { set; get; }
+
         /// <summary>
         /// Announcements file
         /// </summary>
@@ -138,7 +137,7 @@ namespace InternetClawMachine
         public bool UsingTwitch { set; get; }
 
         //do we use goodgame.ru?
-        public bool UsingGG { set; get; }
+        public bool UsingGg { set; get; }
 
         public bool UsingMixer { get; set; }
 
@@ -152,20 +151,19 @@ namespace InternetClawMachine
         /// </summary>
         public bool RecordStats { set; get; }
 
-
         /// <summary>
         /// Session ID for recording to the database
         /// </summary>
-        public Guid SessionGUID { set; get; }
+        public Guid SessionGuid { set; get; }
 
         public BotConfiguration()
         {
             AdminUsers = new List<string>();
-            OBSScreenSourceNames = new OBSScreenSourceNames();
+            ObsScreenSourceNames = new ObsScreenSourceNames();
             VoteSettings = new VoteSettings();
             ClawSettings = new ClawGameSettings();
             GolfSettings = new GolfGameSettings();
-            OBSSettings = new OBSSettings();
+            ObsSettings = new ObsSettings();
             TwitchSettings = new TwitchSettings();
             GoodGameSettings = new GoodGameSettings();
             MixerSettings = new MixerSettings();
@@ -173,7 +171,7 @@ namespace InternetClawMachine
             DrawingSettings = new DrawingSettings();
             UserList = new List<string>();
             Coords = new Coordinates();
-            DataExchanger = new JSONDataExchange();
+            DataExchanger = new JsonDataExchange();
             EventMode = EventMode.NORMAL;
         }
 
@@ -183,17 +181,17 @@ namespace InternetClawMachine
         public void Init()
         {
             if (DataExchanger == null)
-                DataExchanger = new JSONDataExchange();
-            
-            OBSScreenSourceNames = new OBSScreenSourceNames();
+                DataExchanger = new JsonDataExchange();
+
+            ObsScreenSourceNames = new ObsScreenSourceNames();
             Coords = new Coordinates();
             OverrideChat = false;
             ReconnectAttempts = 0;
             ChatReconnectAttempts = 0;
             UserList.Clear();
             GolfSettings.HasHomed = false;
-            DrawingSettings.HasHomed = false; 
-            SessionGUID = Guid.NewGuid();
+            DrawingSettings.HasHomed = false;
+            SessionGuid = Guid.NewGuid();
         }
 
         #region Properties
@@ -231,13 +229,10 @@ namespace InternetClawMachine
         [JsonIgnore]
         public List<string> UserList { set; get; }
 
-        
-
         /// <summary>
         /// AUto reconnect to chat
         /// </summary>
         public bool AutoReconnectChat { get; set; }
-        
 
         #endregion Properties
 
@@ -268,7 +263,7 @@ namespace InternetClawMachine
                 }
 
                 RecordsDatabase = new SQLiteConnection("Data Source=" + FileRecordsDatabase + "; Version=3;");
-                WriteDBSessionRecord(SessionGUID.ToString());
+                WriteDbSessionRecord(SessionGuid.ToString());
             }
             catch (Exception ex)
             {
@@ -277,7 +272,7 @@ namespace InternetClawMachine
             }
         }
 
-        public void WriteDBSessionRecord(string guid)
+        public void WriteDbSessionRecord(string guid)
         {
             if (!RecordStats)
                 return;
@@ -305,9 +300,9 @@ namespace InternetClawMachine
             }
         }
 
-        public void WriteDBSessionRecord()
+        public void WriteDbSessionRecord()
         {
-            WriteDBSessionRecord(SessionGUID.ToString());
+            WriteDbSessionRecord(SessionGuid.ToString());
         }
 
         public int GetStreamBuxCost(StreamBuxTypes reason)
@@ -336,7 +331,7 @@ namespace InternetClawMachine
 
             JsonSerializerSettings settings = new JsonSerializerSettings();
             settings.Formatting = Formatting.Indented;
-            
+
             var jsonString = JsonConvert.SerializeObject(this, settings);
             File.WriteAllText(botConfigFile, jsonString);
         }
@@ -354,8 +349,8 @@ namespace InternetClawMachine
             Init();
         }
 
-
         public event PropertyChangedEventHandler PropertyChanged;
+
         protected void OnPropertyChanged([System.Runtime.CompilerServices.CallerMemberName] string propertyName = "")
         {
             if (this.PropertyChanged != null)

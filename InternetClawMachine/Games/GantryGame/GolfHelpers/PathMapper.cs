@@ -12,7 +12,7 @@ namespace InternetClawMachine.Games.GolfHelpers
         public float X;
         public float Y;
         public bool IsClosed = false;
-        public bool visited = false;
+        public bool Visited = false;
 
         public PathMapper()
         {

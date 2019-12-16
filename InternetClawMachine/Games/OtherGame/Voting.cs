@@ -7,7 +7,7 @@ namespace InternetClawMachine.Games
 {
     internal class Voting : Game
     {
-        public Voting(ChatAPI client, BotConfiguration configuration, OBSWebsocket obs) : base(client, configuration, obs)
+        public Voting(IChatApi client, BotConfiguration configuration, OBSWebsocket obs) : base(client, configuration, obs)
         {
             GameMode = GameModeType.VOTING;
         }
@@ -17,30 +17,30 @@ namespace InternetClawMachine.Games
             base.EndGame();
         }
 
-        public override void HandleMessage(string Username, string Message)
+        public override void HandleMessage(string username, string message)
         {
-            base.HandleMessage(Username, Message);
+            base.HandleMessage(username, message);
 
             //record all votes in a list
             //highest wins...
-            if (!Votes.Any(v => v.Username == Username))
+            if (!Votes.Any(v => v.Username == username))
             {
-                switch (Message.ToLower())
+                switch (message.ToLower())
                 {
                     case "chaos":
-                        Votes.Add(new GameModeVote(Username, GameModeType.REALTIME, GameRoundTimer.ElapsedMilliseconds));
+                        Votes.Add(new GameModeVote(username, GameModeType.REALTIME, GameRoundTimer.ElapsedMilliseconds));
                         break;
 
                     case "queue":
-                        Votes.Add(new GameModeVote(Username, GameModeType.SINGLEQUEUE, GameRoundTimer.ElapsedMilliseconds));
+                        Votes.Add(new GameModeVote(username, GameModeType.SINGLEQUEUE, GameRoundTimer.ElapsedMilliseconds));
                         break;
 
                     case "quick":
-                        Votes.Add(new GameModeVote(Username, GameModeType.SINGLEQUICKQUEUE, GameRoundTimer.ElapsedMilliseconds));
+                        Votes.Add(new GameModeVote(username, GameModeType.SINGLEQUICKQUEUE, GameRoundTimer.ElapsedMilliseconds));
                         break;
 
                     case "planned":
-                        Votes.Add(new GameModeVote(Username, GameModeType.PLANNED, GameRoundTimer.ElapsedMilliseconds));
+                        Votes.Add(new GameModeVote(username, GameModeType.PLANNED, GameRoundTimer.ElapsedMilliseconds));
                         break;
                         /*
                     case "single":

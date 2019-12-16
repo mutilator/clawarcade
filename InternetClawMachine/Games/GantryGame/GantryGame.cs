@@ -11,17 +11,17 @@ namespace InternetClawMachine.Games.GantreyGame
         /// </summary>
         public GameGantry Gantry { set; get; }
 
-        public GantryGame(ChatAPI client, BotConfiguration configuration, OBSWebsocket obs) : base(client, configuration, obs)
+        public GantryGame(IChatApi client, BotConfiguration configuration, OBSWebsocket obs) : base(client, configuration, obs)
         {
         }
 
         public override void HandleCommand(string channel, string username, string chatMessage, bool isSubscriber)
         {
-            var CommandText = chatMessage.Substring(1);
+            var commandText = chatMessage.Substring(1);
             if (chatMessage.IndexOf(" ") >= 0)
-                CommandText = chatMessage.Substring(1, chatMessage.IndexOf(" ") - 1);
+                commandText = chatMessage.Substring(1, chatMessage.IndexOf(" ") - 1);
 
-            switch (CommandText.ToLower())
+            switch (commandText.ToLower())
             {
                 case "play":
 

@@ -9,27 +9,27 @@ namespace InternetClawMachine.Hardware.ClawControl
         /// <summary>
         /// in ms, how long it takes the crane to fully drop and return to home position
         /// </summary>
-        internal int _returnHomeTime = 20000;
+        internal int ReturnHomeTime = 20000;
 
         private int _device = -1;
-        private byte _lastDirection = DIRECTION_STOP;
+        private byte _lastDirection = DirectionStop;
 
         /// <summary>
         /// Pins for movement
         /// </summary>
-        private const byte DIRECTION_STOP = 0xFF;
+        private const byte DirectionStop = 0xFF;
 
-        private const byte DIRECTION_FORWARD = 0xFE;
-        private const byte DIRECTION_BACKWARD = 0xFD;
-        private const byte DIRECTION_LEFT = 0xFB;
-        private const byte DIRECTION_RIGHT = 0xF7;
-        private const byte DIRECTION_DROP = 0xEF;
-        private const byte DIRECTION_UP = 0x7F;
-        private const byte CONVEYOR_ON = 0x7F;
-        private const byte LASER = 0x00;
-        private const byte COINOP = 0xDF;
-        private const byte FULL_CLAW_POWER = 00;
-        private const byte LIGHT_PORT = 0xBF;
+        private const byte DirectionForward = 0xFE;
+        private const byte DirectionBackward = 0xFD;
+        private const byte DirectionLeft = 0xFB;
+        private const byte DirectionRight = 0xF7;
+        private const byte DirectionDrop = 0xEF;
+        private const byte DirectionUp = 0x7F;
+        private const byte ConveyorOn = 0x7F;
+        private const byte Laser = 0x00;
+        private const byte Coinop = 0xDF;
+        private const byte FullClawPower = 00;
+        private const byte LightPort = 0xBF;
         private bool _sp;
 
         #region MachineControl Members
@@ -57,7 +57,7 @@ namespace InternetClawMachine.Hardware.ClawControl
             {
                 try
                 {
-                    if (!USBm.USBm_FindDevices())
+                    if (!UsBm.USBm_FindDevices())
                     {
                         return false;
                     }  // implied else
@@ -70,8 +70,8 @@ namespace InternetClawMachine.Hardware.ClawControl
 
                 // return the number of devices
                 // public static extern int USBm_NumberOfDevices();
-                var TotalDevices = USBm.USBm_NumberOfDevices();
-                _device = TotalDevices - 1;  // only One device is ever attached so ...
+                var totalDevices = UsBm.USBm_NumberOfDevices();
+                _device = totalDevices - 1;  // only One device is ever attached so ...
                 IsConnected = true;
             }
             lock (_readingInputs)
@@ -79,7 +79,7 @@ namespace InternetClawMachine.Hardware.ClawControl
                 //USBm.USBm_WriteA(_device, 0xFF);
             }
             //make sure i disable all the button on the form so no one can use it
-            reset();
+            Reset();
 
             StartSensorPoller();
 
@@ -134,7 +134,7 @@ namespace InternetClawMachine.Hardware.ClawControl
             byte[] data = new byte[1];
             lock (_readingInputs)
             {
-                USBm.USBm_ReadB(_device, data);
+                UsBm.USBm_ReadB(_device, data);
             }
 
             if ((byte)(data[0] | 0xFE) != 0xFE)
@@ -147,22 +147,22 @@ namespace InternetClawMachine.Hardware.ClawControl
         {
             var data = _lastDirection;
             if (_lightsOn) //if lights are on, then don't turn off when passing direction
-                data &= LIGHT_PORT;
+                data &= LightPort;
 
             if (_fullClawPower)
-                data &= FULL_CLAW_POWER;
+                data &= FullClawPower;
 
             if (_laserEnabled)
-                data &= LASER;
+                data &= Laser;
 
             if (_conveyorEnabled)
-                data &= CONVEYOR_ON;
+                data &= ConveyorOn;
 
             try
             {
                 lock (_readingInputs)
                 {
-                    USBm.USBm_WriteA(_device, data);
+                    UsBm.USBm_WriteA(_device, data);
                 }
             }
             catch (Exception ex)
@@ -272,7 +272,7 @@ namespace InternetClawMachine.Hardware.ClawControl
             //async task reset the claw
             Task.Run(async delegate ()
             {
-                await Task.Delay(_returnHomeTime);
+                await Task.Delay(ReturnHomeTime);
                 OnReturnedHome?.Invoke(null, new EventArgs());
             });
         }
@@ -283,25 +283,25 @@ namespace InternetClawMachine.Hardware.ClawControl
             {
                 switch (_lastDirection)
                 {
-                    case DIRECTION_FORWARD:
+                    case DirectionForward:
                         return MovementDirection.FORWARD;
 
-                    case DIRECTION_BACKWARD:
+                    case DirectionBackward:
                         return MovementDirection.BACKWARD;
 
-                    case DIRECTION_LEFT:
+                    case DirectionLeft:
                         return MovementDirection.LEFT;
 
-                    case DIRECTION_RIGHT:
+                    case DirectionRight:
                         return MovementDirection.RIGHT;
 
-                    case DIRECTION_DROP:
+                    case DirectionDrop:
                         return MovementDirection.DOWN;
 
-                    case COINOP:
+                    case Coinop:
                         return MovementDirection.COIN;
 
-                    case CONVEYOR_ON:
+                    case ConveyorOn:
                         return MovementDirection.CONVEYOR;
                     //case DIRECTION_STOP:
                     default:
@@ -313,39 +313,39 @@ namespace InternetClawMachine.Hardware.ClawControl
                 switch (value)
                 {
                     case MovementDirection.FORWARD:
-                        _lastDirection = DIRECTION_FORWARD;
+                        _lastDirection = DirectionForward;
                         break;
 
                     case MovementDirection.BACKWARD:
-                        _lastDirection = DIRECTION_BACKWARD;
+                        _lastDirection = DirectionBackward;
                         break;
 
                     case MovementDirection.LEFT:
-                        _lastDirection = DIRECTION_LEFT;
+                        _lastDirection = DirectionLeft;
                         break;
 
                     case MovementDirection.RIGHT:
-                        _lastDirection = DIRECTION_RIGHT;
+                        _lastDirection = DirectionRight;
                         break;
 
                     case MovementDirection.UP:
-                        _lastDirection = DIRECTION_UP;
+                        _lastDirection = DirectionUp;
                         break;
 
                     case MovementDirection.DOWN:
-                        _lastDirection = DIRECTION_DROP;
+                        _lastDirection = DirectionDrop;
                         break;
 
                     case MovementDirection.STOP:
-                        _lastDirection = DIRECTION_STOP;
+                        _lastDirection = DirectionStop;
                         break;
 
                     case MovementDirection.COIN:
-                        _lastDirection = COINOP;
+                        _lastDirection = Coinop;
                         break;
 
                     case MovementDirection.CONVEYOR:
-                        _lastDirection = CONVEYOR_ON;
+                        _lastDirection = ConveyorOn;
                         break;
                 }
             }
@@ -359,39 +359,39 @@ namespace InternetClawMachine.Hardware.ClawControl
                 switch (enumDir)
                 {
                     case MovementDirection.FORWARD:
-                        dir = DIRECTION_FORWARD;
+                        dir = DirectionForward;
                         break;
 
                     case MovementDirection.BACKWARD:
-                        dir = DIRECTION_BACKWARD;
+                        dir = DirectionBackward;
                         break;
 
                     case MovementDirection.LEFT:
-                        dir = DIRECTION_LEFT;
+                        dir = DirectionLeft;
                         break;
 
                     case MovementDirection.RIGHT:
-                        dir = DIRECTION_RIGHT;
+                        dir = DirectionRight;
                         break;
 
                     case MovementDirection.UP:
-                        dir = DIRECTION_UP;
+                        dir = DirectionUp;
                         break;
 
                     case MovementDirection.DOWN:
-                        dir = DIRECTION_DROP;
+                        dir = DirectionDrop;
                         break;
 
                     case MovementDirection.STOP:
-                        dir = DIRECTION_STOP;
+                        dir = DirectionStop;
                         break;
 
                     case MovementDirection.COIN:
-                        dir = COINOP;
+                        dir = Coinop;
                         break;
 
                     case MovementDirection.CONVEYOR:
-                        dir = CONVEYOR_ON;
+                        dir = ConveyorOn;
                         break;
                 }
                 if ((dir != _lastDirection) || (force))
@@ -402,7 +402,7 @@ namespace InternetClawMachine.Hardware.ClawControl
                     //wait for movement
                     await Task.Delay(duration);
                     //stop moving
-                    dir = DIRECTION_STOP;
+                    dir = DirectionStop;
                     WriteMachineData();
                 }
             }
@@ -419,34 +419,34 @@ namespace InternetClawMachine.Hardware.ClawControl
         ~U421Module()
         {
             _sp = false;
-            detach();
+            Detach();
         }
 
         public void Disconnect()
         {
             _sp = false;
-            detach();
+            Detach();
         }
 
-        public void detach()
+        public void Detach()
         {
             lock (_readingInputs)
             {
-                USBm.USBm_InitPorts(_device);
-                USBm.USBm_CloseDevice(_device);
+                UsBm.USBm_InitPorts(_device);
+                UsBm.USBm_CloseDevice(_device);
             }
         }
 
-        public void reset()
+        public void Reset()
         {
             if (IsConnected)
             {
                 lock (_readingInputs)
                 {
-                    USBm.USBm_InitPorts(_device);
+                    UsBm.USBm_InitPorts(_device);
 
-                    USBm.USBm_DirectionAOut(_device);
-                    USBm.USBm_DirectionBInPullup(_device);
+                    UsBm.USBm_DirectionAOut(_device);
+                    UsBm.USBm_DirectionBInPullup(_device);
                     _alreadyTripped = false;
                 }
                 WriteMachineData();

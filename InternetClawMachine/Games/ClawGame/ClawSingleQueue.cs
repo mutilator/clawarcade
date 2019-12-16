@@ -12,7 +12,7 @@ namespace InternetClawMachine.Games.ClawGame
     {
         internal DroppingPlayer CurrentDroppingPlayer { set; get; }
 
-        public ClawSingleQueue(ChatAPI client, BotConfiguration configuration, OBSWebsocket obs) : base(client, configuration, obs)
+        public ClawSingleQueue(IChatApi client, BotConfiguration configuration, OBSWebsocket obs) : base(client, configuration, obs)
         {
             GameMode = GameModeType.SINGLEQUEUE;
             CurrentDroppingPlayer = new DroppingPlayer();
@@ -44,24 +44,23 @@ namespace InternetClawMachine.Games.ClawGame
             MachineControl.OnReturnedHome -= MachineControl_OnReturnedHome;
         }
 
-
         public override void HandleCommand(string channel, string username, string chatMessage, bool isSubscriber)
         {
             base.HandleCommand(channel, username, chatMessage, isSubscriber);
-            var CommandText = chatMessage.Substring(1);
+            var commandText = chatMessage.Substring(1);
             if (chatMessage.IndexOf(" ") >= 0)
-                CommandText = chatMessage.Substring(1, chatMessage.IndexOf(" ") - 1);
+                commandText = chatMessage.Substring(1, chatMessage.IndexOf(" ") - 1);
 
             string[] param;
 
             //simple check to not time-out their turn
-            if (PlayerQueue.CurrentPlayer != null && username.ToLower() == PlayerQueue.CurrentPlayer.ToLower() && CommandText.ToLower() != "play")
+            if (PlayerQueue.CurrentPlayer != null && username.ToLower() == PlayerQueue.CurrentPlayer.ToLower() && commandText.ToLower() != "play")
                 CurrentPlayerHasPlayed = true;
 
             //split our args
             param = chatMessage.Split(' ');
 
-            switch (CommandText.ToLower())
+            switch (commandText.ToLower())
             {
                 case "gift":
                     if (param.Length != 2)
@@ -73,9 +72,9 @@ namespace InternetClawMachine.Games.ClawGame
             }
         }
 
-        public override void HandleMessage(string Username, string Message)
+        public override void HandleMessage(string username, string message)
         {
-            var msg = Message.ToLower();
+            var msg = message.ToLower();
             if (PlayerQueue.Count == 0)
             {
                 //check if it's a stringed command, all commands have to be valid
@@ -94,7 +93,7 @@ namespace InternetClawMachine.Games.ClawGame
                 }
             }
             //all we need to do is verify the only person controlling it is the one who voted for it
-            else if (PlayerQueue.CurrentPlayer != null && Username.ToLower() == PlayerQueue.CurrentPlayer.ToLower())
+            else if (PlayerQueue.CurrentPlayer != null && username.ToLower() == PlayerQueue.CurrentPlayer.ToLower())
             {
                 CurrentPlayerHasPlayed = true;
 
@@ -102,22 +101,21 @@ namespace InternetClawMachine.Games.ClawGame
                 if (msg.StartsWith("gift turn "))
                 {
                     var nickname = msg.Replace("gift turn ", "").Trim().ToLower();
-                    GiftTurn(Username.ToLower(), nickname);
+                    GiftTurn(username.ToLower(), nickname);
                 }
 
                 //check if it's a single command or stringed commands
                 if (msg.Trim().Length <= 2)
                 {
                     //ignore multiple drops
-                    if (Message.ToLower().Equals("d") && DropInCommandQueue)
+                    if (message.ToLower().Equals("d") && DropInCommandQueue)
                         return;
-                    
 
-                    if (Message.ToLower().Equals("d"))
+                    if (message.ToLower().Equals("d"))
                         DropInCommandQueue = true;
 
                     //if not run all directional commands
-                    HandleSingleCommand(Username, Message);
+                    HandleSingleCommand(username, message);
                 }
                 else
                 {
@@ -147,7 +145,7 @@ namespace InternetClawMachine.Games.ClawGame
                             //grab the next direction
                             GroupCollection data = match.Groups;
                             var command = data[2];
-                            HandleSingleCommand(Username, command.Value.Trim());
+                            HandleSingleCommand(username, command.Value.Trim());
 
                             //ignore input after the first drop
                             if (command.Value.Trim() == "d")
@@ -172,11 +170,11 @@ namespace InternetClawMachine.Games.ClawGame
             }
         }
 
-        private void HandleSingleCommand(string Username, string Message)
+        private void HandleSingleCommand(string username, string message)
         {
             ClawDirection cmd = ClawDirection.NA;
             var moveTime = Configuration.ClawSettings.ClawMovementTime;
-            switch (Message.ToLower())
+            switch (message.ToLower())
             {
                 case "stop":
                 case "s":
@@ -188,7 +186,7 @@ namespace InternetClawMachine.Games.ClawGame
                 case "forward":
                 case "fs":
                     cmd = ClawDirection.FORWARD;
-                    if (Message.ToLower() == "fs")
+                    if (message.ToLower() == "fs")
                         moveTime = Configuration.ClawSettings.ClawMovementTimeShort;
                     //DropList.Remove(Username); //remove their name from the list if they voted on something after a drop
                     break;
@@ -197,7 +195,7 @@ namespace InternetClawMachine.Games.ClawGame
                 case "back":
                 case "backward":
                 case "bs":
-                    if (Message.ToLower() == "bs")
+                    if (message.ToLower() == "bs")
                         moveTime = Configuration.ClawSettings.ClawMovementTimeShort;
                     cmd = ClawDirection.BACKWARD;
                     //DropList.Remove(Username); //remove their name from the list if they voted on something after a drop
@@ -206,7 +204,7 @@ namespace InternetClawMachine.Games.ClawGame
                 case "l":
                 case "left":
                 case "ls":
-                    if (Message.ToLower() == "ls")
+                    if (message.ToLower() == "ls")
                         moveTime = Configuration.ClawSettings.ClawMovementTimeShort;
                     cmd = ClawDirection.LEFT;
                     //DropList.Remove(Username); //remove their name from the list if they voted on something after a drop
@@ -215,7 +213,7 @@ namespace InternetClawMachine.Games.ClawGame
                 case "r":
                 case "right":
                 case "rs":
-                    if (Message.ToLower() == "rs")
+                    if (message.ToLower() == "rs")
                         moveTime = Configuration.ClawSettings.ClawMovementTimeShort;
                     cmd = ClawDirection.RIGHT;
                     //DropList.Remove(Username); //remove their name from the list if they voted on something after a drop
@@ -227,14 +225,14 @@ namespace InternetClawMachine.Games.ClawGame
                     CurrentDroppingPlayer.Username = PlayerQueue.CurrentPlayer;
                     CurrentDroppingPlayer.GameLoop = GameLoopCounterValue;
                     cmd = ClawDirection.DOWN;
-                    var usr = Username;
+                    var usr = username;
 
-                    SessionWinTracker user = SessionWinTracker.FirstOrDefault(u => u.Username == Username);
+                    SessionWinTracker user = SessionWinTracker.FirstOrDefault(u => u.Username == username);
                     if (user != null)
-                        user = SessionWinTracker.First(u => u.Username == Username);
+                        user = SessionWinTracker.First(u => u.Username == username);
                     else
                     {
-                        user = new SessionWinTracker() { Username = Username };
+                        user = new SessionWinTracker() { Username = username };
                         SessionWinTracker.Add(user);
                     }
 
@@ -257,17 +255,16 @@ namespace InternetClawMachine.Games.ClawGame
                     break;
             }
 
-            WriteDBMovementAction(Username, cmd.ToString());
+            WriteDbMovementAction(username, cmd.ToString());
 
             lock (CommandQueue)
             {
                 Console.WriteLine("added command: " + Thread.CurrentThread.ManagedThreadId);
                 if (cmd != ClawDirection.NA)
-                    CommandQueue.Add(new ClawCommand() { Direction = cmd, Duration = moveTime, Timestamp = GameModeTimer.ElapsedMilliseconds, Username = Username });
+                    CommandQueue.Add(new ClawCommand() { Direction = cmd, Duration = moveTime, Timestamp = GameModeTimer.ElapsedMilliseconds, Username = username });
             }
             //try processing queue
             Task.Run(async delegate { await ProcessQueue(); });
-            
         }
 
         public override void ShowHelp()
@@ -286,11 +283,11 @@ namespace InternetClawMachine.Games.ClawGame
             GameModeTimer.Reset();
             GameModeTimer.Start();
             base.StartGame(username);
-            
+
             ChatClient.SendMessage(Configuration.Channel, StartMessage);
             if (username != null)
                 PlayerQueue.AddSinglePlayer(username);
-            
+
             StartRound(PlayerQueue.GetNextPlayer());
         }
 
@@ -301,7 +298,7 @@ namespace InternetClawMachine.Games.ClawGame
             GameRoundTimer.Reset();
             CommandQueue.Clear();
             GameLoopCounterValue++; //increment the counter for this persons turn
-            
+
             CurrentPlayerHasPlayed = false;
 
             //just stop everything
@@ -312,7 +309,7 @@ namespace InternetClawMachine.Games.ClawGame
             }
 
             //take everyone that voted and add them to the queue? -- nope
-            GameRoundTimer.Start();            
+            GameRoundTimer.Start();
 
             string msg = String.Format("@{0} has control for the next {1} seconds. You have {2} seconds to start playing", PlayerQueue.CurrentPlayer, Configuration.ClawSettings.SinglePlayerDuration, Configuration.ClawSettings.SinglePlayerQueueNoCommandDuration);
 
@@ -354,8 +351,6 @@ namespace InternetClawMachine.Games.ClawGame
                 }
                 else
                 {
-                    
-
                     //Waiting!!!
                     await Task.Delay((Configuration.ClawSettings.SinglePlayerDuration * 1000) - firstWait);
 
@@ -379,16 +374,12 @@ namespace InternetClawMachine.Games.ClawGame
                         if (!CurrentPlayerHasPlayed)
                             PlayerQueue.RemoveSinglePlayer(username);
 
-                        
-
                         var nextPlayer = PlayerQueue.GetNextPlayer();
                         StartRound(nextPlayer);
-                        
                     }
                 }
             });
 
-            
             base.StartRound(username); //game start event
         }
     }

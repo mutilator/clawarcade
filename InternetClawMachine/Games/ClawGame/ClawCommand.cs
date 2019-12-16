@@ -5,7 +5,7 @@
         public ClawDirection Direction { set; get; }
         public int Duration { set; get; }
         public string Username { set; get; }
-        public string UserID { set; get; }
+        public string UserId { set; get; }
         public long Timestamp { set; get; }
         public int X { get; internal set; }
         public int Y { get; internal set; }

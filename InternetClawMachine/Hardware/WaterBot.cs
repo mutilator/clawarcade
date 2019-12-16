@@ -7,7 +7,7 @@ namespace InternetClawMachine.Hardware.WaterBot
 {
     public class WaterBot
     {
-        public string IPAddress { set; get; }
+        public string IpAddress { set; get; }
         public int Port { get; set; }
 
         private Socket _workSocket = null;
@@ -15,29 +15,29 @@ namespace InternetClawMachine.Hardware.WaterBot
 
         public WaterBot(string ip, int port)
         {
-            IPAddress = ip;
+            IpAddress = ip;
             Port = port;
         }
 
         public bool Connect()
         {
             // Establish the remote endpoint for the socket.
-            IPAddress ipAddress = System.Net.IPAddress.Parse(IPAddress);
-            IPEndPoint remoteEP = new IPEndPoint(ipAddress, Port);
+            IPAddress ipAddress = System.Net.IPAddress.Parse(IpAddress);
+            IPEndPoint remoteEp = new IPEndPoint(ipAddress, Port);
 
-            return Connect(remoteEP);
+            return Connect(remoteEp);
         }
 
-        public bool Connect(IPEndPoint remoteEP)
+        public bool Connect(IPEndPoint remoteEp)
         {
             // Create a TCP/IP  socket.
-            _workSocket = new Socket(remoteEP.AddressFamily,
+            _workSocket = new Socket(remoteEp.AddressFamily,
                 SocketType.Stream, ProtocolType.Tcp);
             _workSocket.ReceiveTimeout = 1000;
 
             try
             {
-                _workSocket.Connect(remoteEP);
+                _workSocket.Connect(remoteEp);
                 return true;
             }
             catch (Exception ex)
@@ -89,7 +89,7 @@ namespace InternetClawMachine.Hardware.WaterBot
             return false;
         }
 
-        public void EnablePSU(bool enable)
+        public void EnablePsu(bool enable)
         {
             if (enable)
                 SendCommand("enable_psu");

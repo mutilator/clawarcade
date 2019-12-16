@@ -9,7 +9,7 @@ namespace InternetClawMachine.Hardware.Gantry
 {
     public class GameGantry
     {
-        public string IPAddress { set; get; }
+        public string IpAddress { set; get; }
         public int Port { get; set; }
         public int ShortSteps { set; get; }
         public int NormalSteps { set; get; }
@@ -24,7 +24,7 @@ namespace InternetClawMachine.Hardware.Gantry
 
         public int ZMax { get; internal set; }
 
-        public event EventHandler<XYMoveFinishedEventArgs> XYMoveFinished;
+        public event EventHandler<XyMoveFinishedEventArgs> XyMoveFinished;
 
         public event EventHandler<PositionEventArgs> PositionReturned;
 
@@ -40,30 +40,30 @@ namespace InternetClawMachine.Hardware.Gantry
 
         public GameGantry(string ip, int port)
         {
-            IPAddress = ip;
+            IpAddress = ip;
             Port = port;
         }
 
         public bool Connect()
         {
             // Establish the remote endpoint for the socket.
-            IPAddress ipAddress = System.Net.IPAddress.Parse(IPAddress);
-            IPEndPoint remoteEP = new IPEndPoint(ipAddress, Port);
+            IPAddress ipAddress = System.Net.IPAddress.Parse(IpAddress);
+            IPEndPoint remoteEp = new IPEndPoint(ipAddress, Port);
 
-            return Connect(remoteEP);
+            return Connect(remoteEp);
         }
 
-        public bool Connect(IPEndPoint remoteEP)
+        public bool Connect(IPEndPoint remoteEp)
         {
             // Create a TCP/IP  socket.
-            _workSocket = new Socket(remoteEP.AddressFamily,
+            _workSocket = new Socket(remoteEp.AddressFamily,
                 SocketType.Stream, ProtocolType.Tcp);
 
             _workSocket.ReceiveTimeout = 2000;
 
             try
             {
-                _workSocket.Connect(remoteEP);
+                _workSocket.Connect(remoteEp);
                 _socketReader = new SocketAsyncEventArgs();
                 byte[] buffer = new byte[1024];
                 _socketReader.SetBuffer(buffer, 0, 1024);
@@ -189,7 +189,7 @@ namespace InternetClawMachine.Hardware.Gantry
                         break;
 
                     case GantryResponses.RESPONSE_XY_MOVE:
-                        XYMoveFinished?.Invoke(this, new XYMoveFinishedEventArgs() { X = delims[2], Y = delims[3] });
+                        XyMoveFinished?.Invoke(this, new XyMoveFinishedEventArgs() { X = delims[2], Y = delims[3] });
                         break;
 
                     case GantryResponses.RESPONSE_HOME_AXIS_ACK:
@@ -322,9 +322,9 @@ namespace InternetClawMachine.Hardware.Gantry
             return SendCommand(command).ToLower() == "true";
         }
 
-        public void SetBallReturnTimings(int StartupDelay, int RunTime)
+        public void SetBallReturnTimings(int startupDelay, int runTime)
         {
-            var command = String.Format("brtntime {0} {1}", StartupDelay, RunTime);
+            var command = String.Format("brtntime {0} {1}", startupDelay, runTime);
             SendCommandAsync(command);
         }
 
@@ -426,7 +426,7 @@ namespace InternetClawMachine.Hardware.Gantry
             SendCommandAsync(command);
         }
 
-        internal void XYMove(int xdst, int ydst)
+        internal void XyMove(int xdst, int ydst)
         {
             var command = String.Format("xy {0} {1}", xdst, ydst);
             SendCommandAsync(command);
@@ -560,7 +560,7 @@ namespace InternetClawMachine.Hardware.Gantry
         }
     }
 
-    public class XYMoveFinishedEventArgs
+    public class XyMoveFinishedEventArgs
     {
         public string X { set; get; }
         public string Y { set; get; }

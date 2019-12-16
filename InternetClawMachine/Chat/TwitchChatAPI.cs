@@ -5,20 +5,20 @@ using TwitchLib.Client.Models;
 
 namespace InternetClawMachine
 {
-    internal class TwitchChatAPI : ChatAPI
+    internal class TwitchChatApi : IChatApi
     {
-        private TwitchClient Client;
-        private ConnectionCredentials Credentials;
+        private TwitchClient _client;
+        private ConnectionCredentials _credentials;
         private string _channel;
 
         public bool IsConnected
         {
             get
             {
-                if (Client != null)
+                if (_client != null)
                     return false;
                 else
-                    return Client.IsConnected;
+                    return _client.IsConnected;
             }
         }
 
@@ -53,29 +53,28 @@ namespace InternetClawMachine
         public void Initialze(ConnectionCredentials credentials, string channel)
         {
             _channel = channel;
-            Credentials = credentials;
+            _credentials = credentials;
 
-            Client = new TwitchClient();
+            _client = new TwitchClient();
 
-            Client.Initialize(Credentials, _channel);
-            Client.AddChatCommandIdentifier('!');
-            Client.AutoReListenOnException = true;
-            
+            _client.Initialize(_credentials, _channel);
+            _client.AddChatCommandIdentifier('!');
+            _client.AutoReListenOnException = true;
 
-            Client.OnJoinedChannel += Client_OnJoinedChannel;
-            Client.OnMessageReceived += Client_OnMessageReceived;
-            Client.OnWhisperReceived += Client_OnWhisperReceived;
-            Client.OnNewSubscriber += Client_OnNewSubscriber;
-            Client.OnConnected += Client_OnConnected;
-            Client.OnConnectionError += Client_OnConnectionError;
-            Client.OnDisconnected += Client_OnDisconnected;
-            Client.OnExistingUsersDetected += Client_OnExistingUsersDetected;
-            Client.OnUserJoined += Client_OnUserJoined;
-            Client.OnUserLeft += Client_OnUserLeft;
-            Client.OnMessageSent += Client_OnMessageSent;
-            Client.OnChatCommandReceived += Client_OnChatCommandReceived;
-            Client.OnSendReceiveData += Client_OnSendReceiveData;
-            Client.OnReSubscriber += Client_OnReSubscriber;
+            _client.OnJoinedChannel += Client_OnJoinedChannel;
+            _client.OnMessageReceived += Client_OnMessageReceived;
+            _client.OnWhisperReceived += Client_OnWhisperReceived;
+            _client.OnNewSubscriber += Client_OnNewSubscriber;
+            _client.OnConnected += Client_OnConnected;
+            _client.OnConnectionError += Client_OnConnectionError;
+            _client.OnDisconnected += Client_OnDisconnected;
+            _client.OnExistingUsersDetected += Client_OnExistingUsersDetected;
+            _client.OnUserJoined += Client_OnUserJoined;
+            _client.OnUserLeft += Client_OnUserLeft;
+            _client.OnMessageSent += Client_OnMessageSent;
+            _client.OnChatCommandReceived += Client_OnChatCommandReceived;
+            _client.OnSendReceiveData += Client_OnSendReceiveData;
+            _client.OnReSubscriber += Client_OnReSubscriber;
         }
 
         private void Client_OnDisconnected(object sender, TwitchLib.Communication.Events.OnDisconnectedEventArgs e)
@@ -175,14 +174,14 @@ namespace InternetClawMachine
 
         public void Disconnect()
         {
-            Client.Disconnect();
+            _client.Disconnect();
         }
 
         public void Connect()
         {
-            if (Client.IsConnected)
-                Client.Disconnect();
-            Client.Connect();
+            if (_client.IsConnected)
+                _client.Disconnect();
+            _client.Connect();
         }
 
         public void Init(string hostAddress)
@@ -191,15 +190,14 @@ namespace InternetClawMachine
 
         public void SendMessage(string channel, string message)
         {
-            if (Client.IsConnected)
-                Client.SendMessage(channel, message);
-
-
+            if (_client.IsConnected)
+                _client.SendMessage(channel, message);
         }
+
         public void SendWhisper(string username, string message)
         {
-            if (Client.IsConnected)
-                Client.SendWhisper(username, message);
+            if (_client.IsConnected)
+                _client.SendWhisper(username, message);
         }
 
         public void ThrottleMessage(int messages, TimeSpan lengthOfTime)

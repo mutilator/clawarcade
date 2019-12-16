@@ -3,7 +3,7 @@ using System.Text;
 
 namespace InternetClawMachine.Hardware.ClawControl
 {
-    public class USBm
+    public class UsBm
     {
         public static byte BitA0 = 0x00;
         public static byte BitA1 = 0x01;
@@ -36,40 +36,40 @@ namespace InternetClawMachine.Hardware.ClawControl
         public static extern int USBm_NumberOfDevices();
 
         [DllImport("USBm.dll")]
-        public static extern bool USBm_DeviceValid(int Device);
+        public static extern bool USBm_DeviceValid(int device);
 
         [DllImport("USBm.dll")]
-        public static extern bool USBm_About(StringBuilder About);
+        public static extern bool USBm_About(StringBuilder about);
 
         [DllImport("USBm.dll")]
-        public static extern bool USBm_Version(StringBuilder Version);
+        public static extern bool USBm_Version(StringBuilder version);
 
         [DllImport("USBm.dll")]
-        public static extern bool USBm_Copyright(StringBuilder Copyright);
+        public static extern bool USBm_Copyright(StringBuilder copyright);
 
         [DllImport("USBm.dll")]
-        public static extern bool USBm_DeviceMfr(int Device, StringBuilder Mfr);
+        public static extern bool USBm_DeviceMfr(int device, StringBuilder mfr);
 
         [DllImport("USBm.dll")]
-        public static extern bool USBm_DeviceProd(int Device, StringBuilder Prod);
+        public static extern bool USBm_DeviceProd(int device, StringBuilder prod);
 
         [DllImport("USBm.dll")]
-        public static extern int USBm_DeviceFirmwareVer(int Device);
+        public static extern int USBm_DeviceFirmwareVer(int device);
 
         [DllImport("USBm.dll")]
-        public static extern bool USBm_DeviceSer(int Device, StringBuilder dSer);
+        public static extern bool USBm_DeviceSer(int device, StringBuilder dSer);
 
         [DllImport("USBm.dll")]
-        public static extern int USBm_DeviceDID(int Device);
+        public static extern int USBm_DeviceDID(int device);
 
         [DllImport("USBm.dll")]
-        public static extern int USBm_DevicePID(int Device);
+        public static extern int USBm_DevicePID(int device);
 
         [DllImport("USBm.dll")]
-        public static extern int USBm_DeviceVID(int Device);
+        public static extern int USBm_DeviceVID(int device);
 
         [DllImport("USBm.dll")]
-        public static extern bool USBm_DebugString(StringBuilder DBug);
+        public static extern bool USBm_DebugString(StringBuilder dBug);
 
         [DllImport("USBm.dll")]
         public static extern bool USBm_RecentError(StringBuilder rError);
@@ -78,137 +78,137 @@ namespace InternetClawMachine.Hardware.ClawControl
         public static extern bool USBm_ClearRecentError();
 
         [DllImport("USBm.dll")]
-        public static extern bool USBm_SetReadTimeout(uint TimeOut);
+        public static extern bool USBm_SetReadTimeout(uint timeOut);
 
         [DllImport("USBm.dll")]
-        public static extern bool USBm_ReadDevice(int Device, byte[] inBuf);
+        public static extern bool USBm_ReadDevice(int device, byte[] inBuf);
 
         [DllImport("USBm.dll")]
-        public static extern bool USBm_WriteDevice(int Device, byte[] outBuf);
+        public static extern bool USBm_WriteDevice(int device, byte[] outBuf);
 
         [DllImport("USBm.dll")]
-        public static extern bool USBm_CloseDevice(int Device);
+        public static extern bool USBm_CloseDevice(int device);
 
         #endregion dllcommands
 
         #region devicecommands
 
         [DllImport("USBm.dll")]
-        public static extern bool USBm_InitPorts(int Device);
+        public static extern bool USBm_InitPorts(int device);
 
         [DllImport("USBm.dll")]
-        public static extern bool USBm_WriteA(int Device, byte outBuf);
+        public static extern bool USBm_WriteA(int device, byte outBuf);
 
         [DllImport("USBm.dll")]
-        public static extern bool USBm_WriteB(int Device, byte outBuf);
+        public static extern bool USBm_WriteB(int device, byte outBuf);
 
         [DllImport("USBm.dll")]
-        public static extern bool USBm_WriteABit(int Device, byte and, byte or);
+        public static extern bool USBm_WriteABit(int device, byte and, byte or);
 
         [DllImport("USBm.dll")]
-        public static extern bool USBm_WriteBBit(int Device, byte and, byte or);
+        public static extern bool USBm_WriteBBit(int device, byte and, byte or);
 
         [DllImport("USBm.dll")]
-        public static extern bool USBm_ReadA(int Device, byte[] data);
+        public static extern bool USBm_ReadA(int device, byte[] data);
 
         [DllImport("USBm.dll")]
-        public static extern bool USBm_ReadB(int Device, byte[] data);
+        public static extern bool USBm_ReadB(int device, byte[] data);
 
         [DllImport("USBm.dll")]
-        public static extern bool USBm_SetBit(int Device, byte bit);
+        public static extern bool USBm_SetBit(int device, byte bit);
 
         [DllImport("USBm.dll")]
-        public static extern bool USBm_ResetBit(int Device, byte bit);
+        public static extern bool USBm_ResetBit(int device, byte bit);
 
         [DllImport("USBm.dll")]
-        public static extern bool USBm_DirectionA(int Device, byte dir0, byte dir1);
+        public static extern bool USBm_DirectionA(int device, byte dir0, byte dir1);
 
         [DllImport("USBm.dll")]
-        public static extern bool USBm_DirectionAOut(int Device);
+        public static extern bool USBm_DirectionAOut(int device);
 
         [DllImport("USBm.dll")]
-        public static extern bool USBm_DirectionAIn(int Device);
+        public static extern bool USBm_DirectionAIn(int device);
 
         [DllImport("USBm.dll")]
-        public static extern bool USBm_DirectionAInPullup(int Device);
+        public static extern bool USBm_DirectionAInPullup(int device);
 
         [DllImport("USBm.dll")]
-        public static extern bool USBm_DirectionB(int Device, byte dir0, byte dir1);
+        public static extern bool USBm_DirectionB(int device, byte dir0, byte dir1);
 
         [DllImport("USBm.dll")]
-        public static extern bool USBm_DirectionBOut(int Device);
+        public static extern bool USBm_DirectionBOut(int device);
 
         [DllImport("USBm.dll")]
-        public static extern bool USBm_DirectionBIn(int Device);
+        public static extern bool USBm_DirectionBIn(int device);
 
         [DllImport("USBm.dll")]
-        public static extern bool USBm_DirectionBInPullup(int Device);
+        public static extern bool USBm_DirectionBInPullup(int device);
 
         [DllImport("USBm.dll")]
-        public static extern bool USBm_StrobeWrite(int Device, byte data, byte port, byte detail);
+        public static extern bool USBm_StrobeWrite(int device, byte data, byte port, byte detail);
 
         [DllImport("USBm.dll")]
-        public static extern bool USBm_StrobeWrite2(int Device, byte data, byte port, byte detail, byte length, byte delay);
+        public static extern bool USBm_StrobeWrite2(int device, byte data, byte port, byte detail, byte length, byte delay);
 
         [DllImport("USBm.dll")]
-        public static extern bool USBm_StrobeRead(int Device, byte data, byte port, byte detail);
+        public static extern bool USBm_StrobeRead(int device, byte data, byte port, byte detail);
 
         [DllImport("USBm.dll")]
-        public static extern bool USBm_StrobeRead2(int Device, byte data, byte port, byte detail, byte length, byte delay);
+        public static extern bool USBm_StrobeRead2(int device, byte data, byte port, byte detail, byte length, byte delay);
 
         [DllImport("USBm.dll")]
-        public static extern bool USBm_StrobeWrites(int Device, byte[] count, byte[] data);
+        public static extern bool USBm_StrobeWrites(int device, byte[] count, byte[] data);
 
         [DllImport("USBm.dll")]
-        public static extern bool USBm_StrobeReads(int Device, byte[] count, byte[] data);
+        public static extern bool USBm_StrobeReads(int device, byte[] count, byte[] data);
 
         [DllImport("USBm.dll")]
-        public static extern bool USBm_ReadLatches(int Device, byte[] data);
+        public static extern bool USBm_ReadLatches(int device, byte[] data);
 
         [DllImport("USBm.dll")]
-        public static extern bool USBm_InitLCD(int Device, byte sel, byte port);
+        public static extern bool USBm_InitLCD(int device, byte sel, byte port);
 
         [DllImport("USBm.dll")]
-        public static extern bool USBm_LCDCmd(int Device, byte data);
+        public static extern bool USBm_LCDCmd(int device, byte data);
 
         [DllImport("USBm.dll")]
-        public static extern bool USBm_LCDData(int Device, byte data);
+        public static extern bool USBm_LCDData(int device, byte data);
 
         [DllImport("USBm.dll")]
-        public static extern bool USBm_InitSPI(int Device, byte data);
+        public static extern bool USBm_InitSPI(int device, byte data);
 
         [DllImport("USBm.dll")]
-        public static extern bool USBm_SPIMaster(int Device, byte[] count, byte[] data);
+        public static extern bool USBm_SPIMaster(int device, byte[] count, byte[] data);
 
         [DllImport("USBm.dll")]
-        public static extern bool USBm_SPISlaveWrite(int Device, byte index, byte[] data);
+        public static extern bool USBm_SPISlaveWrite(int device, byte index, byte[] data);
 
         [DllImport("USBm.dll")]
-        public static extern bool USBm_SPISlaveRead(int Device, byte[] count, byte[] data);
+        public static extern bool USBm_SPISlaveRead(int device, byte[] count, byte[] data);
 
         [DllImport("USBm.dll")]
-        public static extern bool USBm_Wire2Control(int Device, byte[] data);
+        public static extern bool USBm_Wire2Control(int device, byte[] data);
 
         [DllImport("USBm.dll")]
-        public static extern bool USBm_Wire2Data(int Device, byte[] data);
+        public static extern bool USBm_Wire2Data(int device, byte[] data);
 
         [DllImport("USBm.dll")]
-        public static extern bool USBm_Stepper(int Device, byte channel, byte enable, byte direction, byte type, byte initial, byte rate, byte steps);
+        public static extern bool USBm_Stepper(int device, byte channel, byte enable, byte direction, byte type, byte initial, byte rate, byte steps);
 
         [DllImport("USBm.dll")]
-        public static extern bool USBm_Reset1Wire(int Device, byte[] data);
+        public static extern bool USBm_Reset1Wire(int device, byte[] data);
 
         [DllImport("USBm.dll")]
-        public static extern bool USBm_Write1Wire(int Device, byte data);
+        public static extern bool USBm_Write1Wire(int device, byte data);
 
         [DllImport("USBm.dll")]
-        public static extern bool USBm_Read1Wire(int Device, byte[] data);
+        public static extern bool USBm_Read1Wire(int device, byte[] data);
 
         [DllImport("USBm.dll")]
-        public static extern bool USBm_Write1WireBit(int Device, byte data);
+        public static extern bool USBm_Write1WireBit(int device, byte data);
 
         [DllImport("USBm.dll")]
-        public static extern bool USBm_Read1WireBit(int Device, byte[] data);
+        public static extern bool USBm_Read1WireBit(int device, byte[] data);
 
         #endregion devicecommands
     }

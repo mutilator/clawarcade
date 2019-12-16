@@ -8,7 +8,6 @@ using InternetClawMachine.Hardware.WaterBot;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using OBSWebsocketDotNet;
-using OBSWebsocketDotNet.Types;
 using SimpleWebServer;
 using System;
 using System.Collections.Generic;
@@ -28,7 +27,6 @@ using System.Windows.Data;
 using System.Windows.Input;
 using TwitchLib.Client.Events;
 using TwitchLib.Client.Models;
-using WebSocketSharp.Server;
 
 //using TwitchLib.Client.Services;
 
@@ -70,7 +68,7 @@ namespace InternetClawMachine
         /// <summary>
         /// Time the hardware was last reset
         /// </summary>
-        private long _lastHWReset;
+        private long _lastHwReset;
 
         /// <summary>
         /// Random number source
@@ -85,8 +83,6 @@ namespace InternetClawMachine
         #endregion Fields
 
         #region Properties
-
-        
 
         /// <summary>
         /// Configuration for everything
@@ -121,7 +117,7 @@ namespace InternetClawMachine
         /// <summary>
         /// Connection object to OBS
         /// </summary>
-        public OBSWebsocket OBSConnection { set; get; }
+        public OBSWebsocket ObsConnection { set; get; }
 
         /// <summary>
         /// Used for timing long term events not for game modes
@@ -146,12 +142,12 @@ namespace InternetClawMachine
         /// <summary>
         /// Twitch client
         /// </summary>
-        public ChatAPI Client { get; set; }
+        public IChatApi Client { get; set; }
 
         /// <summary>
         /// Whether the game is paused
         /// </summary>
-        public bool isPaused { get; private set; }
+        public bool IsPaused { get; private set; }
 
         public WebServer WebServer { get; private set; }
 
@@ -346,9 +342,9 @@ namespace InternetClawMachine
             var message = String.Format("<{0}> {1}", username, chatMessage);
             LogChat("#" + channel, message);
 
-            var CommandText = chatMessage.Substring(1);
+            var commandText = chatMessage.Substring(1);
             if (chatMessage.IndexOf(" ") >= 0)
-                CommandText = chatMessage.Substring(1, chatMessage.IndexOf(" ") - 1);
+                commandText = chatMessage.Substring(1, chatMessage.IndexOf(" ") - 1);
 
             //if they used a command then give them daily bucks
             try
@@ -371,11 +367,11 @@ namespace InternetClawMachine
             }
             catch { }
 
-            if (Game != null && !isPaused)
+            if (Game != null && !IsPaused)
                 Game.HandleCommand(channel, username, chatMessage, isSubscriber);
 
             string[] param;
-            switch (CommandText.ToLower())
+            switch (commandText.ToLower())
             {
                 case "seen":
                     if (chatMessage.IndexOf(" ") < 0)
@@ -412,9 +408,9 @@ namespace InternetClawMachine
                 case "resethw":
                     if (!isSubscriber)
                         break;
-                    if (SessionTimer.ElapsedMilliseconds - _lastHWReset > 20000)
+                    if (SessionTimer.ElapsedMilliseconds - _lastHwReset > 20000)
                     {
-                        _lastHWReset = SessionTimer.ElapsedMilliseconds;
+                        _lastHwReset = SessionTimer.ElapsedMilliseconds;
                         if (Game is ClawGame)
                         {
                             ((ClawGame)Game).MachineControl.Init();
@@ -427,9 +423,9 @@ namespace InternetClawMachine
                 case "resetcams":
                     if (!isSubscriber)
                         break;
-                    if (SessionTimer.ElapsedMilliseconds - _lastHWReset > 20000)
+                    if (SessionTimer.ElapsedMilliseconds - _lastHwReset > 20000)
                     {
-                        _lastHWReset = SessionTimer.ElapsedMilliseconds;
+                        _lastHwReset = SessionTimer.ElapsedMilliseconds;
                         ResetCameras();
                     }
                     break;
@@ -485,7 +481,7 @@ namespace InternetClawMachine
                         try
                         {
                             user = username;
-                            if (CommandText.ToLower() == "stats")
+                            if (commandText.ToLower() == "stats")
                             {
                                 param = chatMessage.Split(' ');
                                 if (param.Length == 2)
@@ -559,7 +555,7 @@ namespace InternetClawMachine
 
                             string leadersql = "SELECT name, count(*) FROM wins WHERE datetime >= @timestart GROUP BY name ORDER BY count(*) DESC";
                             param = chatMessage.Split(' ');
-                            
+
                             if (param.Length == 2)
                             {
                                 switch (param[1])
@@ -568,6 +564,7 @@ namespace InternetClawMachine
                                         desc = " ever";
                                         timestart = "0"; //first record in db, wow this is so bad..
                                         break;
+
                                     case "month":
                                         desc = " this month";
                                         timestart = (Helpers.GetEpoch() - (Int32)(DateTime.UtcNow.Subtract(new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1)).TotalSeconds)).ToString();
@@ -627,7 +624,6 @@ namespace InternetClawMachine
             InitializeComponent();
 
             Logger.Init(Configuration.FolderLogs, Configuration.ErrorLogPrefix, Configuration.MachineLogPrefix, "_DEBUG");
-            
 
             cmbGameModes.Items.Add(new GameModeSelections() { GameMode = GameModeType.SINGLEQUICKQUEUE, Name = "QuickQueue" });
             cmbGameModes.Items.Add(new GameModeSelections() { GameMode = GameModeType.SINGLEQUEUE, Name = "Queue" });
@@ -643,8 +639,8 @@ namespace InternetClawMachine
 
             Configuration.EventMode = EventMode.NORMAL;
 
-            OBSConnection = new OBSWebsocket();
-            OBSConnection.Connected += OBSConnection_Connected;
+            ObsConnection = new OBSWebsocket();
+            ObsConnection.Connected += OBSConnection_Connected;
 
             Configuration.UserList = new List<string>();
 
@@ -657,31 +653,31 @@ namespace InternetClawMachine
                 Configuration.Channel = Configuration.TwitchSettings.Channel;
                 Configuration.Username = Configuration.TwitchSettings.Username;
 
-                Client = new MixerChatAPI();
-                ((MixerChatAPI)Client).Initialze(null, null);
+                Client = new MixerChatApi();
+                ((MixerChatApi)Client).Initialze(null, null);
             }
             else if (Configuration.UsingTwitch)
             {
                 Configuration.Channel = Configuration.TwitchSettings.Channel;
                 Configuration.Username = Configuration.TwitchSettings.Username;
 
-                Client = new TwitchChatAPI();
-                Credentials = new ConnectionCredentials(Configuration.Username, Configuration.TwitchSettings.APIKey);
-                ((TwitchChatAPI)Client).Initialze(Credentials, Configuration.Channel);
-                ((TwitchChatAPI)Client).OnNewSubscriber += Client_OnNewSubscriber;
-                ((TwitchChatAPI)Client).OnReSubscriber += Client_OnReSubscriber;
-                ((TwitchChatAPI)Client).OnDisconnected += MainWindow_OnDisconnected;
-                ((TwitchChatAPI)Client).OnConnectionError += MainWindow_OnConnectionError;
+                Client = new TwitchChatApi();
+                Credentials = new ConnectionCredentials(Configuration.Username, Configuration.TwitchSettings.ApiKey);
+                ((TwitchChatApi)Client).Initialze(Credentials, Configuration.Channel);
+                ((TwitchChatApi)Client).OnNewSubscriber += Client_OnNewSubscriber;
+                ((TwitchChatApi)Client).OnReSubscriber += Client_OnReSubscriber;
+                ((TwitchChatApi)Client).OnDisconnected += MainWindow_OnDisconnected;
+                ((TwitchChatApi)Client).OnConnectionError += MainWindow_OnConnectionError;
             }
-            else if (Configuration.UsingGG)
+            else if (Configuration.UsingGg)
             {
                 Configuration.Channel = Configuration.GoodGameSettings.Channel;
                 Configuration.Username = Configuration.GoodGameSettings.Username;
-                Client = new GoodGameChatAPI();
+                Client = new GoodGameChatApi();
                 Client.Username = Configuration.Username;
-                ((GoodGameChatAPI)Client).Channel = Configuration.Channel;
-                ((GoodGameChatAPI)Client).AuthToken = Configuration.GoodGameSettings.AuthToken;
-                ((GoodGameChatAPI)Client).UserID = Configuration.GoodGameSettings.UserID;
+                ((GoodGameChatApi)Client).Channel = Configuration.Channel;
+                ((GoodGameChatApi)Client).AuthToken = Configuration.GoodGameSettings.AuthToken;
+                ((GoodGameChatApi)Client).UserId = Configuration.GoodGameSettings.UserId;
 
                 Client.Init(Configuration.GoodGameSettings.Url);
             }
@@ -705,7 +701,7 @@ namespace InternetClawMachine
 
             txtDump.Text = "";
 
-            WaterBot = new WaterBot(Configuration.WaterGunSettings.IPAddress, Configuration.WaterGunSettings.Port);
+            WaterBot = new WaterBot(Configuration.WaterGunSettings.IpAddress, Configuration.WaterGunSettings.Port);
 
             LogChat("#" + Configuration.Channel, "SESSION START");
 
@@ -726,10 +722,10 @@ namespace InternetClawMachine
             try
             {
                 //we need a default....
-                if (Configuration.WebserverURI == null || Configuration.WebserverURI.Length == 0)
-                    Configuration.WebserverURI = "http://localhost:8080/ipa/";
+                if (Configuration.WebserverUri == null || Configuration.WebserverUri.Length == 0)
+                    Configuration.WebserverUri = "http://localhost:8080/ipa/";
 
-                WebServer = new WebServer(SendWebResponse, Configuration.WebserverURI);
+                WebServer = new WebServer(SendWebResponse, Configuration.WebserverUri);
                 WebServer.Run();
             }
             catch (Exception e)
@@ -737,8 +733,9 @@ namespace InternetClawMachine
                 MessageBox.Show("Web server error: " + e.Message);
             }
 
-            RFIDReader.NewTagFound += RFIDReader_NewTagFound;
+            RfidReader.NewTagFound += RFIDReader_NewTagFound;
         }
+
         public string SendWebResponse(HttpListenerRequest request)
         {
             var jsonString = "";
@@ -746,7 +743,6 @@ namespace InternetClawMachine
             {
                 if (Game != null)
                 {
-
                     Configuration.DataExchanger.PlayerQueue = Game.PlayerQueue;
                     Configuration.DataExchanger.Bounty = Game.Bounty;
                     if (Game is ClawGame)
@@ -757,7 +753,6 @@ namespace InternetClawMachine
                     }
 
                     Configuration.DataExchanger.RoundTimer = Game.GameRoundTimer.ElapsedMilliseconds / 1000;
-
                 }
                 jsonString = JsonConvert.SerializeObject(Configuration.DataExchanger, Formatting.Indented);
             }
@@ -771,7 +766,6 @@ namespace InternetClawMachine
                 Configuration = new BotConfiguration();
             }
             Configuration.Load(_botConfigFile);
-            
         }
 
         private void SaveConfiguration()
@@ -876,12 +870,12 @@ namespace InternetClawMachine
 
         private void ShowTwitterMessage()
         {
-            Client.SendMessage(Configuration.Channel, String.Format("Follow us on twitter @ClawArcade {0}", Configuration.TwitterURL));
+            Client.SendMessage(Configuration.Channel, String.Format("Follow us on twitter @ClawArcade {0}", Configuration.TwitterUrl));
         }
 
         private void ShowDiscordMessage()
         {
-            Client.SendMessage(Configuration.Channel, String.Format("Join the twitch plays community discord @ {0}", Configuration.DiscordURL));
+            Client.SendMessage(Configuration.Channel, String.Format("Join the twitch plays community discord @ {0}", Configuration.DiscordUrl));
         }
 
         private void Client_OnMessageReceived(object sender, OnMessageReceivedArgs e)
@@ -931,15 +925,15 @@ namespace InternetClawMachine
         private void PlayDoh()
         {
             var data = new JObject();
-            data.Add("name", Configuration.OBSScreenSourceNames.SoundClipDoh.SourceName);
-            Game.WSConnection.SendCommand(MediaWebSocketServer.CommandMedia, data);
+            data.Add("name", Configuration.ObsScreenSourceNames.SoundClipDoh.SourceName);
+            Game.WsConnection.SendCommand(MediaWebSocketServer.CommandMedia, data);
         }
 
         private void PlaySadTrombone()
         {
             var data = new JObject();
-            data.Add("name", Configuration.OBSScreenSourceNames.SoundClipSadTrombone.SourceName);
-            Game.WSConnection.SendCommand(MediaWebSocketServer.CommandMedia, data);
+            data.Add("name", Configuration.ObsScreenSourceNames.SoundClipSadTrombone.SourceName);
+            Game.WsConnection.SendCommand(MediaWebSocketServer.CommandMedia, data);
         }
 
         private void HandleBitsMessage(OnMessageReceivedArgs e)
@@ -969,7 +963,7 @@ namespace InternetClawMachine
             while (true)
             {
                 Thread.Sleep(Configuration.CameraResetTimer * 1000);
-                if (OBSConnection.IsConnected)
+                if (ObsConnection.IsConnected)
                 {
                     ResetCameras();
                 }
@@ -990,29 +984,29 @@ namespace InternetClawMachine
         /// <param name="clawCamOnly">true if only the claw camera should be reset</param>
         private void ResetCameras(bool clawCamOnly)
         {
-            if (OBSConnection.IsConnected)
+            if (ObsConnection.IsConnected)
             {
                 if (Game.GameMode == GameModeType.GOLF || Game.GameMode == GameModeType.DRAWING)
                 {
-                    Task.Run(() => ResetCamera(Configuration.OBSScreenSourceNames.CameraGantryCam.SourceName));
-                    Task.Run(() => ResetCamera(Configuration.OBSScreenSourceNames.CameraGantryCam.SourceName));
+                    Task.Run(() => ResetCamera(Configuration.ObsScreenSourceNames.CameraGantryCam.SourceName));
+                    Task.Run(() => ResetCamera(Configuration.ObsScreenSourceNames.CameraGantryCam.SourceName));
                 }
                 else
                 {
                     if (clawCamOnly)
                     {
-                        Task.Run(() => ResetCamera(Configuration.OBSScreenSourceNames.CameraClawCam.SourceName));
+                        Task.Run(() => ResetCamera(Configuration.ObsScreenSourceNames.CameraClawCam.SourceName));
                     }
                     else
                     {
                         //reset the side camera?
-                        OBSConnection.SetSourceRender(Configuration.OBSScreenSourceNames.CameraClawFront.SourceName, false);
-                        OBSConnection.SetSourceRender(Configuration.OBSScreenSourceNames.CameraClawSide.SourceName, false);
-                        OBSConnection.SetSourceRender(Configuration.OBSScreenSourceNames.CameraClawCam.SourceName, false);
+                        ObsConnection.SetSourceRender(Configuration.ObsScreenSourceNames.CameraClawFront.SourceName, false);
+                        ObsConnection.SetSourceRender(Configuration.ObsScreenSourceNames.CameraClawSide.SourceName, false);
+                        ObsConnection.SetSourceRender(Configuration.ObsScreenSourceNames.CameraClawCam.SourceName, false);
                         Thread.Sleep(Configuration.ClawSettings.CameraResetDelay);
-                        OBSConnection.SetSourceRender(Configuration.OBSScreenSourceNames.CameraClawSide.SourceName, true);
-                        OBSConnection.SetSourceRender(Configuration.OBSScreenSourceNames.CameraClawCam.SourceName, true);
-                        OBSConnection.SetSourceRender(Configuration.OBSScreenSourceNames.CameraClawFront.SourceName, true);
+                        ObsConnection.SetSourceRender(Configuration.ObsScreenSourceNames.CameraClawSide.SourceName, true);
+                        ObsConnection.SetSourceRender(Configuration.ObsScreenSourceNames.CameraClawCam.SourceName, true);
+                        ObsConnection.SetSourceRender(Configuration.ObsScreenSourceNames.CameraClawFront.SourceName, true);
                     }
                 }
             }
@@ -1022,9 +1016,9 @@ namespace InternetClawMachine
         {
             try
             {
-                OBSConnection.SetSourceRender(source, false);
+                ObsConnection.SetSourceRender(source, false);
                 await Task.Delay(Configuration.ClawSettings.CameraResetDelay);
-                OBSConnection.SetSourceRender(source, true);
+                ObsConnection.SetSourceRender(source, true);
             }
             catch (Exception ex)
             {
@@ -1098,12 +1092,8 @@ namespace InternetClawMachine
 
         private void OBSConnection_Connected(object sender, EventArgs e)
         {
-            
-            
             if (!(Game is ClawGame))
                 return;
-
-            
         }
 
         private void StartGameModeRealTime()
@@ -1113,7 +1103,7 @@ namespace InternetClawMachine
             {
                 EndGame();
             }
-            Game = new ClawChaos(Client, Configuration, OBSConnection);
+            Game = new ClawChaos(Client, Configuration, ObsConnection);
             StartGame(null);
         }
 
@@ -1124,7 +1114,7 @@ namespace InternetClawMachine
             {
                 EndGame();
             }
-            Game = new Voting(Client, Configuration, OBSConnection);
+            Game = new Voting(Client, Configuration, ObsConnection);
             StartGame(null);
         }
 
@@ -1135,7 +1125,7 @@ namespace InternetClawMachine
             {
                 EndGame();
             }
-            Game = new WaterGunQueue(Client, Configuration, OBSConnection);
+            Game = new WaterGunQueue(Client, Configuration, ObsConnection);
             StartGame(username);
         }
 
@@ -1146,8 +1136,8 @@ namespace InternetClawMachine
             {
                 EndGame();
             }
-            Game = new ClawSingleQueue(Client, Configuration, OBSConnection);
-            
+            Game = new ClawSingleQueue(Client, Configuration, ObsConnection);
+
             StartGame(username);
         }
 
@@ -1158,19 +1148,16 @@ namespace InternetClawMachine
             {
                 EndGame();
             }
-            Game = new ClawSingleQuickQueue(Client, Configuration, OBSConnection);
-            
-            StartGame(username);
-            
-            
+            Game = new ClawSingleQuickQueue(Client, Configuration, ObsConnection);
 
+            StartGame(username);
         }
 
-        private void RFIDReader_NewTagFound(EPC_data epcData)
+        private void RFIDReader_NewTagFound(EpcData epcData)
         {
             Dispatcher.BeginInvoke(new Action(() =>
             {
-                txtLastEPC.Text = epcData.epc.Trim();
+                txtLastEPC.Text = epcData.Epc.Trim();
             }));
         }
 
@@ -1181,7 +1168,7 @@ namespace InternetClawMachine
             {
                 EndGame();
             }
-            Game = new Drawing(Client, Configuration, OBSConnection);
+            Game = new Drawing(Client, Configuration, ObsConnection);
             ((GantryGame)Game).Gantry = new GameGantry(Configuration.DrawingSettings.GantryIp, Configuration.DrawingSettings.GantryPort);
             ((GantryGame)Game).Gantry.Connect();
             ((GantryGame)Game).Gantry.ShortSteps = Configuration.DrawingSettings.ShortSteps;
@@ -1205,7 +1192,7 @@ namespace InternetClawMachine
                 EndGame();
             }
 
-            Game = new Golf(Client, Configuration, OBSConnection);
+            Game = new Golf(Client, Configuration, ObsConnection);
             Configuration.ClawSettings.SinglePlayerQueueNoCommandDuration = 20;
 
             StartGame(username);
@@ -1225,14 +1212,12 @@ namespace InternetClawMachine
             Game.StartGame(username);
             if (Game is ClawGame)
             {
-
                 Binding myBinding = new Binding("PlushieTags");
                 myBinding.Source = ((ClawGame)Game);
                 // Bind the new data source to the myText TextBlock control's Text dependency property.
                 lstPlushes.SetBinding(ListView.ItemsSourceProperty, myBinding);
             }
         }
-
 
         private void Game_PhaseChanged(object sender, PhaseChangeEventArgs e)
         {
@@ -1241,16 +1226,16 @@ namespace InternetClawMachine
                 switch (e.NewPhase)
                 {
                     case GamePhase.FINE_CONTROL:
-                        if (OBSConnection.IsConnected)
+                        if (ObsConnection.IsConnected)
                         {
-                            OBSConnection.SetCurrentScene(Configuration.OBSScreenSourceNames.SceneGolfFine.Scene);
+                            ObsConnection.SetCurrentScene(Configuration.ObsScreenSourceNames.SceneGolfFine.Scene);
                         }
                         break;
 
                     case GamePhase.DISTANCE_MOVE:
-                        if (OBSConnection.IsConnected)
+                        if (ObsConnection.IsConnected)
                         {
-                            OBSConnection.SetCurrentScene(Configuration.OBSScreenSourceNames.SceneGolfGrid.Scene);
+                            ObsConnection.SetCurrentScene(Configuration.ObsScreenSourceNames.SceneGolfGrid.Scene);
                         }
                         break;
                 }
@@ -1262,7 +1247,6 @@ namespace InternetClawMachine
         /// </summary>
         private void EndGame()
         {
-
             Game.EndGame();
 
             Game.GameEnded -= MainWindow_GameModeEnded;
@@ -1272,15 +1256,13 @@ namespace InternetClawMachine
             Game.Destroy();
         }
 
-        private void RunCurrentGameMode(string Username, string Message, string Channel, bool IsSubscriber)
+        private void RunCurrentGameMode(string username, string message, string channel, bool isSubscriber)
         {
             //game modes
-            if (isPaused)
+            if (IsPaused)
                 return;
 
-            
-
-            Game.HandleMessage(Username, Message);
+            Game.HandleMessage(username, message);
         }
 
         private void AddDebugText(string txt)
@@ -1570,22 +1552,22 @@ namespace InternetClawMachine
 
         private void btnPause_Click(object sender, RoutedEventArgs e)
         {
-            isPaused = !isPaused;
-            if (isPaused)
+            IsPaused = !IsPaused;
+            if (IsPaused)
             {
-                OBSConnection.SetSourceRender(Configuration.OBSScreenSourceNames.Paused.SourceName, true, Configuration.OBSScreenSourceNames.Paused.Scene);
+                ObsConnection.SetSourceRender(Configuration.ObsScreenSourceNames.Paused.SourceName, true, Configuration.ObsScreenSourceNames.Paused.Scene);
                 btnPause.Content = "Resume";
             }
             else
             {
-                OBSConnection.SetSourceRender(Configuration.OBSScreenSourceNames.Paused.SourceName, false, Configuration.OBSScreenSourceNames.Paused.Scene);
+                ObsConnection.SetSourceRender(Configuration.ObsScreenSourceNames.Paused.SourceName, false, Configuration.ObsScreenSourceNames.Paused.Scene);
                 btnPause.Content = "Pause";
             }
         }
 
         private void btnStartChaos_Click(object sender, RoutedEventArgs e)
         {
-            Configuration.SessionGUID = Guid.NewGuid();
+            Configuration.SessionGuid = Guid.NewGuid();
             var gameMode = ((GameModeSelections)cmbGameModes.SelectedItem).GameMode;
 
             switch (gameMode)
@@ -1638,14 +1620,14 @@ namespace InternetClawMachine
 
         private void btnRFIDReset_Click(object sender, RoutedEventArgs e)
         {
-            RFIDReader.ResetTagInventory();
+            RfidReader.ResetTagInventory();
         }
 
         private void sldrAntStrength_PreviewMouseUp(object sender, MouseButtonEventArgs e)
         {
             Dispatcher.BeginInvoke(new Action(() =>
             {
-                RFIDReader.SetAntPower(sldrAntStrength.Value);
+                RfidReader.SetAntPower(sldrAntStrength.Value);
             }));
         }
 
@@ -1757,10 +1739,10 @@ namespace InternetClawMachine
 
         private void btnOBSConnect_Click(object sender, RoutedEventArgs e)
         {
-            if (OBSConnection.IsConnected)
-                OBSConnection.Disconnect();
+            if (ObsConnection.IsConnected)
+                ObsConnection.Disconnect();
 
-            OBSConnection.Connect(Configuration.OBSSettings.Url, Configuration.OBSSettings.Password);
+            ObsConnection.Connect(Configuration.ObsSettings.Url, Configuration.ObsSettings.Password);
         }
 
         private void btnScene1_Click(object sender, RoutedEventArgs e)
@@ -1798,7 +1780,7 @@ namespace InternetClawMachine
             throw new NotImplementedException();
         }
 
-        private void Gantry_XYMoveFinished(object sender, XYMoveFinishedEventArgs e)
+        private void Gantry_XYMoveFinished(object sender, XyMoveFinishedEventArgs e)
         {
             throw new NotImplementedException();
         }
@@ -1865,9 +1847,9 @@ namespace InternetClawMachine
         {
             if (((GantryGame)Game).Gantry.IsConnected)
             {
-                var Xdst = int.Parse(txtCoordX.Text);
-                var Ydst = int.Parse(txtCoordY.Text);
-                ((GantryGame)Game).Gantry.XYMove(Xdst, Ydst);
+                var xdst = int.Parse(txtCoordX.Text);
+                var ydst = int.Parse(txtCoordY.Text);
+                ((GantryGame)Game).Gantry.XyMove(xdst, ydst);
             }
         }
 
@@ -1964,7 +1946,7 @@ namespace InternetClawMachine
                 MessageBox.Show("No one selected, idiot!");
                 return;
             }
-            ((ClawGame)Game).TriggerWin(((PlushieObject)lstPlushes.SelectedItem).EPCList[0], lstViewers.SelectedItem.ToString());
+            ((ClawGame)Game).TriggerWin(((PlushieObject)lstPlushes.SelectedItem).EpcList[0], lstViewers.SelectedItem.ToString());
             lstPlushes.Items.Refresh();
         }
 
@@ -1977,7 +1959,7 @@ namespace InternetClawMachine
         {
             if (Game != null)
             {
-                Configuration.SessionGUID = Guid.NewGuid();
+                Configuration.SessionGuid = Guid.NewGuid();
                 EndGame();
                 StartGame(null);
             }
@@ -2009,11 +1991,10 @@ namespace InternetClawMachine
                 filterSettings.Add("similarity", 292);
                 filterSettings.Add("smoothness", 29);
                 filterSettings.Add("spill", 142);
-                OBSConnection.AddFilterToSource("SideCameraOBS", "Chroma Key", "chroma_key_filter", filterSettings);
+                ObsConnection.AddFilterToSource("SideCameraOBS", "Chroma Key", "chroma_key_filter", filterSettings);
             }
             catch (Exception x)
             {
-
                 Console.WriteLine(x.Message);
             }
             try
@@ -2023,35 +2004,30 @@ namespace InternetClawMachine
                 filterSettings.Add("similarity", 314);
                 filterSettings.Add("smoothness", 32);
                 filterSettings.Add("spill", 145);
-                OBSConnection.AddFilterToSource("FrontCameraOBS", "Chroma Key", "chroma_key_filter", filterSettings);
+                ObsConnection.AddFilterToSource("FrontCameraOBS", "Chroma Key", "chroma_key_filter", filterSettings);
             }
             catch (Exception x)
             {
-
                 Console.WriteLine(x.Message);
             }
         }
 
         private void Button_Click_4(object sender, RoutedEventArgs e)
         {
-
             try
             {
-
-                OBSConnection.RemoveFilterFromSource("SideCameraOBS", "Chroma Key");
+                ObsConnection.RemoveFilterFromSource("SideCameraOBS", "Chroma Key");
             }
             catch (Exception x)
             {
-
                 Console.WriteLine(x.Message);
             }
             try
             {
-                OBSConnection.RemoveFilterFromSource("FrontCameraOBS", "Chroma Key");
+                ObsConnection.RemoveFilterFromSource("FrontCameraOBS", "Chroma Key");
             }
             catch (Exception x)
             {
-
                 Console.WriteLine(x.Message);
             }
         }
@@ -2059,12 +2035,12 @@ namespace InternetClawMachine
         private void BtnPlushAddNew_Click(object sender, RoutedEventArgs e)
         {
             //check if last EPC is available in textbox
-            var strEPC = txtLastEPC.Text.Trim();
+            var strEpc = txtLastEPC.Text.Trim();
 
             //check if a plush name was filled out
             var strPlusheName = txtPLushName.Text.Trim();
 
-            if (strEPC == null || strEPC.Length == 0 || strPlusheName == null || strPlusheName.Length == 0)
+            if (strEpc == null || strEpc.Length == 0 || strPlusheName == null || strPlusheName.Length == 0)
             {
                 MessageBox.Show("Invalid EPC or Plush Name");
                 return;
@@ -2079,32 +2055,29 @@ namespace InternetClawMachine
 
             //check database for plush name, create placeholder plush data object
             if (plushieObject == null)
-            { 
+            {
                 //grab new record if old one didnt exist
                 plushieObject = new PlushieObject()
                 {
                     Name = strPlusheName,
-                    EPCList = new List<string>() { strEPC }
+                    EpcList = new List<string>() { strEpc }
                 };
-                
-                plushieObject = DatabaseFunctions.AddPlush(Configuration, plushieObject, strEPC);
+
+                plushieObject = DatabaseFunctions.AddPlush(Configuration, plushieObject, strEpc);
 
                 //add it
                 ((ClawGame)Game).PlushieTags.Add(plushieObject);
-
             }
 
             //add the new tag to that plush, using the plush object
-            plushieObject.EPCList.Add(strEPC);
+            plushieObject.EpcList.Add(strEpc);
             //update database too
-            DatabaseFunctions.AddPlushEPC(Configuration, plushieObject.PlushID, strEPC);
-
+            DatabaseFunctions.AddPlushEpc(Configuration, plushieObject.PlushId, strEpc);
 
             txtPLushName.Text = "";
             txtLastEPC.Text = "";
             //clear the textbox for name and EPC?
             //move adding of actual plush inside LoadPlushFromDB() call to a new call so we can use that to write our new data....
-
         }
 
         private void BtnThing_Click(object sender, RoutedEventArgs e)
@@ -2114,9 +2087,8 @@ namespace InternetClawMachine
 
             //WSConnection.SendCommand(WSConnection.CommandMedia, data);
 
-
-            data.Add("name", Configuration.OBSScreenSourceNames.WinAnimationDefault.SourceName);
-            Game.WSConnection.SendCommand(MediaWebSocketServer.CommandMedia, data);
+            data.Add("name", Configuration.ObsScreenSourceNames.WinAnimationDefault.SourceName);
+            Game.WsConnection.SendCommand(MediaWebSocketServer.CommandMedia, data);
 
             /*
             SceneItemProperties props = OBSConnection.GetSceneItemProperties("CLIP-Shuttle", "RocketMan");
@@ -2149,10 +2121,10 @@ namespace InternetClawMachine
 
         private void Button_Click_5(object sender, RoutedEventArgs e)
         {
-            OAuthTokenRequestor dialog = new OAuthTokenRequestor() { ClientID = Configuration.TwitchSettings.ClientID };
+            OAuthTokenRequestor dialog = new OAuthTokenRequestor() { ClientId = Configuration.TwitchSettings.ClientId };
             if (dialog.ShowDialog() == true)
             {
-                Configuration.TwitchSettings.APIKey = dialog.AccessToken;
+                Configuration.TwitchSettings.ApiKey = dialog.AccessToken;
             }
         }
 
@@ -2168,24 +2140,24 @@ namespace InternetClawMachine
                 }
 
                 ((ClawGame)Game).MachineControl.DualStrobe(Configuration.ClawSettings.StrobeRedChannel, Configuration.ClawSettings.StrobeBlueChannel, Configuration.ClawSettings.StrobeGreenChannel, Configuration.ClawSettings.StrobeRedChannel2, Configuration.ClawSettings.StrobeBlueChannel2, Configuration.ClawSettings.StrobeGreenChannel2, Configuration.ClawSettings.StrobeCount, Configuration.ClawSettings.StrobeDelay);
-                            await Task.Delay(Configuration.ClawSettings.StrobeCount * Configuration.ClawSettings.StrobeDelay * 4);
-                            if (turnemon)
-                                ((ClawGame)Game).MachineControl.LightSwitch(true);
+                await Task.Delay(Configuration.ClawSettings.StrobeCount * Configuration.ClawSettings.StrobeDelay * 4);
+                if (turnemon)
+                    ((ClawGame)Game).MachineControl.LightSwitch(true);
             });
         }
 
         private void BtnDoh_Click(object sender, RoutedEventArgs e)
         {
             var data = new JObject();
-            data.Add("name", Configuration.OBSScreenSourceNames.SoundClipDoh.SourceName);
-            Game.WSConnection.SendCommand(MediaWebSocketServer.CommandMedia, data);
+            data.Add("name", Configuration.ObsScreenSourceNames.SoundClipDoh.SourceName);
+            Game.WsConnection.SendCommand(MediaWebSocketServer.CommandMedia, data);
         }
 
         private void BtnTrombone_Click(object sender, RoutedEventArgs e)
         {
             var data = new JObject();
-            data.Add("name", Configuration.OBSScreenSourceNames.SoundClipSadTrombone.SourceName);
-            Game.WSConnection.SendCommand(MediaWebSocketServer.CommandMedia, data);
+            data.Add("name", Configuration.ObsScreenSourceNames.SoundClipSadTrombone.SourceName);
+            Game.WsConnection.SendCommand(MediaWebSocketServer.CommandMedia, data);
         }
 
         private void BtnScare_Click(object sender, RoutedEventArgs e)
@@ -2226,8 +2198,8 @@ namespace InternetClawMachine
     {
         public string Name { set; get; }
         public string WinStream { set; get; }
-        public List<string> EPCList { set; get; }
-        public int PlushID { get; internal set; }
+        public List<string> EpcList { set; get; }
+        public int PlushId { get; internal set; }
         public int ChangeDate { get; internal set; }
         public string ChangedBy { get; internal set; }
         public bool WasGrabbed { set; get; }

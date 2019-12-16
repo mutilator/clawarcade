@@ -1,41 +1,41 @@
 ﻿namespace InternetClawMachine.Settings
 {
-    public class OBSScreenSourceNames
+    public class ObsScreenSourceNames
     {
-        public OBSSceneSource Paused = new OBSSceneSource() { SourceName = "Paused", Type = OBSSceneSourceType.TEXT, Scene = "VideosScene" };
+        public ObsSceneSource Paused = new ObsSceneSource() { SourceName = "Paused", Type = ObsSceneSourceType.TEXT, Scene = "VideosScene" };
 
-        public OBSSceneSource SceneGolfGrid = new OBSSceneSource() { Scene = "GolfGrid" };
-        public OBSSceneSource SceneGolfFine = new OBSSceneSource() { Scene = "GolfFine" };
+        public ObsSceneSource SceneGolfGrid = new ObsSceneSource() { Scene = "GolfGrid" };
+        public ObsSceneSource SceneGolfFine = new ObsSceneSource() { Scene = "GolfFine" };
 
-        public OBSSceneSource SceneClaw1 = new OBSSceneSource() { Scene = "Claw 1" };
-        public OBSSceneSource SceneClaw2 = new OBSSceneSource() { Scene = "Claw 2" };
-        public OBSSceneSource SceneClaw3 = new OBSSceneSource() { Scene = "Claw 3" };
+        public ObsSceneSource SceneClaw1 = new ObsSceneSource() { Scene = "Claw 1" };
+        public ObsSceneSource SceneClaw2 = new ObsSceneSource() { Scene = "Claw 2" };
+        public ObsSceneSource SceneClaw3 = new ObsSceneSource() { Scene = "Claw 3" };
 
-        public OBSSceneSource WinAnimationDefault = new OBSSceneSource() { SourceName = "CLIP-Confetti", Type = OBSSceneSourceType.VIDEO, Scene = "VideosScene" };
+        public ObsSceneSource WinAnimationDefault = new ObsSceneSource() { SourceName = "CLIP-Confetti", Type = ObsSceneSourceType.VIDEO, Scene = "VideosScene" };
 
-        public OBSSceneSource ThemeLegoAwesome = new OBSSceneSource() { SourceName = "CLIP-LegoAwesome", Type = OBSSceneSourceType.VIDEO };
-        public OBSSceneSource ThemeHalloweenScare = new OBSSceneSource() { SourceName = "THEME-HalloweenScare", Type = OBSSceneSourceType.VIDEO, Scene = "VideosScene" };
-        public OBSSceneSource ThemeEasterWinAnimation = new OBSSceneSource() { SourceName = "THEME-EasterScanAnimation", Type = OBSSceneSourceType.VIDEO, Scene = "VideosScene" };
+        public ObsSceneSource ThemeLegoAwesome = new ObsSceneSource() { SourceName = "CLIP-LegoAwesome", Type = ObsSceneSourceType.VIDEO };
+        public ObsSceneSource ThemeHalloweenScare = new ObsSceneSource() { SourceName = "THEME-HalloweenScare", Type = ObsSceneSourceType.VIDEO, Scene = "VideosScene" };
+        public ObsSceneSource ThemeEasterWinAnimation = new ObsSceneSource() { SourceName = "THEME-EasterScanAnimation", Type = ObsSceneSourceType.VIDEO, Scene = "VideosScene" };
 
-        public OBSSceneSource TextOverlayPlayerQueue = new OBSSceneSource() { SourceName = "PlayerQueue", Type = OBSSceneSourceType.TEXT };
-        public OBSSceneSource TextOverlayChat = new OBSSceneSource() { SourceName = "Chat", Type = OBSSceneSourceType.BROWSER };
-        public OBSSceneSource TextOverlayPlayNotification = new OBSSceneSource() { SourceName = "!Play", Type = OBSSceneSourceType.TEXT };
+        public ObsSceneSource TextOverlayPlayerQueue = new ObsSceneSource() { SourceName = "PlayerQueue", Type = ObsSceneSourceType.TEXT };
+        public ObsSceneSource TextOverlayChat = new ObsSceneSource() { SourceName = "Chat", Type = ObsSceneSourceType.BROWSER };
+        public ObsSceneSource TextOverlayPlayNotification = new ObsSceneSource() { SourceName = "!Play", Type = ObsSceneSourceType.TEXT };
 
-        public OBSSceneSource SoundClipDoh = new OBSSceneSource() { SourceName = "CLIP-Doh", Type = OBSSceneSourceType.SOUND };
-        public OBSSceneSource SoundClipSadTrombone = new OBSSceneSource() { SourceName = "CLIP-SadTrombone", Type = OBSSceneSourceType.SOUND };
+        public ObsSceneSource SoundClipDoh = new ObsSceneSource() { SourceName = "CLIP-Doh", Type = ObsSceneSourceType.SOUND };
+        public ObsSceneSource SoundClipSadTrombone = new ObsSceneSource() { SourceName = "CLIP-SadTrombone", Type = ObsSceneSourceType.SOUND };
 
-        public OBSSceneSource CameraConveyor = new OBSSceneSource() { SourceName = "ConveyorCam", Type = OBSSceneSourceType.CAMERA };
-        public OBSSceneSource CameraClawCam = new OBSSceneSource() { SourceName = "ClawCamera", Type = OBSSceneSourceType.CAMERA };
-        public OBSSceneSource CameraClawFront = new OBSSceneSource() { SourceName = "FrontCameraOBS", Type = OBSSceneSourceType.CAMERA };
-        public OBSSceneSource CameraClawSide = new OBSSceneSource() { SourceName = "SideCameraOBS", Type = OBSSceneSourceType.CAMERA };
+        public ObsSceneSource CameraConveyor = new ObsSceneSource() { SourceName = "ConveyorCam", Type = ObsSceneSourceType.CAMERA };
+        public ObsSceneSource CameraClawCam = new ObsSceneSource() { SourceName = "ClawCamera", Type = ObsSceneSourceType.CAMERA };
+        public ObsSceneSource CameraClawFront = new ObsSceneSource() { SourceName = "FrontCameraOBS", Type = ObsSceneSourceType.CAMERA };
+        public ObsSceneSource CameraClawSide = new ObsSceneSource() { SourceName = "SideCameraOBS", Type = ObsSceneSourceType.CAMERA };
 
-        public OBSSceneSource CameraGantryCam = new OBSSceneSource() { SourceName = "GantryCam", Type = OBSSceneSourceType.CAMERA };
+        public ObsSceneSource CameraGantryCam = new ObsSceneSource() { SourceName = "GantryCam", Type = ObsSceneSourceType.CAMERA };
 
-        public OBSSceneSource BountyEndScreen = new OBSSceneSource() { SourceName = "BountyEndScreen", Type = OBSSceneSourceType.VIDEO, Scene = "VideosScene" };
-        public OBSSceneSource BountyWantedBlank = new OBSSceneSource() { SourceName = "WANTED-BLANK", Type = OBSSceneSourceType.IMAGE, Scene = "VideosScene" };
+        public ObsSceneSource BountyEndScreen = new ObsSceneSource() { SourceName = "BountyEndScreen", Type = ObsSceneSourceType.VIDEO, Scene = "VideosScene" };
+        public ObsSceneSource BountyWantedBlank = new ObsSceneSource() { SourceName = "WANTED-BLANK", Type = ObsSceneSourceType.IMAGE, Scene = "VideosScene" };
     }
 
-    public class OBSSceneSource
+    public class ObsSceneSource
     {
         /// <summary>
         /// Name of the source item
@@ -45,7 +45,7 @@
         /// <summary>
         /// Type of media
         /// </summary>
-        public OBSSceneSourceType Type;
+        public ObsSceneSourceType Type;
 
         /// <summary>
         /// Scene this media belongs to, if null it's the active scene
@@ -58,7 +58,7 @@
         public int Duration;
     }
 
-    public enum OBSSceneSourceType
+    public enum ObsSceneSourceType
     {
         SOUND,
         VIDEO,

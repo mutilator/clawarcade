@@ -16,10 +16,10 @@ namespace InternetClawMachine.Games.GantreyGame
     public class Golf : GantryGame
     {
         private int _moves; //how many moves to get the ball to the hole
-        private int _X;
-        private int _Y;
-        private int _Z;
-        private int _A;
+        private int _x;
+        private int _y;
+        private int _z;
+        private int _a;
         private AStar _map;
         private GamePhase _phase;
 
@@ -81,9 +81,9 @@ namespace InternetClawMachine.Games.GantreyGame
             set
             {
                 Configuration.Coords.XCord = value;
-                _X = value;
+                _x = value;
             }
-            get { return _X; }
+            get { return _x; }
         }
 
         public int Y
@@ -91,9 +91,9 @@ namespace InternetClawMachine.Games.GantreyGame
             set
             {
                 Configuration.Coords.YCord = value;
-                _Y = value;
+                _y = value;
             }
-            get { return _Y; }
+            get { return _y; }
         }
 
         public int Z
@@ -101,9 +101,9 @@ namespace InternetClawMachine.Games.GantreyGame
             set
             {
                 Configuration.Coords.ZCord = value;
-                _Z = value;
+                _z = value;
             }
-            get { return _Z; }
+            get { return _z; }
         }
 
         public int A
@@ -111,12 +111,12 @@ namespace InternetClawMachine.Games.GantreyGame
             set
             {
                 Configuration.Coords.ACord = value;
-                _A = value;
+                _a = value;
             }
-            get { return _A; }
+            get { return _a; }
         }
 
-        public Golf(ChatAPI client, BotConfiguration configuration, OBSWebsocket obs) : base(client, configuration, obs)
+        public Golf(IChatApi client, BotConfiguration configuration, OBSWebsocket obs) : base(client, configuration, obs)
         {
             _filledBlocks = new List<Rectangle>();
             HitStepLocations = new List<Coordinates>();
@@ -134,7 +134,7 @@ namespace InternetClawMachine.Games.GantreyGame
 
                 Gantry.PositionReturned -= Gantry_PositionReturned;
                 Gantry.PositionSent -= Gantry_PositionSent;
-                Gantry.XYMoveFinished -= Gantry_XYMoveFinished;
+                Gantry.XyMoveFinished -= Gantry_XYMoveFinished;
                 Gantry.StepSent -= Gantry_StepSent;
                 Gantry.MoveComplete -= Gantry_MoveComplete;
                 Gantry.ExceededLimit -= Gantry_ExceededLimit;
@@ -153,7 +153,7 @@ namespace InternetClawMachine.Games.GantreyGame
             {
                 Gantry.PositionReturned -= Gantry_PositionReturned;
                 Gantry.PositionSent -= Gantry_PositionSent;
-                Gantry.XYMoveFinished -= Gantry_XYMoveFinished;
+                Gantry.XyMoveFinished -= Gantry_XYMoveFinished;
                 Gantry.StepSent -= Gantry_StepSent;
                 Gantry.MoveComplete -= Gantry_MoveComplete;
                 Gantry.ExceededLimit -= Gantry_ExceededLimit;
@@ -173,7 +173,7 @@ namespace InternetClawMachine.Games.GantreyGame
 
             Gantry.PositionReturned += Gantry_PositionReturned;
             Gantry.PositionSent += Gantry_PositionSent;
-            Gantry.XYMoveFinished += Gantry_XYMoveFinished;
+            Gantry.XyMoveFinished += Gantry_XYMoveFinished;
             Gantry.StepSent += Gantry_StepSent;
             Gantry.MoveComplete += Gantry_MoveComplete;
             Gantry.ExceededLimit += Gantry_ExceededLimit;
@@ -207,7 +207,7 @@ namespace InternetClawMachine.Games.GantreyGame
                 var saying = String.Format("{0} sunk the putt! It took {1} moves to get there.", winner, _moves);
 
                 ChatClient.SendMessage(Configuration.Channel, saying);
-                _startupSequence = true;
+                StartupSequence = true;
                 _returningHome = true;
                 PlayerQueue.Clear();
                 //putter to home
@@ -217,7 +217,7 @@ namespace InternetClawMachine.Games.GantreyGame
                 Phase = GamePhase.DISTANCE_MOVE;
                 Gantry.SetPosition(GantryAxis.Z, _zAxisUp); //move the gantry up
                 HandleDistanceControlCommand(null, _gridHomePosition); //move it to home
-                _startupSequence = false;
+                StartupSequence = false;
             }
         }
 
@@ -283,7 +283,7 @@ namespace InternetClawMachine.Games.GantreyGame
         {
         }
 
-        private void Gantry_XYMoveFinished(object sender, XYMoveFinishedEventArgs e)
+        private void Gantry_XYMoveFinished(object sender, XyMoveFinishedEventArgs e)
         {
             X = int.Parse(e.X);
             Y = int.Parse(e.Y);
@@ -390,7 +390,7 @@ namespace InternetClawMachine.Games.GantreyGame
             Gantry.SetUpperLimit(GantryAxis.Z, Configuration.GolfSettings.LimitUpperZ);
             Gantry.SetPosition(GantryAxis.Z, _zAxisUp); //move the putter to the start position
             Configuration.GolfSettings.HasHomed = true; //assume homed if it hits this?
-            _startupSequence = true;
+            StartupSequence = true;
             GameModeTimer.Reset();
             GameModeTimer.Start();
             Gantry.EnableBallReturn(true);
@@ -405,9 +405,9 @@ namespace InternetClawMachine.Games.GantreyGame
             _map = new GolfHelpers.AStar();
             _map.SetStarMap(11, 12);
             InitMap();
-            _map.calculateGaps(2);
+            _map.CalculateGaps(2);
 
-            _startupSequence = false;
+            StartupSequence = false;
             HitStepLocations.Clear();
 
             _moves = 0;
@@ -469,7 +469,7 @@ namespace InternetClawMachine.Games.GantreyGame
 
             GameRoundTimer.Reset();
             CommandQueue.Clear();
-            _processingQueue = false;
+            ProcessingQueue = false;
             GameLoopCounterValue++; //increment the counter for this persons turn
 
             Configuration.GolfSettings.CurrentPlayerHasPlayed = false;
@@ -547,14 +547,14 @@ namespace InternetClawMachine.Games.GantreyGame
             base.HandleCommand(channel, username, chatMessage, isSubscriber);
             if (_returningHome)
                 return;
-            var CommandText = chatMessage.Substring(1);
+            var commandText = chatMessage.Substring(1);
             if (chatMessage.IndexOf(" ") >= 0)
-                CommandText = chatMessage.Substring(1, chatMessage.IndexOf(" ") - 1);
+                commandText = chatMessage.Substring(1, chatMessage.IndexOf(" ") - 1);
 
             if (PlayerQueue.CurrentPlayer != null && username.ToLower() == PlayerQueue.CurrentPlayer.ToLower())
             {
                 Configuration.GolfSettings.CurrentPlayerHasPlayed = true;
-                switch (CommandText.ToLower())
+                switch (commandText.ToLower())
                 {
                     case "swap":
                         if (GameMode == GameModeType.GOLF)
@@ -575,11 +575,11 @@ namespace InternetClawMachine.Games.GantreyGame
             }
         }
 
-        public override void HandleMessage(string Username, string Message)
+        public override void HandleMessage(string username, string message)
         {
             if (_returningHome)
                 return;
-            var msg = Message.ToLower();
+            var msg = message.ToLower();
 
             //no one in queue
             if (PlayerQueue.Count == 0 || PlayerQueue.CurrentPlayer == null)
@@ -606,25 +606,25 @@ namespace InternetClawMachine.Games.GantreyGame
                     ChatClient.SendMessage(Configuration.Channel, Configuration.QueueNoPlayersText);
                 }
             }
-            else if (PlayerQueue.CurrentPlayer != null && Username.ToLower() == PlayerQueue.CurrentPlayer.ToLower())
+            else if (PlayerQueue.CurrentPlayer != null && username.ToLower() == PlayerQueue.CurrentPlayer.ToLower())
             {
                 Configuration.GolfSettings.CurrentPlayerHasPlayed = true;
                 switch (Phase)
                 {
                     case GamePhase.FINE_CONTROL:
-                        HandleSingleCommand(Username, Message);
+                        HandleSingleCommand(username, message);
                         break;
 
                     case GamePhase.DISTANCE_MOVE:
-                        HandleDistanceControlCommand(Username, Message);
+                        HandleDistanceControlCommand(username, message);
                         break;
                 }
             }
         }
 
-        private void HandleSingleCommand(string Username, string Message)
+        private void HandleSingleCommand(string username, string message)
         {
-            var msg = Message.ToLower();
+            var msg = message.ToLower();
             if (PlayerQueue.Count == 0)
             {
                 //check if it's a stringed command, all commands have to be valid
@@ -644,7 +644,7 @@ namespace InternetClawMachine.Games.GantreyGame
                 return;
             }
             //all we need to do is verify the only person controlling it is the one who voted for it
-            else if (PlayerQueue.CurrentPlayer != null && Username.ToLower() == PlayerQueue.CurrentPlayer.ToLower())
+            else if (PlayerQueue.CurrentPlayer != null && username.ToLower() == PlayerQueue.CurrentPlayer.ToLower())
             {
                 Configuration.GolfSettings.CurrentPlayerHasPlayed = true;
 
@@ -654,7 +654,7 @@ namespace InternetClawMachine.Games.GantreyGame
                     var nickname = msg.Replace("gift turn ", "").Trim().ToLower();
                     if (Configuration.UserList.Contains(nickname))
                     {
-                        PlayerQueue.ReplacePlayer(Username.ToLower(), nickname);
+                        PlayerQueue.ReplacePlayer(username.ToLower(), nickname);
                         PlayerQueue.SelectPlayer(nickname); //force selection even though it should be OK
                         StartRound(nickname, Phase); //time ran out, they didnt hit yet, keep it wherever they left off
                     }
@@ -664,7 +664,7 @@ namespace InternetClawMachine.Games.GantreyGame
                 if (msg.Trim().Length <= 2)
                 {
                     //if not run all directional commands
-                    HandleFineControlCommand(Username, Message);
+                    HandleFineControlCommand(username, message);
                 }
                 else
                 {
@@ -691,7 +691,7 @@ namespace InternetClawMachine.Games.GantreyGame
                             GroupCollection data = match.Groups;
                             var command = data[2];
 
-                            HandleFineControlCommand(Username, command.Value.Trim());
+                            HandleFineControlCommand(username, command.Value.Trim());
 
                             //if it's a hit, ignore everything after that
                             if (command.Value.Trim().Equals("ch") || command.Value.Trim().Equals("chs") || command.Value.Trim().Equals("h") || command.Value.Trim().Equals("hs"))
@@ -706,9 +706,9 @@ namespace InternetClawMachine.Games.GantreyGame
             }
         }
 
-        private void HandleDistanceControlCommand(string Username, string Message)
+        private void HandleDistanceControlCommand(string username, string message)
         {
-            var msg = Message.ToLower();
+            var msg = message.ToLower();
 
             //check if it's a stringed command, all commands have to be valid
             string regex = "([a-j])([0-9]{1,2}){1}";
@@ -730,7 +730,7 @@ namespace InternetClawMachine.Games.GantreyGame
                     //if a person tries to use the angle command in grid mode, pass the command to the single command handler
                     if (yGrid == 0 && (xGrid > 9 || xGrid == 0))
                     {
-                        HandleFineControlCommand(Username, Message);
+                        HandleFineControlCommand(username, message);
                         return;
                     }
                     else //not using an angle command, ignore it
@@ -745,8 +745,8 @@ namespace InternetClawMachine.Games.GantreyGame
                     (X != GetStepForGridX(xGrid) || Y != GetStepForGridY(yGrid)))
                 {
                     //If we're in the current grid, move left and backward a full move step
-                    CommandQueue.Add(new ClawCommand() { Direction = ClawDirection.LEFT, Timestamp = GameModeTimer.ElapsedMilliseconds, Username = Username });
-                    CommandQueue.Add(new ClawCommand() { Direction = ClawDirection.BACKWARD, Timestamp = GameModeTimer.ElapsedMilliseconds, Username = Username });
+                    CommandQueue.Add(new ClawCommand() { Direction = ClawDirection.LEFT, Timestamp = GameModeTimer.ElapsedMilliseconds, Username = username });
+                    CommandQueue.Add(new ClawCommand() { Direction = ClawDirection.BACKWARD, Timestamp = GameModeTimer.ElapsedMilliseconds, Username = username });
                 }
                 else
                 {
@@ -766,7 +766,7 @@ namespace InternetClawMachine.Games.GantreyGame
                     {
                         foreach (var step in path)
                         {
-                            CommandQueue.Add(new ClawCommand() { X = (int)step.X, Y = (int)step.Y, Direction = ClawDirection.FREEMOVE, Timestamp = GameModeTimer.ElapsedMilliseconds, Username = Username });
+                            CommandQueue.Add(new ClawCommand() { X = (int)step.X, Y = (int)step.Y, Direction = ClawDirection.FREEMOVE, Timestamp = GameModeTimer.ElapsedMilliseconds, Username = username });
                         }
                     }
                 }
@@ -775,15 +775,15 @@ namespace InternetClawMachine.Games.GantreyGame
             else
             {
                 //pass it to single command if they dont want to do a large move
-                HandleSingleCommand(Username, Message);
+                HandleSingleCommand(username, message);
             }
         }
 
-        private void HandleFineControlCommand(string Username, string Message)
+        private void HandleFineControlCommand(string username, string message)
         {
-            var cmd = new ClawCommand() { Direction = ClawDirection.NONE, Timestamp = GameModeTimer.ElapsedMilliseconds, Username = Username };
+            var cmd = new ClawCommand() { Direction = ClawDirection.NONE, Timestamp = GameModeTimer.ElapsedMilliseconds, Username = username };
 
-            switch (Message.ToLower())
+            switch (message.ToLower())
             {
                 case "stop":
                 case "s":
@@ -833,43 +833,43 @@ namespace InternetClawMachine.Games.GantreyGame
                     break;
 
                 case "h":
-                    WinnersList.Add(Username);
+                    WinnersList.Add(username);
                     cmd.Direction = ClawDirection.HIT;
                     cmd.CommandGroup = ClawCommandGroup.HIT;
-                    CommandQueue.Add(new ClawCommand() { Direction = ClawDirection.DOWN, Timestamp = GameModeTimer.ElapsedMilliseconds, Username = Username, CommandGroup = ClawCommandGroup.HIT });
+                    CommandQueue.Add(new ClawCommand() { Direction = ClawDirection.DOWN, Timestamp = GameModeTimer.ElapsedMilliseconds, Username = username, CommandGroup = ClawCommandGroup.HIT });
                     CommandQueue.Add(cmd);
-                    CommandQueue.Add(new ClawCommand() { Direction = ClawDirection.UP, Timestamp = GameModeTimer.ElapsedMilliseconds, Username = Username, CommandGroup = ClawCommandGroup.HIT });
-                    CommandQueue.Add(new ClawCommand() { Direction = ClawDirection.COUNTERHIT, Timestamp = GameModeTimer.ElapsedMilliseconds, Username = Username, CommandGroup = ClawCommandGroup.HIT });
+                    CommandQueue.Add(new ClawCommand() { Direction = ClawDirection.UP, Timestamp = GameModeTimer.ElapsedMilliseconds, Username = username, CommandGroup = ClawCommandGroup.HIT });
+                    CommandQueue.Add(new ClawCommand() { Direction = ClawDirection.COUNTERHIT, Timestamp = GameModeTimer.ElapsedMilliseconds, Username = username, CommandGroup = ClawCommandGroup.HIT });
                     break;
 
                 case "hs":
-                    WinnersList.Add(Username);
+                    WinnersList.Add(username);
                     cmd.Direction = ClawDirection.HITSHORT;
                     cmd.CommandGroup = ClawCommandGroup.HIT;
-                    CommandQueue.Add(new ClawCommand() { Direction = ClawDirection.DOWN, Timestamp = GameModeTimer.ElapsedMilliseconds, Username = Username, CommandGroup = ClawCommandGroup.HIT });
+                    CommandQueue.Add(new ClawCommand() { Direction = ClawDirection.DOWN, Timestamp = GameModeTimer.ElapsedMilliseconds, Username = username, CommandGroup = ClawCommandGroup.HIT });
                     CommandQueue.Add(cmd);
-                    CommandQueue.Add(new ClawCommand() { Direction = ClawDirection.UP, Timestamp = GameModeTimer.ElapsedMilliseconds, Username = Username, CommandGroup = ClawCommandGroup.HIT });
-                    CommandQueue.Add(new ClawCommand() { Direction = ClawDirection.COUNTERHITSHORT, Timestamp = GameModeTimer.ElapsedMilliseconds, Username = Username, CommandGroup = ClawCommandGroup.HIT });
+                    CommandQueue.Add(new ClawCommand() { Direction = ClawDirection.UP, Timestamp = GameModeTimer.ElapsedMilliseconds, Username = username, CommandGroup = ClawCommandGroup.HIT });
+                    CommandQueue.Add(new ClawCommand() { Direction = ClawDirection.COUNTERHITSHORT, Timestamp = GameModeTimer.ElapsedMilliseconds, Username = username, CommandGroup = ClawCommandGroup.HIT });
                     break;
 
                 case "ch":
-                    WinnersList.Add(Username);
+                    WinnersList.Add(username);
                     cmd.Direction = ClawDirection.COUNTERHIT;
                     cmd.CommandGroup = ClawCommandGroup.HIT;
-                    CommandQueue.Add(new ClawCommand() { Direction = ClawDirection.DOWN, Timestamp = GameModeTimer.ElapsedMilliseconds, Username = Username, CommandGroup = ClawCommandGroup.HIT });
+                    CommandQueue.Add(new ClawCommand() { Direction = ClawDirection.DOWN, Timestamp = GameModeTimer.ElapsedMilliseconds, Username = username, CommandGroup = ClawCommandGroup.HIT });
                     CommandQueue.Add(cmd);
-                    CommandQueue.Add(new ClawCommand() { Direction = ClawDirection.UP, Timestamp = GameModeTimer.ElapsedMilliseconds, Username = Username, CommandGroup = ClawCommandGroup.HIT });
-                    CommandQueue.Add(new ClawCommand() { Direction = ClawDirection.HIT, Timestamp = GameModeTimer.ElapsedMilliseconds, Username = Username, CommandGroup = ClawCommandGroup.HIT });
+                    CommandQueue.Add(new ClawCommand() { Direction = ClawDirection.UP, Timestamp = GameModeTimer.ElapsedMilliseconds, Username = username, CommandGroup = ClawCommandGroup.HIT });
+                    CommandQueue.Add(new ClawCommand() { Direction = ClawDirection.HIT, Timestamp = GameModeTimer.ElapsedMilliseconds, Username = username, CommandGroup = ClawCommandGroup.HIT });
                     break;
 
                 case "chs":
-                    WinnersList.Add(Username);
+                    WinnersList.Add(username);
                     cmd.Direction = ClawDirection.COUNTERHITSHORT;
                     cmd.CommandGroup = ClawCommandGroup.HIT;
-                    CommandQueue.Add(new ClawCommand() { Direction = ClawDirection.DOWN, Timestamp = GameModeTimer.ElapsedMilliseconds, Username = Username, CommandGroup = ClawCommandGroup.HIT });
+                    CommandQueue.Add(new ClawCommand() { Direction = ClawDirection.DOWN, Timestamp = GameModeTimer.ElapsedMilliseconds, Username = username, CommandGroup = ClawCommandGroup.HIT });
                     CommandQueue.Add(cmd);
-                    CommandQueue.Add(new ClawCommand() { Direction = ClawDirection.UP, Timestamp = GameModeTimer.ElapsedMilliseconds, Username = Username, CommandGroup = ClawCommandGroup.HIT });
-                    CommandQueue.Add(new ClawCommand() { Direction = ClawDirection.HITSHORT, Timestamp = GameModeTimer.ElapsedMilliseconds, Username = Username, CommandGroup = ClawCommandGroup.HIT });
+                    CommandQueue.Add(new ClawCommand() { Direction = ClawDirection.UP, Timestamp = GameModeTimer.ElapsedMilliseconds, Username = username, CommandGroup = ClawCommandGroup.HIT });
+                    CommandQueue.Add(new ClawCommand() { Direction = ClawDirection.HITSHORT, Timestamp = GameModeTimer.ElapsedMilliseconds, Username = username, CommandGroup = ClawCommandGroup.HIT });
                     break;
             }
 
@@ -881,12 +881,12 @@ namespace InternetClawMachine.Games.GantreyGame
                     CommandQueue.Add(cmd);
                 }
             }
-            if (Message.ToLower().Length > 1 && Message.ToLower().Substring(0, 1) == "a")
+            if (message.ToLower().Length > 1 && message.ToLower().Substring(0, 1) == "a")
             {
                 try
                 {
                     cmd.Direction = ClawDirection.ROTATE;
-                    cmd.Angle = int.Parse(Message.ToLower().Substring(1));
+                    cmd.Angle = int.Parse(message.ToLower().Substring(1));
                     lock (CommandQueue)
                     {
                         _moves++;
@@ -900,7 +900,7 @@ namespace InternetClawMachine.Games.GantreyGame
                 }
             }
 
-            if (cmd.Direction != ClawDirection.NONE && !_startupSequence)
+            if (cmd.Direction != ClawDirection.NONE && !StartupSequence)
             {
                 //distance move passed it to us and we executed a command, force change mode
                 if (Phase == GamePhase.DISTANCE_MOVE)
@@ -908,7 +908,7 @@ namespace InternetClawMachine.Games.GantreyGame
                     Phase = GamePhase.FINE_CONTROL;
                 }
             }
-            WriteDBMovementAction(Username, cmd.ToString());
+            WriteDbMovementAction(username, cmd.ToString());
 
             //try processing queue
             ProcessCommands();
@@ -924,9 +924,9 @@ namespace InternetClawMachine.Games.GantreyGame
 
         override public Task ProcessQueue()
         {
-            if (!_processingQueue)
+            if (!ProcessingQueue)
             {
-                _processingQueue = true;
+                ProcessingQueue = true;
                 try
                 {
                     ProcessCommands();
@@ -951,7 +951,7 @@ namespace InternetClawMachine.Games.GantreyGame
             ClawCommand currentQueueCommand;
             if (Configuration.OverrideChat) //if we're currently overriding what's in the command queue, for instance when using UI controls
             {
-                _processingQueue = false;
+                ProcessingQueue = false;
                 return Task.CompletedTask;
             }
 
@@ -962,7 +962,7 @@ namespace InternetClawMachine.Games.GantreyGame
                 {
                     currentQueueCommand = CommandQueue[0];
                 }
-                else { _processingQueue = false; return Task.CompletedTask; }
+                else { ProcessingQueue = false; return Task.CompletedTask; }
             }
 
             //do actual direction moves
@@ -1018,7 +1018,7 @@ namespace InternetClawMachine.Games.GantreyGame
                     var getStepX = GetStepForGridX(currentQueueCommand.X);
                     var getStepY = GetStepForGridY(currentQueueCommand.Y);
                     if (IsStepInOpenArea(getStepX, getStepY))
-                        Gantry.XYMove(getStepX, getStepY);
+                        Gantry.XyMove(getStepX, getStepY);
                     else
                         currentQueueCommand = null;
                     break;

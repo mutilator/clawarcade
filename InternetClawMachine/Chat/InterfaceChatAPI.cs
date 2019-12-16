@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace InternetClawMachine
 {
-    public interface ChatAPI
+    public interface IChatApi
     {
         #region Events
 
@@ -128,12 +128,12 @@ namespace InternetClawMachine
         /// <summary>
         /// Send Direction
         /// </summary>
-        Sent = 0,
+        SENT = 0,
 
         /// <summary>
         /// Receive Direction
         /// </summary>
-        Received = 1
+        RECEIVED = 1
     }
 
     public class ChatMessage
@@ -187,20 +187,20 @@ namespace InternetClawMachine
 
     public enum IrcCommand
     {
-        Unknown = 0,
-        PrivMsg = 1,
-        Notice = 2,
-        Ping = 3,
-        Pong = 4,
-        Join = 5,
-        Part = 6,
-        HostTarget = 7,
-        ClearChat = 8,
-        UserState = 9,
-        GlobalUserState = 10,
-        Nick = 11,
-        Pass = 12,
-        Cap = 13,
+        UNKNOWN = 0,
+        PRIV_MSG = 1,
+        NOTICE = 2,
+        PING = 3,
+        PONG = 4,
+        JOIN = 5,
+        PART = 6,
+        HOST_TARGET = 7,
+        CLEAR_CHAT = 8,
+        USER_STATE = 9,
+        GLOBAL_USER_STATE = 10,
+        NICK = 11,
+        PASS = 12,
+        CAP = 13,
         RPL_001 = 14,
         RPL_002 = 15,
         RPL_003 = 16,
@@ -210,11 +210,11 @@ namespace InternetClawMachine
         RPL_372 = 20,
         RPL_375 = 21,
         RPL_376 = 22,
-        Whisper = 23,
-        RoomState = 24,
-        Reconnect = 25,
-        ServerChange = 26,
-        UserNotice = 27,
-        Mode = 28
+        WHISPER = 23,
+        ROOM_STATE = 24,
+        RECONNECT = 25,
+        SERVER_CHANGE = 26,
+        USER_NOTICE = 27,
+        MODE = 28
     }
 }

@@ -20,15 +20,15 @@ namespace InternetClawMachine
                 RemoveCookies();
 
                 //Create the destination URL
-                var destinationURL = String.Format("https://api.twitch.tv/kraken/oauth2/authorize?client_id={0}&scope={1}&redirect_uri=http://localhost&response_type=token",
-                   ClientID, //client_id
+                var destinationUrl = String.Format("https://api.twitch.tv/kraken/oauth2/authorize?client_id={0}&scope={1}&redirect_uri=http://localhost&response_type=token",
+                   ClientId, //client_id
                    "chat_login%20channel_read%20channel_feed_read%20channel_check_subscription%20user_blocks_edit%20user_blocks_read%20user_read%20user_subscriptions" //scope
                 );
-                webBrowser.Navigate(destinationURL);
+                webBrowser.Navigate(destinationUrl);
             };
         }
 
-        public string ClientID { get; set; }
+        public string ClientId { get; set; }
 
         //The access token retrieved from facebook's authentication
         public string AccessToken { get; set; }

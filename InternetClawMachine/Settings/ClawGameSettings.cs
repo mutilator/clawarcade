@@ -37,13 +37,13 @@ namespace InternetClawMachine.Settings
         /// </summary>
         public List<string> BountySayings { set; get; }
 
-        public string RFIDReaderIPAddress { set; get; }
-        public int RFIDReaderPort { set; get; }
-        public int RFIDAntennaPower { set; get; }
+        public string RfidReaderIpAddress { set; get; }
+        public int RfidReaderPort { set; get; }
+        public int RfidAntennaPower { set; get; }
 
         public bool UseNewClawController { get; set; }
         public int ClawControllerPort { get; set; }
-        public string ClawControllerIPAddress { get; set; }
+        public string ClawControllerIpAddress { get; set; }
 
         /// <summary>
         /// For claw machine bounty mode, auto start bounties

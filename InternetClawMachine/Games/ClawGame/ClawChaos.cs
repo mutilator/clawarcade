@@ -8,7 +8,7 @@ namespace InternetClawMachine.Games.ClawGame
 {
     internal class ClawChaos : ClawGame
     {
-        public ClawChaos(ChatAPI client, BotConfiguration configuration, OBSWebsocket obs) : base(client, configuration, obs)
+        public ClawChaos(IChatApi client, BotConfiguration configuration, OBSWebsocket obs) : base(client, configuration, obs)
         {
             GameMode = GameModeType.REALTIME;
         }
@@ -18,10 +18,10 @@ namespace InternetClawMachine.Games.ClawGame
             base.EndGame();
         }
 
-        public override void HandleMessage(string Username, string Message)
+        public override void HandleMessage(string username, string message)
         {
             ClawDirection cmd = ClawDirection.NA;
-            switch (Message.ToLower())
+            switch (message.ToLower())
             {
                 case "stop":
                 case "s":
@@ -58,14 +58,14 @@ namespace InternetClawMachine.Games.ClawGame
                 case "down":
                 case "drop":
                     cmd = ClawDirection.DOWN;
-                    var usr = Username;
+                    var usr = username;
 
-                    SessionWinTracker user = SessionWinTracker.FirstOrDefault(u => u.Username == Username);
+                    SessionWinTracker user = SessionWinTracker.FirstOrDefault(u => u.Username == username);
                     if (user != null)
-                        user = SessionWinTracker.First(u => u.Username == Username);
+                        user = SessionWinTracker.First(u => u.Username == username);
                     else
                     {
-                        user = new SessionWinTracker() { Username = Username };
+                        user = new SessionWinTracker() { Username = username };
                         SessionWinTracker.Add(user);
                     }
 
@@ -88,12 +88,12 @@ namespace InternetClawMachine.Games.ClawGame
                     break;
             }
 
-            WriteDBMovementAction(Username, cmd.ToString());
+            WriteDbMovementAction(username, cmd.ToString());
 
             lock (CommandQueue)
             {
                 if (cmd != ClawDirection.NA)
-                    CommandQueue.Add(new ClawCommand() { Direction = cmd, Duration = Configuration.ClawSettings.ClawMovementTime, Timestamp = GameModeTimer.ElapsedMilliseconds, Username = Username });
+                    CommandQueue.Add(new ClawCommand() { Direction = cmd, Duration = Configuration.ClawSettings.ClawMovementTime, Timestamp = GameModeTimer.ElapsedMilliseconds, Username = username });
             }
             Task.Run(async delegate { await ProcessQueue(); });
         }

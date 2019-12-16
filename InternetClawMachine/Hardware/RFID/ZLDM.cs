@@ -3,10 +3,10 @@ using System.Runtime.InteropServices;
 
 namespace InternetClawMachine.Hardware.RFID
 {
-    public class ZLDM
+    public class Zldm
     {
-        public static ushort m_DevCnt;    // find the number of devices
-        public static byte m_SelectedDevNo = 0;
+        public static ushort MDevCnt;    // find the number of devices
+        public static byte MSelectedDevNo = 0;
 
         [DllImport("ZlDevManage.dll", EntryPoint = "ZLDM_StartSearchDev")]
         public static extern UInt16 StartSearchDev();
@@ -57,39 +57,39 @@ namespace InternetClawMachine.Hardware.RFID
         public static extern byte GetDataBits(byte nNum);
 
         [DllImport("ZlDevManage.dll", EntryPoint = "ZLDM_SetDevName")]
-        unsafe public static extern bool SetDevName(byte nNum, char* DevName);
+        unsafe public static extern bool SetDevName(byte nNum, char* devName);
 
         [DllImport("ZlDevManage.dll", EntryPoint = "ZLDM_SetIP")]
-        unsafe public static extern bool SetIP(byte nNum, byte[] IP);
+        unsafe public static extern bool SetIP(byte nNum, byte[] ip);
 
         [DllImport("ZlDevManage.dll", EntryPoint = "ZLDM_SetGateWay")]
-        unsafe public static extern bool SetGateWay(byte nNum, byte[] GateWay);
+        unsafe public static extern bool SetGateWay(byte nNum, byte[] gateWay);
 
         [DllImport("ZlDevManage.dll", EntryPoint = "ZLDM_SetNetMask")]
-        unsafe public static extern bool SetNetMask(byte nNum, byte[] NetMask);
+        unsafe public static extern bool SetNetMask(byte nNum, byte[] netMask);
 
         [DllImport("ZlDevManage.dll", EntryPoint = "ZLDM_SetDestName")]
-        unsafe public static extern bool SetDestName(byte nNum, byte[] DestName);
+        unsafe public static extern bool SetDestName(byte nNum, byte[] destName);
 
         [DllImport("ZlDevManage.dll", EntryPoint = "ZLDM_SetIPMode")]
-        public static extern bool SetIPMode(byte nNum, byte IPMode);
+        public static extern bool SetIPMode(byte nNum, byte ipMode);
 
         [DllImport("ZlDevManage.dll", EntryPoint = "ZLDM_SetPort")]
-        public static extern bool SetPort(byte nNum, ushort Port);
+        public static extern bool SetPort(byte nNum, ushort port);
 
         [DllImport("ZlDevManage.dll", EntryPoint = "ZLDM_SetWorkMode")]
-        public static extern bool SetWorkMode(byte nNum, byte WorkMode);
+        public static extern bool SetWorkMode(byte nNum, byte workMode);
 
         [DllImport("ZlDevManage.dll", EntryPoint = "ZLDM_SetDestPort")]
-        public static extern bool SetDestPort(byte nNum, ushort DestPort);
+        public static extern bool SetDestPort(byte nNum, ushort destPort);
 
         [DllImport("ZlDevManage.dll", EntryPoint = "ZLDM_SetBaudrateIndex")]
-        public static extern bool SetBaudrateIndex(byte nNum, byte BaudrateIndex);
+        public static extern bool SetBaudrateIndex(byte nNum, byte baudrateIndex);
 
         [DllImport("ZlDevManage.dll", EntryPoint = "ZLDM_SetParity")]
-        public static extern bool SetParity(byte nNum, byte Parity);
+        public static extern bool SetParity(byte nNum, byte parity);
 
         [DllImport("ZlDevManage.dll", EntryPoint = "ZLDM_SetDataBits")]
-        public static extern bool SetDataBits(byte nNum, byte DataBits);
+        public static extern bool SetDataBits(byte nNum, byte dataBits);
     }
 }

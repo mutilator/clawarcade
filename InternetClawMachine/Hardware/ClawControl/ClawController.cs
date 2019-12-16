@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace InternetClawMachine.Hardware.ClawControl
 {
-    public delegate void ClawInfoEventArgs(IMachineControl controller, string Message);
+    public delegate void ClawInfoEventArgs(IMachineControl controller, string message);
 
     internal class ClawController : IMachineControl
     {
@@ -20,10 +20,13 @@ namespace InternetClawMachine.Hardware.ClawControl
         public event EventHandler OnPingSuccess;
 
         public event EventHandler OnHitWinChute;
+
         public event EventHandler OnReturnedHome;
 
         public event EventHandler OnClawDropping;
+
         public event EventHandler OnClawDropped;
+
         public event EventHandler OnClawRecoiled;
 
         public event EventHandler OnResetButtonPressed;
@@ -31,24 +34,34 @@ namespace InternetClawMachine.Hardware.ClawControl
         public event EventHandler OnBreakSensorTripped;
 
         public event EventHandler OnLimitHitForward;
+
         public event EventHandler OnLimitHitBackward;
+
         public event EventHandler OnLimitHitLeft;
+
         public event EventHandler OnLimitHitRight;
+
         public event EventHandler OnLimitHitUp;
+
         public event EventHandler OnLimitHitDown;
 
         public event EventHandler OnMotorTimeoutForward;
+
         public event EventHandler OnMotorTimeoutBackward;
+
         public event EventHandler OnMotorTimeoutLeft;
+
         public event EventHandler OnMotorTimeoutRight;
+
         public event EventHandler OnMotorTimeoutUp;
+
         public event EventHandler OnMotorTimeoutDown;
 
         public event ClawInfoEventArgs OnInfoMessage;
 
-        internal int _returnHomeTime = 20000;
+        internal int ReturnHomeTime = 20000;
 
-        public string IPAddress { set; get; }
+        public string IpAddress { set; get; }
         public int Port { get; set; }
 
         private Socket _workSocket = null;
@@ -59,8 +72,7 @@ namespace InternetClawMachine.Hardware.ClawControl
         private string _lastDirection = "s";
         private int _pingTimeReceived = 0; //the last ping time we received
         private int _maximumPingTime = 1000; //ping timeout threshold in ms
-        private Stopwatch pingTimer { set; get; } = new Stopwatch();
-
+        private Stopwatch PingTimer { set; get; } = new Stopwatch();
 
         public bool IsClawPlayActive { get; set; }
 
@@ -149,40 +161,40 @@ namespace InternetClawMachine.Hardware.ClawControl
 
         public ClawController()
         {
-            pingTimer.Start();
+            PingTimer.Start();
         }
 
         public bool Connect()
         {
             // Establish the remote endpoint for the socket.
-            IPAddress ipAddress = System.Net.IPAddress.Parse(IPAddress);
-            IPEndPoint remoteEP = new IPEndPoint(ipAddress, Port);
+            IPAddress ipAddress = System.Net.IPAddress.Parse(IpAddress);
+            IPEndPoint remoteEp = new IPEndPoint(ipAddress, Port);
 
-            return Connect(remoteEP);
+            return Connect(remoteEp);
         }
 
         public bool Connect(string ip, int port)
         {
             Port = port;
-            IPAddress = ip;
-            
+            IpAddress = ip;
+
             return Connect();
         }
 
-        public bool Connect(IPEndPoint remoteEP)
+        public bool Connect(IPEndPoint remoteEp)
         {
             if (_workSocket != null && _workSocket.Connected)
                 _workSocket.Disconnect(false);
 
             // Create a TCP/IP  socket.
-            _workSocket = new Socket(remoteEP.AddressFamily,
+            _workSocket = new Socket(remoteEp.AddressFamily,
                 SocketType.Stream, ProtocolType.Tcp);
 
             _workSocket.ReceiveTimeout = 2000;
 
             try
             {
-                _workSocket.Connect(remoteEP);
+                _workSocket.Connect(remoteEp);
 
                 if (!_workSocket.Connected)
                     return false;
@@ -304,10 +316,12 @@ namespace InternetClawMachine.Hardware.ClawControl
                         if (OnBreakSensorTripped != null)
                             OnBreakSensorTripped(this, new EventArgs());
                         break;
+
                     case ClawEvents.EVENT_RESETBUTTON:
                         if (OnResetButtonPressed != null)
                             OnResetButtonPressed(this, new EventArgs());
                         break;
+
                     case ClawEvents.EVENT_PONG:
                         try
                         {
@@ -317,60 +331,78 @@ namespace InternetClawMachine.Hardware.ClawControl
                         catch { } //unhandled so we let a pingtimout occur if the response is malformed
 
                         break;
+
                     case ClawEvents.EVENT_LIMIT_LEFT:
                         OnLimitHitLeft?.Invoke(this, new EventArgs());
                         break;
+
                     case ClawEvents.EVENT_LIMIT_RIGHT:
                         OnLimitHitRight?.Invoke(this, new EventArgs());
                         break;
+
                     case ClawEvents.EVENT_LIMIT_FORWARD:
                         OnLimitHitForward?.Invoke(this, new EventArgs());
                         break;
+
                     case ClawEvents.EVENT_LIMIT_BACKWARD:
                         OnLimitHitBackward?.Invoke(this, new EventArgs());
                         break;
+
                     case ClawEvents.EVENT_LIMIT_UP:
                         OnLimitHitUp?.Invoke(this, new EventArgs());
                         break;
+
                     case ClawEvents.EVENT_LIMIT_DOWN:
                         OnLimitHitDown?.Invoke(this, new EventArgs());
                         break;
+
                     case ClawEvents.EVENT_FAILSAFE_LEFT:
                         OnMotorTimeoutLeft?.Invoke(this, new EventArgs());
                         break;
+
                     case ClawEvents.EVENT_FAILSAFE_RIGHT:
                         OnMotorTimeoutRight?.Invoke(this, new EventArgs());
                         break;
+
                     case ClawEvents.EVENT_FAILSAFE_FORWARD:
                         OnMotorTimeoutForward?.Invoke(this, new EventArgs());
                         break;
+
                     case ClawEvents.EVENT_FAILSAFE_BACKWARD:
                         OnMotorTimeoutBackward?.Invoke(this, new EventArgs());
                         break;
+
                     case ClawEvents.EVENT_FAILSAFE_UP:
                         OnMotorTimeoutUp?.Invoke(this, new EventArgs());
                         break;
+
                     case ClawEvents.EVENT_FAILSAFE_DOWN:
                         OnMotorTimeoutDown?.Invoke(this, new EventArgs());
                         break;
+
                     case ClawEvents.EVENT_DROPPING_CLAW:
                         OnClawDropping?.Invoke(this, new EventArgs());
                         break;
+
                     case ClawEvents.EVENT_RECOILED_CLAW:
                         OnClawRecoiled?.Invoke(this, new EventArgs());
                         break;
+
                     case ClawEvents.EVENT_RETURNED_HOME: //home in the case of the machine is the win chute
                         OnHitWinChute?.Invoke(this, new EventArgs());
                         break;
+
                     case ClawEvents.EVENT_RETURNED_CENTER: //Home in the case of the bot is the center
                         IsClawPlayActive = false;
                         OnReturnedHome?.Invoke(this, new EventArgs());
                         break;
+
                     case ClawEvents.EVENT_DROPPED_CLAW:
                         OnClawDropped?.Invoke(this, new EventArgs());
                         break;
+
                     case ClawEvents.EVENT_INFO:
-                        OnInfoMessage?.Invoke(this, response.Substring(delims[0].Length,response.Length - delims[0].Length).Trim());
+                        OnInfoMessage?.Invoke(this, response.Substring(delims[0].Length, response.Length - delims[0].Length).Trim());
                         break;
                 }
             }
@@ -378,17 +410,17 @@ namespace InternetClawMachine.Hardware.ClawControl
 
         private void Ping()
         {
-            pingTimer.Reset();
-            pingTimer.Start();
+            PingTimer.Reset();
+            PingTimer.Start();
             _pingTimeReceived = -1;
-            SendCommandAsync("ping " + pingTimer.ElapsedMilliseconds);
+            SendCommandAsync("ping " + PingTimer.ElapsedMilliseconds);
 
             //kick off an async validating ping
             Task.Run(async delegate ()
             {
                 await Task.Delay(_maximumPingTime); //simply wait some second to check for the last ping
 
-                Latency = pingTimer.ElapsedMilliseconds - _maximumPingTime - _pingTimeReceived;
+                Latency = PingTimer.ElapsedMilliseconds - _maximumPingTime - _pingTimeReceived;
                 if (!_workSocket.Connected)
                 {
                     //don't do anything if we disconnected afterward
@@ -406,9 +438,7 @@ namespace InternetClawMachine.Hardware.ClawControl
                     //start a ping in 10 seconds?
                     await Task.Delay(10000);
                     Ping();
-                    
                 }
-                
             });
         }
 
@@ -464,7 +494,7 @@ namespace InternetClawMachine.Hardware.ClawControl
                 // Send the data through the socket.
                 _lastCommandResponse = null;
                 int bytesSent = _workSocket.Send(msg);
-                
+
                 //This is just waiting for a response in the hope that it pertains to your request and not an event.
                 while (_lastCommandResponse == null)
                     Thread.Sleep(100);
@@ -599,7 +629,6 @@ namespace InternetClawMachine.Hardware.ClawControl
             await Move(MovementDirection.DOWN, 0);
         }
 
-
         public async Task RunConveyor(int runtime)
         {
             if (IsConnected)
@@ -622,7 +651,6 @@ namespace InternetClawMachine.Hardware.ClawControl
 
         public void SetClawPower(int percent)
         {
-
             int power = (int)(((double)percent / 100) * 255);
             var str = String.Format("uno p {0}", power);
             Console.WriteLine(str);
@@ -649,11 +677,10 @@ namespace InternetClawMachine.Hardware.ClawControl
         {
             SendCommandAsync(String.Format("strobe {0} {1} {2} {3} {4} 0", red, blue, green, strobeCount, strobeDelay));
         }
+
         public void DualStrobe(int red, int blue, int green, int red2, int blue2, int green2, int strobeCount, int strobeDelay)
         {
             SendCommandAsync(String.Format("uno ds {0}:{1}:{2} {3}:{4}:{5} {6} {7} 0", red, blue, green, red2, blue2, green2, strobeCount, strobeDelay));
         }
-
-
     }
 }

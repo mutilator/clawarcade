@@ -3,7 +3,7 @@
     public class WaterGunSettings
     {
         //misc water bot values
-        public string IPAddress { set; get; }
+        public string IpAddress { set; get; }
 
         public int Port { set; get; }
         public string PanSpeed { set; get; }

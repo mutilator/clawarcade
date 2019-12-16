@@ -9,10 +9,10 @@ namespace InternetClawMachine.Games.GantreyGame
 {
     internal class Drawing : GantryGame
     {
-        private int _X;
-        private int _Y;
-        private int _Z;
-        private int _A;
+        private int _x;
+        private int _y;
+        private int _z;
+        private int _a;
         private bool _currentlyHoming;
         private bool _homedX;
         private bool _homedY;
@@ -24,9 +24,9 @@ namespace InternetClawMachine.Games.GantreyGame
             set
             {
                 Configuration.Coords.XCord = value;
-                _X = value;
+                _x = value;
             }
-            get { return _X; }
+            get { return _x; }
         }
 
         public int Y
@@ -34,9 +34,9 @@ namespace InternetClawMachine.Games.GantreyGame
             set
             {
                 Configuration.Coords.YCord = value;
-                _Y = value;
+                _y = value;
             }
-            get { return _Y; }
+            get { return _y; }
         }
 
         public int Z
@@ -44,9 +44,9 @@ namespace InternetClawMachine.Games.GantreyGame
             set
             {
                 Configuration.Coords.ZCord = value;
-                _Z = value;
+                _z = value;
             }
-            get { return _Z; }
+            get { return _z; }
         }
 
         public int A
@@ -54,17 +54,17 @@ namespace InternetClawMachine.Games.GantreyGame
             set
             {
                 Configuration.Coords.ACord = value;
-                _A = value;
+                _a = value;
             }
-            get { return _A; }
+            get { return _a; }
         }
 
-        public Drawing(ChatAPI client, BotConfiguration configuration, OBSWebsocket obs) : base(client, configuration, obs)
+        public Drawing(IChatApi client, BotConfiguration configuration, OBSWebsocket obs) : base(client, configuration, obs)
         {
             GameMode = GameModeType.DRAWING;
             Gantry.PositionReturned += Gantry_PositionReturned;
             Gantry.PositionSent += Gantry_PositionSent;
-            Gantry.XYMoveFinished += Gantry_XYMoveFinished;
+            Gantry.XyMoveFinished += Gantry_XYMoveFinished;
             Gantry.StepSent += Gantry_StepSent;
             Gantry.MoveComplete += Gantry_MoveComplete;
             Gantry.ExceededLimit += Gantry_ExceededLimit;
@@ -81,7 +81,7 @@ namespace InternetClawMachine.Games.GantreyGame
             {
                 Gantry.PositionReturned -= Gantry_PositionReturned;
                 Gantry.PositionSent -= Gantry_PositionSent;
-                Gantry.XYMoveFinished -= Gantry_XYMoveFinished;
+                Gantry.XyMoveFinished -= Gantry_XYMoveFinished;
                 Gantry.StepSent -= Gantry_StepSent;
                 Gantry.MoveComplete -= Gantry_MoveComplete;
                 Gantry.ExceededLimit -= Gantry_ExceededLimit;
@@ -100,7 +100,7 @@ namespace InternetClawMachine.Games.GantreyGame
 
             Gantry.PositionReturned += Gantry_PositionReturned;
             Gantry.PositionSent += Gantry_PositionSent;
-            Gantry.XYMoveFinished += Gantry_XYMoveFinished;
+            Gantry.XyMoveFinished += Gantry_XYMoveFinished;
             Gantry.StepSent += Gantry_StepSent;
             Gantry.MoveComplete += Gantry_MoveComplete;
             Gantry.ExceededLimit += Gantry_ExceededLimit;
@@ -131,7 +131,7 @@ namespace InternetClawMachine.Games.GantreyGame
             }
             else
             {
-                _processingQueue = false;
+                ProcessingQueue = false;
             }
         }
 
@@ -194,7 +194,7 @@ namespace InternetClawMachine.Games.GantreyGame
             }
             else
             {
-                _processingQueue = false;
+                ProcessingQueue = false;
             }
         }
 
@@ -202,7 +202,7 @@ namespace InternetClawMachine.Games.GantreyGame
         {
         }
 
-        private void Gantry_XYMoveFinished(object sender, XYMoveFinishedEventArgs e)
+        private void Gantry_XYMoveFinished(object sender, XyMoveFinishedEventArgs e)
         {
             X = int.Parse(e.X);
             Y = int.Parse(e.Y);
@@ -216,7 +216,7 @@ namespace InternetClawMachine.Games.GantreyGame
             }
             else
             {
-                _processingQueue = false;
+                ProcessingQueue = false;
             }
         }
 
@@ -269,7 +269,7 @@ namespace InternetClawMachine.Games.GantreyGame
             Gantry.SetUpperLimit(GantryAxis.Z, Configuration.DrawingSettings.LimitUpperZ);
             Gantry.SetPosition(GantryAxis.Z, _zAxisUp); //move the putter to the start position
             Configuration.DrawingSettings.HasHomed = true; //assume homed if it hits this?
-            _startupSequence = true;
+            StartupSequence = true;
             GameModeTimer.Reset();
             GameModeTimer.Start();
             Gantry.EnableBallReturn(true);
@@ -350,9 +350,9 @@ namespace InternetClawMachine.Games.GantreyGame
             OnRoundStarted(new RoundStartedArgs() { Username = username, GameMode = GameMode });
         }
 
-        public override void HandleMessage(string Username, string Message)
+        public override void HandleMessage(string username, string message)
         {
-            var msg = Message.ToLower();
+            var msg = message.ToLower();
             if (PlayerQueue.Count == 0)
             {
                 //check if it's a stringed command, all commands have to be valid
@@ -371,7 +371,7 @@ namespace InternetClawMachine.Games.GantreyGame
                 }
             }
             //all we need to do is verify the only person controlling it is the one who voted for it
-            else if (PlayerQueue.CurrentPlayer != null && Username.ToLower() == PlayerQueue.CurrentPlayer.ToLower())
+            else if (PlayerQueue.CurrentPlayer != null && username.ToLower() == PlayerQueue.CurrentPlayer.ToLower())
             {
                 Configuration.DrawingSettings.CurrentPlayerHasPlayed = true;
 
@@ -381,7 +381,7 @@ namespace InternetClawMachine.Games.GantreyGame
                     var nickname = msg.Replace("gift turn ", "").Trim().ToLower();
                     if (Configuration.UserList.Contains(nickname))
                     {
-                        PlayerQueue.ReplacePlayer(Username.ToLower(), nickname);
+                        PlayerQueue.ReplacePlayer(username.ToLower(), nickname);
                         PlayerQueue.SelectPlayer(nickname); //force selection even though it should be OK
                         StartRound(nickname);
                     }
@@ -391,7 +391,7 @@ namespace InternetClawMachine.Games.GantreyGame
                 if (msg.Trim().Length <= 2)
                 {
                     //if not run all directional commands
-                    HandleSingleCommand(Username, Message);
+                    HandleSingleCommand(username, message);
                 }
                 else
                 {
@@ -419,7 +419,7 @@ namespace InternetClawMachine.Games.GantreyGame
                                 //grab the next direction
                                 GroupCollection data = match.Groups;
                                 var command = data[2];
-                                HandleSingleCommand(Username, command.Value.Trim());
+                                HandleSingleCommand(username, command.Value.Trim());
 
                                 //after this wait, check if we're still in queue mode and that it's our turn....
                                 if (GameLoopCounterValue != currentIndex)
@@ -431,12 +431,12 @@ namespace InternetClawMachine.Games.GantreyGame
             }
         }
 
-        private void HandleSingleCommand(string Username, string Message)
+        private void HandleSingleCommand(string username, string message)
         {
             var moveTime = Configuration.DrawingSettings.MovementTime;
-            var cmd = new ClawCommand() { Direction = ClawDirection.NONE, Duration = moveTime, Timestamp = GameModeTimer.ElapsedMilliseconds, Username = Username };
+            var cmd = new ClawCommand() { Direction = ClawDirection.NONE, Duration = moveTime, Timestamp = GameModeTimer.ElapsedMilliseconds, Username = username };
 
-            switch (Message.ToLower())
+            switch (message.ToLower())
             {
                 case "stop":
                 case "s":
@@ -498,20 +498,20 @@ namespace InternetClawMachine.Games.GantreyGame
 
                     break;
             }
-            if (Message.ToLower().Length > 1 && Message.ToLower().Substring(0, 1) == "a")
+            if (message.ToLower().Length > 1 && message.ToLower().Substring(0, 1) == "a")
             {
                 try
                 {
-                    if (Message.ToLower().Substring(0, 2) == "as")
+                    if (message.ToLower().Substring(0, 2) == "as")
                     {
-                        cmd.Angle = int.Parse(Message.ToLower().Substring(2));
+                        cmd.Angle = int.Parse(message.ToLower().Substring(2));
                         cmd.Direction = ClawDirection.FREEMOVESMALL;
                     }
                     else
                     {
-                        var angle = int.Parse(Message.ToLower().Substring(1));
+                        var angle = int.Parse(message.ToLower().Substring(1));
                         cmd.Direction = ClawDirection.FREEMOVE;
-                        cmd.Angle = int.Parse(Message.ToLower().Substring(1));
+                        cmd.Angle = int.Parse(message.ToLower().Substring(1));
                     }
                 }
                 catch (Exception ex)
@@ -521,7 +521,7 @@ namespace InternetClawMachine.Games.GantreyGame
                 }
             }
 
-            WriteDBMovementAction(Username, cmd.ToString());
+            WriteDbMovementAction(username, cmd.ToString());
 
             lock (CommandQueue)
             {
@@ -545,9 +545,9 @@ namespace InternetClawMachine.Games.GantreyGame
 
         override public async Task ProcessQueue()
         {
-            if (!_processingQueue)
+            if (!ProcessingQueue)
             {
-                _processingQueue = true;
+                ProcessingQueue = true;
                 try
                 {
                     await ProcessCommands();
@@ -570,7 +570,7 @@ namespace InternetClawMachine.Games.GantreyGame
         {
             if (Configuration.OverrideChat) //if we're currently overriding what's in the command queue, for instance when using UI controls
             {
-                _processingQueue = false;
+                ProcessingQueue = false;
                 return Task.CompletedTask;
             }
             ClawCommand currentCommand = null;
@@ -582,7 +582,7 @@ namespace InternetClawMachine.Games.GantreyGame
                     currentCommand = CommandQueue[0];
                     CommandQueue.RemoveAt(0);
                 }
-                else { _processingQueue = false; return Task.CompletedTask; }
+                else { ProcessingQueue = false; return Task.CompletedTask; }
             }
 
             //do actual direction moves
@@ -594,7 +594,7 @@ namespace InternetClawMachine.Games.GantreyGame
                     double angle = currentCommand.Angle.ToRadians();
                     var newCoordX = Math.Floor(Gantry.NormalSteps * Math.Sin(angle) + this.X);
                     var newCoordY = Math.Floor(Gantry.NormalSteps * Math.Cos(angle) + this.Y);
-                    Gantry.XYMove((int)newCoordX, (int)newCoordY);
+                    Gantry.XyMove((int)newCoordX, (int)newCoordY);
                     break;
 
                 case ClawDirection.FREEMOVESMALL:
@@ -603,7 +603,7 @@ namespace InternetClawMachine.Games.GantreyGame
                     angle = currentCommand.Angle.ToRadians();
                     newCoordX = Math.Floor(Gantry.ShortSteps * Math.Sin(angle) + this.X);
                     newCoordY = Math.Floor(Gantry.ShortSteps * Math.Cos(angle) + this.Y);
-                    Gantry.XYMove((int)newCoordX, (int)newCoordY);
+                    Gantry.XyMove((int)newCoordX, (int)newCoordY);
                     break;
 
                 case ClawDirection.FORWARD:
