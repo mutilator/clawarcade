@@ -1,17 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
 
 namespace InternetClawMachine
 {
@@ -39,7 +27,7 @@ namespace InternetClawMachine
                 webBrowser.Navigate(destinationURL);
             };
         }
-        
+
         public string ClientID { get; set; }
 
         //The access token retrieved from facebook's authentication
@@ -57,15 +45,16 @@ namespace InternetClawMachine
                 this.Close();
             }
         }
+
         private void RemoveCookies()
         {
             //Set the current user cookie to have expired yesterday
             string cookie = String.Format("api_token=; name=; unique_id=; login=; expires={0:R}; path=/;", DateTime.UtcNow.AddDays(-2).ToString("R"));
             Application.SetCookie(new Uri("https://api.twitch.tv"), cookie);
-            
-            var blah = Application.GetCookie(new Uri("https://api.twitch.tv"));
 
+            var blah = Application.GetCookie(new Uri("https://api.twitch.tv"));
         }
+
         private void webBrowser_Navigating(object sender, System.Windows.Navigation.NavigatingCancelEventArgs e)
         {
             if (e.Uri.LocalPath == "/r.php")
@@ -74,7 +63,8 @@ namespace InternetClawMachine
                 e.Cancel = true;
             }
         }
-        IntPtr webBrowser_MessageHook(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
+
+        private IntPtr webBrowser_MessageHook(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
         {
             //msg = 130 is the last call for when the window gets closed on a window.close() in javascript
             if (msg == 130)

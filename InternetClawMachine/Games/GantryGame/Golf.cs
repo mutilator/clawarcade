@@ -453,7 +453,7 @@ namespace InternetClawMachine.Games.GantreyGame
             {
                 queueCnt = CommandQueue.Count;
                 if (queueCnt > 0)
-                currentCmd = CommandQueue[0];
+                    currentCmd = CommandQueue[0];
             }
             //wait until the hit is complete
             while (queueCnt > 0 && currentCmd.CommandGroup == ClawCommandGroup.HIT)
@@ -467,14 +467,13 @@ namespace InternetClawMachine.Games.GantreyGame
                 }
             }
 
-
             GameRoundTimer.Reset();
             CommandQueue.Clear();
             _processingQueue = false;
             GameLoopCounterValue++; //increment the counter for this persons turn
-                        
+
             Configuration.GolfSettings.CurrentPlayerHasPlayed = false;
-            
+
             Phase = phase;
 
             //just stop everything
@@ -510,7 +509,7 @@ namespace InternetClawMachine.Games.GantreyGame
                         var nextPlayer = PlayerQueue.GetNextPlayer();
                         StartRound(nextPlayer, Phase); //time ran out, they didnt hit yet, keep it wherever they left off
                     } //else another player is already playing or game mode has switched
-                } 
+                }
                 else //if they're queued by themselves then we ignored the short timer
                 {
                     //wait for their turn to end before ending
@@ -519,7 +518,6 @@ namespace InternetClawMachine.Games.GantreyGame
                     //      it moves to second player, but this timer is going for the first player,
                     //      it then skips back to the first player but they're putting their commands in so slowly the first timer just finished
                     //      and the checks below this match their details it will end their turn early
-                    
 
                     //we need a check if they changed game mode or something weird happened
                     await Task.Delay((Configuration.GolfSettings.SinglePlayerDuration * 1000) - firstWait);
@@ -527,15 +525,14 @@ namespace InternetClawMachine.Games.GantreyGame
                     //check if we're still on the same turn (GameLoopCounterValue) as when we started the timer
                     if (PlayerQueue.CurrentPlayer != null && PlayerQueue.CurrentPlayer == username && GameLoopCounterValue == loopVal)
                     {
-                        
                         if (!Configuration.GolfSettings.CurrentPlayerHasPlayed)
                             PlayerQueue.RemoveSinglePlayer(username);
 
                         base.OnTurnEnded(args);
                         var nextPlayer = PlayerQueue.GetNextPlayer();
                         StartRound(nextPlayer);
-
-                    } else
+                    }
+                    else
                     {
                         StartRound(null);
                     }

@@ -33,12 +33,15 @@ namespace InternetClawMachine.Hardware.ClawControl
         private bool _sp;
 
         #region MachineControl Members
+
         public bool IsClawPlayActive { get; set; }
+
         public event EventHandler OnBreakSensorTripped;
 
         public event EventHandler OnReturnedHome;
 
         public event EventHandler OnClawDropping;
+
         public event EventHandler OnResetButtonPressed;
 
         private bool _lightsOn = true;

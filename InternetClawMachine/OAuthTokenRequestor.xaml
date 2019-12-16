@@ -6,10 +6,10 @@
         xmlns:local="clr-namespace:InternetClawMachine"
         mc:Ignorable="d"
         Title="OAuthTokenRequestor" Height="742.328" Width="585.321">
-    
+
     <Grid>
-        <WebBrowser Name="webBrowser" 
-                Navigated="webBrowser_Navigated" 
+        <WebBrowser Name="webBrowser"
+                Navigated="webBrowser_Navigated"
                 Navigating="webBrowser_Navigating" />
     </Grid>
 </Window>

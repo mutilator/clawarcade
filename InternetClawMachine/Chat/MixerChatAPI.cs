@@ -6,7 +6,6 @@ using Mixer.Base.Model.User;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using TwitchLib.Client;
 using TwitchLib.Client.Events;
 using TwitchLib.Client.Models;
 
@@ -62,7 +61,8 @@ namespace InternetClawMachine
             _channel = channel;
             Credentials = credentials;
 
-            Task.Run(async delegate () {
+            Task.Run(async delegate ()
+            {
                 List<OAuthClientScopeEnum> scopes = new List<OAuthClientScopeEnum>()
             {
                 OAuthClientScopeEnum.chat__bypass_links,
@@ -154,11 +154,6 @@ namespace InternetClawMachine
             OnDisconnected?.Invoke(sender, new OnDisconnectedArgs() { });
         }
 
-
-
-
-
-
         private void Client_OnReSubscriber(object sender, OnReSubscriberArgs e)
         {
             OnReSubscriber?.Invoke(sender, e);
@@ -174,12 +169,10 @@ namespace InternetClawMachine
             OnChatCommandReceived?.Invoke(sender, new OnChatCommandReceivedArgs() { Command = e.Command });
         }
 
-
         private void Client_OnUserLeft(object sender, TwitchLib.Client.Events.OnUserLeftArgs e)
         {
             OnUserLeft?.Invoke(sender, new OnUserLeftArgs() { Username = e.Username, Channel = e.Channel });
         }
-
 
         private void Client_OnExistingUsersDetected(object sender, TwitchLib.Client.Events.OnExistingUsersDetectedArgs e)
         {
@@ -261,9 +254,8 @@ namespace InternetClawMachine
         {
             if (Client.Connected)
                 Client.SendMessage(message);
-
-
         }
+
         public void SendWhisper(string username, string message)
         {
             if (Client.Connected)

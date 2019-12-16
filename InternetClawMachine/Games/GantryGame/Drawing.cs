@@ -300,7 +300,6 @@ namespace InternetClawMachine.Games.GantreyGame
                 return;
             }
 
-
             //take everyone that voted and add them to the queue? -- nope
             GameRoundTimer.Start();
             Configuration.DrawingSettings.CurrentPlayerHasPlayed = false;
@@ -335,8 +334,6 @@ namespace InternetClawMachine.Games.GantreyGame
                 }
                 else
                 {
-                   
-
                     await Task.Delay((Configuration.DrawingSettings.SinglePlayerDuration * 1000) - firstWait);
 
                     //if the claw is dropping then we can just let the claw return home event trigger the next player

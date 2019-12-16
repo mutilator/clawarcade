@@ -30,7 +30,6 @@ namespace InternetClawMachine
                     Configuration.RecordsDatabase.Close();
                 }
             }
-
         }
 
         public static bool ShouldReceiveDailyBucksBonus(BotConfiguration Configuration, string username)
@@ -312,14 +311,11 @@ namespace InternetClawMachine
                                 if (singlePlush.GetValue(6).ToString().Length > 0)
                                     BonusBux = int.Parse(singlePlush.GetValue(6).ToString());
 
-
                                 plushObject = new PlushieObject() { Name = Name, PlushID = PlushID, ChangedBy = ChangedBy, ChangeDate = ChangeDate, WinStream = WinStream, BountyStream = BountyStream, FromDatabase = true, BonusBux = BonusBux };
                                 plushObject.EPCList = new List<string>() { strEPC };
-
                             }
                         }
                     } //end fromdatabase
-
                 }
                 finally
                 {

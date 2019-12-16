@@ -34,6 +34,7 @@
         public OBSSceneSource BountyEndScreen = new OBSSceneSource() { SourceName = "BountyEndScreen", Type = OBSSceneSourceType.VIDEO, Scene = "VideosScene" };
         public OBSSceneSource BountyWantedBlank = new OBSSceneSource() { SourceName = "WANTED-BLANK", Type = OBSSceneSourceType.IMAGE, Scene = "VideosScene" };
     }
+
     public class OBSSceneSource
     {
         /// <summary>
@@ -56,6 +57,7 @@
         /// </summary>
         public int Duration;
     }
+
     public enum OBSSceneSourceType
     {
         SOUND,

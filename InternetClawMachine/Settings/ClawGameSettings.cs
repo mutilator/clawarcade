@@ -37,11 +37,9 @@ namespace InternetClawMachine.Settings
         /// </summary>
         public List<string> BountySayings { set; get; }
 
-
         public string RFIDReaderIPAddress { set; get; }
         public int RFIDReaderPort { set; get; }
         public int RFIDAntennaPower { set; get; }
-
 
         public bool UseNewClawController { get; set; }
         public int ClawControllerPort { get; set; }
@@ -132,13 +130,13 @@ namespace InternetClawMachine.Settings
         /// </summary>
         public int CameraResetDelay { set; get; }
 
-
         /// <summary>
         /// Time the last refill was requested
         /// </summary>
         public long LastRefillWait { set; get; }
 
         public event PropertyChangedEventHandler PropertyChanged;
+
         protected void OnPropertyChanged([System.Runtime.CompilerServices.CallerMemberName] string propertyName = "")
         {
             if (this.PropertyChanged != null)

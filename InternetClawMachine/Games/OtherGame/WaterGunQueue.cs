@@ -194,7 +194,6 @@ namespace InternetClawMachine.Games
             GameRoundTimer.Reset();
             GameLoopCounterValue++; //increment the counter for this persons turn
 
-
             //just stop everything
             if (username == null)
             {
@@ -203,12 +202,9 @@ namespace InternetClawMachine.Games
                 return;
             }
 
-            
-
             //take everyone that voted and add them to the queue? -- nope
             GameRoundTimer.Start();
             Configuration.WaterGunSettings.CurrentPlayerHasPlayed = false;
-            
 
             //so here we need to make a bit of fudge in the times
             //check if our current time minus when it last dropped is less than the time it takes to return home

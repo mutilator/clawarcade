@@ -21,7 +21,6 @@
 
         public int AccelerationA { set; get; }
 
-
         /// <summary>
         /// seconds before single player mode ends
         /// </summary>
