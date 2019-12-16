@@ -8,6 +8,8 @@
         RIGHT,
         UP,
         DOWN,
+        CLAWCLOSE,
+        DROP,
         STOP,
         COIN,
         CONVEYOR

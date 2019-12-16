@@ -105,7 +105,7 @@ namespace InternetClawMachine.Hardware.ClawControl
                         return MovementDirection.RIGHT;
 
                     case "d":
-                        return MovementDirection.DOWN;
+                        return MovementDirection.DROP;
 
                     case "coin":
                         return MovementDirection.COIN;
@@ -141,7 +141,7 @@ namespace InternetClawMachine.Hardware.ClawControl
                         _lastDirection = "u";
                         break;
 
-                    case MovementDirection.DOWN:
+                    case MovementDirection.DROP:
                         _lastDirection = "d";
                         break;
 
@@ -559,8 +559,13 @@ namespace InternetClawMachine.Hardware.ClawControl
                     case MovementDirection.UP:
                         dir = "u";
                         break;
-
                     case MovementDirection.DOWN:
+                        dir = "dn";
+                        break;
+                    case MovementDirection.CLAWCLOSE:
+                        dir = "claw";
+                        break;
+                    case MovementDirection.DROP:
                         IsClawPlayActive = true;
                         dir = "d";
                         break;
@@ -589,6 +594,16 @@ namespace InternetClawMachine.Hardware.ClawControl
             }
         }
 
+        public async Task OpenClaw()
+        {
+            await Move(MovementDirection.CLAWCLOSE, 0);
+        }
+
+        public async Task CloseClaw()
+        {
+            await Move(MovementDirection.CLAWCLOSE, 1);
+        }
+
         public async Task MoveBackward(int duration)
         {
             await Move(MovementDirection.BACKWARD, duration);
@@ -596,7 +611,7 @@ namespace InternetClawMachine.Hardware.ClawControl
 
         public async Task MoveDown(int duration)
         {
-            await Move(MovementDirection.DOWN, duration);
+            await Move(MovementDirection.CLAWCLOSE, duration);
         }
 
         public async Task MoveForward(int duration)
@@ -621,7 +636,7 @@ namespace InternetClawMachine.Hardware.ClawControl
 
         public async Task PressDrop()
         {
-            await Move(MovementDirection.DOWN, 0);
+            await Move(MovementDirection.DROP, 0);
         }
 
         public async Task RunConveyor(int runtime)

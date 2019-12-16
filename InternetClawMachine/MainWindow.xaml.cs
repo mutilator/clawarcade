@@ -2156,6 +2156,78 @@ namespace InternetClawMachine
             }
         }
 
+        private void BtnCloseClaw_MouseDown(object sender, MouseButtonEventArgs e)
+        {
+            OverrideChat = true; //allows us to control the crane no matter what chat says
+            switch (Game.GameMode)
+            {
+                default:
+                    (Game as ClawGame)?.MachineControl.MoveUp(-1);
+                    break;
+            }
+        }
+
+        private void BtnCloseClaw_MouseUp(object sender, MouseButtonEventArgs e)
+        {
+            OverrideChat = true; //allows us to control the crane no matter what chat says
+            switch (Game.GameMode)
+            {
+                default:
+                    (Game as ClawGame)?.MachineControl.StopMove();
+                    break;
+            }
+
+        }
+        
+        private void BtnDrop_Click(object sender, RoutedEventArgs e)
+        {
+
+        }
+
+
+        private void BtnDown_PreviewMouseUp(object sender, MouseButtonEventArgs e)
+        {
+            OverrideChat = true; //allows us to control the crane no matter what chat says
+            switch (Game.GameMode)
+            {
+                default:
+                    (Game as ClawGame)?.MachineControl.StopMove();
+                    break;
+            }
+        }
+
+        private void BtnDown_PreviewMouseDown(object sender, MouseButtonEventArgs e)
+        {
+            OverrideChat = true; //allows us to control the crane no matter what chat says
+            switch (Game.GameMode)
+            {
+                default:
+                    (Game as ClawGame)?.MachineControl.MoveDown(-1);
+                    break;
+            }
+        }
+
+        private void BtnCloseClaw_PreviewMouseDown(object sender, MouseButtonEventArgs e)
+        {
+            OverrideChat = true; //allows us to control the crane no matter what chat says
+            switch (Game.GameMode)
+            {
+                default:
+                    (Game as ClawGame)?.MachineControl.CloseClaw();
+                    break;
+            }
+        }
+
+        private void BtnCloseClaw_PreviewMouseUp(object sender, MouseButtonEventArgs e)
+        {
+            OverrideChat = true; //allows us to control the crane no matter what chat says
+            switch (Game.GameMode)
+            {
+                default:
+                    (Game as ClawGame)?.MachineControl.OpenClaw();
+                    break;
+            }
+        }
     }
 
     public enum EventMode

@@ -1539,7 +1539,7 @@ namespace InternetClawMachine.Games.ClawGame
 
                     case ClawDirection.DOWN:
 
-                        if (MachineControl.CurrentDirection != MovementDirection.DOWN)
+                        if (MachineControl.CurrentDirection != MovementDirection.DROP)
                             Logger.WriteLog(Logger.MachineLog, "MOVE DOWN");
 
                         Configuration.OverrideChat = true;

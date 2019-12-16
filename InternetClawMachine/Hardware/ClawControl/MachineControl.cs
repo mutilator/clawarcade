@@ -67,5 +67,7 @@ namespace InternetClawMachine.Hardware.ClawControl
         bool Connect();
 
         void Disconnect();
+        Task CloseClaw();
+        Task OpenClaw();
     }
 }

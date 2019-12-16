@@ -262,7 +262,7 @@ namespace InternetClawMachine.Hardware.ClawControl
 
         public async Task MoveDown(int duration)
         {
-            await Move(MovementDirection.DOWN, duration);
+            await Move(MovementDirection.DROP, duration);
         }
 
         public async Task MoveUp(int duration)
@@ -275,13 +275,13 @@ namespace InternetClawMachine.Hardware.ClawControl
             //spawn a separate thread to throw the claw return home event
             OnClawDropping?.Invoke(this, new EventArgs());
             ExecuteReturnHomeEvent();
-            await Move(MovementDirection.DOWN, 800);
+            await Move(MovementDirection.DROP, 800);
             await Task.Delay(200); //if you hold drop it will cause the machine to lock up, wait 1000ms
-            await Move(MovementDirection.DOWN, 800);
+            await Move(MovementDirection.DROP, 800);
             await Task.Delay(200); //if you hold drop it will cause the machine to lock up, wait 1000ms
-            await Move(MovementDirection.DOWN, 800);
+            await Move(MovementDirection.DROP, 800);
             await Task.Delay(200); //if you hold drop it will cause the machine to lock up, wait 1000ms
-            await Move(MovementDirection.DOWN, 800);
+            await Move(MovementDirection.DROP, 800);
             await Task.Delay(200); //if you hold drop it will cause the machine to lock up, wait 1000ms
         }
 
@@ -314,7 +314,7 @@ namespace InternetClawMachine.Hardware.ClawControl
                         return MovementDirection.RIGHT;
 
                     case DirectionDrop:
-                        return MovementDirection.DOWN;
+                        return MovementDirection.DROP;
 
                     case Coinop:
                         return MovementDirection.COIN;
@@ -350,7 +350,7 @@ namespace InternetClawMachine.Hardware.ClawControl
                         _lastDirection = DirectionUp;
                         break;
 
-                    case MovementDirection.DOWN:
+                    case MovementDirection.DROP:
                         _lastDirection = DirectionDrop;
                         break;
 
@@ -396,7 +396,7 @@ namespace InternetClawMachine.Hardware.ClawControl
                         dir = DirectionUp;
                         break;
 
-                    case MovementDirection.DOWN:
+                    case MovementDirection.DROP:
                         dir = DirectionDrop;
                         break;
 
@@ -489,6 +489,16 @@ namespace InternetClawMachine.Hardware.ClawControl
         }
 
         public void DualStrobe(int red, int blue, int green, int red2, int blue2, int green2, int strobeCount, int strobeDelay)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task CloseClaw()
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task OpenClaw()
         {
             throw new NotImplementedException();
         }
