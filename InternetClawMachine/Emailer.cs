@@ -8,7 +8,7 @@ namespace InternetClawMachine
         private static string _mailServer = "10.1.2.1";
         private static string _mailFrom = "sdgusler@gmail.com";
 
-        public async static void SendEmail(string mailto, string subject, string message) => await Task.Run(delegate
+        public static async void SendEmail(string mailto, string subject, string message) => await Task.Run(delegate
                                                                                      {
                                                                                          try
                                                                                          {
@@ -22,7 +22,7 @@ namespace InternetClawMachine
                                                                                          }
                                                                                          catch (Exception ex)
                                                                                          {
-                                                                                             var error = string.Format("ERROR {0} {1}", ex.Message, ex.ToString());
+                                                                                             var error = string.Format("ERROR {0} {1}", ex.Message, ex);
                                                                                              Logger.WriteLog(Logger.ErrorLog, error);
                                                                                          }
                                                                                      });

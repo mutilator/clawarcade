@@ -3,7 +3,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 
-namespace InternetClawMachine.Hardware.WaterBot
+namespace InternetClawMachine.Hardware
 {
     public class WaterBot
     {
@@ -11,7 +11,7 @@ namespace InternetClawMachine.Hardware.WaterBot
         public int Port { get; set; }
 
         private Socket _workSocket = null;
-        private bool IsConnected { get { return _workSocket.Connected; } }
+        private bool IsConnected => _workSocket.Connected;
 
         public WaterBot(string ip, int port)
         {
@@ -44,7 +44,7 @@ namespace InternetClawMachine.Hardware.WaterBot
             }
             catch (Exception ex)
             {
-                var error = string.Format("ERROR {0} {1}", ex.Message, ex.ToString());
+                var error = string.Format("ERROR {0} {1}", ex.Message, ex);
                 Logger.WriteLog(Logger.ErrorLog, error);
             }
             return false;
@@ -84,7 +84,7 @@ namespace InternetClawMachine.Hardware.WaterBot
             }
             catch (Exception ex)
             {
-                var error = string.Format("ERROR {0} {1}", ex.Message, ex.ToString());
+                var error = string.Format("ERROR {0} {1}", ex.Message, ex);
                 Logger.WriteLog(Logger.ErrorLog, error);
             }
 

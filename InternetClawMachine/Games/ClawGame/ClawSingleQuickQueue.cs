@@ -1,6 +1,8 @@
 ﻿using OBSWebsocketDotNet;
 using System;
 using System.Threading.Tasks;
+using InternetClawMachine.Chat;
+using InternetClawMachine.Settings;
 
 namespace InternetClawMachine.Games.ClawGame
 {

@@ -134,7 +134,7 @@ namespace InternetClawMachine
 
         #region Private function, InputBox Form move and change size
 
-        static private void LoadForm()
+        private static void LoadForm()
         {
             OutputResponse.ReturnCode = DialogResult.Ignore;
             OutputResponse.Text = string.Empty;
@@ -184,14 +184,14 @@ namespace InternetClawMachine
 
         #region Button control click event
 
-        static private void btnOK_Click(object sender, EventArgs e)
+        private static void btnOK_Click(object sender, EventArgs e)
         {
             OutputResponse.ReturnCode = DialogResult.OK;
             OutputResponse.Text = _txtInput.Text;
             _frmInputDialog.Dispose();
         }
 
-        static private void btnCancel_Click(object sender, EventArgs e)
+        private static void btnCancel_Click(object sender, EventArgs e)
         {
             OutputResponse.ReturnCode = DialogResult.Cancel;
             OutputResponse.Text = string.Empty; //Clean output response
@@ -202,7 +202,7 @@ namespace InternetClawMachine
 
         #region Public Static Show functions
 
-        static public InputBoxResult Show(string prompt)
+        public static InputBoxResult Show(string prompt)
         {
             InitializeComponent();
             FormPrompt = prompt;
@@ -213,7 +213,7 @@ namespace InternetClawMachine
             return OutputResponse;
         }
 
-        static public InputBoxResult Show(string prompt, string title)
+        public static InputBoxResult Show(string prompt, string title)
         {
             InitializeComponent();
 
@@ -226,7 +226,7 @@ namespace InternetClawMachine
             return OutputResponse;
         }
 
-        static public InputBoxResult Show(string prompt, string title, string @default)
+        public static InputBoxResult Show(string prompt, string title, string @default)
         {
             InitializeComponent();
 
@@ -240,7 +240,7 @@ namespace InternetClawMachine
             return OutputResponse;
         }
 
-        static public InputBoxResult Show(string prompt, string title, string @default, int xPos, int yPos)
+        public static InputBoxResult Show(string prompt, string title, string @default, int xPos, int yPos)
         {
             InitializeComponent();
             FormCaption = title;
@@ -259,43 +259,28 @@ namespace InternetClawMachine
 
         #region Private Properties
 
-        static private string FormCaption
+        private static string FormCaption
         {
-            set
-            {
-                _formCaption = value;
-            }
+            set => _formCaption = value;
         } // property FormCaption
 
-        static private string FormPrompt
+        private static string FormPrompt
         {
-            set
-            {
-                _formPrompt = value;
-            }
+            set => _formPrompt = value;
         } // property FormPrompt
 
-        static private InputBoxResult OutputResponse
+        private static InputBoxResult OutputResponse
         {
-            get
-            {
-                return _outputResponse;
-            }
-            set
-            {
-                _outputResponse = value;
-            }
+            get => _outputResponse;
+            set => _outputResponse = value;
         } // property InputResponse
 
-        static private string DefaultValue
+        private static string DefaultValue
         {
-            set
-            {
-                _defaultValue = value;
-            }
+            set => _defaultValue = value;
         } // property DefaultValue
 
-        static private int XPosition
+        private static int XPosition
         {
             set
             {
@@ -304,7 +289,7 @@ namespace InternetClawMachine
             }
         } // property XPos
 
-        static private int YPosition
+        private static int YPosition
         {
             set
             {

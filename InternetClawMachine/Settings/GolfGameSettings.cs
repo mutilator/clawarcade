@@ -1,4 +1,4 @@
-﻿namespace InternetClawMachine
+﻿namespace InternetClawMachine.Settings
 {
     public class GolfGameSettings
     {

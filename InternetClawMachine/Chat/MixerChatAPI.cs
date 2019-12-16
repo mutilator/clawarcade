@@ -1,15 +1,13 @@
-﻿using Mixer.Base;
-using Mixer.Base.Clients;
-using Mixer.Base.Model.Channel;
-using Mixer.Base.Model.Chat;
-using Mixer.Base.Model.User;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Mixer.Base;
+using Mixer.Base.Clients;
+using Mixer.Base.Model.User;
 using TwitchLib.Client.Events;
 using TwitchLib.Client.Models;
 
-namespace InternetClawMachine
+namespace InternetClawMachine.Chat
 {
     internal class MixerChatApi : IChatApi
     {
@@ -21,7 +19,7 @@ namespace InternetClawMachine
         {
             get
             {
-                if (_client != null)
+                if (_client == null)
                     return false;
                 else
                     return _client.Connected;
@@ -56,7 +54,7 @@ namespace InternetClawMachine
 
         public event EventHandler<OnSendReceiveDataArgs> OnSendReceiveData;
 
-        public void Initialze(ConnectionCredentials credentials, string channel)
+        public void Initialize(ConnectionCredentials credentials, string channel)
         {
             _channel = channel;
             _credentials = credentials;

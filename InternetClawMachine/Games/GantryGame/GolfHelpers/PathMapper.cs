@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace InternetClawMachine.Games.GolfHelpers
+namespace InternetClawMachine.Games.GantryGame.GolfHelpers
 {
     public class PathMapper : IComparable<PathMapper>
     {

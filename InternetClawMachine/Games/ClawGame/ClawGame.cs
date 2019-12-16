@@ -14,6 +14,8 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
+using InternetClawMachine.Chat;
+using InternetClawMachine.Games.OtherGame;
 
 namespace InternetClawMachine.Games.ClawGame
 {
@@ -47,7 +49,7 @@ namespace InternetClawMachine.Games.ClawGame
         public bool CurrentPlayerHasPlayed { get; internal set; }
 
         /// <summary>
-        /// Thrown when we send a drop event, this probably shouldnt be part of the game class
+        /// Thrown when we send a drop event, this probably shouldn't be part of the game class
         /// </summary>
         public event EventHandler<EventArgs> ClawDropping;
 
@@ -158,7 +160,7 @@ namespace InternetClawMachine.Games.ClawGame
             }
             catch (Exception ex)
             {
-                var error = string.Format("ERROR {0} {1}", ex.Message, ex.ToString());
+                var error = string.Format("ERROR {0} {1}", ex.Message, ex);
                 Logger.WriteLog(Logger.ErrorLog, error);
             }
 
@@ -179,7 +181,7 @@ namespace InternetClawMachine.Games.ClawGame
             catch (Exception ex)
             {
                 MessageBox.Show("Unable to connect to RFID reader. " + ex.Message);
-                var error = string.Format("ERROR {0} {1}", ex.Message, ex.ToString());
+                var error = string.Format("ERROR {0} {1}", ex.Message, ex);
                 Logger.WriteLog(Logger.ErrorLog, error);
             }
             LoadPlushFromDb();
@@ -237,7 +239,7 @@ namespace InternetClawMachine.Games.ClawGame
                 }
                 catch (Exception ex)
                 {
-                    var error = string.Format("ERROR {0} {1}", ex.Message, ex.ToString());
+                    var error = string.Format("ERROR {0} {1}", ex.Message, ex);
                     Logger.WriteLog(Logger.ErrorLog, error);
                 }
             }
@@ -315,7 +317,7 @@ namespace InternetClawMachine.Games.ClawGame
                 }
                 catch (Exception ex)
                 {
-                    var error = string.Format("ERROR {0} {1}", ex.Message, ex.ToString());
+                    var error = string.Format("ERROR {0} {1}", ex.Message, ex);
                     Logger.WriteLog(Logger.ErrorLog, error);
                 }
             }
@@ -360,12 +362,12 @@ namespace InternetClawMachine.Games.ClawGame
                 }
                 else if ((Configuration.EventMode == EventMode.DUPLO) || (Configuration.EventMode == EventMode.BALL))
                 {
-                    saying = string.Format("@{0} grabbed some duplos! Here's your 3x claw bux bonus!", winner, objPlush.Name);
+                    saying = string.Format("@{0} grabbed some duplos! Here's your 3x claw bux bonus!", winner);
                     DatabaseFunctions.AddStreamBuxBalance(Configuration, user.Username, StreamBuxTypes.WIN, Configuration.GetStreamBuxCost(StreamBuxTypes.WIN) * 3);
                 }
                 else if ((Configuration.EventMode == EventMode.EASTER) && objPlush.PlushId != 87 && objPlush.PlushId != 88)
                 {
-                    saying = string.Format("@{0} grabbed some eggs! Here's your 3x claw bux bonus!", winner, objPlush.Name);
+                    saying = string.Format("@{0} grabbed some eggs! Here's your 3x claw bux bonus!", winner);
                     DatabaseFunctions.AddStreamBuxBalance(Configuration, user.Username, StreamBuxTypes.WIN, Configuration.GetStreamBuxCost(StreamBuxTypes.WIN) * 3);
                 }
                 else if ((Configuration.EventMode == EventMode.EASTER))
@@ -460,7 +462,7 @@ namespace InternetClawMachine.Games.ClawGame
             }
             catch (Exception ex)
             {
-                var error = string.Format("ERROR {0} {1}", ex.Message, ex.ToString());
+                var error = string.Format("ERROR {0} {1}", ex.Message, ex);
                 Logger.WriteLog(Logger.ErrorLog, error);
             }
         }
@@ -701,7 +703,7 @@ namespace InternetClawMachine.Games.ClawGame
                     }
                     catch (Exception ex)
                     {
-                        var error = string.Format("ERROR {0} {1}", ex.Message, ex.ToString());
+                        var error = string.Format("ERROR {0} {1}", ex.Message, ex);
                         Logger.WriteLog(Logger.ErrorLog, error);
                         ChatClient.SendMessage(Configuration.Channel, string.Format("Syntax: {0}strobe red blue green [count] [delay]", Configuration.CommandPrefix));
                         ChatClient.SendMessage(Configuration.Channel, string.Format("Colors scale 0-255, count 1-100, delay 1-120, ex '!strobe 255 0 0' creates a red strobe"));
@@ -751,7 +753,7 @@ namespace InternetClawMachine.Games.ClawGame
                             catch (Exception ex)
                             {
                                 ChatClient.SendMessage(Configuration.Channel, string.Format("Error renaming plush: {0}", ex.Message));
-                                var error = string.Format("ERROR {0} {1}", ex.Message, ex.ToString());
+                                var error = string.Format("ERROR {0} {1}", ex.Message, ex);
                                 Logger.WriteLog(Logger.ErrorLog, error);
                             }
                         }
@@ -764,7 +766,7 @@ namespace InternetClawMachine.Games.ClawGame
                     {
                         ChatClient.SendMessage(Configuration.Channel, string.Format("Error renaming plush: {0}", ex2.Message));
 
-                        var error = string.Format("ERROR {0} {1}", ex2.Message, ex2.ToString());
+                        var error = string.Format("ERROR {0} {1}", ex2.Message, ex2);
                         Logger.WriteLog(Logger.ErrorLog, error);
                     }
 
@@ -849,7 +851,7 @@ namespace InternetClawMachine.Games.ClawGame
                         }
                         catch (Exception ex)
                         {
-                            var error = string.Format("ERROR {0} {1}", ex.Message, ex.ToString());
+                            var error = string.Format("ERROR {0} {1}", ex.Message, ex);
                             Logger.WriteLog(Logger.ErrorLog, error);
 
                             Configuration.LoadDatebase();
@@ -970,7 +972,7 @@ namespace InternetClawMachine.Games.ClawGame
                     }
                     catch (Exception ex)
                     {
-                        var error = string.Format("ERROR {0} {1}", ex.Message, ex.ToString());
+                        var error = string.Format("ERROR {0} {1}", ex.Message, ex);
                         Logger.WriteLog(Logger.ErrorLog, error);
 
                         //meh whatever
@@ -1014,8 +1016,7 @@ namespace InternetClawMachine.Games.ClawGame
                                 {
                                     if (DatabaseFunctions.GetStreamBuxBalance(Configuration, username) + Configuration.GetStreamBuxCost(StreamBuxTypes.SCENE) > 0)
                                     {
-                                        var newScene = 1;
-                                        if (int.TryParse(args[2], out newScene))
+                                        if (int.TryParse(args[2], out var newScene))
                                         {
                                             ChangeClawScene(newScene);
                                             DatabaseFunctions.AddStreamBuxBalance(Configuration, username, StreamBuxTypes.SCENE, Configuration.GetStreamBuxCost(StreamBuxTypes.SCENE));
@@ -1094,7 +1095,7 @@ namespace InternetClawMachine.Games.ClawGame
                                     catch (Exception ex)
                                     {
                                         ChatClient.SendMessage(Configuration.Channel, string.Format("Error renaming plush: {0}", ex.Message));
-                                        var error = string.Format("ERROR {0} {1}", ex.Message, ex.ToString());
+                                        var error = string.Format("ERROR {0} {1}", ex.Message, ex);
                                         Logger.WriteLog(Logger.ErrorLog, error);
                                     }
                                 }
@@ -1102,7 +1103,7 @@ namespace InternetClawMachine.Games.ClawGame
                                 {
                                     ChatClient.SendMessage(Configuration.Channel, string.Format("Error renaming plush: {0}", ex2.Message));
 
-                                    var error = string.Format("ERROR {0} {1}", ex2.Message, ex2.ToString());
+                                    var error = string.Format("ERROR {0} {1}", ex2.Message, ex2);
                                     Logger.WriteLog(Logger.ErrorLog, error);
                                 }
                             }
@@ -1193,7 +1194,7 @@ namespace InternetClawMachine.Games.ClawGame
                 }
                 catch (Exception ex)
                 {
-                    var error = string.Format("ERROR {0} {1}", ex.Message, ex.ToString());
+                    var error = string.Format("ERROR {0} {1}", ex.Message, ex);
                     Logger.WriteLog(Logger.ErrorLog, error);
                 }
             });
@@ -1208,7 +1209,7 @@ namespace InternetClawMachine.Games.ClawGame
             }
             catch (Exception ex)
             {
-                var error = string.Format("ERROR {0} {1}", ex.Message, ex.ToString());
+                var error = string.Format("ERROR {0} {1}", ex.Message, ex);
                 Logger.WriteLog(Logger.ErrorLog, error);
             }
             try
@@ -1218,7 +1219,7 @@ namespace InternetClawMachine.Games.ClawGame
             }
             catch (Exception ex)
             {
-                var error = string.Format("ERROR {0} {1}", ex.Message, ex.ToString());
+                var error = string.Format("ERROR {0} {1}", ex.Message, ex);
                 Logger.WriteLog(Logger.ErrorLog, error);
             }
         }
@@ -1238,7 +1239,7 @@ namespace InternetClawMachine.Games.ClawGame
             }
             catch (Exception ex)
             {
-                var error = string.Format("ERROR {0} {1}", ex.Message, ex.ToString());
+                var error = string.Format("ERROR {0} {1}", ex.Message, ex);
                 Logger.WriteLog(Logger.ErrorLog, error);
             }
             try
@@ -1255,7 +1256,7 @@ namespace InternetClawMachine.Games.ClawGame
             }
             catch (Exception ex)
             {
-                var error = string.Format("ERROR {0} {1}", ex.Message, ex.ToString());
+                var error = string.Format("ERROR {0} {1}", ex.Message, ex);
                 Logger.WriteLog(Logger.ErrorLog, error);
             }
         }
@@ -1302,7 +1303,7 @@ namespace InternetClawMachine.Games.ClawGame
                     }
                     catch (Exception ex)
                     {
-                        var error = string.Format("ERROR {0} {1}", ex.Message, ex.ToString());
+                        var error = string.Format("ERROR {0} {1}", ex.Message, ex);
                         Logger.WriteLog(Logger.ErrorLog, error);
                     }
                 }
@@ -1332,7 +1333,7 @@ namespace InternetClawMachine.Games.ClawGame
             }
             catch (Exception ex)
             {
-                var error = string.Format("ERROR {0} {1}", ex.Message, ex.ToString());
+                var error = string.Format("ERROR {0} {1}", ex.Message, ex);
                 Logger.WriteLog(Logger.ErrorLog, error);
             }
             UpdateObsQueueDisplay();
@@ -1348,7 +1349,7 @@ namespace InternetClawMachine.Games.ClawGame
             }
             catch (Exception ex)
             {
-                var error = string.Format("ERROR {0} {1}", ex.Message, ex.ToString());
+                var error = string.Format("ERROR {0} {1}", ex.Message, ex);
                 Logger.WriteLog(Logger.ErrorLog, error);
             }
         }
@@ -1378,7 +1379,7 @@ namespace InternetClawMachine.Games.ClawGame
                 }
                 catch (Exception ex)
                 {
-                    var error = string.Format("ERROR {0} {1}", ex.Message, ex.ToString());
+                    var error = string.Format("ERROR {0} {1}", ex.Message, ex);
                     Logger.WriteLog(Logger.ErrorLog, error);
                 }
             }
@@ -1403,7 +1404,7 @@ namespace InternetClawMachine.Games.ClawGame
             }
             catch (Exception ex)
             {
-                var error = string.Format("ERROR {0} {1}", ex.Message, ex.ToString());
+                var error = string.Format("ERROR {0} {1}", ex.Message, ex);
                 Logger.WriteLog(Logger.ErrorLog, error);
             }
         }
@@ -1416,7 +1417,7 @@ namespace InternetClawMachine.Games.ClawGame
             var data = new JObject();
             data.Add("text", plushRef.Name);
 
-            if (plushRef.BountyStream != null && plushRef.BountyStream.Length > 0)
+            if (!string.IsNullOrEmpty(plushRef.BountyStream))
                 data.Add("name", plushRef.BountyStream);
             else //use the blank poster if nothing is defined
                 data.Add("name", Configuration.ObsScreenSourceNames.BountyWantedBlank.SourceName);
@@ -1444,7 +1445,7 @@ namespace InternetClawMachine.Games.ClawGame
             PoliceStrobe();
         }
 
-        public async override Task ProcessQueue()
+        public override async Task ProcessQueue()
         {
             if (!ProcessingQueue)
             {
@@ -1458,7 +1459,7 @@ namespace InternetClawMachine.Games.ClawGame
                 }
                 catch (Exception ex)
                 {
-                    var error = string.Format("ERROR {0} {1}", ex.Message, ex.ToString());
+                    var error = string.Format("ERROR {0} {1}", ex.Message, ex);
                     Logger.WriteLog(Logger.ErrorLog, error);
                 }
                 finally
@@ -1472,14 +1473,14 @@ namespace InternetClawMachine.Games.ClawGame
         /// <summary>
         /// Processes the current command queue and returns when empty
         /// </summary>
-        public async override Task ProcessCommands()
+        public override async Task ProcessCommands()
         {
             if (Configuration.OverrideChat) //if we're currently overriding what's in the command queue, for instance when using UI controls
                 return;
             var guid = Guid.NewGuid();
             while (true) //don't use CommandQueue here to keep thread safe
             {
-                ClawCommand currentCommand = null;
+                ClawCommand currentCommand;
                 //pull the latest command from the queue
                 lock (CommandQueue)
                 {
@@ -1561,8 +1562,7 @@ namespace InternetClawMachine.Games.ClawGame
 
         public void RunBelt(string seconds)
         {
-            var secs = 2;
-            if (!int.TryParse(seconds, out secs))
+            if (!int.TryParse(seconds, out var secs))
                 return;
 
             if ((secs > 15) || (secs < 1))
@@ -1594,7 +1594,7 @@ namespace InternetClawMachine.Games.ClawGame
             }
             catch (Exception ex)
             {
-                var error = string.Format("ERROR {0} {1}", ex.Message, ex.ToString());
+                var error = string.Format("ERROR {0} {1}", ex.Message, ex);
                 Logger.WriteLog(Logger.ErrorLog, error);
             }
         }
@@ -1622,7 +1622,7 @@ namespace InternetClawMachine.Games.ClawGame
                 }
                 catch (Exception ex)
                 {
-                    var error = string.Format("ERROR {0} {1}", ex.Message, ex.ToString());
+                    var error = string.Format("ERROR {0} {1}", ex.Message, ex);
                     Logger.WriteLog(Logger.ErrorLog, error);
                 }
             }
@@ -1728,7 +1728,7 @@ namespace InternetClawMachine.Games.ClawGame
                 }
                 catch (Exception ex)
                 {
-                    var error = string.Format("ERROR {0} {1}", ex.Message, ex.ToString());
+                    var error = string.Format("ERROR {0} {1}", ex.Message, ex);
                     Logger.WriteLog(Logger.ErrorLog, error);
                     Configuration.LoadDatebase();
                 }
@@ -1765,136 +1765,145 @@ namespace InternetClawMachine.Games.ClawGame
                 var existing = PlushieTags.FirstOrDefault(itm => itm.EpcList.Contains(epc));
                 if (existing != null || forcedWinner != null)
                 {
-                    File.AppendAllText(Configuration.FileScans, existing.Name);
-
-                    if (!existing.WasGrabbed)
+                    if (existing != null)
                     {
-                        existing.WasGrabbed = true;
-                        var winner = RunWinScenario(existing, forcedWinner);
+                        File.AppendAllText(Configuration.FileScans, existing.Name);
 
-                        var specialClip = false;
-
-                        var prefs = DatabaseFunctions.GetUserPrefs(Configuration, winner);
-
-                        RunStrobe(prefs);
-
-                        //a lot of the animations are timed and setup in code because I don't want to make a whole animation class
-                        //bounty mode
-                        if (Bounty != null && Bounty.Name.ToLower() == existing.Name.ToLower())
+                        if (!existing.WasGrabbed)
                         {
-                            specialClip = true;
-                            var msg = string.Format("Congratulations to @{0} for grabbing {1}. You receive the bounty on its head of 🍄{2}!", winner, existing.Name, Bounty.Amount);
-                            ChatClient.SendMessage(Configuration.Channel, msg);
+                            existing.WasGrabbed = true;
+                            var winner = RunWinScenario(existing, forcedWinner);
 
-                            //update obs
-                            DatabaseFunctions.AddStreamBuxBalance(Configuration, winner, StreamBuxTypes.BOUNTY, Bounty.Amount);
-                            /*
-                            var sourceSettings = new JObject();
-                            sourceSettings.Add("text", Bounty.Name);
-                            OBSConnection.SetSourceSettings(Configuration.OBSScreenSourceNames.BountyWantedText.SourceName, sourceSettings);
-                            PlayClipAsync(Configuration.OBSScreenSourceNames.BountyEndScreen, 14000);
-                            PlayClipAsync(Configuration.OBSScreenSourceNames.BountyWantedRIP, 9500);
-                            PlayClipAsync(Configuration.OBSScreenSourceNames.BountyWantedText, 9500);
-                            */
+                            var specialClip = false;
 
-                            var data = new JObject();
-                            data.Add("text", Bounty.Name);
-                            data.Add("name", Configuration.ObsScreenSourceNames.BountyEndScreen.SourceName);
-                            data.Add("duration", 14000);
+                            var prefs = DatabaseFunctions.GetUserPrefs(Configuration, winner);
 
-                            WsConnection.SendCommand(MediaWebSocketServer.CommandMedia, data);
+                            RunStrobe(prefs);
 
-                            //reset to no bounty
-                            Bounty = null;
-
-                            if (Configuration.ClawSettings.AutoBountyMode)
-                            {
-                                var newPlush = GetRandomPlush();
-                                if (newPlush != null)
-                                {
-                                    //async task to start new bounty after 14 seconds
-                                    Task.Run(async delegate ()
-                                    {
-                                        await Task.Delay(14000);
-                                        RunBountyAnimation(newPlush);
-                                        //deduct it from their balance
-                                        Bounty = new GameHelpers.Bounty
-                                        {
-                                            Name = newPlush.Name,
-                                            Amount = Configuration.ClawSettings.AutoBountyAmount
-                                        };
-
-                                        var idx = _rnd.Next(Configuration.ClawSettings.BountySayings.Count);
-                                        var bountyMessage = Configuration.ClawSettings.BountySayings[idx].Replace("<<plush>>", Bounty.Name).Replace("<<bux>>", Bounty.Amount.ToString());
-                                        Thread.Sleep(100);
-                                        ChatClient.SendMessage(Configuration.Channel, bountyMessage);
-                                    });
-                                }
-                            }
-                        }
-
-                        if (existing.WinStream.Length > 0 && !specialClip)
-                        {
-                            if (prefs != null && prefs.WinClipName != null && prefs.WinClipName.Trim().Length > 0)
+                            //a lot of the animations are timed and setup in code because I don't want to make a whole animation class
+                            //bounty mode
+                            if (Bounty != null && Bounty.Name.ToLower() == existing.Name.ToLower())
                             {
                                 specialClip = true;
-                                //OBSSceneSource src = new OBSSceneSource() { SourceName = prefs.WinClipName, Type = OBSSceneSourceType.IMAGE, Scene = "VideosScene" };
-                                //PlayClipAsync(src, 8000);
+                                var msg = string.Format(
+                                    "Congratulations to @{0} for grabbing {1}. You receive the bounty on its head of 🍄{2}!",
+                                    winner, existing.Name, Bounty.Amount);
+                                ChatClient.SendMessage(Configuration.Channel, msg);
+
+                                //update obs
+                                DatabaseFunctions.AddStreamBuxBalance(Configuration, winner, StreamBuxTypes.BOUNTY,
+                                    Bounty.Amount);
+                                /*
+                                var sourceSettings = new JObject();
+                                sourceSettings.Add("text", Bounty.Name);
+                                OBSConnection.SetSourceSettings(Configuration.OBSScreenSourceNames.BountyWantedText.SourceName, sourceSettings);
+                                PlayClipAsync(Configuration.OBSScreenSourceNames.BountyEndScreen, 14000);
+                                PlayClipAsync(Configuration.OBSScreenSourceNames.BountyWantedRIP, 9500);
+                                PlayClipAsync(Configuration.OBSScreenSourceNames.BountyWantedText, 9500);
+                                */
+
                                 var data = new JObject();
-                                data.Add("name", existing.WinStream);
-                                data.Add("duration", 8000);
+                                data.Add("text", Bounty.Name);
+                                data.Add("name", Configuration.ObsScreenSourceNames.BountyEndScreen.SourceName);
+                                data.Add("duration", 14000);
 
                                 WsConnection.SendCommand(MediaWebSocketServer.CommandMedia, data);
-                            }
 
-                            if (existing.PlushId == 23) //sharky
-                            {
-                                try
+                                //reset to no bounty
+                                Bounty = null;
+
+                                if (Configuration.ClawSettings.AutoBountyMode)
                                 {
-                                    Configuration.RecordsDatabase.Open();
-                                    var sql = "SELECT count(*) FROM wins WHERE name = '" + winner + "' AND PlushID = 23";
-                                    var command = new SQLiteCommand(sql, Configuration.RecordsDatabase);
-                                    var wins = command.ExecuteScalar().ToString();
-                                    Configuration.RecordsDatabase.Close();
-
-                                    if (wins == "100")  //check for 100th grab
+                                    var newPlush = GetRandomPlush();
+                                    if (newPlush != null)
                                     {
-                                        specialClip = true;
-                                        var data = new JObject();
-                                        data.Add("name", existing.WinStream);
-                                        data.Add("duration", 38000);
+                                        //async task to start new bounty after 14 seconds
+                                        Task.Run(async delegate()
+                                        {
+                                            await Task.Delay(14000);
+                                            RunBountyAnimation(newPlush);
+                                            //deduct it from their balance
+                                            Bounty = new GameHelpers.Bounty
+                                            {
+                                                Name = newPlush.Name,
+                                                Amount = Configuration.ClawSettings.AutoBountyAmount
+                                            };
 
-                                        WsConnection.SendCommand(MediaWebSocketServer.CommandMedia, data);
+                                            var idx = _rnd.Next(Configuration.ClawSettings.BountySayings.Count);
+                                            var bountyMessage = Configuration.ClawSettings.BountySayings[idx]
+                                                .Replace("<<plush>>", Bounty.Name)
+                                                .Replace("<<bux>>", Bounty.Amount.ToString());
+                                            Thread.Sleep(100);
+                                            ChatClient.SendMessage(Configuration.Channel, bountyMessage);
+                                        });
                                     }
                                 }
-                                catch (Exception ex)
-                                {
-                                    var error = string.Format("ERROR {0} {1}", ex.Message, ex.ToString());
-                                    Logger.WriteLog(Logger.ErrorLog, error);
-                                }
                             }
 
-                            if (!specialClip)
+                            if (existing.WinStream.Length > 0 && !specialClip)
                             {
-                                var data = new JObject();
-                                data.Add("name", existing.WinStream);
-
-                                //if there are fields specified
-                                if (existing.WinStream.Contains(";"))
+                                if (prefs != null && prefs.WinClipName != null && prefs.WinClipName.Trim().Length > 0)
                                 {
-                                    var pieces = existing.WinStream.Split(';');
-                                    data.Add("name", int.Parse(pieces[0]));
-                                    data.Add("duration", int.Parse(pieces[2]));
+                                    specialClip = true;
+                                    //OBSSceneSource src = new OBSSceneSource() { SourceName = prefs.WinClipName, Type = OBSSceneSourceType.IMAGE, Scene = "VideosScene" };
+                                    //PlayClipAsync(src, 8000);
+                                    var data = new JObject();
+                                    data.Add("name", existing.WinStream);
+                                    data.Add("duration", 8000);
+
+                                    WsConnection.SendCommand(MediaWebSocketServer.CommandMedia, data);
                                 }
 
-                                WsConnection.SendCommand(MediaWebSocketServer.CommandMedia, data);
+                                if (existing.PlushId == 23) //sharky
+                                {
+                                    try
+                                    {
+                                        Configuration.RecordsDatabase.Open();
+                                        var sql = "SELECT count(*) FROM wins WHERE name = '" + winner +
+                                                  "' AND PlushID = 23";
+                                        var command = new SQLiteCommand(sql, Configuration.RecordsDatabase);
+                                        var wins = command.ExecuteScalar().ToString();
+                                        Configuration.RecordsDatabase.Close();
+
+                                        if (wins == "100") //check for 100th grab
+                                        {
+                                            specialClip = true;
+                                            var data = new JObject();
+                                            data.Add("name", existing.WinStream);
+                                            data.Add("duration", 38000);
+
+                                            WsConnection.SendCommand(MediaWebSocketServer.CommandMedia, data);
+                                        }
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        var error = string.Format("ERROR {0} {1}", ex.Message, ex);
+                                        Logger.WriteLog(Logger.ErrorLog, error);
+                                    }
+                                }
+
+                                if (!specialClip)
+                                {
+                                    var data = new JObject();
+                                    data.Add("name", existing.WinStream);
+
+                                    //if there are fields specified
+                                    if (existing.WinStream.Contains(";"))
+                                    {
+                                        var pieces = existing.WinStream.Split(';');
+                                        data.Add("name", int.Parse(pieces[0]));
+                                        data.Add("duration", int.Parse(pieces[2]));
+                                    }
+
+                                    WsConnection.SendCommand(MediaWebSocketServer.CommandMedia, data);
+                                }
                             }
-                        }
-                        else
-                        {
-                            if (Configuration.EventMode == EventMode.HALLOWEEN && WinnersList.Count > 0)
+                            else
                             {
-                                RunScare();
+                                if (Configuration.EventMode == EventMode.HALLOWEEN && WinnersList.Count > 0)
+                                {
+                                    RunScare();
+                                }
                             }
                         }
                     }
@@ -1903,7 +1912,7 @@ namespace InternetClawMachine.Games.ClawGame
             }
             catch (Exception ex)
             {
-                var error = string.Format("ERROR {0} {1}", ex.Message, ex.ToString());
+                var error = string.Format("ERROR {0} {1}", ex.Message, ex);
                 Logger.WriteLog(Logger.ErrorLog, error);
             }
         }
@@ -1947,7 +1956,7 @@ namespace InternetClawMachine.Games.ClawGame
                 }
                 catch (Exception ex)
                 {
-                    var error = string.Format("ERROR {0} {1}", ex.Message, ex.ToString());
+                    var error = string.Format("ERROR {0} {1}", ex.Message, ex);
                     Logger.WriteLog(Logger.ErrorLog, error);
 
                     Configuration.LoadDatebase();

@@ -1,10 +1,9 @@
-﻿using InternetClawMachine;
-using System;
+﻿using System;
 using System.Net;
 using System.Text;
 using System.Threading;
 
-namespace SimpleWebServer
+namespace InternetClawMachine
 {
     /*
      * The MIT License (MIT)
@@ -65,27 +64,30 @@ namespace SimpleWebServer
                             var ctx = c as HttpListenerContext;
                             try
                             {
-                                var rstr = _responderMethod(ctx.Request);
-                                var buf = Encoding.UTF8.GetBytes(rstr);
-                                ctx.Response.AddHeader("Access-Control-Allow-Origin", "*");
-                                ctx.Response.ContentLength64 = buf.Length;
-                                ctx.Response.OutputStream.Write(buf, 0, buf.Length);
+                                if (ctx != null)
+                                {
+                                    var rstr = _responderMethod(ctx.Request);
+                                    var buf = Encoding.UTF8.GetBytes(rstr);
+                                    ctx.Response.AddHeader("Access-Control-Allow-Origin", "*");
+                                    ctx.Response.ContentLength64 = buf.Length;
+                                    ctx.Response.OutputStream.Write(buf, 0, buf.Length);
+                                }
                             }
                             catch (Exception e)
                             {
-                                Logger.WriteLog("__ERROR", e.Message + " " + e.ToString());
+                                Logger.WriteLog("__ERROR", e.Message + " " + e);
                             }
                             finally
                             {
                                 // always close the stream
-                                ctx.Response.OutputStream.Close();
+                                if (ctx != null) ctx.Response.OutputStream.Close();
                             }
                         }, _listener.GetContext());
                     }
                 }
                 catch (Exception e)
                 {
-                    Logger.WriteLog("__ERROR", e.Message + " " + e.ToString());
+                    Logger.WriteLog("__ERROR", e.Message + " " + e);
                 }
             });
         }

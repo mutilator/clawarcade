@@ -1,13 +1,12 @@
-﻿using InternetClawMachine.Hardware.Gantry;
-using InternetClawMachine.Settings;
-using Newtonsoft.Json;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data.SQLite;
 using System.IO;
+using InternetClawMachine.Hardware.Gantry;
+using Newtonsoft.Json;
 
-namespace InternetClawMachine
+namespace InternetClawMachine.Settings
 {
     public class BotConfiguration : INotifyPropertyChanged
     {
@@ -54,7 +53,7 @@ namespace InternetClawMachine
             {
                 _latency = value; OnPropertyChanged("Latency");
             }
-            get { return _latency; }
+            get => _latency;
         }
 
         private int _reconnectAttempts;
@@ -68,7 +67,7 @@ namespace InternetClawMachine
             {
                 _reconnectAttempts = value; OnPropertyChanged("ReconnectAttempts");
             }
-            get { return _reconnectAttempts; }
+            get => _reconnectAttempts;
         }
 
         private int _chatReconnectAttempts;
@@ -82,7 +81,7 @@ namespace InternetClawMachine
             {
                 _chatReconnectAttempts = value; OnPropertyChanged("ChatReconnectAttempts");
             }
-            get { return _chatReconnectAttempts; }
+            get => _chatReconnectAttempts;
         }
 
         #region Files
@@ -266,7 +265,7 @@ namespace InternetClawMachine
             }
             catch (Exception ex)
             {
-                var error = string.Format("ERROR {0} {1}", ex.Message, ex.ToString());
+                var error = string.Format("ERROR {0} {1}", ex.Message, ex);
                 Logger.WriteLog(Logger.ErrorLog, error);
             }
         }
@@ -287,7 +286,7 @@ namespace InternetClawMachine
                 }
                 catch (Exception ex)
                 {
-                    var error = string.Format("ERROR {0} {1}", ex.Message, ex.ToString());
+                    var error = string.Format("ERROR {0} {1}", ex.Message, ex);
                     Logger.WriteLog(Logger.ErrorLog, error);
 
                     LoadDatebase();

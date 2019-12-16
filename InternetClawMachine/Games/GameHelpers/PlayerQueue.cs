@@ -19,7 +19,7 @@ namespace InternetClawMachine.Games.GameHelpers
         /// <summary>
         /// How many players are in the queue
         /// </summary>
-        public int Count { get { return Players.Count(); } }
+        public int Count => Players.Count;
 
         /// <summary>
         /// Returns the current player in the queue
@@ -132,7 +132,7 @@ namespace InternetClawMachine.Games.GameHelpers
             }
             catch (Exception e)
             {
-                Logger.WriteLog(Logger.ErrorLog, e.Message + e.ToString());
+                Logger.WriteLog(Logger.ErrorLog, e.Message + e);
             }
         }
 

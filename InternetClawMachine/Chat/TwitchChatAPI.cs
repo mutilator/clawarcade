@@ -3,7 +3,7 @@ using TwitchLib.Client;
 using TwitchLib.Client.Events;
 using TwitchLib.Client.Models;
 
-namespace InternetClawMachine
+namespace InternetClawMachine.Chat
 {
     internal class TwitchChatApi : IChatApi
     {
@@ -15,7 +15,7 @@ namespace InternetClawMachine
         {
             get
             {
-                if (_client != null)
+                if (_client == null)
                     return false;
                 else
                     return _client.IsConnected;

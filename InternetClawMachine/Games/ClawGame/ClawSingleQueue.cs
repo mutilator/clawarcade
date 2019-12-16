@@ -5,6 +5,8 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
+using InternetClawMachine.Chat;
+using InternetClawMachine.Settings;
 
 namespace InternetClawMachine.Games.ClawGame
 {
@@ -248,7 +250,7 @@ namespace InternetClawMachine.Games.ClawGame
                     }
                     catch (Exception ex)
                     {
-                        var error = string.Format("ERROR {0} {1}", ex.Message, ex.ToString());
+                        var error = string.Format("ERROR {0} {1}", ex.Message, ex);
                         Logger.WriteLog(Logger.ErrorLog, error);
                     }
 

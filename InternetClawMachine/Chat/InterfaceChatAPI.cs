@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace InternetClawMachine
+namespace InternetClawMachine.Chat
 {
     public interface IChatApi
     {

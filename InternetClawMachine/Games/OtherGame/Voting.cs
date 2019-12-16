@@ -1,9 +1,11 @@
-﻿using OBSWebsocketDotNet;
-using System;
+﻿using System;
 using System.Linq;
 using System.Threading.Tasks;
+using InternetClawMachine.Chat;
+using InternetClawMachine.Settings;
+using OBSWebsocketDotNet;
 
-namespace InternetClawMachine.Games
+namespace InternetClawMachine.Games.OtherGame
 {
     internal class Voting : Game
     {

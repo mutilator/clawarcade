@@ -58,9 +58,7 @@ namespace InternetClawMachine.Hardware.ClawControl
         public event EventHandler OnMotorTimeoutDown;
 
         public event ClawInfoEventArgs OnInfoMessage;
-
-        internal int ReturnHomeTime = 20000;
-
+        
         public string IpAddress { set; get; }
         public int Port { get; set; }
 
@@ -71,8 +69,8 @@ namespace InternetClawMachine.Hardware.ClawControl
         private string _lastCommandResponse;
         private string _lastDirection = "s";
         private int _pingTimeReceived = 0; //the last ping time we received
-        private int _maximumPingTime = 1000; //ping timeout threshold in ms
-        private Stopwatch PingTimer { set; get; } = new Stopwatch();
+        private const int _maximumPingTime = 1000; //ping timeout threshold in ms
+        private Stopwatch PingTimer { get; } = new Stopwatch();
 
         public bool IsClawPlayActive { get; set; }
 
@@ -83,7 +81,10 @@ namespace InternetClawMachine.Hardware.ClawControl
 
         public bool IsLit { get; private set; } = true;
 
-        public bool IsConnected { get { if (_workSocket == null) return false; else return _workSocket.Connected; } }
+        public bool IsConnected { get
+        {
+            return _workSocket != null && _workSocket.Connected;
+        } }
 
         public MovementDirection CurrentDirection
         {
@@ -167,7 +168,7 @@ namespace InternetClawMachine.Hardware.ClawControl
         public bool Connect()
         {
             // Establish the remote endpoint for the socket.
-            var ipAddress = System.Net.IPAddress.Parse(IpAddress);
+            var ipAddress = IPAddress.Parse(IpAddress);
             var remoteEp = new IPEndPoint(ipAddress, Port);
 
             return Connect(remoteEp);
@@ -212,7 +213,7 @@ namespace InternetClawMachine.Hardware.ClawControl
             }
             catch (Exception ex)
             {
-                var error = string.Format("ERROR {0} {1}", ex.Message, ex.ToString());
+                var error = string.Format("ERROR {0} {1}", ex.Message, ex);
                 Logger.WriteLog(Logger.ErrorLog, error);
             }
             return false;
@@ -231,7 +232,7 @@ namespace InternetClawMachine.Hardware.ClawControl
             }
             catch (Exception ex)
             {
-                var error = string.Format("ERROR {0} {1}", ex.Message, ex.ToString());
+                var error = string.Format("ERROR {0} {1}", ex.Message, ex);
                 Logger.WriteLog(Logger.ErrorLog, error);
             }
         }
@@ -244,7 +245,7 @@ namespace InternetClawMachine.Hardware.ClawControl
             }
             catch (Exception ex)
             {
-                var error = string.Format("ERROR {0} {1}", ex.Message, ex.ToString());
+                var error = string.Format("ERROR {0} {1}", ex.Message, ex);
                 Logger.WriteLog(Logger.ErrorLog, error);
             }
         }
@@ -274,22 +275,20 @@ namespace InternetClawMachine.Hardware.ClawControl
             {
                 //echo the data received back to the client
                 //e.SetBuffer(e.Offset, e.BytesTransferred);
-                var i = 0;
+                int i;
                 for (i = 0; i < e.BytesTransferred; i++)
                 {
                     _receiveBuffer[_receiveIdx] = e.Buffer[i];
                     _receiveIdx++;
-                    if (e.Buffer[i] == '\n') //if it's a command delimiter, process the read buffer
-                    {
-                        var response = System.Text.Encoding.UTF8.GetString(_receiveBuffer, 0, _receiveIdx);
-                        _lastCommandResponse = response;
-                        Console.WriteLine(response);
-                        HandleMessage(response);
-                        e.SetBuffer(0, 1024);
-                        _receiveIdx = 0; //reset index to zero
+                    if (e.Buffer[i] != '\n') continue;
+                    var response = Encoding.UTF8.GetString(_receiveBuffer, 0, _receiveIdx);
+                    _lastCommandResponse = response;
+                    Console.WriteLine(response);
+                    HandleMessage(response);
+                    e.SetBuffer(0, 1024);
+                    _receiveIdx = 0; //reset index to zero
 
-                        Array.Clear(_receiveBuffer, 0, _receiveBuffer.Length); //also make sure the array is zeroed
-                    }
+                    Array.Clear(_receiveBuffer, 0, _receiveBuffer.Length); //also make sure the array is zeroed
                 }
             }
             else
@@ -415,7 +414,7 @@ namespace InternetClawMachine.Hardware.ClawControl
             SendCommandAsync("ping " + PingTimer.ElapsedMilliseconds);
 
             //kick off an async validating ping
-            Task.Run(async delegate ()
+            Task.Run(async delegate
             {
                 await Task.Delay(_maximumPingTime); //simply wait some second to check for the last ping
 
@@ -446,6 +445,7 @@ namespace InternetClawMachine.Hardware.ClawControl
             // Release the socket.
             if (IsConnected)
                 OnDisconnected?.Invoke(this, new EventArgs());
+            StopReader();
             _workSocket.Shutdown(SocketShutdown.Both);
             _workSocket.Close();
         }
@@ -462,17 +462,16 @@ namespace InternetClawMachine.Hardware.ClawControl
                 throw new Exception("Not Connected");
             try
             {
-                var bytes = new byte[1024];
                 // Encode the data string into a byte array.
                 var msg = Encoding.ASCII.GetBytes(command + "\n");
                 Logger.WriteLog(Logger.MachineLog, "SEND: " + command);
                 Console.WriteLine("SEND: " + command);
                 // Send the data through the socket.
-                var bytesSent = _workSocket.Send(msg);
+                _workSocket.Send(msg);
             }
             catch (Exception ex)
             {
-                var error = string.Format("ERROR {0} {1}", ex.Message, ex.ToString());
+                var error = string.Format("ERROR {0} {1}", ex.Message, ex);
                 Logger.WriteLog(Logger.ErrorLog, error);
             }
 
@@ -485,14 +484,13 @@ namespace InternetClawMachine.Hardware.ClawControl
                 throw new Exception("Not Connected");
             try
             {
-                var bytes = new byte[1024];
                 // Encode the data string into a byte array.
                 var msg = Encoding.ASCII.GetBytes(command + "\n");
                 Logger.WriteLog(Logger.MachineLog, "SEND: " + command);
                 Console.WriteLine("SEND: " + command);
                 // Send the data through the socket.
                 _lastCommandResponse = null;
-                var bytesSent = _workSocket.Send(msg);
+                _workSocket.Send(msg);
 
                 //This is just waiting for a response in the hope that it pertains to your request and not an event.
                 while (_lastCommandResponse == null)
@@ -503,7 +501,7 @@ namespace InternetClawMachine.Hardware.ClawControl
             }
             catch (Exception ex)
             {
-                var error = string.Format("ERROR {0} {1}", ex.Message, ex.ToString());
+                var error = string.Format("ERROR {0} {1}", ex.Message, ex);
                 Logger.WriteLog(Logger.ErrorLog, error);
             }
 
@@ -527,14 +525,12 @@ namespace InternetClawMachine.Hardware.ClawControl
 
         public void LightSwitch(bool on)
         {
-            if (IsConnected)
-            {
-                IsLit = on;
-                if (on)
-                    SendCommandAsync("light on");
-                else
-                    SendCommandAsync("light off");
-            }
+            if (!IsConnected) return;
+            IsLit = @on;
+            if (@on)
+                SendCommandAsync("light on");
+            else
+                SendCommandAsync("light off");
         }
 
         public async Task Move(MovementDirection enumDir, int duration, bool force = false)
@@ -639,18 +635,16 @@ namespace InternetClawMachine.Hardware.ClawControl
 
         public void RunConveyorSticky(bool run)
         {
-            if (IsConnected)
-            {
-                if (run)
-                    SendCommandAsync("sbelt 1");
-                else
-                    SendCommandAsync("sbelt 0");
-            }
+            if (!IsConnected) return;
+            if (run)
+                SendCommandAsync("sbelt 1");
+            else
+                SendCommandAsync("sbelt 0");
         }
 
         public void SetClawPower(int percent)
         {
-            var power = (int)(((double)percent / 100) * 255);
+            var power = (int)((double)percent / 100 * 255);
             var str = string.Format("uno p {0}", power);
             Console.WriteLine(str);
             SendCommandAsync(str);

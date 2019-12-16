@@ -1,14 +1,17 @@
-﻿using InternetClawMachine.Games.ClawGame;
-using InternetClawMachine.Games.GameHelpers;
-using OBSWebsocketDotNet;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Data.SQLite;
 using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
+using InternetClawMachine.Chat;
+using InternetClawMachine.Games.ClawGame;
+using InternetClawMachine.Games.GameHelpers;
+using InternetClawMachine.Games.OtherGame;
+using InternetClawMachine.Settings;
+using OBSWebsocketDotNet;
 
-namespace InternetClawMachine
+namespace InternetClawMachine.Games
 {
     public class Game
     {
@@ -102,7 +105,7 @@ namespace InternetClawMachine
         /// <summary>
         /// Running list of all commands being sent from chat
         /// </summary>
-        virtual public List<ClawCommand> CommandQueue { get; set; }
+        public virtual List<ClawCommand> CommandQueue { get; set; }
 
         /// <summary>
         /// Time this game mode was started according to the GameModeStopwatch, usually 0
@@ -256,7 +259,7 @@ namespace InternetClawMachine
                 }
                 catch (Exception ex)
                 {
-                    var error = string.Format("ERROR {0} {1}", ex.Message, ex.ToString());
+                    var error = string.Format("ERROR {0} {1}", ex.Message, ex);
                     Logger.WriteLog(Logger.ErrorLog, error);
 
                     Configuration.LoadDatebase();
@@ -361,7 +364,7 @@ namespace InternetClawMachine
                 }
                 catch (Exception ex)
                 {
-                    var error = string.Format("ERROR {0} {1}", ex.Message, ex.ToString());
+                    var error = string.Format("ERROR {0} {1}", ex.Message, ex);
                     Logger.WriteLog(Logger.ErrorLog, error);
                 }
                 finally

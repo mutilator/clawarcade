@@ -1,10 +1,11 @@
-﻿using InternetClawMachine.Games.ClawGame;
-using OBSWebsocketDotNet;
-using System;
-using System.Text.RegularExpressions;
+﻿using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using InternetClawMachine.Chat;
+using InternetClawMachine.Games.ClawGame;
+using InternetClawMachine.Settings;
+using OBSWebsocketDotNet;
 
-namespace InternetClawMachine.Games
+namespace InternetClawMachine.Games.OtherGame
 {
     internal class WaterGunQueue : Game
     {

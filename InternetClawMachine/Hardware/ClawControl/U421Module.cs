@@ -64,7 +64,7 @@ namespace InternetClawMachine.Hardware.ClawControl
                 }
                 catch (Exception ex)
                 {
-                    var error = string.Format("ERROR {0} {1}", ex.Message, ex.ToString());
+                    var error = string.Format("ERROR {0} {1}", ex.Message, ex);
                     Logger.WriteLog(Logger.ErrorLog, error);
                 }
 
@@ -120,7 +120,7 @@ namespace InternetClawMachine.Hardware.ClawControl
             }
             catch (Exception ex)
             {
-                var error = string.Format("ERROR {0} {1}", ex.Message, ex.ToString());
+                var error = string.Format("ERROR {0} {1}", ex.Message, ex);
                 Logger.WriteLog(Logger.ErrorLog, error);
             }
             finally
@@ -185,7 +185,7 @@ namespace InternetClawMachine.Hardware.ClawControl
             }
             catch (Exception ex)
             {
-                var error = string.Format("ERROR {0} {1}", ex.Message, ex.ToString());
+                var error = string.Format("ERROR {0} {1}", ex.Message, ex);
                 Logger.WriteLog(Logger.ErrorLog, error);
             }
         }
@@ -426,7 +426,7 @@ namespace InternetClawMachine.Hardware.ClawControl
             }
         }
 
-        public bool IsLit { get { return _lightsOn; } }
+        public bool IsLit => _lightsOn;
         public bool IsConnected { get; set; }
 
         #endregion MachineControl Members

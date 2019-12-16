@@ -27,7 +27,7 @@ namespace InternetClawMachine.Settings
             {
                 _wiggleMode = value; OnPropertyChanged("WiggleMode");
             }
-            get { return _wiggleMode; }
+            get => _wiggleMode;
         }
 
         public string ClawCameraAddress { set; get; }

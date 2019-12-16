@@ -74,7 +74,7 @@ namespace InternetClawMachine.Hardware.Gantry
             }
             catch (Exception ex)
             {
-                var error = string.Format("ERROR {0} {1}", ex.Message, ex.ToString());
+                var error = string.Format("ERROR {0} {1}", ex.Message, ex);
                 Logger.WriteLog(Logger.ErrorLog, error);
             }
             return false;
@@ -93,7 +93,7 @@ namespace InternetClawMachine.Hardware.Gantry
             }
             catch (Exception ex)
             {
-                var error = string.Format("ERROR {0} {1}", ex.Message, ex.ToString());
+                var error = string.Format("ERROR {0} {1}", ex.Message, ex);
                 Logger.WriteLog(Logger.ErrorLog, error);
             }
         }
@@ -106,7 +106,7 @@ namespace InternetClawMachine.Hardware.Gantry
             }
             catch (Exception ex)
             {
-                var error = string.Format("ERROR {0} {1}", ex.Message, ex.ToString());
+                var error = string.Format("ERROR {0} {1}", ex.Message, ex);
                 Logger.WriteLog(Logger.ErrorLog, error);
             }
         }
@@ -269,7 +269,7 @@ namespace InternetClawMachine.Hardware.Gantry
             }
             catch (Exception ex)
             {
-                var error = string.Format("ERROR {0} {1}", ex.Message, ex.ToString());
+                var error = string.Format("ERROR {0} {1}", ex.Message, ex);
                 Logger.WriteLog(Logger.ErrorLog, error);
             }
 
@@ -298,7 +298,7 @@ namespace InternetClawMachine.Hardware.Gantry
             }
             catch (Exception ex)
             {
-                var error = string.Format("ERROR {0} {1}", ex.Message, ex.ToString());
+                var error = string.Format("ERROR {0} {1}", ex.Message, ex);
                 Logger.WriteLog(Logger.ErrorLog, error);
             }
 
@@ -517,7 +517,7 @@ namespace InternetClawMachine.Hardware.Gantry
                 _xCord = value;
                 OnChange("XCord");
             }
-            get { return _xCord; }
+            get => _xCord;
         }
 
         public double YCord
@@ -527,7 +527,7 @@ namespace InternetClawMachine.Hardware.Gantry
                 _yCord = value;
                 OnChange("YCord");
             }
-            get { return _yCord; }
+            get => _yCord;
         }
 
         public double ZCord
@@ -537,7 +537,7 @@ namespace InternetClawMachine.Hardware.Gantry
                 _zCord = value;
                 OnChange("ZCord");
             }
-            get { return _zCord; }
+            get => _zCord;
         }
 
         public double ACord
@@ -547,7 +547,7 @@ namespace InternetClawMachine.Hardware.Gantry
                 _aCord = value;
                 OnChange("ACord");
             }
-            get { return _aCord; }
+            get => _aCord;
         }
 
         public event PropertyChangedEventHandler PropertyChanged;

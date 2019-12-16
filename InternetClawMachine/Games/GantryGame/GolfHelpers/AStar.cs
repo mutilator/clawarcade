@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace InternetClawMachine.Games.GolfHelpers
+namespace InternetClawMachine.Games.GantryGame.GolfHelpers
 {
     public class AStar
     {

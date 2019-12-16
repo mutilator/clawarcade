@@ -1,4 +1,4 @@
-﻿namespace InternetClawMachine
+﻿namespace InternetClawMachine.Games.OtherGame
 {
     /// <summary>
     /// Handles recording votes

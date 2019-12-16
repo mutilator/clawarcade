@@ -1,14 +1,11 @@
 ﻿using InternetClawMachine.Games;
 using InternetClawMachine.Games.ClawGame;
-using InternetClawMachine.Games.GantreyGame;
 using InternetClawMachine.Hardware.ClawControl;
 using InternetClawMachine.Hardware.Gantry;
 using InternetClawMachine.Hardware.RFID;
-using InternetClawMachine.Hardware.WaterBot;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using OBSWebsocketDotNet;
-using SimpleWebServer;
 using System;
 using System.Collections.Generic;
 using System.Data;
@@ -25,8 +22,23 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Input;
+using InternetClawMachine.Chat;
+using InternetClawMachine.Games.GantryGame;
+using InternetClawMachine.Games.OtherGame;
+using InternetClawMachine.Hardware;
+using InternetClawMachine.Settings;
 using TwitchLib.Client.Events;
 using TwitchLib.Client.Models;
+using OnConnectedArgs = InternetClawMachine.Chat.OnConnectedArgs;
+using OnConnectionErrorArgs = InternetClawMachine.Chat.OnConnectionErrorArgs;
+using OnDisconnectedArgs = InternetClawMachine.Chat.OnDisconnectedArgs;
+using OnJoinedChannelArgs = InternetClawMachine.Chat.OnJoinedChannelArgs;
+using OnMessageReceivedArgs = InternetClawMachine.Chat.OnMessageReceivedArgs;
+using OnMessageSentArgs = InternetClawMachine.Chat.OnMessageSentArgs;
+using OnSendReceiveDataArgs = InternetClawMachine.Chat.OnSendReceiveDataArgs;
+using OnUserJoinedArgs = InternetClawMachine.Chat.OnUserJoinedArgs;
+using OnUserLeftArgs = InternetClawMachine.Chat.OnUserLeftArgs;
+using OnWhisperReceivedArgs = InternetClawMachine.Chat.OnWhisperReceivedArgs;
 
 //using TwitchLib.Client.Services;
 
@@ -160,10 +172,8 @@ namespace InternetClawMachine
             var message = string.Format("{0} left the channel", e.Username);
             LogChat("#" + e.Channel, message);
             Configuration.UserList.Remove(e.Username);
-            Dispatcher.BeginInvoke(new Action(() =>
-            {
-                lstViewers.Items.Remove(e.Username);
-            }));
+            if (Dispatcher != null)
+                Dispatcher.BeginInvoke(new Action(() => { lstViewers.Items.Remove(e.Username); }));
         }
 
         private void Client_OnUserJoined(object sender, OnUserJoinedArgs e)
@@ -171,25 +181,24 @@ namespace InternetClawMachine
             var message = string.Format("{0} joined the channel", e.Username);
             LogChat("#" + e.Channel, message);
             Configuration.UserList.Add(e.Username);
-            Dispatcher.BeginInvoke(new Action(() =>
-            {
-                lstViewers.Items.Add(e.Username);
-            }));
+            if (Dispatcher != null)
+                Dispatcher.BeginInvoke(new Action(() => { lstViewers.Items.Add(e.Username); }));
         }
 
         private void Client_OnExistingUsersDetected(object sender, OnExistingUsersDetectedArgs e)
         {
-            Dispatcher.BeginInvoke(new Action(() =>
-            {
-                lstViewers.Items.Clear();
-                foreach (var user in e.Users)
+            if (Dispatcher != null)
+                Dispatcher.BeginInvoke(new Action(() =>
                 {
-                    Configuration.UserList.Remove(user);
-                    var message = string.Format("{0} joined the channel", user);
-                    LogChat("#" + e.Channel, message);
-                    lstViewers.Items.Add(user);
-                }
-            }));
+                    lstViewers.Items.Clear();
+                    foreach (var user in e.Users)
+                    {
+                        Configuration.UserList.Remove(user);
+                        var message = string.Format("{0} joined the channel", user);
+                        LogChat("#" + e.Channel, message);
+                        lstViewers.Items.Add(user);
+                    }
+                }));
         }
 
         private void Client_OnMessageSent(object sender, OnMessageSentArgs e)
@@ -268,7 +277,7 @@ namespace InternetClawMachine
             }
             catch (Exception ex)
             {
-                Logger.WriteLog(Logger.ErrorLog, ex.Message + " " + ex.ToString());
+                Logger.WriteLog(Logger.ErrorLog, ex.Message + " " + ex);
             }
         }
 
@@ -450,21 +459,29 @@ namespace InternetClawMachine
                     break;
 
                 case "vote":
-                    Game.Votes.Add(new GameModeVote(username, GameModeType.VOTING, Game.GameModeTimer.ElapsedMilliseconds));
-
-                    var oldVotes = Game.Votes.FindAll(v => v.TimeStamp < Game.GameModeTimer.ElapsedMilliseconds - 60000);
-
-                    foreach (var v in oldVotes)
-                        Game.Votes.Remove(v);
-
-                    if (Configuration.VoteSettings.VotesNeededForVotingMode - Game.Votes.Count <= 0)
+                    if (Game != null)
                     {
-                        StartGameModeVoting();
+                        Game.Votes.Add(new GameModeVote(username, GameModeType.VOTING,
+                            Game.GameModeTimer.ElapsedMilliseconds));
+
+                        var oldVotes = Game.Votes.FindAll(v =>
+                            v.TimeStamp < Game.GameModeTimer.ElapsedMilliseconds - 60000);
+
+                        foreach (var v in oldVotes)
+                            Game.Votes.Remove(v);
+
+                        if (Configuration.VoteSettings.VotesNeededForVotingMode - Game.Votes.Count <= 0)
+                        {
+                            StartGameModeVoting();
+                        }
+                        else
+                        {
+                            Client.SendMessage(Configuration.Channel,
+                                string.Format("I need {0} more votes before entering game voting mode",
+                                    Configuration.VoteSettings.VotesNeededForVotingMode - Game.Votes.Count));
+                        }
                     }
-                    else
-                    {
-                        Client.SendMessage(Configuration.Channel, string.Format("I need {0} more votes before entering game voting mode", Configuration.VoteSettings.VotesNeededForVotingMode - Game.Votes.Count));
-                    }
+
                     break;
 
                 case "bux":
@@ -531,7 +548,7 @@ namespace InternetClawMachine
                         }
                         catch (Exception ex)
                         {
-                            var error = string.Format("ERROR {0} {1}", ex.Message, ex.ToString());
+                            var error = string.Format("ERROR {0} {1}", ex.Message, ex);
                             Logger.WriteLog(Logger.ErrorLog, error);
                             Configuration.LoadDatebase();
                         }
@@ -602,7 +619,7 @@ namespace InternetClawMachine
                         }
                         catch (Exception ex)
                         {
-                            var error = string.Format("ERROR {0} {1}", ex.Message, ex.ToString());
+                            var error = string.Format("ERROR {0} {1}", ex.Message, ex);
                             Logger.WriteLog(Logger.ErrorLog, error);
 
                             Configuration.LoadDatebase();
@@ -654,7 +671,7 @@ namespace InternetClawMachine
                 Configuration.Username = Configuration.TwitchSettings.Username;
 
                 Client = new MixerChatApi();
-                ((MixerChatApi)Client).Initialze(null, null);
+                ((MixerChatApi)Client).Initialize(null, null);
             }
             else if (Configuration.UsingTwitch)
             {
@@ -726,7 +743,7 @@ namespace InternetClawMachine
             try
             {
                 //we need a default....
-                if (Configuration.WebserverUri == null || Configuration.WebserverUri.Length == 0)
+                if (string.IsNullOrEmpty(Configuration.WebserverUri))
                     Configuration.WebserverUri = "http://localhost:8080/ipa/";
 
                 WebServer = new WebServer(SendWebResponse, Configuration.WebserverUri);
@@ -808,7 +825,7 @@ namespace InternetClawMachine
             {
                 pinger = new Ping();
                 var reply = pinger.Send(nameOrAddress);
-                pingable = reply.Status == IPStatus.Success;
+                if (reply != null) pingable = reply.Status == IPStatus.Success;
             }
             catch (PingException)
             {
@@ -1026,7 +1043,7 @@ namespace InternetClawMachine
             }
             catch (Exception ex)
             {
-                var error = string.Format("ERROR {0} {1}", ex.Message, ex.ToString());
+                var error = string.Format("ERROR {0} {1}", ex.Message, ex);
                 Logger.WriteLog(Logger.ErrorLog, error);
             }
         }
@@ -1078,10 +1095,11 @@ namespace InternetClawMachine
                     default:
                         rand = new Random((int)DateTime.Now.Ticks);
                         user = Game.Votes[rand.Next(Game.Votes.Count)].Username;
-                        Dispatcher.BeginInvoke(new Action(() =>
-                        {
-                            sldrDelay.Value = Configuration.ClawSettings.ClawMovementTime;
-                        }));
+                        if (Dispatcher != null)
+                            Dispatcher.BeginInvoke(new Action(() =>
+                            {
+                                sldrDelay.Value = Configuration.ClawSettings.ClawMovementTime;
+                            }));
 
                         StartGameModeSingleQueue(user);
                         break;
@@ -1159,10 +1177,8 @@ namespace InternetClawMachine
 
         private void RFIDReader_NewTagFound(EpcData epcData)
         {
-            Dispatcher.BeginInvoke(new Action(() =>
-            {
-                txtLastEPC.Text = epcData.Epc.Trim();
-            }));
+            if (Dispatcher != null)
+                Dispatcher.BeginInvoke(new Action(() => { txtLastEPC.Text = epcData.Epc.Trim(); }));
         }
 
         private void StartGameModeDrawing(string username)
@@ -1273,25 +1289,27 @@ namespace InternetClawMachine
 
         private void AddDebugText(string txt)
         {
-            Dispatcher.BeginInvoke(new Action(() =>
-            {
-                txtDump.Text += txt + "\r\n";
-                txtDump.ScrollToEnd();
-            }));
+            if (Dispatcher != null)
+                Dispatcher.BeginInvoke(new Action(() =>
+                {
+                    txtDump.Text += txt + "\r\n";
+                    txtDump.ScrollToEnd();
+                }));
         }
 
         #region UI Controls
 
         public void EnterKeyCommand()
         {
-            Dispatcher.BeginInvoke(new Action(() =>
-            {
-                var inputText = txtInput.Text.Trim();
+            if (Dispatcher != null)
+                Dispatcher.BeginInvoke(new Action(() =>
+                {
+                    var inputText = txtInput.Text.Trim();
 
-                //Client.SendRaw(inputText);
-                Client.SendMessage(Configuration.Channel, inputText);
-                txtInput.Text = "";
-            }));
+                    //Client.SendRaw(inputText);
+                    Client.SendMessage(Configuration.Channel, inputText);
+                    txtInput.Text = "";
+                }));
         }
 
         private void Input_KeyUp(object sender, KeyEventArgs e)
@@ -1631,10 +1649,8 @@ namespace InternetClawMachine
 
         private void sldrAntStrength_PreviewMouseUp(object sender, MouseButtonEventArgs e)
         {
-            Dispatcher.BeginInvoke(new Action(() =>
-            {
-                RfidReader.SetAntPower(sldrAntStrength.Value);
-            }));
+            if (Dispatcher != null)
+                Dispatcher.BeginInvoke(new Action(() => { RfidReader.SetAntPower(sldrAntStrength.Value); }));
         }
 
         private void btnReloadDB_Click(object sender, RoutedEventArgs e)
@@ -1728,7 +1744,7 @@ namespace InternetClawMachine
             }
             catch (Exception ex)
             {
-                var error = string.Format("ERROR {0} {1}", ex.Message, ex.ToString());
+                var error = string.Format("ERROR {0} {1}", ex.Message, ex);
                 Logger.WriteLog(Logger.ErrorLog, error);
             }
         }
@@ -1773,10 +1789,11 @@ namespace InternetClawMachine
 
         private void sldrconveyorRunAfterDrop_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
         {
-            Dispatcher.BeginInvoke(new Action(() =>
-            {
-                Configuration.ClawSettings.ConveyorRunAfterDrop = (int)sldrconveyorRunAfterDrop.Value;
-            }));
+            if (Dispatcher != null)
+                Dispatcher.BeginInvoke(new Action(() =>
+                {
+                    Configuration.ClawSettings.ConveyorRunAfterDrop = (int) sldrconveyorRunAfterDrop.Value;
+                }));
         }
 
         private void btnGantryConnect_Click(object sender, RoutedEventArgs e)

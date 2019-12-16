@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Data;
 using System.Data.SQLite;
+using InternetClawMachine.Settings;
 
 namespace InternetClawMachine
 {
@@ -131,7 +132,7 @@ namespace InternetClawMachine
                     }
                     catch (Exception ex)
                     {
-                        var error = string.Format("ERROR {0} {1}", ex.Message, ex.ToString());
+                        var error = string.Format("ERROR {0} {1}", ex.Message, ex);
                         Logger.WriteLog(Logger.ErrorLog, error);
                     }
                 }
@@ -159,7 +160,7 @@ namespace InternetClawMachine
                     {
                         while (plushes.Read())
                         {
-                            prefs.LightsOn = plushes.GetValue(0).ToString() == "1" ? true : false;
+                            prefs.LightsOn = plushes.GetValue(0).ToString() == "1";
                             prefs.Scene = plushes.GetValue(1).ToString();
                             prefs.WinClipName = plushes.GetValue(2).ToString();
                             prefs.CustomStrobe = plushes.GetValue(3).ToString();
@@ -182,7 +183,7 @@ namespace InternetClawMachine
             lock (configuration.RecordsDatabase)
             {
                 configuration.RecordsDatabase.Open();
-                var sql = string.Empty;
+                string sql;
                 try
                 {
                     if (prefs.FromDatabase)
@@ -222,10 +223,7 @@ namespace InternetClawMachine
                     var command = new SQLiteCommand(sql, configuration.RecordsDatabase);
                     using (var bux = command.ExecuteReader())
                     {
-                        if (streamBuxCosts != null)
-                            streamBuxCosts.Clear();
-                        else
-                            streamBuxCosts = new Dictionary<StreamBuxTypes, int>();
+                        streamBuxCosts.Clear();
                         while (bux.Read())
                         {
                             Enum.TryParse((string)bux.GetValue(0), out StreamBuxTypes reason);
@@ -237,7 +235,7 @@ namespace InternetClawMachine
                 }
                 catch (Exception ex)
                 {
-                    var error = string.Format("ERROR {0} {1}", ex.Message, ex.ToString());
+                    var error = string.Format("ERROR {0} {1}", ex.Message, ex);
                     Logger.WriteLog(Logger.ErrorLog, error);
                 }
                 return streamBuxCosts;
@@ -249,10 +247,10 @@ namespace InternetClawMachine
             lock (configuration.RecordsDatabase)
             {
                 configuration.RecordsDatabase.Open();
-                var sql = string.Empty;
+                string sql;
                 try
                 {
-                    SQLiteCommand command = null;
+                    SQLiteCommand command;
                     sql = "INSERT INTO plushie_codes (EPC, plushid) VALUES (@epc, @id)";
                     command = configuration.RecordsDatabase.CreateCommand();
                     command.CommandType = CommandType.Text;
@@ -275,15 +273,14 @@ namespace InternetClawMachine
             lock (configuration.RecordsDatabase)
             {
                 configuration.RecordsDatabase.Open();
-                var sql = string.Empty;
+                string sql;
                 try
                 {
-                    SQLiteCommand command = null;
                     if (!plushObject.FromDatabase)
                     {
                         sql = "INSERT INTO plushie (name) VALUES (@name)";
 
-                        command = configuration.RecordsDatabase.CreateCommand();
+                        var command = configuration.RecordsDatabase.CreateCommand();
                         command.CommandType = CommandType.Text;
                         command.CommandText = sql;
                         command.Parameters.Add(new SQLiteParameter("@name", plushObject.Name));

@@ -1,11 +1,13 @@
-﻿using InternetClawMachine.Games.ClawGame;
-using InternetClawMachine.Hardware.Gantry;
-using OBSWebsocketDotNet;
-using System;
+﻿using System;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using InternetClawMachine.Chat;
+using InternetClawMachine.Games.ClawGame;
+using InternetClawMachine.Hardware.Gantry;
+using InternetClawMachine.Settings;
+using OBSWebsocketDotNet;
 
-namespace InternetClawMachine.Games.GantreyGame
+namespace InternetClawMachine.Games.GantryGame
 {
     internal class Drawing : GantryGame
     {
@@ -26,7 +28,7 @@ namespace InternetClawMachine.Games.GantreyGame
                 Configuration.Coords.XCord = value;
                 _x = value;
             }
-            get { return _x; }
+            get => _x;
         }
 
         public int Y
@@ -36,7 +38,7 @@ namespace InternetClawMachine.Games.GantreyGame
                 Configuration.Coords.YCord = value;
                 _y = value;
             }
-            get { return _y; }
+            get => _y;
         }
 
         public int Z
@@ -46,7 +48,7 @@ namespace InternetClawMachine.Games.GantreyGame
                 Configuration.Coords.ZCord = value;
                 _z = value;
             }
-            get { return _z; }
+            get => _z;
         }
 
         public int A
@@ -56,7 +58,7 @@ namespace InternetClawMachine.Games.GantreyGame
                 Configuration.Coords.ACord = value;
                 _a = value;
             }
-            get { return _a; }
+            get => _a;
         }
 
         public Drawing(IChatApi client, BotConfiguration configuration, OBSWebsocket obs) : base(client, configuration, obs)
@@ -249,7 +251,7 @@ namespace InternetClawMachine.Games.GantreyGame
             }
             catch (Exception ex)
             {
-                var error = string.Format("ERROR {0} {1}", ex.Message, ex.ToString());
+                var error = string.Format("ERROR {0} {1}", ex.Message, ex);
                 Logger.WriteLog(Logger.ErrorLog, error);
             }
         }
@@ -516,7 +518,7 @@ namespace InternetClawMachine.Games.GantreyGame
                 }
                 catch (Exception ex)
                 {
-                    var error = string.Format("ERROR {0} {1}", ex.Message, ex.ToString());
+                    var error = string.Format("ERROR {0} {1}", ex.Message, ex);
                     Logger.WriteLog(Logger.ErrorLog, error);
                 }
             }
@@ -543,7 +545,7 @@ namespace InternetClawMachine.Games.GantreyGame
             ChatClient.SendMessage(Configuration.Channel, "gift turn <nickname> - Gifts your turn to someone else");
         }
 
-        override public async Task ProcessQueue()
+        public override async Task ProcessQueue()
         {
             if (!ProcessingQueue)
             {
@@ -554,7 +556,7 @@ namespace InternetClawMachine.Games.GantreyGame
                 }
                 catch (Exception ex)
                 {
-                    var error = string.Format("ERROR {0} {1}", ex.Message, ex.ToString());
+                    var error = string.Format("ERROR {0} {1}", ex.Message, ex);
                     Logger.WriteLog(Logger.ErrorLog, error);
                 }
                 finally
@@ -566,7 +568,7 @@ namespace InternetClawMachine.Games.GantreyGame
         /// <summary>
         /// Processes the current command queue and returns when empty
         /// </summary>
-        override public Task ProcessCommands()
+        public override Task ProcessCommands()
         {
             if (Configuration.OverrideChat) //if we're currently overriding what's in the command queue, for instance when using UI controls
             {

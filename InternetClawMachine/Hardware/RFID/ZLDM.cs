@@ -33,7 +33,7 @@ namespace InternetClawMachine.Hardware.RFID
         public static extern ushort GetPort(byte nNum);
 
         [DllImport("ZlDevManage.dll", EntryPoint = "ZLDM_GetGateWay")]
-        unsafe public static extern IntPtr GetGateWay(byte nNum);
+        public static extern unsafe IntPtr GetGateWay(byte nNum);
 
         [DllImport("ZlDevManage.dll", EntryPoint = "ZLDM_GetWorkMode")]
         public static extern byte GetWordMode(byte nNum);
@@ -57,19 +57,19 @@ namespace InternetClawMachine.Hardware.RFID
         public static extern byte GetDataBits(byte nNum);
 
         [DllImport("ZlDevManage.dll", EntryPoint = "ZLDM_SetDevName")]
-        unsafe public static extern bool SetDevName(byte nNum, char* devName);
+        public static extern unsafe bool SetDevName(byte nNum, char* devName);
 
         [DllImport("ZlDevManage.dll", EntryPoint = "ZLDM_SetIP")]
-        unsafe public static extern bool SetIP(byte nNum, byte[] ip);
+        public static extern unsafe bool SetIP(byte nNum, byte[] ip);
 
         [DllImport("ZlDevManage.dll", EntryPoint = "ZLDM_SetGateWay")]
-        unsafe public static extern bool SetGateWay(byte nNum, byte[] gateWay);
+        public static extern unsafe bool SetGateWay(byte nNum, byte[] gateWay);
 
         [DllImport("ZlDevManage.dll", EntryPoint = "ZLDM_SetNetMask")]
-        unsafe public static extern bool SetNetMask(byte nNum, byte[] netMask);
+        public static extern unsafe bool SetNetMask(byte nNum, byte[] netMask);
 
         [DllImport("ZlDevManage.dll", EntryPoint = "ZLDM_SetDestName")]
-        unsafe public static extern bool SetDestName(byte nNum, byte[] destName);
+        public static extern unsafe bool SetDestName(byte nNum, byte[] destName);
 
         [DllImport("ZlDevManage.dll", EntryPoint = "ZLDM_SetIPMode")]
         public static extern bool SetIPMode(byte nNum, byte ipMode);

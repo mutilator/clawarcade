@@ -1,8 +1,9 @@
-﻿using InternetClawMachine.Hardware.Gantry;
+﻿using InternetClawMachine.Chat;
+using InternetClawMachine.Hardware.Gantry;
+using InternetClawMachine.Settings;
 using OBSWebsocketDotNet;
-using System;
 
-namespace InternetClawMachine.Games.GantreyGame
+namespace InternetClawMachine.Games.GantryGame
 {
     public class GantryGame : Game
     {

@@ -1,4 +1,4 @@
-﻿using WebSocketSharp;
+﻿using InternetClawMachine.Games;
 using WebSocketSharp.Server;
 
 namespace InternetClawMachine
@@ -10,16 +10,6 @@ namespace InternetClawMachine
         public AudioManager(Game mainRef)
         {
             _gameRef = mainRef;
-        }
-
-        protected override void OnMessage(MessageEventArgs e)
-        {
-            base.OnMessage(e);
-        }
-
-        protected override void OnOpen()
-        {
-            base.OnOpen();
         }
     }
 }
