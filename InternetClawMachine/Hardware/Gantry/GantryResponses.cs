@@ -1,0 +1,23 @@
+﻿namespace InternetClawMachine.Hardware.Gantry
+{
+    public enum GantryResponses
+    {
+        RESPONSE_DEBUG = 400,
+        RESPONSE_POSITION = 301,
+        RESPONSE_DIRECTION = 302,
+        RESPONSE_XY_MOVE = 303,
+        RESPONSE_HOME_AXIS_ACK = 305,
+        RESPONSE_HOME_AXIS_COMPLETE = 306,
+        RESPONSE_LIMITS = 307,
+        RESPONSE_EXCEED_LIMIT = 308,
+        RESPONSE_LIMIT_SWITCH = 309,
+        RESPONSE_TRIGGERED_SWITCH = 310,
+        RESPONSE_SPEED = 311,
+        RESPONSE_COMMAND_ACK = 312,
+        RESPONSE_STEP_ACK = 313,
+        RESPONSE_POSITION_ACK = 314,
+        RESPONSE_MOVE_COMPLETE = 315,
+        RESPONSE_HOLE_ACTIVATED = 316,
+        RESPONSE_IS_HOMED = 317,
+    }
+}
