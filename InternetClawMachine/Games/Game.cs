@@ -105,7 +105,7 @@ namespace InternetClawMachine.Games
         /// <summary>
         /// Running list of all commands being sent from chat
         /// </summary>
-        public virtual List<ClawCommand> CommandQueue { get; set; }
+        public List<ClawCommand> CommandQueue { get; set; }
 
         /// <summary>
         /// Time this game mode was started according to the GameModeStopwatch, usually 0

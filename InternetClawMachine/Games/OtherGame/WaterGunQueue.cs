@@ -210,18 +210,18 @@ namespace InternetClawMachine.Games.OtherGame
             //so here we need to make a bit of fudge in the times
             //check if our current time minus when it last dropped is less than the time it takes to return home
             long additionalTime = 0;
-            if (WinnersList.Count > 0 && (GameModeTimer.ElapsedMilliseconds) < Configuration.WaterGunSettings.ReturnHomeTime)
+            if (WinnersList.Count > 0 && GameModeTimer.ElapsedMilliseconds < Configuration.WaterGunSettings.ReturnHomeTime)
             {
                 //if it is then we need to add that amount of time to our timers below
-                additionalTime = Configuration.WaterGunSettings.ReturnHomeTime - (GameModeTimer.ElapsedMilliseconds);
+                additionalTime = Configuration.WaterGunSettings.ReturnHomeTime - GameModeTimer.ElapsedMilliseconds;
             }
 
-            ChatClient.SendMessage(Configuration.Channel, string.Format("@{0} has control for the next {1} seconds. You have {2} seconds to start playing", PlayerQueue.CurrentPlayer, Configuration.WaterGunSettings.SinglePlayerDuration + (additionalTime / 1000), Configuration.WaterGunSettings.SinglePlayerQueueNoCommandDuration + (additionalTime / 1000)));
+            ChatClient.SendMessage(Configuration.Channel, string.Format("@{0} has control for the next {1} seconds. You have {2} seconds to start playing", PlayerQueue.CurrentPlayer, Configuration.WaterGunSettings.SinglePlayerDuration + additionalTime / 1000, Configuration.WaterGunSettings.SinglePlayerQueueNoCommandDuration + additionalTime / 1000));
 
             Task.Run(async delegate ()
             {
                 //15 second timer to see if they're still active
-                var firstWait = (Configuration.WaterGunSettings.SinglePlayerQueueNoCommandDuration * 1000) + (int)additionalTime;
+                var firstWait = Configuration.WaterGunSettings.SinglePlayerQueueNoCommandDuration * 1000 + (int)additionalTime;
                 await Task.Delay(firstWait);
                 if (!Configuration.WaterGunSettings.CurrentPlayerHasPlayed)
                 {
@@ -251,7 +251,7 @@ namespace InternetClawMachine.Games.OtherGame
                     //we need a check if they changed game mode or something weird happened
                     var args = new RoundEndedArgs() { Username = username, GameLoopCounterValue = loopVal, GameMode = GameMode };
 
-                    await Task.Delay((Configuration.WaterGunSettings.SinglePlayerDuration * 1000) - firstWait);
+                    await Task.Delay(Configuration.WaterGunSettings.SinglePlayerDuration * 1000 - firstWait);
 
                     if (PlayerQueue.CurrentPlayer == username && GameLoopCounterValue == loopVal)
                     {

@@ -26,7 +26,7 @@ namespace InternetClawMachine.Games.ClawGame
         {
             //we check to see if the return home event was fired by the person that's currently playing
             //if it has we need to move to the next player, if not we've moved on already, perhaps bad design here
-            if ((PlayerQueue.CurrentPlayer == CurrentDroppingPlayer.Username && GameLoopCounterValue == CurrentDroppingPlayer.GameLoop))
+            if (PlayerQueue.CurrentPlayer == CurrentDroppingPlayer.Username && GameLoopCounterValue == CurrentDroppingPlayer.GameLoop)
             {
                 base.OnTurnEnded(new RoundEndedArgs() { Username = PlayerQueue.CurrentPlayer, GameMode = GameMode, GameLoopCounterValue = GameLoopCounterValue });
                 var nextPlayer = PlayerQueue.GetNextPlayer();
@@ -325,7 +325,7 @@ namespace InternetClawMachine.Games.ClawGame
             Task.Run(async delegate ()
             {
                 //15 second timer to see if they're still active
-                var firstWait = (Configuration.ClawSettings.SinglePlayerQueueNoCommandDuration * 1000);
+                var firstWait = Configuration.ClawSettings.SinglePlayerQueueNoCommandDuration * 1000;
                 //wait for their turn to end before ending
                 //using timers for this purpose can lead to issues,
                 //      mainly if there are lets say 2 players, the first player drops in quick mode,
@@ -354,7 +354,7 @@ namespace InternetClawMachine.Games.ClawGame
                 else
                 {
                     //Waiting!!!
-                    await Task.Delay((Configuration.ClawSettings.SinglePlayerDuration * 1000) - firstWait);
+                    await Task.Delay(Configuration.ClawSettings.SinglePlayerDuration * 1000 - firstWait);
 
                     //interesting bug because of the way this works using timers....
                     //if a person takes SO long to go that they finally drop with less than < _clawReturnHomeTime left this will skip to the next player

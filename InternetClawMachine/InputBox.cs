@@ -59,7 +59,7 @@ namespace InternetClawMachine
             //
             // lblPrompt
             //
-            _lblPrompt.Anchor = ((AnchorStyles.Top | AnchorStyles.Bottom) | AnchorStyles.Left) | AnchorStyles.Right;
+            _lblPrompt.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
             _lblPrompt.BackColor = SystemColors.Control;
             _lblPrompt.Font = new Font("Microsoft Sans Serif", 8.25F, FontStyle.Regular, GraphicsUnit.Point, 0);
             _lblPrompt.Location = new Point(12, 9);
@@ -147,7 +147,7 @@ namespace InternetClawMachine
             // using the PrimaryScreen and the WorkingArea properties.
             var workingRectangle = Screen.PrimaryScreen.WorkingArea;
 
-            if ((_xPos >= 0 && _xPos < workingRectangle.Width - 100) && (_yPos >= 0 && _yPos < workingRectangle.Height - 100))
+            if (_xPos >= 0 && _xPos < workingRectangle.Width - 100 && _yPos >= 0 && _yPos < workingRectangle.Height - 100)
             {
                 _frmInputDialog.StartPosition = FormStartPosition.Manual;
                 _frmInputDialog.Location = new Point(_xPos, _yPos);
@@ -169,10 +169,10 @@ namespace InternetClawMachine
                 n = 1;
 
             var txt = _txtInput.Location;
-            txt.Y = txt.Y + (n * 4);
+            txt.Y = txt.Y + n * 4;
             _txtInput.Location = txt;
             var form = _frmInputDialog.Size;
-            form.Height = form.Height + (n * 4);
+            form.Height = form.Height + n * 4;
             _frmInputDialog.Size = form;
 
             _txtInput.SelectionStart = 0;

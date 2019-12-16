@@ -6,7 +6,7 @@ namespace InternetClawMachine
     {
         public static int GetEpoch()
         {
-            return (int)(DateTime.UtcNow.Subtract(new DateTime(1970, 1, 1))).TotalSeconds;
+            return (int)DateTime.UtcNow.Subtract(new DateTime(1970, 1, 1)).TotalSeconds;
         }
     }
 }

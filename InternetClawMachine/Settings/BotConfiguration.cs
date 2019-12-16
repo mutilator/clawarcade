@@ -21,6 +21,8 @@ namespace InternetClawMachine.Settings
         public string Username { set; get; }
         public string Channel { set; get; }
 
+        public string MailServer { set; get; }
+        public string MailFrom { set; get; }
         public VoteSettings VoteSettings { set; get; }
         public ClawGameSettings ClawSettings { set; get; }
         public GolfGameSettings GolfSettings { set; get; }

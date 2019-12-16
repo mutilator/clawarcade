@@ -26,7 +26,7 @@ namespace InternetClawMachine.Games.GantryGame.GolfHelpers
 
         public int CompareTo(PathMapper cell2)
         {
-            return (this.F < cell2.F) ? 1 : (this.F > cell2.F) ? -1 : 0; //descending
+            return this.F < cell2.F ? 1 : this.F > cell2.F ? -1 : 0; //descending
         }
     }
 }

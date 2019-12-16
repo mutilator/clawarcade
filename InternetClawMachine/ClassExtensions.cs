@@ -17,7 +17,7 @@ namespace InternetClawMachine
 
         public static double ToRadians(this double val)
         {
-            return (Math.PI / 180) * val;
+            return Math.PI / 180 * val;
         }
     }
 }

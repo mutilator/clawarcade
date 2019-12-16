@@ -19,7 +19,7 @@ namespace InternetClawMachine.Settings
         public int StrobeMaxTime { set; get; }
 
         /// <summary>
-        /// last ping to controller
+        /// Whether wiggle mode is on or off
         /// </summary>
         public bool WiggleMode
         {
@@ -134,6 +134,11 @@ namespace InternetClawMachine.Settings
         /// Time the last refill was requested
         /// </summary>
         public long LastRefillWait { set; get; }
+
+        /// <summary>
+        /// How long after the sensor is tripped do we acknowledge the sensor again
+        /// </summary>
+        public long BreakSensorWaitTime { get; internal set; }
 
         public event PropertyChangedEventHandler PropertyChanged;
 

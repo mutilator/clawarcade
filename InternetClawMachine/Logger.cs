@@ -52,7 +52,7 @@ namespace InternetClawMachine
             {
                 if (LogFiles.ContainsKey(source))
                 {
-                    var stream = ((FileStream)(LogFiles[source].BaseStream));
+                    var stream = (FileStream)LogFiles[source].BaseStream;
                     if (stream == null)
                         return null;
                     var filename = Path.GetFileName(stream.Name);

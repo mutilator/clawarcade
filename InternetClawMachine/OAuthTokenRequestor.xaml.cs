@@ -39,7 +39,7 @@ namespace InternetClawMachine
             var url = e.Uri.Fragment;
             if (url.Contains("access_token") && url.Contains("#"))
             {
-                url = (new System.Text.RegularExpressions.Regex("#")).Replace(url, "?", 1);
+                url = new System.Text.RegularExpressions.Regex("#").Replace(url, "?", 1);
                 AccessToken = System.Web.HttpUtility.ParseQueryString(url).Get("access_token");
                 DialogResult = true;
                 this.Close();

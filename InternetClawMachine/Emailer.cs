@@ -5,19 +5,22 @@ namespace InternetClawMachine
 {
     internal class Emailer
     {
-        private static string _mailServer = "10.1.2.1";
-        private static string _mailFrom = "sdgusler@gmail.com";
+        public static string MailServer = null;
+        public static string MailFrom = null;
 
         public static async void SendEmail(string mailto, string subject, string message) => await Task.Run(delegate
                                                                                      {
                                                                                          try
                                                                                          {
+                                                                                             if (MailServer == null || MailFrom == null)
+                                                                                                 throw new Exception("Invalid mail server or from address.");
+
                                                                                              var emailObject = new System.Net.Mail.MailMessage();
                                                                                              emailObject.To.Add(mailto);
                                                                                              emailObject.Subject = subject;
-                                                                                             emailObject.From = new System.Net.Mail.MailAddress(_mailFrom);
+                                                                                             emailObject.From = new System.Net.Mail.MailAddress(MailFrom);
                                                                                              emailObject.Body = message;
-                                                                                             var smtp = new System.Net.Mail.SmtpClient(_mailServer);
+                                                                                             var smtp = new System.Net.Mail.SmtpClient(MailServer);
                                                                                              smtp.Send(emailObject);
                                                                                          }
                                                                                          catch (Exception ex)

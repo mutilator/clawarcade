@@ -40,7 +40,7 @@ namespace InternetClawMachine.Games.GantryGame.GolfHelpers
             for (idx = 0; idx < GridSize; idx++)
             {
                 xx = idx % GridWidth;
-                yy = (idx - (idx % GridWidth)) / GridWidth;
+                yy = (idx - idx % GridWidth) / GridWidth;
                 _mapArray.Insert(idx, new PathMapper(xx, yy));
             }
 
@@ -76,7 +76,7 @@ namespace InternetClawMachine.Games.GantryGame.GolfHelpers
                 { //verify the origin isnt filled
                     size = 1;
                     xx = idx % GridWidth;
-                    yy = (idx - (idx % GridWidth)) / GridWidth;
+                    yy = (idx - idx % GridWidth) / GridWidth;
 
                     while (size + xx < GridWidth + maxGap && size + yy < GridHeight + maxGap)
                     {
@@ -84,7 +84,7 @@ namespace InternetClawMachine.Games.GantryGame.GolfHelpers
                         sX = size;
                         for (sY = 0; sY <= size; sY++)
                         {
-                            tmpIdx = (xx + sX) + ((yy + sY) * GridWidth);
+                            tmpIdx = xx + sX + (yy + sY) * GridWidth;
                             if (tmpIdx >= _mapArray.Count || tmpIdx < 0)
                             {
                                 //out of bounds we make size full size (left or bottom edges)
@@ -103,7 +103,7 @@ namespace InternetClawMachine.Games.GantryGame.GolfHelpers
                         sY = size;
                         for (sX = 0; sX <= size; sX++)
                         {
-                            tmpIdx = (xx + sX) + ((yy + sY) * GridWidth);
+                            tmpIdx = xx + sX + (yy + sY) * GridWidth;
 
                             if (tmpIdx >= _mapArray.Count || tmpIdx < 0)
                             {
@@ -126,7 +126,7 @@ namespace InternetClawMachine.Games.GantryGame.GolfHelpers
                             break;
                         size++;
                     }
-                    tmpIdx = xx + (yy * GridWidth);
+                    tmpIdx = xx + yy * GridWidth;
                     _mapArray[tmpIdx].C = size;
                 }
             }
@@ -170,7 +170,7 @@ namespace InternetClawMachine.Games.GantryGame.GolfHelpers
                 { //verify the origin isnt filled
                     size = 1;
                     xx = idx % GridWidth;
-                    yy = (idx - (idx % GridWidth)) / GridWidth;
+                    yy = (idx - idx % GridWidth) / GridWidth;
 
                     while (size + xx < GridWidth && size + yy < GridHeight)
                     {
@@ -178,7 +178,7 @@ namespace InternetClawMachine.Games.GantryGame.GolfHelpers
                         sX = size;
                         for (sY = 0; sY <= size; sY++)
                         {
-                            tmpIdx = (xx + sX) + ((yy + sY) * GridWidth);
+                            tmpIdx = xx + sX + (yy + sY) * GridWidth;
                             if (tmpIdx >= _mapArray.Count || tmpIdx < 0)
                                 continue;
                             newCell = _mapArray[tmpIdx];
@@ -192,7 +192,7 @@ namespace InternetClawMachine.Games.GantryGame.GolfHelpers
                         sY = size;
                         for (sX = 0; sX <= size; sX++)
                         {
-                            tmpIdx = (xx + sX) + ((yy + sY) * GridWidth);
+                            tmpIdx = xx + sX + (yy + sY) * GridWidth;
                             if (tmpIdx >= _mapArray.Count || tmpIdx < 0)
                                 continue;
                             newCell = _mapArray[tmpIdx];
@@ -209,7 +209,7 @@ namespace InternetClawMachine.Games.GantryGame.GolfHelpers
                             break;
                         size++;
                     }
-                    tmpIdx = xx + (yy * GridWidth);
+                    tmpIdx = xx + yy * GridWidth;
                     _mapArray[tmpIdx].C = size;
                 }
             }
@@ -307,7 +307,7 @@ namespace InternetClawMachine.Games.GantryGame.GolfHelpers
                     if (newY >= GridHeight) continue;
                     if (newX < 0) continue;
                     if (newY < 0) continue;
-                    newCell = _mapArray[(int)(newX + (newY * GridWidth))];
+                    newCell = _mapArray[(int)(newX + newY * GridWidth)];
 
                     if (newCell != null)
                     { //make sure there is a value, could be out of bounds or something
@@ -324,9 +324,9 @@ namespace InternetClawMachine.Games.GantryGame.GolfHelpers
                                     canAdd = true;
 
                                     //no idea what to optimize
-                                    if ((_currentCell.X > newX)) //left of the current cell
+                                    if (_currentCell.X > newX) //left of the current cell
                                     {
-                                        if ((_currentCell.Y < newY)) //up/left diagonal
+                                        if (_currentCell.Y < newY) //up/left diagonal
                                         {
                                             if (newCell.C < gapSize) //if the gap of the destination (newCell.c) is smaller than the object (gapSize) then we cant go there
                                             {
@@ -334,22 +334,22 @@ namespace InternetClawMachine.Games.GantryGame.GolfHelpers
                                             }
 
                                             //this is checking the spot right under where the sprite will land, moving diagonal will overlap this spot on its way to the destination, make sure it's empty otherwise it will overlap
-                                            idx = (int)((newX) + ((newY - 1) * GridWidth));
+                                            idx = (int)(newX + (newY - 1) * GridWidth);
                                             if (idx >= 0 && idx < _mapArray.Count)
                                             {
                                                 tmpCheckDiag1 = _mapArray[idx];
-                                                if (tmpCheckDiag1.CellType == AStarCellType.CELL_FILLED || tmpCheckDiag1.C < (gapSize - 1))
+                                                if (tmpCheckDiag1.CellType == AStarCellType.CELL_FILLED || tmpCheckDiag1.C < gapSize - 1)
                                                 { //size of guy minus one because it's only traversing a single diagonal block
                                                     canAdd = false;
                                                 }
                                             }
 
                                             //this is checking the spot to the top right of the landing to make sure there is room for it to move
-                                            idx = (int)((newX + gapSize) + ((newY + gapSize) * GridWidth));
+                                            idx = (int)(newX + gapSize + (newY + gapSize) * GridWidth);
                                             if (idx >= 0 && idx < _mapArray.Count)
                                             {
                                                 tmpCheckDiag1 = _mapArray[idx];
-                                                if (tmpCheckDiag1.CellType == AStarCellType.CELL_FILLED || tmpCheckDiag1.C < (gapSize - 1))
+                                                if (tmpCheckDiag1.CellType == AStarCellType.CELL_FILLED || tmpCheckDiag1.C < gapSize - 1)
                                                 { //size of guy minus one because it's only traversing a single diagonal block
                                                     canAdd = false;
                                                 }
@@ -362,21 +362,21 @@ namespace InternetClawMachine.Games.GantryGame.GolfHelpers
                                                 canAdd = false;
                                             }
 
-                                            idx = (int)((newX) + ((newY + 1) * GridWidth));
+                                            idx = (int)(newX + (newY + 1) * GridWidth);
                                             if (idx >= 0 && idx < _mapArray.Count)
                                             {
                                                 tmpCheckDiag1 = _mapArray[idx];
-                                                if (tmpCheckDiag1.CellType == AStarCellType.CELL_FILLED || tmpCheckDiag1.C < (gapSize - 1))
+                                                if (tmpCheckDiag1.CellType == AStarCellType.CELL_FILLED || tmpCheckDiag1.C < gapSize - 1)
                                                 { //size of guy minus one because it's only traversing a single diagonal block
                                                     canAdd = false;
                                                 }
                                             }
 
-                                            idx = (int)((newX + gapSize) + ((newY) * GridWidth));
+                                            idx = (int)(newX + gapSize + newY * GridWidth);
                                             if (idx >= 0 && idx < _mapArray.Count)
                                             {
                                                 tmpCheckDiag1 = _mapArray[idx];
-                                                if (tmpCheckDiag1.CellType == AStarCellType.CELL_FILLED || tmpCheckDiag1.C < (gapSize - 1))
+                                                if (tmpCheckDiag1.CellType == AStarCellType.CELL_FILLED || tmpCheckDiag1.C < gapSize - 1)
                                                 { //size of guy minus one because it's only traversing a single diagonal block
                                                     canAdd = false;
                                                 }
@@ -393,7 +393,7 @@ namespace InternetClawMachine.Games.GantryGame.GolfHelpers
                                             }
 
                                             //check if the block to the left of this diagonal is filled
-                                            idx = (int)((newX - 1) + ((newY + gapSize - 1) * GridWidth));
+                                            idx = (int)(newX - 1 + (newY + gapSize - 1) * GridWidth);
                                             if (idx >= 0 && idx < _mapArray.Count)
                                             {
                                                 tmpCheckDiag1 = _mapArray[idx];
@@ -404,7 +404,7 @@ namespace InternetClawMachine.Games.GantryGame.GolfHelpers
                                             }
 
                                             //check if the block to the end bottom is filled
-                                            idx = (int)((newX + gapSize - 1) + ((newY - 1) * GridWidth));
+                                            idx = (int)(newX + gapSize - 1 + (newY - 1) * GridWidth);
                                             if (idx >= 0 && idx < _mapArray.Count)
                                             {
                                                 tmpCheckDiag1 = _mapArray[idx];
@@ -421,7 +421,7 @@ namespace InternetClawMachine.Games.GantryGame.GolfHelpers
                                                 canAdd = false;
                                             }
                                             //check bottom
-                                            idx = (int)((newX - 1) + ((newY - gapSize + 1) * GridWidth));
+                                            idx = (int)(newX - 1 + (newY - gapSize + 1) * GridWidth);
                                             if (idx >= 0 && idx < _mapArray.Count)
                                             {
                                                 tmpCheckDiag1 = _mapArray[idx];
@@ -431,7 +431,7 @@ namespace InternetClawMachine.Games.GantryGame.GolfHelpers
                                                 }
                                             }
                                             //check right block
-                                            idx = (int)((newX + gapSize - 1) + ((newY + 1) * GridWidth));
+                                            idx = (int)(newX + gapSize - 1 + (newY + 1) * GridWidth);
                                             if (idx >= 0 && idx < _mapArray.Count)
                                             {
                                                 tmpCheckDiag1 = _mapArray[idx];
@@ -500,29 +500,29 @@ namespace InternetClawMachine.Games.GantryGame.GolfHelpers
 
         public PathMapper GetCell(int xx, int yy)
         {
-            return _mapArray[xx + (yy * GridWidth)];
+            return _mapArray[xx + yy * GridWidth];
         }
 
         //Sets individual cell state
         public void SetCell(float x, float y, AStarCellType cellType)
         {
-            _mapArray[(int)(x + (y * GridWidth))].CellType = cellType;
+            _mapArray[(int)(x + y * GridWidth)].CellType = cellType;
         }
 
         //Toggle cell between "filled" and "free" states
         public void ToggleCell(int cellX, int cellY)
         {
-            if (_mapArray[cellX + (cellY * GridWidth)].CellType == AStarCellType.CELL_FREE)
-                _mapArray[cellX + (cellY * GridWidth)].CellType = AStarCellType.CELL_FILLED;
+            if (_mapArray[cellX + cellY * GridWidth].CellType == AStarCellType.CELL_FREE)
+                _mapArray[cellX + cellY * GridWidth].CellType = AStarCellType.CELL_FILLED;
             else
-                _mapArray[cellX + (cellY * GridWidth)].CellType = AStarCellType.CELL_FREE;
+                _mapArray[cellX + cellY * GridWidth].CellType = AStarCellType.CELL_FREE;
         }
 
         //Sets origin and destination
         public void SetPoints(float sX, float sY, float dX, float dY)
         {
-            _originCell = _mapArray[(int)(sX + (sY * GridWidth))];
-            _destinationCell = _mapArray[(int)(dX + (dY * GridWidth))];
+            _originCell = _mapArray[(int)(sX + sY * GridWidth)];
+            _destinationCell = _mapArray[(int)(dX + dY * GridWidth)];
 
             _originType = _originCell.CellType; //store what it used to be
             _destinationType = _destinationCell.CellType;
@@ -572,7 +572,7 @@ namespace InternetClawMachine.Games.GantryGame.GolfHelpers
             for (idx = 0; idx < GridSize; idx++)
             {
                 xx = idx % GridWidth;
-                yy = (idx - (idx % GridWidth)) / GridWidth;
+                yy = (idx - idx % GridWidth) / GridWidth;
                 if (_mapArray[idx].CellType == AStarCellType.CELL_FILLED) _mapArray[idx].CellType = AStarCellType.CELL_FREE;
                 _mapArray[idx].ParentCell = null;
                 _mapArray[idx].G = 0;

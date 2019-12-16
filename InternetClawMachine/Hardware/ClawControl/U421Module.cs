@@ -412,7 +412,7 @@ namespace InternetClawMachine.Hardware.ClawControl
                         dir = ConveyorOn;
                         break;
                 }
-                if ((dir != _lastDirection) || (force))
+                if (dir != _lastDirection || force)
                 {
                     _lastDirection = dir;
                     //move it

@@ -357,20 +357,20 @@ namespace InternetClawMachine.Games.ClawGame
 
                 if (Configuration.EventMode == EventMode.BIRTHDAY2)
                 {
-                    saying = string.Format("Let's watch mutilator stuff is face some more! Here's your 3x claw bux bonus!");
+                    saying = "Let's watch mutilator stuff is face some more! Here is your claw bux bonus!";
                     DatabaseFunctions.AddStreamBuxBalance(Configuration, user.Username, StreamBuxTypes.WIN, Configuration.GetStreamBuxCost(StreamBuxTypes.WIN) * 3);
                 }
-                else if ((Configuration.EventMode == EventMode.DUPLO) || (Configuration.EventMode == EventMode.BALL))
+                else if (Configuration.EventMode == EventMode.DUPLO || Configuration.EventMode == EventMode.BALL)
                 {
                     saying = string.Format("@{0} grabbed some duplos! Here's your 3x claw bux bonus!", winner);
                     DatabaseFunctions.AddStreamBuxBalance(Configuration, user.Username, StreamBuxTypes.WIN, Configuration.GetStreamBuxCost(StreamBuxTypes.WIN) * 3);
                 }
-                else if ((Configuration.EventMode == EventMode.EASTER) && objPlush.PlushId != 87 && objPlush.PlushId != 88)
+                else if (Configuration.EventMode == EventMode.EASTER && objPlush.PlushId != 87 && objPlush.PlushId != 88)
                 {
                     saying = string.Format("@{0} grabbed some eggs! Here's your 3x claw bux bonus!", winner);
                     DatabaseFunctions.AddStreamBuxBalance(Configuration, user.Username, StreamBuxTypes.WIN, Configuration.GetStreamBuxCost(StreamBuxTypes.WIN) * 3);
                 }
-                else if ((Configuration.EventMode == EventMode.EASTER))
+                else if (Configuration.EventMode == EventMode.EASTER)
                 {
                     saying = string.Format("@{0} grabbed a {1}! You've earned a 🍄{2} bonus!", winner, objPlush.Name, objPlush.BonusBux);
                     DatabaseFunctions.AddStreamBuxBalance(Configuration, user.Username, StreamBuxTypes.WIN, objPlush.BonusBux);
@@ -534,17 +534,19 @@ namespace InternetClawMachine.Games.ClawGame
         private void MachineControl_OnBreakSensorTripped(object sender, EventArgs e)
         {
             //ignore repeated trips, code on the machine ignores for 1 second
-            if (GameModeTimer.ElapsedMilliseconds - _lastSensorTrip > 7000)
+            if (GameModeTimer.ElapsedMilliseconds - _lastSensorTrip > Configuration.ClawSettings.BreakSensorWaitTime)
             {
                 _lastSensorTrip = GameModeTimer.ElapsedMilliseconds;
                 //async task to run conveyor
                 RunBelt(Configuration.ClawSettings.ConveyorWaitFor);
+
+                if (Configuration.EventMode == EventMode.BIRTHDAY2 || Configuration.EventMode == EventMode.DUPLO || Configuration.EventMode == EventMode.BALL || Configuration.EventMode == EventMode.EASTER)
+                {
+                    RunWinScenario(null);
+                }
             }
 
-            if (Configuration.EventMode == EventMode.DUPLO || Configuration.EventMode == EventMode.BALL || Configuration.EventMode == EventMode.EASTER)
-            {
-                RunWinScenario(null);
-            }
+            
 
             var message = string.Format("Break sensor tripped");
             Logger.WriteLog(Logger.MachineLog, message);
@@ -590,7 +592,7 @@ namespace InternetClawMachine.Games.ClawGame
                         //check if the current player has played and if they have not, check if their initial timeout period has passed (are they afk)
                         //if there is only one player playing they get a grace period of their entire time limit rather than the 15 second limit, keeps the game flowing better
                         //if there are multiple people playing it won't matter since they timeout after 15 seconds
-                        if (!CurrentPlayerHasPlayed && GameRoundTimer.ElapsedMilliseconds > (Configuration.ClawSettings.SinglePlayerQueueNoCommandDuration * 1000))
+                        if (!CurrentPlayerHasPlayed && GameRoundTimer.ElapsedMilliseconds > Configuration.ClawSettings.SinglePlayerQueueNoCommandDuration * 1000)
                         {
                             var rargs = new RoundEndedArgs() { Username = username, GameLoopCounterValue = GameLoopCounterValue, GameMode = GameMode };
                             base.OnTurnEnded(rargs);
@@ -733,13 +735,13 @@ namespace InternetClawMachine.Games.ClawGame
                     try
                     {
                         var userLastRenameDate = GetDbLastRename(username);
-                        var daysToGo = Configuration.ClawSettings.TimePassedForRename - ((curTime - userLastRenameDate) / 60 / 60 / 24);
+                        var daysToGo = Configuration.ClawSettings.TimePassedForRename - (curTime - userLastRenameDate) / 60 / 60 / 24;
                         if (daysToGo <= 0)
                         {
                             try
                             {
                                 var plushLastRenameDate = GetDbPlushDetails(oldName);
-                                daysToGo = Configuration.ClawSettings.TimePassedForRename - ((curTime - plushLastRenameDate) / 60 / 60 / 24);
+                                daysToGo = Configuration.ClawSettings.TimePassedForRename - (curTime - plushLastRenameDate) / 60 / 60 / 24;
                                 if (daysToGo <= 0)
                                 {
                                     WriteDbNewPushName(oldName, newName, username.ToLower());
@@ -1078,7 +1080,7 @@ namespace InternetClawMachine.Games.ClawGame
                                     try
                                     {
                                         var plushLastRenameDate = GetDbPlushDetails(oldName);
-                                        var daysToGo = Configuration.ClawSettings.TimePassedForRename - ((curTime - plushLastRenameDate) / 60 / 60 / 24);
+                                        var daysToGo = Configuration.ClawSettings.TimePassedForRename - (curTime - plushLastRenameDate) / 60 / 60 / 24;
                                         if (daysToGo <= 0)
                                         {
                                             WriteDbNewPushName(oldName, newName, username);
@@ -1565,7 +1567,7 @@ namespace InternetClawMachine.Games.ClawGame
             if (!int.TryParse(seconds, out var secs))
                 return;
 
-            if ((secs > 15) || (secs < 1))
+            if (secs > 15 || secs < 1)
                 secs = 2;
 
             RunBelt(secs * 1000);
@@ -1663,7 +1665,7 @@ namespace InternetClawMachine.Games.ClawGame
                 {
                     Configuration.RecordsDatabase.Close();
                 }
-                return (changeTime == "" ? 0 : int.Parse(changeTime));
+                return changeTime == "" ? 0 : int.Parse(changeTime);
             }
         }
 
@@ -1694,7 +1696,7 @@ namespace InternetClawMachine.Games.ClawGame
                 }
 
                 if (i > 0)
-                    return (outputTop == "" ? 0 : int.Parse(outputTop));
+                    return outputTop == "" ? 0 : int.Parse(outputTop);
                 else
                     throw new Exception("No plush by that name");
             }

@@ -311,7 +311,7 @@ namespace InternetClawMachine.Games.GantryGame
             Task.Run(async delegate ()
             {
                 //15 second timer to see if they're still active
-                var firstWait = (Configuration.DrawingSettings.SinglePlayerQueueNoCommandDuration * 1000);
+                var firstWait = Configuration.DrawingSettings.SinglePlayerQueueNoCommandDuration * 1000;
                 //wait for their turn to end before ending
                 //using timers for this purpose can lead to issues,
                 //      mainly if there are lets say 2 players, the first player drops in quick mode,
@@ -336,10 +336,10 @@ namespace InternetClawMachine.Games.GantryGame
                 }
                 else
                 {
-                    await Task.Delay((Configuration.DrawingSettings.SinglePlayerDuration * 1000) - firstWait);
+                    await Task.Delay(Configuration.DrawingSettings.SinglePlayerDuration * 1000 - firstWait);
 
                     //if the claw is dropping then we can just let the claw return home event trigger the next player
-                    if ((PlayerQueue.CurrentPlayer == args.Username && args.GameLoopCounterValue == GameLoopCounterValue))
+                    if (PlayerQueue.CurrentPlayer == args.Username && args.GameLoopCounterValue == GameLoopCounterValue)
                     {
                         base.OnTurnEnded(args);
 

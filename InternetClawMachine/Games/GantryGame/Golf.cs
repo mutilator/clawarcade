@@ -351,7 +351,7 @@ namespace InternetClawMachine.Games.GantryGame
                         Console.WriteLine("Winners cleared: " + GameModeTimer.ElapsedMilliseconds);
                         WinnersList.Clear();
                         //we check to see if the return home event was fired by the person that's currently playing
-                        if ((PlayerQueue.CurrentPlayer == CurrentDroppingPlayer.Username && GameLoopCounterValue == CurrentDroppingPlayer.GameLoop))
+                        if (PlayerQueue.CurrentPlayer == CurrentDroppingPlayer.Username && GameLoopCounterValue == CurrentDroppingPlayer.GameLoop)
                         {
                             StartRound(PlayerQueue.GetNextPlayer());
                         }
@@ -455,7 +455,7 @@ namespace InternetClawMachine.Games.GantryGame
                     currentCmd = CommandQueue[0];
             }
             //wait until the hit is complete
-            while (currentCmd != null && (queueCnt > 0 && currentCmd.CommandGroup == ClawCommandGroup.HIT))
+            while (currentCmd != null && queueCnt > 0 && currentCmd.CommandGroup == ClawCommandGroup.HIT)
             {
                 Thread.Sleep(200);
                 lock (CommandQueue)
@@ -492,7 +492,7 @@ namespace InternetClawMachine.Games.GantryGame
             Task.Run(async delegate ()
             {
                 //15 second timer to see if they're still active
-                var firstWait = (Configuration.GolfSettings.SinglePlayerQueueNoCommandDuration * 1000);
+                var firstWait = Configuration.GolfSettings.SinglePlayerQueueNoCommandDuration * 1000;
                 //we need a check if they changed game mode or something weird happened
                 var loopVal = GameLoopCounterValue;
                 //we need a check if they changed game mode or something weird happened
@@ -519,7 +519,7 @@ namespace InternetClawMachine.Games.GantryGame
                     //      and the checks below this match their details it will end their turn early
 
                     //we need a check if they changed game mode or something weird happened
-                    await Task.Delay((Configuration.GolfSettings.SinglePlayerDuration * 1000) - firstWait);
+                    await Task.Delay(Configuration.GolfSettings.SinglePlayerDuration * 1000 - firstWait);
 
                     //check if we're still on the same turn (GameLoopCounterValue) as when we started the timer
                     if (PlayerQueue.CurrentPlayer != null && PlayerQueue.CurrentPlayer == username && GameLoopCounterValue == loopVal)
@@ -640,7 +640,6 @@ namespace InternetClawMachine.Games.GantryGame
                 {
                     ChatClient.SendMessage(Configuration.Channel, Configuration.QueueNoPlayersText);
                 }
-                return;
             }
             //all we need to do is verify the only person controlling it is the one who voted for it
             else if (PlayerQueue.CurrentPlayer != null && username.ToLower() == PlayerQueue.CurrentPlayer.ToLower())
@@ -740,7 +739,7 @@ namespace InternetClawMachine.Games.GantryGame
                 var xCurGrid = GetGridForStepX(X);
                 var yCurGrid = GetGridForStepY(Y);
 
-                if ((xCurGrid == xGrid && yCurGrid == yGrid) &&
+                if (xCurGrid == xGrid && yCurGrid == yGrid &&
                     (X != GetStepForGridX(xGrid) || Y != GetStepForGridY(yGrid)))
                 {
                     //If we're in the current grid, move left and backward a full move step
@@ -753,7 +752,7 @@ namespace InternetClawMachine.Games.GantryGame
 
                     var path = _map.Solve(1, 2000);
 
-                    if ((path == null) || ((path.Count == 0) || ((path[0].X != xGrid) && (path[0].Y != yGrid))))
+                    if (path == null || path.Count == 0 || path[0].X != xGrid && path[0].Y != yGrid)
                     {
                         return;
                     }
@@ -1152,13 +1151,13 @@ namespace InternetClawMachine.Games.GantryGame
                     {
                         //since the are we want to move isnt acceptable we need to move to the edge of this grid
                         var currentGrid = (int)Math.Floor(X / (decimal)StepsPerGrid);
-                        return (currentGrid * StepsPerGrid) - this.X;
+                        return currentGrid * StepsPerGrid - this.X;
                     }
                     else
                     {
                         //since the are we want to move isnt acceptable we need to move to the edge of this grid
                         var currentGridPlus1 = (int)Math.Ceiling(X / (decimal)StepsPerGrid);
-                        return (currentGridPlus1 * StepsPerGrid) - this.X;
+                        return currentGridPlus1 * StepsPerGrid - this.X;
                     }
                 case GantryAxis.Y:
                     //first thing is check if the new location is an open location
@@ -1174,13 +1173,13 @@ namespace InternetClawMachine.Games.GantryGame
                     {
                         //since the are we want to move isnt acceptable we need to move to the edge of this grid
                         var currentGrid = (int)Math.Floor(Y / (decimal)StepsPerGrid);
-                        return (currentGrid * StepsPerGrid) - this.Y;
+                        return currentGrid * StepsPerGrid - this.Y;
                     }
                     else
                     {
                         //since the are we want to move isnt acceptable we need to move to the edge of this grid
                         var currentGridPlus1 = (int)Math.Ceiling(Y / (decimal)StepsPerGrid);
-                        return (currentGridPlus1 * StepsPerGrid) - this.Y;
+                        return currentGridPlus1 * StepsPerGrid - this.Y;
                     }
                 case GantryAxis.Z:
                     break;

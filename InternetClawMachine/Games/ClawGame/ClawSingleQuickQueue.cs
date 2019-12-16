@@ -53,7 +53,7 @@ namespace InternetClawMachine.Games.ClawGame
                 Logger.WriteLog(Logger.DebugLog, string.Format("STARTROUND: [{0}] Waiting for {1} in game loop {2}", sequence, username, GameLoopCounterValue));
 
                 //15 second timer to see if they're still active
-                var firstWait = (Configuration.ClawSettings.SinglePlayerQueueNoCommandDuration * 1000);
+                var firstWait = Configuration.ClawSettings.SinglePlayerQueueNoCommandDuration * 1000;
                 //wait for their turn to end before ending
                 //using timers for this purpose can lead to issues,
                 //      mainly if there are lets say 2 players, the first player drops in quick mode,
@@ -80,7 +80,7 @@ namespace InternetClawMachine.Games.ClawGame
                 }
                 else
                 {
-                    await Task.Delay((Configuration.ClawSettings.SinglePlayerDuration * 1000) - firstWait);
+                    await Task.Delay(Configuration.ClawSettings.SinglePlayerDuration * 1000 - firstWait);
 
                     //if after the second delay something skipped them, jump out
                     if (PlayerQueue.CurrentPlayer != args.Username || GameLoopCounterValue != args.GameLoopCounterValue)
