@@ -178,7 +178,7 @@ namespace InternetClawMachine
 
         protected virtual void OnGameEnded(EventArgs e)
         {
-            EventHandler<EventArgs> handler = GameEnded;
+            var handler = GameEnded;
             if (handler != null && !_isEnding)
             {
                 _isEnding = true;
@@ -250,13 +250,13 @@ namespace InternetClawMachine
                 try
                 {
                     Configuration.RecordsDatabase.Open();
-                    string sql = "INSERT INTO movement (datetime, name, direction, guid) VALUES (" + Helpers.GetEpoch() + ", '" + name + "', '" + direction + "', '" + guid + "')";
-                    SQLiteCommand command = new SQLiteCommand(sql, Configuration.RecordsDatabase);
+                    var sql = "INSERT INTO movement (datetime, name, direction, guid) VALUES (" + Helpers.GetEpoch() + ", '" + name + "', '" + direction + "', '" + guid + "')";
+                    var command = new SQLiteCommand(sql, Configuration.RecordsDatabase);
                     command.ExecuteNonQuery();
                 }
                 catch (Exception ex)
                 {
-                    string error = String.Format("ERROR {0} {1}", ex.Message, ex.ToString());
+                    var error = string.Format("ERROR {0} {1}", ex.Message, ex.ToString());
                     Logger.WriteLog(Logger.ErrorLog, error);
 
                     Configuration.LoadDatebase();
@@ -296,11 +296,11 @@ namespace InternetClawMachine
                                 DatabaseFunctions.AddStreamBuxBalance(Configuration, username, StreamBuxTypes.SCARE, Configuration.GetStreamBuxCost(StreamBuxTypes.SCARE));
                                 RunScare(true);
                                 Thread.Sleep(100);
-                                ChatClient.SendWhisper(username, String.Format("Remaining balance: 🍄{0}", DatabaseFunctions.GetStreamBuxBalance(Configuration, username)));
+                                ChatClient.SendWhisper(username, string.Format("Remaining balance: 🍄{0}", DatabaseFunctions.GetStreamBuxBalance(Configuration, username)));
                             }
                             else
                             {
-                                ChatClient.SendMessage(Configuration.Channel, String.Format("Insufficient bux. Balance: 🍄{0}", DatabaseFunctions.GetStreamBuxBalance(Configuration, username)));
+                                ChatClient.SendMessage(Configuration.Channel, string.Format("Insufficient bux. Balance: 🍄{0}", DatabaseFunctions.GetStreamBuxBalance(Configuration, username)));
                             }
                             break;
                     }
@@ -361,7 +361,7 @@ namespace InternetClawMachine
                 }
                 catch (Exception ex)
                 {
-                    string error = String.Format("ERROR {0} {1}", ex.Message, ex.ToString());
+                    var error = string.Format("ERROR {0} {1}", ex.Message, ex.ToString());
                     Logger.WriteLog(Logger.ErrorLog, error);
                 }
                 finally

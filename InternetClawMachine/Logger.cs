@@ -9,9 +9,9 @@ namespace InternetClawMachine
     {
         public static Dictionary<string, StreamWriter> LogFiles = new Dictionary<string, StreamWriter>();
         private static string _defaultLogFolder;//where to write logs
-        public static String ErrorLog;
-        public static String MachineLog;
-        public static String DebugLog;
+        public static string ErrorLog;
+        public static string MachineLog;
+        public static string DebugLog;
 
         public static void Init(string defaultFolder, string errpfx, string machpfx, string dbgpfx)
         {
@@ -28,8 +28,8 @@ namespace InternetClawMachine
                 MessageBox.Show("No log folder defined");
                 return;
             }
-            string date = DateTime.Now.ToString("dd-MM-yyyy");
-            string timestamp = DateTime.Now.ToString("HH:mm:ss.ff");
+            var date = DateTime.Now.ToString("dd-MM-yyyy");
+            var timestamp = DateTime.Now.ToString("HH:mm:ss.ff");
             var fileHandle = GetFileHandle(logfile, date);
             if (fileHandle != null && fileHandle.BaseStream != null)
             {

@@ -72,7 +72,6 @@ namespace InternetClawMachine
         }
 
         private int _chatReconnectAttempts;
-        internal AudioManager AudioManager;
 
         /// <summary>
         /// How many times chat reconnected
@@ -204,7 +203,7 @@ namespace InternetClawMachine
         /// <summary>
         /// List of users who can perform special commands
         /// </summary>
-        public List<String> AdminUsers { get; set; }
+        public List<string> AdminUsers { get; set; }
 
         /// <summary>
         /// Reference to the bot database object
@@ -247,8 +246,8 @@ namespace InternetClawMachine
                     RecordsDatabase = new SQLiteConnection("Data Source=" + FileRecordsDatabase + "; Version=3;");
                     RecordsDatabase.Open();
 
-                    string sql = "CREATE TABLE wins (datetime int, name VARCHAR(40), prize VARCHAR(40), guid VARCHAR(40))";
-                    SQLiteCommand command = new SQLiteCommand(sql, RecordsDatabase);
+                    var sql = "CREATE TABLE wins (datetime int, name VARCHAR(40), prize VARCHAR(40), guid VARCHAR(40))";
+                    var command = new SQLiteCommand(sql, RecordsDatabase);
                     command.ExecuteNonQuery();
 
                     sql = "CREATE TABLE movement (datetime int, name VARCHAR(40), direction VARCHAR(40), guid VARCHAR(40))";
@@ -267,7 +266,7 @@ namespace InternetClawMachine
             }
             catch (Exception ex)
             {
-                string error = String.Format("ERROR {0} {1}", ex.Message, ex.ToString());
+                var error = string.Format("ERROR {0} {1}", ex.Message, ex.ToString());
                 Logger.WriteLog(Logger.ErrorLog, error);
             }
         }
@@ -282,13 +281,13 @@ namespace InternetClawMachine
                 try
                 {
                     RecordsDatabase.Open();
-                    string sql = "INSERT INTO sessions (datetime, guid) VALUES (" + Helpers.GetEpoch() + ", '" + guid + "')";
-                    SQLiteCommand command = new SQLiteCommand(sql, RecordsDatabase);
+                    var sql = "INSERT INTO sessions (datetime, guid) VALUES (" + Helpers.GetEpoch() + ", '" + guid + "')";
+                    var command = new SQLiteCommand(sql, RecordsDatabase);
                     command.ExecuteNonQuery();
                 }
                 catch (Exception ex)
                 {
-                    string error = String.Format("ERROR {0} {1}", ex.Message, ex.ToString());
+                    var error = string.Format("ERROR {0} {1}", ex.Message, ex.ToString());
                     Logger.WriteLog(Logger.ErrorLog, error);
 
                     LoadDatebase();
@@ -329,8 +328,10 @@ namespace InternetClawMachine
         {
             _botConfigFile = botConfigFile;
 
-            JsonSerializerSettings settings = new JsonSerializerSettings();
-            settings.Formatting = Formatting.Indented;
+            var settings = new JsonSerializerSettings
+            {
+                Formatting = Formatting.Indented
+            };
 
             var jsonString = JsonConvert.SerializeObject(this, settings);
             File.WriteAllText(botConfigFile, jsonString);
@@ -343,8 +344,10 @@ namespace InternetClawMachine
         public void Load(string botConfigFile)
         {
             _botConfigFile = botConfigFile;
-            JsonSerializerSettings settings = new JsonSerializerSettings();
-            settings.Formatting = Formatting.Indented;
+            var settings = new JsonSerializerSettings
+            {
+                Formatting = Formatting.Indented
+            };
             JsonConvert.PopulateObject(File.ReadAllText(botConfigFile), this);
             Init();
         }

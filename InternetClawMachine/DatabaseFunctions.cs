@@ -14,9 +14,9 @@ namespace InternetClawMachine
                 configuration.RecordsDatabase.Open();
                 try
                 {
-                    string sql = "INSERT INTO stream_bux (date,  name, reason, amount) VALUES (@date, @username, @reason, @amount)";
+                    var sql = "INSERT INTO stream_bux (date,  name, reason, amount) VALUES (@date, @username, @reason, @amount)";
 
-                    SQLiteCommand command = configuration.RecordsDatabase.CreateCommand();
+                    var command = configuration.RecordsDatabase.CreateCommand();
                     command.CommandType = CommandType.Text;
                     command.CommandText = sql;
                     command.Parameters.Add(new SQLiteParameter("@date", Helpers.GetEpoch()));
@@ -34,8 +34,8 @@ namespace InternetClawMachine
 
         public static bool ShouldReceiveDailyBucksBonus(BotConfiguration configuration, string username)
         {
-            int daysAgo = 3;
-            int daysAgoTimestamp = Helpers.GetEpoch() - (int)DateTime.UtcNow.Subtract(new DateTime(DateTime.Today.Year, DateTime.Today.Month, DateTime.Today.Day).Subtract(TimeSpan.FromDays(daysAgo))).TotalSeconds;
+            var daysAgo = 3;
+            var daysAgoTimestamp = Helpers.GetEpoch() - (int)DateTime.UtcNow.Subtract(new DateTime(DateTime.Today.Year, DateTime.Today.Month, DateTime.Today.Day).Subtract(TimeSpan.FromDays(daysAgo))).TotalSeconds;
 
             // if the person has received a daily join bux for X days in a row
             if (GetDbDailyJoinsFrom(configuration, username, daysAgoTimestamp) >= daysAgo)
@@ -46,7 +46,7 @@ namespace InternetClawMachine
 
         public static bool ReceivedDailyBucks(BotConfiguration configuration, string username)
         {
-            int today = Helpers.GetEpoch() - (int)DateTime.UtcNow.Subtract(new DateTime(DateTime.Today.Year, DateTime.Today.Month, DateTime.Today.Day)).TotalSeconds;
+            var today = Helpers.GetEpoch() - (int)DateTime.UtcNow.Subtract(new DateTime(DateTime.Today.Year, DateTime.Today.Month, DateTime.Today.Day)).TotalSeconds;
             if (GetDbDailyJoinsFrom(configuration, username, today) >= 1)
                 return true;
 
@@ -60,15 +60,17 @@ namespace InternetClawMachine
                 configuration.RecordsDatabase.Open();
                 try
                 {
-                    string sql = "SELECT reason FROM stream_bux WHERE lower(name) = @username AND reason = @reason AND date >= @today";
+                    var sql = "SELECT reason FROM stream_bux WHERE lower(name) = @username AND reason = @reason AND date >= @today";
 
-                    SQLiteCommand command = new SQLiteCommand(sql, configuration.RecordsDatabase);
-                    command.CommandType = CommandType.Text;
-                    command.CommandText = sql;
+                    var command = new SQLiteCommand(sql, configuration.RecordsDatabase)
+                    {
+                        CommandType = CommandType.Text,
+                        CommandText = sql
+                    };
                     command.Parameters.Add(new SQLiteParameter("@reason", StreamBuxTypes.DAILY_JOIN.ToString()));
                     command.Parameters.Add(new SQLiteParameter("@today", time));
                     command.Parameters.Add(new SQLiteParameter("@username", username));
-                    int count = 0;
+                    var count = 0;
                     using (var plushes = command.ExecuteReader())
                     {
                         while (plushes.Read())
@@ -90,11 +92,11 @@ namespace InternetClawMachine
             lock (configuration.RecordsDatabase)
             {
                 configuration.RecordsDatabase.Open();
-                string changeTime = string.Empty;
+                var changeTime = string.Empty;
                 try
                 {
-                    string sql = "SELECT datetime FROM movement WHERE name = @username ORDER BY datetime  DESC LIMIT 1";
-                    SQLiteCommand command = new SQLiteCommand(sql, configuration.RecordsDatabase);
+                    var sql = "SELECT datetime FROM movement WHERE name = @username ORDER BY datetime  DESC LIMIT 1";
+                    var command = new SQLiteCommand(sql, configuration.RecordsDatabase);
                     command.Parameters.Add(new SQLiteParameter("@username", username.ToLower()));
                     var res = command.ExecuteScalar();
                     if (res != null)
@@ -117,9 +119,9 @@ namespace InternetClawMachine
                 configuration.RecordsDatabase.Open();
                 try
                 {
-                    string sql = "SELECT sum(amount) FROM stream_bux WHERE lower(name) = @username";
+                    var sql = "SELECT sum(amount) FROM stream_bux WHERE lower(name) = @username";
 
-                    SQLiteCommand command = new SQLiteCommand(sql, configuration.RecordsDatabase);
+                    var command = new SQLiteCommand(sql, configuration.RecordsDatabase);
                     command.Parameters.Add(new SQLiteParameter("@username", username.ToLower()));
                     var res = command.ExecuteScalar();
                     try
@@ -129,7 +131,7 @@ namespace InternetClawMachine
                     }
                     catch (Exception ex)
                     {
-                        string error = String.Format("ERROR {0} {1}", ex.Message, ex.ToString());
+                        var error = string.Format("ERROR {0} {1}", ex.Message, ex.ToString());
                         Logger.WriteLog(Logger.ErrorLog, error);
                     }
                 }
@@ -149,9 +151,9 @@ namespace InternetClawMachine
                 configuration.RecordsDatabase.Open();
                 try
                 {
-                    string sql = "SELECT lights_on, scene, custom_win_clip, strobe_settings FROM user_prefs WHERE lower(username) = @username";
+                    var sql = "SELECT lights_on, scene, custom_win_clip, strobe_settings FROM user_prefs WHERE lower(username) = @username";
 
-                    SQLiteCommand command = new SQLiteCommand(sql, configuration.RecordsDatabase);
+                    var command = new SQLiteCommand(sql, configuration.RecordsDatabase);
                     command.Parameters.Add(new SQLiteParameter("@username", prefs.Username));
                     using (var plushes = command.ExecuteReader())
                     {
@@ -180,7 +182,7 @@ namespace InternetClawMachine
             lock (configuration.RecordsDatabase)
             {
                 configuration.RecordsDatabase.Open();
-                string sql = string.Empty;
+                var sql = string.Empty;
                 try
                 {
                     if (prefs.FromDatabase)
@@ -191,7 +193,7 @@ namespace InternetClawMachine
                     {
                         sql = "INSERT INTO user_prefs (username, lights_on, scene, strobe_settings) VALUES (@username, @lightsOn, @scene,@strobe)";
                     }
-                    SQLiteCommand command = configuration.RecordsDatabase.CreateCommand();
+                    var command = configuration.RecordsDatabase.CreateCommand();
                     command.CommandType = CommandType.Text;
                     command.CommandText = sql;
                     command.Parameters.Add(new SQLiteParameter("@lightsOn", prefs.LightsOn));
@@ -226,8 +228,7 @@ namespace InternetClawMachine
                             streamBuxCosts = new Dictionary<StreamBuxTypes, int>();
                         while (bux.Read())
                         {
-                            StreamBuxTypes reason;
-                            Enum.TryParse((string)bux.GetValue(0), out reason);
+                            Enum.TryParse((string)bux.GetValue(0), out StreamBuxTypes reason);
                             var cost = int.Parse(bux.GetValue(1).ToString());
                             streamBuxCosts.Add(reason, cost);
                         }
@@ -236,7 +237,7 @@ namespace InternetClawMachine
                 }
                 catch (Exception ex)
                 {
-                    string error = string.Format("ERROR {0} {1}", ex.Message, ex.ToString());
+                    var error = string.Format("ERROR {0} {1}", ex.Message, ex.ToString());
                     Logger.WriteLog(Logger.ErrorLog, error);
                 }
                 return streamBuxCosts;
@@ -248,7 +249,7 @@ namespace InternetClawMachine
             lock (configuration.RecordsDatabase)
             {
                 configuration.RecordsDatabase.Open();
-                string sql = string.Empty;
+                var sql = string.Empty;
                 try
                 {
                     SQLiteCommand command = null;
@@ -274,7 +275,7 @@ namespace InternetClawMachine
             lock (configuration.RecordsDatabase)
             {
                 configuration.RecordsDatabase.Open();
-                string sql = string.Empty;
+                var sql = string.Empty;
                 try
                 {
                     SQLiteCommand command = null;
@@ -296,17 +297,17 @@ namespace InternetClawMachine
                             while (singlePlush.Read())
                             {
                                 var name = (string)singlePlush.GetValue(0);
-                                var plushId = Int32.Parse(singlePlush.GetValue(1).ToString());
+                                var plushId = int.Parse(singlePlush.GetValue(1).ToString());
                                 var changedBy = singlePlush.GetValue(2).ToString();
-                                int changeDate = 0;
+                                var changeDate = 0;
                                 if (singlePlush.GetValue(3).ToString().Length > 0)
-                                    changeDate = Int32.Parse(singlePlush.GetValue(3).ToString());
+                                    changeDate = int.Parse(singlePlush.GetValue(3).ToString());
 
                                 var winStream = singlePlush.GetValue(4).ToString();
 
                                 var bountyStream = singlePlush.GetValue(5).ToString();
 
-                                int bonusBux = 0;
+                                var bonusBux = 0;
 
                                 if (singlePlush.GetValue(6).ToString().Length > 0)
                                     bonusBux = int.Parse(singlePlush.GetValue(6).ToString());

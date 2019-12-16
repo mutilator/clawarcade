@@ -12,17 +12,17 @@ namespace InternetClawMachine
                                                                                      {
                                                                                          try
                                                                                          {
-                                                                                             System.Net.Mail.MailMessage emailObject = new System.Net.Mail.MailMessage();
+                                                                                             var emailObject = new System.Net.Mail.MailMessage();
                                                                                              emailObject.To.Add(mailto);
                                                                                              emailObject.Subject = subject;
                                                                                              emailObject.From = new System.Net.Mail.MailAddress(_mailFrom);
                                                                                              emailObject.Body = message;
-                                                                                             System.Net.Mail.SmtpClient smtp = new System.Net.Mail.SmtpClient(_mailServer);
+                                                                                             var smtp = new System.Net.Mail.SmtpClient(_mailServer);
                                                                                              smtp.Send(emailObject);
                                                                                          }
                                                                                          catch (Exception ex)
                                                                                          {
-                                                                                             string error = String.Format("ERROR {0} {1}", ex.Message, ex.ToString());
+                                                                                             var error = string.Format("ERROR {0} {1}", ex.Message, ex.ToString());
                                                                                              Logger.WriteLog(Logger.ErrorLog, error);
                                                                                          }
                                                                                      });

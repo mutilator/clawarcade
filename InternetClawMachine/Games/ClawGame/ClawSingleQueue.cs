@@ -17,7 +17,7 @@ namespace InternetClawMachine.Games.ClawGame
             GameMode = GameModeType.SINGLEQUEUE;
             CurrentDroppingPlayer = new DroppingPlayer();
             MachineControl.OnReturnedHome += MachineControl_OnReturnedHome;
-            StartMessage = String.Format("Queue mode has begun! Type {0}help for commands. Type {0}play to opt-in to the player queue.", Configuration.CommandPrefix);
+            StartMessage = string.Format("Queue mode has begun! Type {0}help for commands. Type {0}play to opt-in to the player queue.", Configuration.CommandPrefix);
         }
 
         private void MachineControl_OnReturnedHome(object sender, EventArgs e)
@@ -78,9 +78,9 @@ namespace InternetClawMachine.Games.ClawGame
             if (PlayerQueue.Count == 0)
             {
                 //check if it's a stringed command, all commands have to be valid
-                string regex = "(([fblrd]{1})([ ]{1}))+?";
+                var regex = "(([fblrd]{1})([ ]{1}))+?";
                 msg += " "; //add a space to the end for the regex
-                MatchCollection matches = Regex.Matches(msg, regex);
+                var matches = Regex.Matches(msg, regex);
                 //means we only have one letter commands
 
                 if (msg == "f" || msg == "b" || msg == "r" || msg == "l" || msg == "d")
@@ -120,15 +120,15 @@ namespace InternetClawMachine.Games.ClawGame
                 else
                 {
                     //check if it's a stringed command, all commands have to be valid
-                    string regex = "((([fbrld]{1}|(fs)|(bs)|(rs)|(ls)){1})([ ]{1}))+?";
+                    var regex = "((([fbrld]{1}|(fs)|(bs)|(rs)|(ls)){1})([ ]{1}))+?";
                     msg += " "; //add a space to the end for the regex
-                    MatchCollection matches = Regex.Matches(msg, regex);
+                    var matches = Regex.Matches(msg, regex);
                     //means we only have one letter commands
-                    int total = 0;
+                    var total = 0;
                     foreach (Match match in matches)
                     {
                         //grab the next direction
-                        GroupCollection data = match.Groups;
+                        var data = match.Groups;
                         var command = data[2];
                         total += command.Length + 1;
                     }
@@ -143,7 +143,7 @@ namespace InternetClawMachine.Games.ClawGame
                         foreach (Match match in matches)
                         {
                             //grab the next direction
-                            GroupCollection data = match.Groups;
+                            var data = match.Groups;
                             var command = data[2];
                             HandleSingleCommand(username, command.Value.Trim());
 
@@ -172,7 +172,7 @@ namespace InternetClawMachine.Games.ClawGame
 
         private void HandleSingleCommand(string username, string message)
         {
-            ClawDirection cmd = ClawDirection.NA;
+            var cmd = ClawDirection.NA;
             var moveTime = Configuration.ClawSettings.ClawMovementTime;
             switch (message.ToLower())
             {
@@ -227,7 +227,7 @@ namespace InternetClawMachine.Games.ClawGame
                     cmd = ClawDirection.DOWN;
                     var usr = username;
 
-                    SessionWinTracker user = SessionWinTracker.FirstOrDefault(u => u.Username == username);
+                    var user = SessionWinTracker.FirstOrDefault(u => u.Username == username);
                     if (user != null)
                         user = SessionWinTracker.First(u => u.Username == username);
                     else
@@ -248,7 +248,7 @@ namespace InternetClawMachine.Games.ClawGame
                     }
                     catch (Exception ex)
                     {
-                        string error = String.Format("ERROR {0} {1}", ex.Message, ex.ToString());
+                        var error = string.Format("ERROR {0} {1}", ex.Message, ex.ToString());
                         Logger.WriteLog(Logger.ErrorLog, error);
                     }
 
@@ -311,12 +311,12 @@ namespace InternetClawMachine.Games.ClawGame
             //take everyone that voted and add them to the queue? -- nope
             GameRoundTimer.Start();
 
-            string msg = String.Format("@{0} has control for the next {1} seconds. You have {2} seconds to start playing", PlayerQueue.CurrentPlayer, Configuration.ClawSettings.SinglePlayerDuration, Configuration.ClawSettings.SinglePlayerQueueNoCommandDuration);
+            var msg = string.Format("@{0} has control for the next {1} seconds. You have {2} seconds to start playing", PlayerQueue.CurrentPlayer, Configuration.ClawSettings.SinglePlayerDuration, Configuration.ClawSettings.SinglePlayerQueueNoCommandDuration);
 
             var hasPlayedPlayer = SessionWinTracker.Find(itm => itm.Username.ToLower() == PlayerQueue.CurrentPlayer.ToLower());
 
             if (hasPlayedPlayer != null && hasPlayedPlayer.Drops > 1)
-                msg = String.Format("@{0} has control.", PlayerQueue.CurrentPlayer);
+                msg = string.Format("@{0} has control.", PlayerQueue.CurrentPlayer);
 
             ChatClient.SendMessage(Configuration.Channel, msg);
 
@@ -330,7 +330,7 @@ namespace InternetClawMachine.Games.ClawGame
                 //      it moves to second player, but this timer is going for the first player,
                 //      it then skips back to the first player but they're putting their commands in so slowly the first timer just finished
                 //      and the checks below this match their details it will end their turn early
-                long loopVal = GameLoopCounterValue;
+                var loopVal = GameLoopCounterValue;
                 //we need a check if they changed game mode or something weird happened
                 var args = new RoundEndedArgs() { Username = username, GameLoopCounterValue = loopVal, GameMode = GameMode };
 

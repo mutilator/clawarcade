@@ -64,7 +64,7 @@ namespace InternetClawMachine.Hardware.ClawControl
                 }
                 catch (Exception ex)
                 {
-                    string error = String.Format("ERROR {0} {1}", ex.Message, ex.ToString());
+                    var error = string.Format("ERROR {0} {1}", ex.Message, ex.ToString());
                     Logger.WriteLog(Logger.ErrorLog, error);
                 }
 
@@ -99,6 +99,8 @@ namespace InternetClawMachine.Hardware.ClawControl
                     if (!IsConnected)
                         break;
 
+                    CheckResetButton();
+
                     var tripped = ReadBreakSensor();
                     if (tripped && OnBreakSensorTripped != null && !_alreadyTripped)
                     {
@@ -118,7 +120,7 @@ namespace InternetClawMachine.Hardware.ClawControl
             }
             catch (Exception ex)
             {
-                string error = String.Format("ERROR {0} {1}", ex.Message, ex.ToString());
+                var error = string.Format("ERROR {0} {1}", ex.Message, ex.ToString());
                 Logger.WriteLog(Logger.ErrorLog, error);
             }
             finally
@@ -131,7 +133,7 @@ namespace InternetClawMachine.Hardware.ClawControl
         {
             if (!IsConnected)
                 return false;
-            byte[] data = new byte[1];
+            var data = new byte[1];
             lock (_readingInputs)
             {
                 UsBm.USBm_ReadB(_device, data);
@@ -141,6 +143,22 @@ namespace InternetClawMachine.Hardware.ClawControl
                 return true;
 
             return false;
+        }
+
+        public void CheckResetButton()
+        {
+            if (!IsConnected)
+                return;
+            var data = new byte[1];
+            lock (_readingInputs)
+            {
+                UsBm.USBm_ReadB(_device, data);
+            }
+
+            if ((byte)(data[0] | 0xFE) != 0xEE)
+                OnResetButtonPressed?.Invoke(this, new EventArgs());
+
+            
         }
 
         private void WriteMachineData()
@@ -167,7 +185,7 @@ namespace InternetClawMachine.Hardware.ClawControl
             }
             catch (Exception ex)
             {
-                string error = String.Format("ERROR {0} {1}", ex.Message, ex.ToString());
+                var error = string.Format("ERROR {0} {1}", ex.Message, ex.ToString());
                 Logger.WriteLog(Logger.ErrorLog, error);
             }
         }

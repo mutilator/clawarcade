@@ -68,7 +68,7 @@ namespace InternetClawMachine.Games
         {
             GameModeTimer.Reset();
             GameModeTimer.Start();
-            ChatClient.SendMessage(Configuration.Channel, String.Format("Voting mode has begun! You have {0} seconds to cast your votes. Type {1}help for commands.", Configuration.VoteSettings.VoteDuration, Configuration.CommandPrefix));
+            ChatClient.SendMessage(Configuration.Channel, string.Format("Voting mode has begun! You have {0} seconds to cast your votes. Type {1}help for commands.", Configuration.VoteSettings.VoteDuration, Configuration.CommandPrefix));
             StartRound(username);
         }
 

@@ -20,7 +20,7 @@ namespace InternetClawMachine
                 RemoveCookies();
 
                 //Create the destination URL
-                var destinationUrl = String.Format("https://api.twitch.tv/kraken/oauth2/authorize?client_id={0}&scope={1}&redirect_uri=http://localhost&response_type=token",
+                var destinationUrl = string.Format("https://api.twitch.tv/kraken/oauth2/authorize?client_id={0}&scope={1}&redirect_uri=http://localhost&response_type=token",
                    ClientId, //client_id
                    "chat_login%20channel_read%20channel_feed_read%20channel_check_subscription%20user_blocks_edit%20user_blocks_read%20user_read%20user_subscriptions" //scope
                 );
@@ -49,7 +49,7 @@ namespace InternetClawMachine
         private void RemoveCookies()
         {
             //Set the current user cookie to have expired yesterday
-            string cookie = String.Format("api_token=; name=; unique_id=; login=; expires={0:R}; path=/;", DateTime.UtcNow.AddDays(-2).ToString("R"));
+            var cookie = string.Format("api_token=; name=; unique_id=; login=; expires={0:R}; path=/;", DateTime.UtcNow.AddDays(-2).ToString("R"));
             Application.SetCookie(new Uri("https://api.twitch.tv"), cookie);
 
             var blah = Application.GetCookie(new Uri("https://api.twitch.tv"));

@@ -27,9 +27,9 @@ namespace InternetClawMachine.Hardware.RFID
             _ipaddress = ipAddress;
             _port = port;
             _power = antPower;
-            byte[] ip = Encoding.ASCII.GetBytes(ipAddress);
-            int commPort = 0;
-            int portOrBaudRate = port;
+            var ip = Encoding.ASCII.GetBytes(ipAddress);
+            var commPort = 0;
+            var portOrBaudRate = port;
 
             //init connection
             if (0 == Dis.DeviceInit(ip, commPort, portOrBaudRate))
@@ -42,18 +42,17 @@ namespace InternetClawMachine.Hardware.RFID
             }
 
             //unsure what this does, took from SDK sample
-            for (int i = 0; i < 3; ++i)
+            for (var i = 0; i < 3; ++i)
             {
                 Dis.StopWork(_deviceNo);
             }
 
             //get device version information, pulled from SDK, this must mean an error if it's 0 & 0
-            int mainVer = 0, minSer = 0;
-            Dis.GetDeviceVersion(_deviceNo, out mainVer, out minSer);
+            Dis.GetDeviceVersion(_deviceNo, out var mainVer, out var minSer);
             if (mainVer == 0 && minSer == 0)
                 throw new Exception("Error during version check.");
 
-            int res = Dis.SetSingleParameter(_deviceNo, Dis.ADD_USERCODE, _deviceNo);
+            var res = Dis.SetSingleParameter(_deviceNo, Dis.ADD_USERCODE, _deviceNo);
             res *= Dis.SetSingleParameter(_deviceNo, Dis.ADD_POWER, antPower);
             res *= Dis.SetSingleParameter(_deviceNo, Dis.ADD_SINGLE_OR_MULTI_TAG, READING_MODE_SINGLE);
             Dis.BeepCtrl(_deviceNo, 0);
@@ -97,18 +96,20 @@ namespace InternetClawMachine.Hardware.RFID
         public static void HandleData(IntPtr pData, int length)
         {
             _epc = "";
-            byte[] data = new byte[32];
+            var data = new byte[32];
             Marshal.Copy(pData, data, 0, length);
-            for (int i = 1; i < length - 2; ++i)
+            for (var i = 1; i < length - 2; ++i)
             {
                 _epc += string.Format("{0:X2} ", data[i]);
             }
 
-            EpcData epcdata = new EpcData();
-            epcdata.Epc = _epc;
-            epcdata.AntNo = data[13];
-            epcdata.DevNo = data[0];
-            epcdata.Count = 1;
+            var epcdata = new EpcData
+            {
+                Epc = _epc,
+                AntNo = data[13],
+                DevNo = data[0],
+                Count = 1
+            };
 
             NewTagFound?.Invoke(epcdata);
         }
@@ -118,7 +119,7 @@ namespace InternetClawMachine.Hardware.RFID
             if (IsConnected)
             {
                 //StopListening();
-                int res = Dis.SetSingleParameter(_deviceNo, Dis.ADD_USERCODE, _deviceNo);
+                var res = Dis.SetSingleParameter(_deviceNo, Dis.ADD_USERCODE, _deviceNo);
                 Dis.SetSingleParameter(_deviceNo, Dis.ADD_POWER, (byte)value);
                 //StartListening();
             }
@@ -134,7 +135,7 @@ namespace InternetClawMachine.Hardware.RFID
 
         int IComparable.CompareTo(object obj)
         {
-            EpcData temp = (EpcData)obj;
+            var temp = (EpcData)obj;
             {
                 return string.Compare(this.Epc, temp.Epc);
             }

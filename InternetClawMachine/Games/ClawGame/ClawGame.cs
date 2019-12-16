@@ -51,7 +51,6 @@ namespace InternetClawMachine.Games.ClawGame
         /// </summary>
         public event EventHandler<EventArgs> ClawDropping;
 
-        public event EventHandler<PlayWinClipEventArgs> PlayWinClip;
 
         public ClawGame(IChatApi client, BotConfiguration configuration, OBSWebsocket obs) : base(client, configuration, obs)
         {
@@ -118,7 +117,7 @@ namespace InternetClawMachine.Games.ClawGame
 
         private void ReconnectClawController()
         {
-            bool connected = false;
+            var connected = false;
             while (_reconnectCounter < 10000 && !connected)
             {
                 _reconnectCounter++;
@@ -159,7 +158,7 @@ namespace InternetClawMachine.Games.ClawGame
             }
             catch (Exception ex)
             {
-                string error = String.Format("ERROR {0} {1}", ex.Message, ex.ToString());
+                var error = string.Format("ERROR {0} {1}", ex.Message, ex.ToString());
                 Logger.WriteLog(Logger.ErrorLog, error);
             }
 
@@ -180,7 +179,7 @@ namespace InternetClawMachine.Games.ClawGame
             catch (Exception ex)
             {
                 MessageBox.Show("Unable to connect to RFID reader. " + ex.Message);
-                string error = String.Format("ERROR {0} {1}", ex.Message, ex.ToString());
+                var error = string.Format("ERROR {0} {1}", ex.Message, ex.ToString());
                 Logger.WriteLog(Logger.ErrorLog, error);
             }
             LoadPlushFromDb();
@@ -205,18 +204,18 @@ namespace InternetClawMachine.Games.ClawGame
                         while (dbPlushies.Read())
                         {
                             var name = (string)dbPlushies.GetValue(0);
-                            var plushId = Int32.Parse(dbPlushies.GetValue(1).ToString());
+                            var plushId = int.Parse(dbPlushies.GetValue(1).ToString());
                             var epc = (string)dbPlushies.GetValue(2);
                             var changedBy = dbPlushies.GetValue(3).ToString();
-                            int changeDate = 0;
+                            var changeDate = 0;
                             if (dbPlushies.GetValue(4).ToString().Length > 0)
-                                changeDate = Int32.Parse(dbPlushies.GetValue(4).ToString());
+                                changeDate = int.Parse(dbPlushies.GetValue(4).ToString());
 
                             var winStream = dbPlushies.GetValue(5).ToString();
 
                             var bountyStream = dbPlushies.GetValue(6).ToString();
 
-                            int bonusBux = 0;
+                            var bonusBux = 0;
 
                             if (dbPlushies.GetValue(7).ToString().Length > 0)
                                 bonusBux = int.Parse(dbPlushies.GetValue(7).ToString());
@@ -238,7 +237,7 @@ namespace InternetClawMachine.Games.ClawGame
                 }
                 catch (Exception ex)
                 {
-                    string error = String.Format("ERROR {0} {1}", ex.Message, ex.ToString());
+                    var error = string.Format("ERROR {0} {1}", ex.Message, ex.ToString());
                     Logger.WriteLog(Logger.ErrorLog, error);
                 }
             }
@@ -282,8 +281,8 @@ namespace InternetClawMachine.Games.ClawGame
         {
             var rnd = new Random();
 
-            int iterations = 10000; //how many times to find a new plush
-            for (int i = 0; i < iterations; i++)
+            var iterations = 10000; //how many times to find a new plush
+            for (var i = 0; i < iterations; i++)
             {
                 var rndNumber = rnd.Next(PlushieTags.Count);
                 if (!PlushieTags[rndNumber].WasGrabbed)
@@ -316,7 +315,7 @@ namespace InternetClawMachine.Games.ClawGame
                 }
                 catch (Exception ex)
                 {
-                    string error = String.Format("ERROR {0} {1}", ex.Message, ex.ToString());
+                    var error = string.Format("ERROR {0} {1}", ex.Message, ex.ToString());
                     Logger.WriteLog(Logger.ErrorLog, error);
                 }
             }
@@ -329,9 +328,9 @@ namespace InternetClawMachine.Games.ClawGame
 
         private string RunWinScenario(PlushieObject objPlush, string forcedWinner)
         {
-            string saying = "";
+            var saying = "";
             var rnd = new Random();
-            string winner = "";
+            var winner = "";
             if (forcedWinner != null)
             {
                 winner = forcedWinner;
@@ -348,7 +347,7 @@ namespace InternetClawMachine.Games.ClawGame
             if (winner.Length > 0)
             {
                 //see if they're in the tracker yeta
-                SessionWinTracker user = SessionWinTracker.FirstOrDefault(u => u.Username == winner);
+                var user = SessionWinTracker.FirstOrDefault(u => u.Username == winner);
                 if (user != null)
                     user = SessionWinTracker.First(u => u.Username == winner);
                 else
@@ -356,27 +355,27 @@ namespace InternetClawMachine.Games.ClawGame
 
                 if (Configuration.EventMode == EventMode.BIRTHDAY2)
                 {
-                    saying = String.Format("Let's watch mutilator stuff is face some more! Here's your 3x claw bux bonus!");
+                    saying = string.Format("Let's watch mutilator stuff is face some more! Here's your 3x claw bux bonus!");
                     DatabaseFunctions.AddStreamBuxBalance(Configuration, user.Username, StreamBuxTypes.WIN, Configuration.GetStreamBuxCost(StreamBuxTypes.WIN) * 3);
                 }
                 else if ((Configuration.EventMode == EventMode.DUPLO) || (Configuration.EventMode == EventMode.BALL))
                 {
-                    saying = String.Format("@{0} grabbed some duplos! Here's your 3x claw bux bonus!", winner, objPlush.Name);
+                    saying = string.Format("@{0} grabbed some duplos! Here's your 3x claw bux bonus!", winner, objPlush.Name);
                     DatabaseFunctions.AddStreamBuxBalance(Configuration, user.Username, StreamBuxTypes.WIN, Configuration.GetStreamBuxCost(StreamBuxTypes.WIN) * 3);
                 }
                 else if ((Configuration.EventMode == EventMode.EASTER) && objPlush.PlushId != 87 && objPlush.PlushId != 88)
                 {
-                    saying = String.Format("@{0} grabbed some eggs! Here's your 3x claw bux bonus!", winner, objPlush.Name);
+                    saying = string.Format("@{0} grabbed some eggs! Here's your 3x claw bux bonus!", winner, objPlush.Name);
                     DatabaseFunctions.AddStreamBuxBalance(Configuration, user.Username, StreamBuxTypes.WIN, Configuration.GetStreamBuxCost(StreamBuxTypes.WIN) * 3);
                 }
                 else if ((Configuration.EventMode == EventMode.EASTER))
                 {
-                    saying = String.Format("@{0} grabbed a {1}! You've earned a 🍄{2} bonus!", winner, objPlush.Name, objPlush.BonusBux);
+                    saying = string.Format("@{0} grabbed a {1}! You've earned a 🍄{2} bonus!", winner, objPlush.Name, objPlush.BonusBux);
                     DatabaseFunctions.AddStreamBuxBalance(Configuration, user.Username, StreamBuxTypes.WIN, objPlush.BonusBux);
                 }
                 else
                 {
-                    saying = String.Format("@{0} grabbed {1}", winner, objPlush.Name);
+                    saying = string.Format("@{0} grabbed {1}", winner, objPlush.Name);
                     DatabaseFunctions.AddStreamBuxBalance(Configuration, user.Username, StreamBuxTypes.WIN, Configuration.GetStreamBuxCost(StreamBuxTypes.WIN));
 
                     if (objPlush.BonusBux > 0)
@@ -403,13 +402,13 @@ namespace InternetClawMachine.Games.ClawGame
             {
                 if (objPlush != null)
                 {
-                    saying = String.Format("Oops the scanner just scanned {0} accidentally!", objPlush.Name);
+                    saying = string.Format("Oops the scanner just scanned {0} accidentally!", objPlush.Name);
                     Logger.WriteLog(Logger.MachineLog, "ERROR: " + saying);
                 }
             }
 
             //start a thread to display the message
-            Thread childThread = new Thread(new ThreadStart(delegate ()
+            var childThread = new Thread(new ThreadStart(delegate ()
             {
                 var data = new JObject();
                 data.Add("name", Configuration.ObsScreenSourceNames.WinAnimationDefault.SourceName);
@@ -446,7 +445,7 @@ namespace InternetClawMachine.Games.ClawGame
             try
             {
                 //TODO - change this to a text field and stop using a file!
-                var dropString = String.Format("Drops since the last win: {0}", SessionDrops);
+                var dropString = string.Format("Drops since the last win: {0}", SessionDrops);
                 File.WriteAllText(Configuration.FileDrops, dropString);
 
                 //TODO - Can this be a text field too?
@@ -454,14 +453,14 @@ namespace InternetClawMachine.Games.ClawGame
                 var output = "Session Leaderboard:\r\n";
                 for (var i = 0; i < winners.Count; i++)
                 {
-                    output += String.Format("{0} - {1} wins, {2} drops\r\n", winners[i].Username, winners[i].Wins, winners[i].Drops);
+                    output += string.Format("{0} - {1} wins, {2} drops\r\n", winners[i].Username, winners[i].Wins, winners[i].Drops);
                 }
                 output += "\r\n\r\n\r\n\r\n\r\n";
                 File.WriteAllText(Configuration.FileLeaderboard, output);
             }
             catch (Exception ex)
             {
-                string error = String.Format("ERROR {0} {1}", ex.Message, ex.ToString());
+                var error = string.Format("ERROR {0} {1}", ex.Message, ex.ToString());
                 Logger.WriteLog(Logger.ErrorLog, error);
             }
         }
@@ -513,12 +512,12 @@ namespace InternetClawMachine.Games.ClawGame
             Configuration.OverrideChat = false;
 
             //create a secondary list so people get credit for wins
-            string[] copy = new string[WinnersList.Count];
+            var copy = new string[WinnersList.Count];
             WinnersList.CopyTo(copy);
 
             SecondaryWinnersList.AddRange(copy);
             WinnersList.Clear();
-            string message = String.Format("Cleared the drop list");
+            var message = string.Format("Cleared the drop list");
             Logger.WriteLog(Logger.MachineLog, message);
 
             //after a bit, clear the secondary list
@@ -545,9 +544,9 @@ namespace InternetClawMachine.Games.ClawGame
                 RunWinScenario(null);
             }
 
-            string message = String.Format("Break sensor tripped");
+            var message = string.Format("Break sensor tripped");
             Logger.WriteLog(Logger.MachineLog, message);
-            message = String.Format(GameModeTimer.ElapsedMilliseconds + " - " + _lastSensorTrip + " > 7000");
+            message = string.Format(GameModeTimer.ElapsedMilliseconds + " - " + _lastSensorTrip + " > 7000");
             Logger.WriteLog(Logger.MachineLog, message);
         }
 
@@ -569,20 +568,20 @@ namespace InternetClawMachine.Games.ClawGame
             {
                 case "play": //probably let them handle their own play is better
                     if (GameMode == GameModeType.REALTIME)
-                        ChatClient.SendMessage(Configuration.Channel, String.Format("You're already playing, type {0}help for commands. This command is only valid in a queue mode.", Configuration.CommandPrefix));
+                        ChatClient.SendMessage(Configuration.Channel, string.Format("You're already playing, type {0}help for commands. This command is only valid in a queue mode.", Configuration.CommandPrefix));
                     else if (GameMode == GameModeType.SINGLEQUEUE || GameMode == GameModeType.SINGLEQUICKQUEUE)
                     {
                         if (Configuration.EventMode == EventMode.BOUNTY && Bounty == null)
                         {
-                            ChatClient.SendMessage(Configuration.Channel, String.Format("Please wait for the sheriff to begin the game."));
+                            ChatClient.SendMessage(Configuration.Channel, string.Format("Please wait for the sheriff to begin the game."));
                             return;
                         }
                         if (PlayerQueue.Contains(username))
                         {
                             if (PlayerQueue.CurrentPlayer.ToLower() == username.ToLower())
-                                ChatClient.SendMessage(Configuration.Channel, String.Format("You're already in the queue and it's currently your turn, go go go!"));
+                                ChatClient.SendMessage(Configuration.Channel, string.Format("You're already in the queue and it's currently your turn, go go go!"));
                             else
-                                ChatClient.SendMessage(Configuration.Channel, String.Format("You're already in the queue."));
+                                ChatClient.SendMessage(Configuration.Channel, string.Format("You're already in the queue."));
                             return;
                         }
 
@@ -609,9 +608,9 @@ namespace InternetClawMachine.Games.ClawGame
                         else
                         {
                             if (pos == 1)//lol i'm so lazy
-                                ChatClient.SendMessage(Configuration.Channel, String.Format("Added to player queue, you're up next to play."));
+                                ChatClient.SendMessage(Configuration.Channel, string.Format("Added to player queue, you're up next to play."));
                             else
-                                ChatClient.SendMessage(Configuration.Channel, String.Format("Added to player queue, you're {0} people away from playing.", pos));
+                                ChatClient.SendMessage(Configuration.Channel, string.Format("Added to player queue, you're {0} people away from playing.", pos));
                         }
                     }
                     break;
@@ -652,16 +651,16 @@ namespace InternetClawMachine.Games.ClawGame
                         break;
                     if (!chatMessage.Contains(" "))
                     {
-                        ChatClient.SendMessage(Configuration.Channel, String.Format("Syntax: {0}strobe red blue green [count] [delay]", Configuration.CommandPrefix));
-                        ChatClient.SendMessage(Configuration.Channel, String.Format("Colors scale 0-255, count 1-100, delay 1-120, ex '!strobe 255 0 0' creates a red strobe"));
+                        ChatClient.SendMessage(Configuration.Channel, string.Format("Syntax: {0}strobe red blue green [count] [delay]", Configuration.CommandPrefix));
+                        ChatClient.SendMessage(Configuration.Channel, string.Format("Colors scale 0-255, count 1-100, delay 1-120, ex '!strobe 255 0 0' creates a red strobe"));
                         break;
                     }
 
                     var args = chatMessage.Split(' ');
                     if (args.Length < 4)
                     {
-                        ChatClient.SendMessage(Configuration.Channel, String.Format("Syntax: {0}strobe red blue green [count] [delay]", Configuration.CommandPrefix));
-                        ChatClient.SendMessage(Configuration.Channel, String.Format("Colors scale 0-255, count 1-100, delay 1-120, ex '!strobe 255 0 0' creates a red strobe"));
+                        ChatClient.SendMessage(Configuration.Channel, string.Format("Syntax: {0}strobe red blue green [count] [delay]", Configuration.CommandPrefix));
+                        ChatClient.SendMessage(Configuration.Channel, string.Format("Colors scale 0-255, count 1-100, delay 1-120, ex '!strobe 255 0 0' creates a red strobe"));
                         break;
                     }
                     try
@@ -688,24 +687,24 @@ namespace InternetClawMachine.Games.ClawGame
 
                         if (red < 0 || red > 255 || blue < 0 || blue > 255 || green < 0 || green > 255)
                         {
-                            ChatClient.SendMessage(Configuration.Channel, String.Format("Syntax: {0}strobe red blue green [count] [delay]", Configuration.CommandPrefix));
-                            ChatClient.SendMessage(Configuration.Channel, String.Format("Colors scale 0-255, count 1-100, delay 1-120, ex '!strobe 255 0 0' creates a red strobe"));
+                            ChatClient.SendMessage(Configuration.Channel, string.Format("Syntax: {0}strobe red blue green [count] [delay]", Configuration.CommandPrefix));
+                            ChatClient.SendMessage(Configuration.Channel, string.Format("Colors scale 0-255, count 1-100, delay 1-120, ex '!strobe 255 0 0' creates a red strobe"));
                             break;
                         }
 
-                        prefs.CustomStrobe = String.Format("{0}:{1}:{2}:{3}:{4}", red, blue, green, strobeCount, strobeDelay);
+                        prefs.CustomStrobe = string.Format("{0}:{1}:{2}:{3}:{4}", red, blue, green, strobeCount, strobeDelay);
                         DatabaseFunctions.WriteUserPrefs(Configuration, prefs);
-                        ChatClient.SendMessage(Configuration.Channel, String.Format("Custom strobe set!"));
+                        ChatClient.SendMessage(Configuration.Channel, string.Format("Custom strobe set!"));
 
                         if (PlayerQueue.CurrentPlayer != null && PlayerQueue.CurrentPlayer.ToLower() == username.ToLower())
                             RunStrobe(prefs);
                     }
                     catch (Exception ex)
                     {
-                        string error = String.Format("ERROR {0} {1}", ex.Message, ex.ToString());
+                        var error = string.Format("ERROR {0} {1}", ex.Message, ex.ToString());
                         Logger.WriteLog(Logger.ErrorLog, error);
-                        ChatClient.SendMessage(Configuration.Channel, String.Format("Syntax: {0}strobe red blue green [count] [delay]", Configuration.CommandPrefix));
-                        ChatClient.SendMessage(Configuration.Channel, String.Format("Colors scale 0-255, count 1-100, delay 1-120, ex '!strobe 255 0 0' creates a red strobe"));
+                        ChatClient.SendMessage(Configuration.Channel, string.Format("Syntax: {0}strobe red blue green [count] [delay]", Configuration.CommandPrefix));
+                        ChatClient.SendMessage(Configuration.Channel, string.Format("Colors scale 0-255, count 1-100, delay 1-120, ex '!strobe 255 0 0' creates a red strobe"));
                     }
                     break;
 
@@ -714,7 +713,7 @@ namespace InternetClawMachine.Games.ClawGame
                         break;
                     if (!chatMessage.Contains(" "))
                     {
-                        ChatClient.SendMessage(Configuration.Channel, String.Format("Syntax: {0}rename oldName:newName", Configuration.CommandPrefix));
+                        ChatClient.SendMessage(Configuration.Channel, string.Format("Syntax: {0}rename oldName:newName", Configuration.CommandPrefix));
                         break;
                     }
 
@@ -723,7 +722,7 @@ namespace InternetClawMachine.Games.ClawGame
                     args = parms.Split(':');
                     if (args.Length != 2)
                     {
-                        ChatClient.SendMessage(Configuration.Channel, String.Format("Syntax: {0}rename oldName:newName", Configuration.CommandPrefix));
+                        ChatClient.SendMessage(Configuration.Channel, string.Format("Syntax: {0}rename oldName:newName", Configuration.CommandPrefix));
                         break;
                     }
                     var oldName = args[0].Trim();
@@ -732,7 +731,7 @@ namespace InternetClawMachine.Games.ClawGame
                     try
                     {
                         var userLastRenameDate = GetDbLastRename(username);
-                        int daysToGo = Configuration.ClawSettings.TimePassedForRename - ((curTime - userLastRenameDate) / 60 / 60 / 24);
+                        var daysToGo = Configuration.ClawSettings.TimePassedForRename - ((curTime - userLastRenameDate) / 60 / 60 / 24);
                         if (daysToGo <= 0)
                         {
                             try
@@ -742,30 +741,30 @@ namespace InternetClawMachine.Games.ClawGame
                                 if (daysToGo <= 0)
                                 {
                                     WriteDbNewPushName(oldName, newName, username.ToLower());
-                                    ChatClient.SendMessage(Configuration.Channel, String.Format("{0} has been renamed to {1}. Thanks for being a subscriber!", oldName, newName));
+                                    ChatClient.SendMessage(Configuration.Channel, string.Format("{0} has been renamed to {1}. Thanks for being a subscriber!", oldName, newName));
                                 }
                                 else
                                 {
-                                    ChatClient.SendMessage(Configuration.Channel, String.Format("Plushes can only be renamed once every 30 days. You have {0} days to go.", daysToGo));
+                                    ChatClient.SendMessage(Configuration.Channel, string.Format("Plushes can only be renamed once every 30 days. You have {0} days to go.", daysToGo));
                                 }
                             }
                             catch (Exception ex)
                             {
-                                ChatClient.SendMessage(Configuration.Channel, String.Format("Error renaming plush: {0}", ex.Message));
-                                string error = String.Format("ERROR {0} {1}", ex.Message, ex.ToString());
+                                ChatClient.SendMessage(Configuration.Channel, string.Format("Error renaming plush: {0}", ex.Message));
+                                var error = string.Format("ERROR {0} {1}", ex.Message, ex.ToString());
                                 Logger.WriteLog(Logger.ErrorLog, error);
                             }
                         }
                         else
                         {
-                            ChatClient.SendMessage(Configuration.Channel, String.Format("Please wait 30 days between renaming plushes. You have {0} days to go.", daysToGo));
+                            ChatClient.SendMessage(Configuration.Channel, string.Format("Please wait 30 days between renaming plushes. You have {0} days to go.", daysToGo));
                         }
                     }
                     catch (Exception ex2)
                     {
-                        ChatClient.SendMessage(Configuration.Channel, String.Format("Error renaming plush: {0}", ex2.Message));
+                        ChatClient.SendMessage(Configuration.Channel, string.Format("Error renaming plush: {0}", ex2.Message));
 
-                        string error = String.Format("ERROR {0} {1}", ex2.Message, ex2.ToString());
+                        var error = string.Format("ERROR {0} {1}", ex2.Message, ex2.ToString());
                         Logger.WriteLog(Logger.ErrorLog, error);
                     }
 
@@ -781,8 +780,7 @@ namespace InternetClawMachine.Games.ClawGame
                         if (scene.Length != 2)
                             break;
 
-                        int newScene = 1;
-                        if (Int32.TryParse(scene[1], out newScene))
+                        if (int.TryParse(scene[1], out var newScene))
                             ChangeClawScene(newScene);
                     }
 
@@ -793,7 +791,7 @@ namespace InternetClawMachine.Games.ClawGame
                     {
                         try
                         {
-                            string plushName = "";
+                            var plushName = "";
                             param = chatMessage.Split(' ');
                             if (param.Length >= 2)
                             {
@@ -801,14 +799,14 @@ namespace InternetClawMachine.Games.ClawGame
                             }
                             else
                             {
-                                ChatClient.SendMessage(Configuration.Channel, String.Format("Syntax: {0}plush <name>", Configuration.CommandPrefix));
+                                ChatClient.SendMessage(Configuration.Channel, string.Format("Syntax: {0}plush <name>", Configuration.CommandPrefix));
                                 break;
                             }
 
                             Configuration.RecordsDatabase.Open();
                             plushName = plushName.Replace("*", "%");
-                            string sql = "SELECT p.name, count(*) FROM wins w INNER JOIN plushie p ON p.id = w.plushid WHERE lower(p.name) LIKE @user";
-                            SQLiteCommand command = new SQLiteCommand(sql, Configuration.RecordsDatabase);
+                            var sql = "SELECT p.name, count(*) FROM wins w INNER JOIN plushie p ON p.id = w.plushid WHERE lower(p.name) LIKE @user";
+                            var command = new SQLiteCommand(sql, Configuration.RecordsDatabase);
                             command.Parameters.Add(new SQLiteParameter("@user", plushName));
                             string wins = null;
                             using (var winners = command.ExecuteReader())
@@ -827,7 +825,7 @@ namespace InternetClawMachine.Games.ClawGame
                                 break;
                             }
 
-                            int i = 0;
+                            var i = 0;
                             var outputTop = "";
 
                             sql = "select w.name, count(*) FROM wins w INNER JOIN plushie p ON w.PlushID = p.ID WHERE lower(p.name) LIKE @user GROUP BY w.name ORDER BY count(*) DESC";
@@ -846,12 +844,12 @@ namespace InternetClawMachine.Games.ClawGame
 
                             Configuration.RecordsDatabase.Close();
 
-                            ChatClient.SendMessage(Configuration.Channel, String.Format("{0} was grabbed {1} times. Top {2} masters:", plushName, wins, i));
-                            ChatClient.SendMessage(Configuration.Channel, String.Format("{0}", outputTop));
+                            ChatClient.SendMessage(Configuration.Channel, string.Format("{0} was grabbed {1} times. Top {2} masters:", plushName, wins, i));
+                            ChatClient.SendMessage(Configuration.Channel, string.Format("{0}", outputTop));
                         }
                         catch (Exception ex)
                         {
-                            string error = String.Format("ERROR {0} {1}", ex.Message, ex.ToString());
+                            var error = string.Format("ERROR {0} {1}", ex.Message, ex.ToString());
                             Logger.WriteLog(Logger.ErrorLog, error);
 
                             Configuration.LoadDatebase();
@@ -866,13 +864,13 @@ namespace InternetClawMachine.Games.ClawGame
                         if ((Configuration.EventMode == EventMode.BOUNTY || Configuration.EventMode == EventMode.EASTER) && !Configuration.AdminUsers.Contains(username))
                             break;
 
-                        string plush = "";
-                        int amount = 0;
+                        var plush = "";
+                        var amount = 0;
                         param = chatMessage.Split(' ');
 
                         if (Bounty != null && Bounty.Amount > 0)
                         {
-                            ChatClient.SendMessage(Configuration.Channel, String.Format("There is currently a bounty on the head of {0} for 🍄{1}.", Bounty.Name, Bounty.Amount));
+                            ChatClient.SendMessage(Configuration.Channel, string.Format("There is currently a bounty on the head of {0} for 🍄{1}.", Bounty.Name, Bounty.Amount));
                             if (Helpers.GetEpoch() - _lastBountyPlay > 300)
                             {
                                 PlushieObject plushRef = null;
@@ -891,14 +889,14 @@ namespace InternetClawMachine.Games.ClawGame
                         }
                         else if (param.Length >= 3)
                         {
-                            if (Int32.TryParse(param[1], out amount))
+                            if (int.TryParse(param[1], out amount))
                                 plush = chatMessage.Replace(Configuration.CommandPrefix + "bounty " + amount + " ", "");
                             else
-                                ChatClient.SendMessage(Configuration.Channel, String.Format("Syntax: {0}bounty <amount> <plush>", Configuration.CommandPrefix));
+                                ChatClient.SendMessage(Configuration.Channel, string.Format("Syntax: {0}bounty <amount> <plush>", Configuration.CommandPrefix));
                         }
                         else
                         {
-                            ChatClient.SendMessage(Configuration.Channel, String.Format("Syntax: {0}bounty <amount> <plush>", Configuration.CommandPrefix));
+                            ChatClient.SendMessage(Configuration.Channel, string.Format("Syntax: {0}bounty <amount> <plush>", Configuration.CommandPrefix));
                             break;
                         }
 
@@ -912,30 +910,30 @@ namespace InternetClawMachine.Games.ClawGame
                             //deduct it from their balance
                             DatabaseFunctions.AddStreamBuxBalance(Configuration, username, StreamBuxTypes.BOUNTY, amount * -1);
                             Bounty.Amount += amount;
-                            ChatClient.SendMessage(Configuration.Channel, String.Format("The bounty on {0}'s head is now 🍄{1}.", Bounty.Name, Bounty.Amount));
+                            ChatClient.SendMessage(Configuration.Channel, string.Format("The bounty on {0}'s head is now 🍄{1}.", Bounty.Name, Bounty.Amount));
                         }
                         else if (Bounty != null && Bounty.Name.Length > 200) //if a bounty is set but it's not the one we just named, ignore
                         {
-                            ChatClient.SendMessage(Configuration.Channel, String.Format("There is already a bounty on {0} for 🍄{1}.", Bounty.Name, Bounty.Amount));
+                            ChatClient.SendMessage(Configuration.Channel, string.Format("There is already a bounty on {0} for 🍄{1}.", Bounty.Name, Bounty.Amount));
                         }
                         else //new bounty to set
                         {
-                            int exists = 0;
+                            var exists = 0;
 
                             //make sure the plush exists
                             lock (Configuration.RecordsDatabase)
                             {
                                 Configuration.RecordsDatabase.Open();
-                                string sql = "SELECT count(*) as cnt FROM plushie WHERE lower(name) = @plush";
-                                SQLiteCommand command = new SQLiteCommand(sql, Configuration.RecordsDatabase);
+                                var sql = "SELECT count(*) as cnt FROM plushie WHERE lower(name) = @plush";
+                                var command = new SQLiteCommand(sql, Configuration.RecordsDatabase);
                                 command.Parameters.Add(new SQLiteParameter("@plush", plush.ToLower()));
-                                exists = Int32.Parse(command.ExecuteScalar().ToString());
+                                exists = int.Parse(command.ExecuteScalar().ToString());
                                 Configuration.RecordsDatabase.Close();
                             }
 
                             if (exists > 0)
                             {
-                                bool isInMachine = false;
+                                var isInMachine = false;
                                 PlushieObject plushRef = null;
                                 foreach (var plushie in PlushieTags)
                                 {
@@ -955,11 +953,13 @@ namespace InternetClawMachine.Games.ClawGame
                                 //deduct it from their balance
                                 DatabaseFunctions.AddStreamBuxBalance(Configuration, username, StreamBuxTypes.BOUNTY, amount * -1);
 
-                                ChatClient.SendWhisper(username, String.Format("Remaining balance: 🍄{0}", DatabaseFunctions.GetStreamBuxBalance(Configuration, username)));
+                                ChatClient.SendWhisper(username, string.Format("Remaining balance: 🍄{0}", DatabaseFunctions.GetStreamBuxBalance(Configuration, username)));
 
-                                Bounty = new GameHelpers.Bounty(); //TODO - add function(s) to set/handle bounty so object doesnt need recreated
-                                Bounty.Name = plush;
-                                Bounty.Amount = amount;
+                                Bounty = new GameHelpers.Bounty
+                                {
+                                    Name = plush,
+                                    Amount = amount
+                                }; //TODO - add function(s) to set/handle bounty so object doesnt need recreated
 
                                 var idx = _rnd.Next(Configuration.ClawSettings.BountySayings.Count);
                                 var bountyMessage = Configuration.ClawSettings.BountySayings[idx].Replace("<<plush>>", plush).Replace("<<bux>>", amount.ToString());
@@ -970,7 +970,7 @@ namespace InternetClawMachine.Games.ClawGame
                     }
                     catch (Exception ex)
                     {
-                        string error = String.Format("ERROR {0} {1}", ex.Message, ex.ToString());
+                        var error = string.Format("ERROR {0} {1}", ex.Message, ex.ToString());
                         Logger.WriteLog(Logger.ErrorLog, error);
 
                         //meh whatever
@@ -1014,18 +1014,18 @@ namespace InternetClawMachine.Games.ClawGame
                                 {
                                     if (DatabaseFunctions.GetStreamBuxBalance(Configuration, username) + Configuration.GetStreamBuxCost(StreamBuxTypes.SCENE) > 0)
                                     {
-                                        int newScene = 1;
-                                        if (Int32.TryParse(args[2], out newScene))
+                                        var newScene = 1;
+                                        if (int.TryParse(args[2], out newScene))
                                         {
                                             ChangeClawScene(newScene);
                                             DatabaseFunctions.AddStreamBuxBalance(Configuration, username, StreamBuxTypes.SCENE, Configuration.GetStreamBuxCost(StreamBuxTypes.SCENE));
                                             Thread.Sleep(100);
-                                            ChatClient.SendWhisper(username, String.Format("Remaining balance: 🍄{0}", DatabaseFunctions.GetStreamBuxBalance(Configuration, username)));
+                                            ChatClient.SendWhisper(username, string.Format("Remaining balance: 🍄{0}", DatabaseFunctions.GetStreamBuxBalance(Configuration, username)));
                                         }
                                     }
                                     else
                                     {
-                                        ChatClient.SendMessage(Configuration.Channel, String.Format("Insufficient bux. Balance: 🍄{0}", DatabaseFunctions.GetStreamBuxBalance(Configuration, username)));
+                                        ChatClient.SendMessage(Configuration.Channel, string.Format("Insufficient bux. Balance: 🍄{0}", DatabaseFunctions.GetStreamBuxBalance(Configuration, username)));
                                     }
                                 }
                             }
@@ -1042,11 +1042,11 @@ namespace InternetClawMachine.Games.ClawGame
                                     DatabaseFunctions.AddStreamBuxBalance(Configuration, username, StreamBuxTypes.BELT, Configuration.GetStreamBuxCost(StreamBuxTypes.BELT));
                                     RunBelt(args[2]);
                                     Thread.Sleep(100);
-                                    ChatClient.SendWhisper(username, String.Format("Remaining balance: 🍄{0}", DatabaseFunctions.GetStreamBuxBalance(Configuration, username)));
+                                    ChatClient.SendWhisper(username, string.Format("Remaining balance: 🍄{0}", DatabaseFunctions.GetStreamBuxBalance(Configuration, username)));
                                 }
                                 else
                                 {
-                                    ChatClient.SendMessage(Configuration.Channel, String.Format("Insufficient bux. Balance: 🍄{0}", DatabaseFunctions.GetStreamBuxBalance(Configuration, username)));
+                                    ChatClient.SendMessage(Configuration.Channel, string.Format("Insufficient bux. Balance: 🍄{0}", DatabaseFunctions.GetStreamBuxBalance(Configuration, username)));
                                 }
                             }
                             break;
@@ -1057,7 +1057,7 @@ namespace InternetClawMachine.Games.ClawGame
                             {
                                 if (!chatMessage.Contains("rename "))
                                 {
-                                    ChatClient.SendMessage(Configuration.Channel, String.Format("Syntax: {0}redeem rename oldName:newName", Configuration.CommandPrefix));
+                                    ChatClient.SendMessage(Configuration.Channel, string.Format("Syntax: {0}redeem rename oldName:newName", Configuration.CommandPrefix));
                                     break;
                                 }
 
@@ -1066,7 +1066,7 @@ namespace InternetClawMachine.Games.ClawGame
                                 args = parms.Split(':');
                                 if (args.Length != 2)
                                 {
-                                    ChatClient.SendMessage(Configuration.Channel, String.Format("Syntax: {0}redeem rename oldName:newName", Configuration.CommandPrefix));
+                                    ChatClient.SendMessage(Configuration.Channel, string.Format("Syntax: {0}redeem rename oldName:newName", Configuration.CommandPrefix));
                                     break;
                                 }
                                 oldName = args[0].Trim();
@@ -1077,38 +1077,38 @@ namespace InternetClawMachine.Games.ClawGame
                                     try
                                     {
                                         var plushLastRenameDate = GetDbPlushDetails(oldName);
-                                        int daysToGo = Configuration.ClawSettings.TimePassedForRename - ((curTime - plushLastRenameDate) / 60 / 60 / 24);
+                                        var daysToGo = Configuration.ClawSettings.TimePassedForRename - ((curTime - plushLastRenameDate) / 60 / 60 / 24);
                                         if (daysToGo <= 0)
                                         {
                                             WriteDbNewPushName(oldName, newName, username);
-                                            ChatClient.SendMessage(Configuration.Channel, String.Format("{0} has been renamed to {1}. Thanks for being a loyal viewer!", oldName, newName));
+                                            ChatClient.SendMessage(Configuration.Channel, string.Format("{0} has been renamed to {1}. Thanks for being a loyal viewer!", oldName, newName));
                                             DatabaseFunctions.AddStreamBuxBalance(Configuration, username, StreamBuxTypes.RENAME, Configuration.GetStreamBuxCost(StreamBuxTypes.RENAME));
                                             Thread.Sleep(100);
-                                            ChatClient.SendWhisper(username, String.Format("Remaining balance: 🍄{0}", DatabaseFunctions.GetStreamBuxBalance(Configuration, username)));
+                                            ChatClient.SendWhisper(username, string.Format("Remaining balance: 🍄{0}", DatabaseFunctions.GetStreamBuxBalance(Configuration, username)));
                                         }
                                         else
                                         {
-                                            ChatClient.SendMessage(Configuration.Channel, String.Format("Plushes can only be renamed once every 30 days. You have {0} days to go.", daysToGo));
+                                            ChatClient.SendMessage(Configuration.Channel, string.Format("Plushes can only be renamed once every 30 days. You have {0} days to go.", daysToGo));
                                         }
                                     }
                                     catch (Exception ex)
                                     {
-                                        ChatClient.SendMessage(Configuration.Channel, String.Format("Error renaming plush: {0}", ex.Message));
-                                        string error = String.Format("ERROR {0} {1}", ex.Message, ex.ToString());
+                                        ChatClient.SendMessage(Configuration.Channel, string.Format("Error renaming plush: {0}", ex.Message));
+                                        var error = string.Format("ERROR {0} {1}", ex.Message, ex.ToString());
                                         Logger.WriteLog(Logger.ErrorLog, error);
                                     }
                                 }
                                 catch (Exception ex2)
                                 {
-                                    ChatClient.SendMessage(Configuration.Channel, String.Format("Error renaming plush: {0}", ex2.Message));
+                                    ChatClient.SendMessage(Configuration.Channel, string.Format("Error renaming plush: {0}", ex2.Message));
 
-                                    string error = String.Format("ERROR {0} {1}", ex2.Message, ex2.ToString());
+                                    var error = string.Format("ERROR {0} {1}", ex2.Message, ex2.ToString());
                                     Logger.WriteLog(Logger.ErrorLog, error);
                                 }
                             }
                             else
                             {
-                                ChatClient.SendMessage(Configuration.Channel, String.Format("Insufficient bux. Balance: 🍄{0}", DatabaseFunctions.GetStreamBuxBalance(Configuration, username)));
+                                ChatClient.SendMessage(Configuration.Channel, string.Format("Insufficient bux. Balance: 🍄{0}", DatabaseFunctions.GetStreamBuxBalance(Configuration, username)));
                             }
 
                             break;
@@ -1125,7 +1125,7 @@ namespace InternetClawMachine.Games.ClawGame
             {
                 try
                 {
-                    bool turnemon = false;
+                    var turnemon = false;
                     //see if the lights are on, if they are we turn em off, if not we leave it off and don't turn them back on after
                     if (MachineControl.IsLit)
                     {
@@ -1133,11 +1133,11 @@ namespace InternetClawMachine.Games.ClawGame
                         turnemon = true;
                     }
 
-                    int red = Configuration.ClawSettings.StrobeRedChannel;
-                    int green = Configuration.ClawSettings.StrobeBlueChannel;
-                    int blue = Configuration.ClawSettings.StrobeGreenChannel;
-                    int strobeCount = Configuration.ClawSettings.StrobeCount;
-                    int strobeDelay = Configuration.ClawSettings.StrobeDelay;
+                    var red = Configuration.ClawSettings.StrobeRedChannel;
+                    var green = Configuration.ClawSettings.StrobeBlueChannel;
+                    var blue = Configuration.ClawSettings.StrobeGreenChannel;
+                    var strobeCount = Configuration.ClawSettings.StrobeCount;
+                    var strobeDelay = Configuration.ClawSettings.StrobeDelay;
 
                     //if a user has their own settings, use those
                     if (prefs != null && prefs.CustomStrobe != null && prefs.CustomStrobe.Length > 0)
@@ -1155,7 +1155,7 @@ namespace InternetClawMachine.Games.ClawGame
                             strobeDelay = int.Parse(channels[4].Trim());
                     }
 
-                    int duration = strobeCount * strobeDelay * 2;
+                    var duration = strobeCount * strobeDelay * 2;
                     if (duration > Configuration.ClawSettings.StrobeMaxTime)
                         duration = Configuration.ClawSettings.StrobeMaxTime;
 
@@ -1193,7 +1193,7 @@ namespace InternetClawMachine.Games.ClawGame
                 }
                 catch (Exception ex)
                 {
-                    string error = String.Format("ERROR {0} {1}", ex.Message, ex.ToString());
+                    var error = string.Format("ERROR {0} {1}", ex.Message, ex.ToString());
                     Logger.WriteLog(Logger.ErrorLog, error);
                 }
             });
@@ -1208,7 +1208,7 @@ namespace InternetClawMachine.Games.ClawGame
             }
             catch (Exception ex)
             {
-                string error = String.Format("ERROR {0} {1}", ex.Message, ex.ToString());
+                var error = string.Format("ERROR {0} {1}", ex.Message, ex.ToString());
                 Logger.WriteLog(Logger.ErrorLog, error);
             }
             try
@@ -1218,7 +1218,7 @@ namespace InternetClawMachine.Games.ClawGame
             }
             catch (Exception ex)
             {
-                string error = String.Format("ERROR {0} {1}", ex.Message, ex.ToString());
+                var error = string.Format("ERROR {0} {1}", ex.Message, ex.ToString());
                 Logger.WriteLog(Logger.ErrorLog, error);
             }
         }
@@ -1238,7 +1238,7 @@ namespace InternetClawMachine.Games.ClawGame
             }
             catch (Exception ex)
             {
-                string error = String.Format("ERROR {0} {1}", ex.Message, ex.ToString());
+                var error = string.Format("ERROR {0} {1}", ex.Message, ex.ToString());
                 Logger.WriteLog(Logger.ErrorLog, error);
             }
             try
@@ -1255,7 +1255,7 @@ namespace InternetClawMachine.Games.ClawGame
             }
             catch (Exception ex)
             {
-                string error = String.Format("ERROR {0} {1}", ex.Message, ex.ToString());
+                var error = string.Format("ERROR {0} {1}", ex.Message, ex.ToString());
                 Logger.WriteLog(Logger.ErrorLog, error);
             }
         }
@@ -1302,7 +1302,7 @@ namespace InternetClawMachine.Games.ClawGame
                     }
                     catch (Exception ex)
                     {
-                        string error = String.Format("ERROR {0} {1}", ex.Message, ex.ToString());
+                        var error = string.Format("ERROR {0} {1}", ex.Message, ex.ToString());
                         Logger.WriteLog(Logger.ErrorLog, error);
                     }
                 }
@@ -1332,7 +1332,7 @@ namespace InternetClawMachine.Games.ClawGame
             }
             catch (Exception ex)
             {
-                string error = String.Format("ERROR {0} {1}", ex.Message, ex.ToString());
+                var error = string.Format("ERROR {0} {1}", ex.Message, ex.ToString());
                 Logger.WriteLog(Logger.ErrorLog, error);
             }
             UpdateObsQueueDisplay();
@@ -1342,13 +1342,13 @@ namespace InternetClawMachine.Games.ClawGame
         {
             try
             {
-                string date = DateTime.Now.ToString("dd-MM-yyyy");
-                string timestamp = DateTime.Now.ToString("HH:mm:ss.ff");
-                File.AppendAllText(Configuration.FileMissedPlushes, String.Format("{0} {1} {2} {3}\r\n", date, timestamp, username, plush));
+                var date = DateTime.Now.ToString("dd-MM-yyyy");
+                var timestamp = DateTime.Now.ToString("HH:mm:ss.ff");
+                File.AppendAllText(Configuration.FileMissedPlushes, string.Format("{0} {1} {2} {3}\r\n", date, timestamp, username, plush));
             }
             catch (Exception ex)
             {
-                string error = String.Format("ERROR {0} {1}", ex.Message, ex.ToString());
+                var error = string.Format("ERROR {0} {1}", ex.Message, ex.ToString());
                 Logger.WriteLog(Logger.ErrorLog, error);
             }
         }
@@ -1378,7 +1378,7 @@ namespace InternetClawMachine.Games.ClawGame
                 }
                 catch (Exception ex)
                 {
-                    string error = String.Format("ERROR {0} {1}", ex.Message, ex.ToString());
+                    var error = string.Format("ERROR {0} {1}", ex.Message, ex.ToString());
                     Logger.WriteLog(Logger.ErrorLog, error);
                 }
             }
@@ -1390,7 +1390,7 @@ namespace InternetClawMachine.Games.ClawGame
         /// <param name="newScene"></param>
         private void ResetObsSceneStuff(string newScene)
         {
-            string curScene = ObsConnection.GetCurrentScene().Name;
+            var curScene = ObsConnection.GetCurrentScene().Name;
             if (!ObsConnection.IsConnected)
                 return;
             if (!curScene.StartsWith("Claw"))
@@ -1403,7 +1403,7 @@ namespace InternetClawMachine.Games.ClawGame
             }
             catch (Exception ex)
             {
-                string error = String.Format("ERROR {0} {1}", ex.Message, ex.ToString());
+                var error = string.Format("ERROR {0} {1}", ex.Message, ex.ToString());
                 Logger.WriteLog(Logger.ErrorLog, error);
             }
         }
@@ -1458,7 +1458,7 @@ namespace InternetClawMachine.Games.ClawGame
                 }
                 catch (Exception ex)
                 {
-                    string error = String.Format("ERROR {0} {1}", ex.Message, ex.ToString());
+                    var error = string.Format("ERROR {0} {1}", ex.Message, ex.ToString());
                     Logger.WriteLog(Logger.ErrorLog, error);
                 }
                 finally
@@ -1561,8 +1561,8 @@ namespace InternetClawMachine.Games.ClawGame
 
         public void RunBelt(string seconds)
         {
-            int secs = 2;
-            if (!Int32.TryParse(seconds, out secs))
+            var secs = 2;
+            if (!int.TryParse(seconds, out secs))
                 return;
 
             if ((secs > 15) || (secs < 1))
@@ -1594,7 +1594,7 @@ namespace InternetClawMachine.Games.ClawGame
             }
             catch (Exception ex)
             {
-                string error = String.Format("ERROR {0} {1}", ex.Message, ex.ToString());
+                var error = string.Format("ERROR {0} {1}", ex.Message, ex.ToString());
                 Logger.WriteLog(Logger.ErrorLog, error);
             }
         }
@@ -1608,7 +1608,7 @@ namespace InternetClawMachine.Games.ClawGame
                 var curScene = ObsConnection.GetCurrentScene();
                 if (curScene.Name != user.Scene)
                 {
-                    string newScene = user.Scene;
+                    var newScene = user.Scene;
                     if (user.Scene.Length == 0)
                     {
                         newScene = Configuration.ObsScreenSourceNames.SceneClaw1.Scene;
@@ -1622,7 +1622,7 @@ namespace InternetClawMachine.Games.ClawGame
                 }
                 catch (Exception ex)
                 {
-                    string error = String.Format("ERROR {0} {1}", ex.Message, ex.ToString());
+                    var error = string.Format("ERROR {0} {1}", ex.Message, ex.ToString());
                     Logger.WriteLog(Logger.ErrorLog, error);
                 }
             }
@@ -1650,11 +1650,11 @@ namespace InternetClawMachine.Games.ClawGame
             lock (Configuration.RecordsDatabase)
             {
                 Configuration.RecordsDatabase.Open();
-                string changeTime = "";
+                var changeTime = "";
                 try
                 {
-                    string sql = "SELECT ChangeDate FROM plushie WHERE ChangedBy = '" + username.ToLower() + "' ORDER BY ChangeDate DESC LIMIT 1";
-                    SQLiteCommand command = new SQLiteCommand(sql, Configuration.RecordsDatabase);
+                    var sql = "SELECT ChangeDate FROM plushie WHERE ChangedBy = '" + username.ToLower() + "' ORDER BY ChangeDate DESC LIMIT 1";
+                    var command = new SQLiteCommand(sql, Configuration.RecordsDatabase);
                     var res = command.ExecuteScalar();
                     if (res != null)
                         changeTime = command.ExecuteScalar().ToString();
@@ -1663,7 +1663,7 @@ namespace InternetClawMachine.Games.ClawGame
                 {
                     Configuration.RecordsDatabase.Close();
                 }
-                return (changeTime == "" ? 0 : Int32.Parse(changeTime));
+                return (changeTime == "" ? 0 : int.Parse(changeTime));
             }
         }
 
@@ -1672,12 +1672,12 @@ namespace InternetClawMachine.Games.ClawGame
             lock (Configuration.RecordsDatabase)
             {
                 Configuration.RecordsDatabase.Open();
-                int i = 0;
+                var i = 0;
                 var outputTop = "";
                 try
                 {
-                    string sql = "SELECT Name, ChangeDate FROM plushie WHERE Name = '" + plushName + "'";
-                    SQLiteCommand command = new SQLiteCommand(sql, Configuration.RecordsDatabase);
+                    var sql = "SELECT Name, ChangeDate FROM plushie WHERE Name = '" + plushName + "'";
+                    var command = new SQLiteCommand(sql, Configuration.RecordsDatabase);
                     using (var plushes = command.ExecuteReader())
                     {
                         while (plushes.Read())
@@ -1694,7 +1694,7 @@ namespace InternetClawMachine.Games.ClawGame
                 }
 
                 if (i > 0)
-                    return (outputTop == "" ? 0 : Int32.Parse(outputTop));
+                    return (outputTop == "" ? 0 : int.Parse(outputTop));
                 else
                     throw new Exception("No plush by that name");
             }
@@ -1708,8 +1708,8 @@ namespace InternetClawMachine.Games.ClawGame
                 {
                     Configuration.RecordsDatabase.Open();
 
-                    string sql = "UPDATE plushie SET Name = @newName, ChangedBy = @user, ChangeDate = @epoch WHERE Name = @oldName";
-                    SQLiteCommand command = Configuration.RecordsDatabase.CreateCommand();
+                    var sql = "UPDATE plushie SET Name = @newName, ChangedBy = @user, ChangeDate = @epoch WHERE Name = @oldName";
+                    var command = Configuration.RecordsDatabase.CreateCommand();
                     command.CommandType = CommandType.Text;
                     command.CommandText = sql;
                     command.Parameters.Add(new SQLiteParameter("@newName", newName));
@@ -1717,7 +1717,7 @@ namespace InternetClawMachine.Games.ClawGame
                     command.Parameters.Add(new SQLiteParameter("@user", user));
                     command.Parameters.Add(new SQLiteParameter("@epoch", Helpers.GetEpoch()));
                     command.ExecuteNonQuery();
-                    for (int i = 0; i < PlushieTags.Count; i++)
+                    for (var i = 0; i < PlushieTags.Count; i++)
                     {
                         if (PlushieTags[i].Name.ToLower() == oldName.ToLower())
                         {
@@ -1728,7 +1728,7 @@ namespace InternetClawMachine.Games.ClawGame
                 }
                 catch (Exception ex)
                 {
-                    string error = String.Format("ERROR {0} {1}", ex.Message, ex.ToString());
+                    var error = string.Format("ERROR {0} {1}", ex.Message, ex.ToString());
                     Logger.WriteLog(Logger.ErrorLog, error);
                     Configuration.LoadDatebase();
                 }
@@ -1759,9 +1759,9 @@ namespace InternetClawMachine.Games.ClawGame
                  */
             try
             {
-                string date = DateTime.Now.ToString("dd-MM-yyyy");
-                string timestamp = DateTime.Now.ToString("HH:mm:ss.ff");
-                File.AppendAllText(Configuration.FileScans, String.Format("{0} {1} {2},", date, timestamp, epc));
+                var date = DateTime.Now.ToString("dd-MM-yyyy");
+                var timestamp = DateTime.Now.ToString("HH:mm:ss.ff");
+                File.AppendAllText(Configuration.FileScans, string.Format("{0} {1} {2},", date, timestamp, epc));
                 var existing = PlushieTags.FirstOrDefault(itm => itm.EpcList.Contains(epc));
                 if (existing != null || forcedWinner != null)
                 {
@@ -1772,7 +1772,7 @@ namespace InternetClawMachine.Games.ClawGame
                         existing.WasGrabbed = true;
                         var winner = RunWinScenario(existing, forcedWinner);
 
-                        bool specialClip = false;
+                        var specialClip = false;
 
                         var prefs = DatabaseFunctions.GetUserPrefs(Configuration, winner);
 
@@ -1783,7 +1783,7 @@ namespace InternetClawMachine.Games.ClawGame
                         if (Bounty != null && Bounty.Name.ToLower() == existing.Name.ToLower())
                         {
                             specialClip = true;
-                            string msg = String.Format("Congratulations to @{0} for grabbing {1}. You receive the bounty on its head of 🍄{2}!", winner, existing.Name, Bounty.Amount);
+                            var msg = string.Format("Congratulations to @{0} for grabbing {1}. You receive the bounty on its head of 🍄{2}!", winner, existing.Name, Bounty.Amount);
                             ChatClient.SendMessage(Configuration.Channel, msg);
 
                             //update obs
@@ -1818,9 +1818,11 @@ namespace InternetClawMachine.Games.ClawGame
                                         await Task.Delay(14000);
                                         RunBountyAnimation(newPlush);
                                         //deduct it from their balance
-                                        Bounty = new GameHelpers.Bounty();
-                                        Bounty.Name = newPlush.Name;
-                                        Bounty.Amount = Configuration.ClawSettings.AutoBountyAmount;
+                                        Bounty = new GameHelpers.Bounty
+                                        {
+                                            Name = newPlush.Name,
+                                            Amount = Configuration.ClawSettings.AutoBountyAmount
+                                        };
 
                                         var idx = _rnd.Next(Configuration.ClawSettings.BountySayings.Count);
                                         var bountyMessage = Configuration.ClawSettings.BountySayings[idx].Replace("<<plush>>", Bounty.Name).Replace("<<bux>>", Bounty.Amount.ToString());
@@ -1850,8 +1852,8 @@ namespace InternetClawMachine.Games.ClawGame
                                 try
                                 {
                                     Configuration.RecordsDatabase.Open();
-                                    string sql = "SELECT count(*) FROM wins WHERE name = '" + winner + "' AND PlushID = 23";
-                                    SQLiteCommand command = new SQLiteCommand(sql, Configuration.RecordsDatabase);
+                                    var sql = "SELECT count(*) FROM wins WHERE name = '" + winner + "' AND PlushID = 23";
+                                    var command = new SQLiteCommand(sql, Configuration.RecordsDatabase);
                                     var wins = command.ExecuteScalar().ToString();
                                     Configuration.RecordsDatabase.Close();
 
@@ -1867,7 +1869,7 @@ namespace InternetClawMachine.Games.ClawGame
                                 }
                                 catch (Exception ex)
                                 {
-                                    string error = String.Format("ERROR {0} {1}", ex.Message, ex.ToString());
+                                    var error = string.Format("ERROR {0} {1}", ex.Message, ex.ToString());
                                     Logger.WriteLog(Logger.ErrorLog, error);
                                 }
                             }
@@ -1901,7 +1903,7 @@ namespace InternetClawMachine.Games.ClawGame
             }
             catch (Exception ex)
             {
-                string error = String.Format("ERROR {0} {1}", ex.Message, ex.ToString());
+                var error = string.Format("ERROR {0} {1}", ex.Message, ex.ToString());
                 Logger.WriteLog(Logger.ErrorLog, error);
             }
         }
@@ -1910,7 +1912,7 @@ namespace InternetClawMachine.Games.ClawGame
         {
             Task.Run(async delegate ()
             {
-                bool turnemon = false;
+                var turnemon = false;
                 if (MachineControl.IsLit)
                 {
                     MachineControl.LightSwitch(false);
@@ -1939,13 +1941,13 @@ namespace InternetClawMachine.Games.ClawGame
                 try
                 {
                     Configuration.RecordsDatabase.Open();
-                    string sql = "INSERT INTO wins (datetime, name, PlushID, guid) VALUES (" + Helpers.GetEpoch() + ", '" + name + "', " + prize + ", '" + guid + "')";
-                    SQLiteCommand command = new SQLiteCommand(sql, Configuration.RecordsDatabase);
+                    var sql = "INSERT INTO wins (datetime, name, PlushID, guid) VALUES (" + Helpers.GetEpoch() + ", '" + name + "', " + prize + ", '" + guid + "')";
+                    var command = new SQLiteCommand(sql, Configuration.RecordsDatabase);
                     command.ExecuteNonQuery();
                 }
                 catch (Exception ex)
                 {
-                    string error = String.Format("ERROR {0} {1}", ex.Message, ex.ToString());
+                    var error = string.Format("ERROR {0} {1}", ex.Message, ex.ToString());
                     Logger.WriteLog(Logger.ErrorLog, error);
 
                     Configuration.LoadDatebase();

@@ -63,7 +63,7 @@ namespace InternetClawMachine
 
             Task.Run(async delegate ()
             {
-                List<OAuthClientScopeEnum> scopes = new List<OAuthClientScopeEnum>()
+                var scopes = new List<OAuthClientScopeEnum>()
             {
                 OAuthClientScopeEnum.chat__bypass_links,
                 OAuthClientScopeEnum.chat__bypass_slowchat,
@@ -95,7 +95,7 @@ namespace InternetClawMachine
                 var connection = await MixerConnection.ConnectViaAuthorizationCode("", "", "");
 
                 UserModel user = connection.Users.GetCurrentUser().Result;
-                ExpandedChannelModel chan = connection.Channels.GetChannel(user.username).Result;
+                var chan = connection.Channels.GetChannel(user.username).Result;
 
                 _client = ChatClient.CreateFromChannel(connection, chan).Result;
 
@@ -109,7 +109,7 @@ namespace InternetClawMachine
                 {
                     System.Console.WriteLine("Chat connection successful!");
 
-                    IEnumerable<ChatUserModel> users = connection.Chats.GetUsers(_client.Channel).Result;
+                    var users = connection.Chats.GetUsers(_client.Channel).Result;
                 }
             });
         }
@@ -131,8 +131,8 @@ namespace InternetClawMachine
 
         private void Client_OnMessageOccurred(object sender, Mixer.Base.Model.Chat.ChatMessageEventModel e)
         {
-            string message = "";
-            foreach (ChatMessageDataModel m in e.message.message)
+            var message = "";
+            foreach (var m in e.message.message)
             {
                 message += m.text;
             }

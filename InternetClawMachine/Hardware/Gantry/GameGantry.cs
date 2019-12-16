@@ -47,8 +47,8 @@ namespace InternetClawMachine.Hardware.Gantry
         public bool Connect()
         {
             // Establish the remote endpoint for the socket.
-            IPAddress ipAddress = System.Net.IPAddress.Parse(IpAddress);
-            IPEndPoint remoteEp = new IPEndPoint(ipAddress, Port);
+            var ipAddress = System.Net.IPAddress.Parse(IpAddress);
+            var remoteEp = new IPEndPoint(ipAddress, Port);
 
             return Connect(remoteEp);
         }
@@ -57,15 +57,16 @@ namespace InternetClawMachine.Hardware.Gantry
         {
             // Create a TCP/IP  socket.
             _workSocket = new Socket(remoteEp.AddressFamily,
-                SocketType.Stream, ProtocolType.Tcp);
-
-            _workSocket.ReceiveTimeout = 2000;
+                SocketType.Stream, ProtocolType.Tcp)
+            {
+                ReceiveTimeout = 2000
+            };
 
             try
             {
                 _workSocket.Connect(remoteEp);
                 _socketReader = new SocketAsyncEventArgs();
-                byte[] buffer = new byte[1024];
+                var buffer = new byte[1024];
                 _socketReader.SetBuffer(buffer, 0, 1024);
                 _socketReader.Completed += E_Completed;
                 StartReader();
@@ -73,7 +74,7 @@ namespace InternetClawMachine.Hardware.Gantry
             }
             catch (Exception ex)
             {
-                string error = String.Format("ERROR {0} {1}", ex.Message, ex.ToString());
+                var error = string.Format("ERROR {0} {1}", ex.Message, ex.ToString());
                 Logger.WriteLog(Logger.ErrorLog, error);
             }
             return false;
@@ -92,7 +93,7 @@ namespace InternetClawMachine.Hardware.Gantry
             }
             catch (Exception ex)
             {
-                string error = String.Format("ERROR {0} {1}", ex.Message, ex.ToString());
+                var error = string.Format("ERROR {0} {1}", ex.Message, ex.ToString());
                 Logger.WriteLog(Logger.ErrorLog, error);
             }
         }
@@ -105,7 +106,7 @@ namespace InternetClawMachine.Hardware.Gantry
             }
             catch (Exception ex)
             {
-                string error = String.Format("ERROR {0} {1}", ex.Message, ex.ToString());
+                var error = string.Format("ERROR {0} {1}", ex.Message, ex.ToString());
                 Logger.WriteLog(Logger.ErrorLog, error);
             }
         }
@@ -258,17 +259,17 @@ namespace InternetClawMachine.Hardware.Gantry
                 throw new Exception("Not Connected");
             try
             {
-                byte[] bytes = new byte[1024];
+                var bytes = new byte[1024];
                 // Encode the data string into a byte array.
-                byte[] msg = Encoding.ASCII.GetBytes(command + "\n");
+                var msg = Encoding.ASCII.GetBytes(command + "\n");
                 Console.WriteLine("--------------- SENDING -------------------");
                 Console.WriteLine(command);
                 // Send the data through the socket.
-                int bytesSent = _workSocket.Send(msg);
+                var bytesSent = _workSocket.Send(msg);
             }
             catch (Exception ex)
             {
-                string error = String.Format("ERROR {0} {1}", ex.Message, ex.ToString());
+                var error = string.Format("ERROR {0} {1}", ex.Message, ex.ToString());
                 Logger.WriteLog(Logger.ErrorLog, error);
             }
 
@@ -281,13 +282,13 @@ namespace InternetClawMachine.Hardware.Gantry
                 throw new Exception("Not Connected");
             try
             {
-                byte[] bytes = new byte[1024];
+                var bytes = new byte[1024];
                 // Encode the data string into a byte array.
-                byte[] msg = Encoding.ASCII.GetBytes(command + "\n");
+                var msg = Encoding.ASCII.GetBytes(command + "\n");
                 Console.WriteLine("--------------- SENDING -------------------");
                 Console.WriteLine(command);
                 // Send the data through the socket.
-                int bytesSent = _workSocket.Send(msg);
+                var bytesSent = _workSocket.Send(msg);
                 _lastCommandResponse = null;
                 while (_lastCommandResponse == null)
                     Thread.Sleep(100);
@@ -297,7 +298,7 @@ namespace InternetClawMachine.Hardware.Gantry
             }
             catch (Exception ex)
             {
-                string error = String.Format("ERROR {0} {1}", ex.Message, ex.ToString());
+                var error = string.Format("ERROR {0} {1}", ex.Message, ex.ToString());
                 Logger.WriteLog(Logger.ErrorLog, error);
             }
 
@@ -306,135 +307,135 @@ namespace InternetClawMachine.Hardware.Gantry
 
         public void SetDirection(GantryAxis axis, MotorDirection direction)
         {
-            var command = String.Format("dir {0} {1}", axis.ToString().ToLower(), (int)direction);
+            var command = string.Format("dir {0} {1}", axis.ToString().ToLower(), (int)direction);
             SendCommandAsync(command);
         }
 
         public void SetSpeed(GantryAxis axis, int speed)
         {
-            var command = String.Format("spd {0} {1}", axis.ToString().ToLower(), speed);
+            var command = string.Format("spd {0} {1}", axis.ToString().ToLower(), speed);
             SendCommandAsync(command);
         }
 
         public bool IsHomed(GantryAxis axis)
         {
-            var command = String.Format("ishm {0}", axis.ToString().ToLower());
+            var command = string.Format("ishm {0}", axis.ToString().ToLower());
             return SendCommand(command).ToLower() == "true";
         }
 
         public void SetBallReturnTimings(int startupDelay, int runTime)
         {
-            var command = String.Format("brtntime {0} {1}", startupDelay, runTime);
+            var command = string.Format("brtntime {0} {1}", startupDelay, runTime);
             SendCommandAsync(command);
         }
 
         public void SetPosition(GantryAxis axis, int pos)
         {
-            var command = String.Format("pos {0} {1}", axis.ToString().ToLower(), pos);
+            var command = string.Format("pos {0} {1}", axis.ToString().ToLower(), pos);
             SendCommandAsync(command);
         }
 
         public void SetAcceleration(GantryAxis axis, int accel)
         {
-            var command = String.Format("spd {0} {1}", axis.ToString().ToLower(), accel);
+            var command = string.Format("spd {0} {1}", axis.ToString().ToLower(), accel);
             SendCommandAsync(command);
         }
 
         public void SetUpperLimit(GantryAxis axis, int lim)
         {
-            var command = String.Format("lim {0} {1}", axis.ToString().ToLower(), lim);
+            var command = string.Format("lim {0} {1}", axis.ToString().ToLower(), lim);
             SendCommandAsync(command);
         }
 
         public void Go(GantryAxis axis)
         {
-            var command = String.Format("go {0}", axis.ToString().ToLower());
+            var command = string.Format("go {0}", axis.ToString().ToLower());
             SendCommandAsync(command);
         }
 
         public void Stop(GantryAxis axis)
         {
-            var command = String.Format("stop {0}", axis.ToString().ToLower());
+            var command = string.Format("stop {0}", axis.ToString().ToLower());
             SendCommandAsync(command);
         }
 
         public void SetHome(GantryAxis axis)
         {
-            var command = String.Format("shm {0}", axis.ToString().ToLower());
+            var command = string.Format("shm {0}", axis.ToString().ToLower());
             SendCommandAsync(command);
         }
 
         public void UnsetHome(GantryAxis axis)
         {
-            var command = String.Format("uhm {0}", axis.ToString().ToLower());
+            var command = string.Format("uhm {0}", axis.ToString().ToLower());
             SendCommandAsync(command);
         }
 
         public void AutoHome(GantryAxis axis)
         {
-            var command = String.Format("spd {0} 2000", axis.ToString().ToLower());
+            var command = string.Format("spd {0} 2000", axis.ToString().ToLower());
             SendCommandAsync(command);
-            command = String.Format("ahm {0}", axis.ToString().ToLower());
+            command = string.Format("ahm {0}", axis.ToString().ToLower());
             SendCommandAsync(command);
         }
 
         public void ReturnHome(GantryAxis axis)
         {
-            var command = String.Format("rhm {0}", axis.ToString().ToLower());
+            var command = string.Format("rhm {0}", axis.ToString().ToLower());
             SendCommandAsync(command);
         }
 
         public void EnableBallReturn(bool v)
         {
-            var command = String.Format("brtnenable {0}", v ? 1 : 0);
+            var command = string.Format("brtnenable {0}", v ? 1 : 0);
             SendCommandAsync(command);
         }
 
         public void RunToEnd(GantryAxis axis)
         {
-            var command = String.Format("rte {0}", axis.ToString().ToLower());
+            var command = string.Format("rte {0}", axis.ToString().ToLower());
             SendCommandAsync(command);
         }
 
         public void GetLocation(GantryAxis axis)
         {
-            var command = String.Format("loc {0}", axis.ToString().ToLower());
+            var command = string.Format("loc {0}", axis.ToString().ToLower());
             var resp = SendCommandAsync(command);
         }
 
         public int CheckLimitSwitches(GantryAxis axis)
         {
-            var command = String.Format("chklimit {0}", axis.ToString().ToLower());
+            var command = string.Format("chklimit {0}", axis.ToString().ToLower());
             var resp = SendCommand(command);
             var rtn = resp.Replace(command + "=", "").Trim();
             rtn = rtn.ToLower();
-            return Int32.Parse(rtn);
+            return int.Parse(rtn);
         }
 
         public int GetLimits(GantryAxis axis)
         {
-            var command = String.Format("lims {0}", axis.ToString().ToLower());
+            var command = string.Format("lims {0}", axis.ToString().ToLower());
             var resp = SendCommandAsync(command);
             var rtn = resp.Replace(command + "=", "").Trim();
             rtn = rtn.ToLower();
-            return Int32.Parse(rtn);
+            return int.Parse(rtn);
         }
 
         internal void Step(GantryAxis axis, int steps)
         {
-            var command = String.Format("step {0} {1}", axis.ToString().ToLower(), steps);
+            var command = string.Format("step {0} {1}", axis.ToString().ToLower(), steps);
             SendCommandAsync(command);
         }
 
         internal void XyMove(int xdst, int ydst)
         {
-            var command = String.Format("xy {0} {1}", xdst, ydst);
+            var command = string.Format("xy {0} {1}", xdst, ydst);
             SendCommandAsync(command);
         }
 
         internal void RotateAxis(GantryAxis axis, decimal degree)
         {
-            decimal step = degree % 360;
+            var step = degree % 360;
             step = step.Map(0, 360, 0, 174);
 
             SetSpeed(axis, 200);
@@ -553,10 +554,7 @@ namespace InternetClawMachine.Hardware.Gantry
 
         protected void OnChange(string info)
         {
-            if (PropertyChanged != null)
-            {
-                PropertyChanged(this, new PropertyChangedEventArgs(info));
-            }
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(info));
         }
     }
 

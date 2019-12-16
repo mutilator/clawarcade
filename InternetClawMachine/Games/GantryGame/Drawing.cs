@@ -249,7 +249,7 @@ namespace InternetClawMachine.Games.GantreyGame
             }
             catch (Exception ex)
             {
-                string error = String.Format("ERROR {0} {1}", ex.Message, ex.ToString());
+                var error = string.Format("ERROR {0} {1}", ex.Message, ex.ToString());
                 Logger.WriteLog(Logger.ErrorLog, error);
             }
         }
@@ -279,7 +279,7 @@ namespace InternetClawMachine.Games.GantreyGame
             Gantry.GetLocation(GantryAxis.A);
             GameModeTimer.Reset();
             GameModeTimer.Start();
-            ChatClient.SendMessage(Configuration.Channel, String.Format("Quick Queue mode has begun! Type {0}help for commands. Type {0}play to opt-in to the player queue.", Configuration.CommandPrefix));
+            ChatClient.SendMessage(Configuration.Channel, string.Format("Quick Queue mode has begun! Type {0}help for commands. Type {0}play to opt-in to the player queue.", Configuration.CommandPrefix));
             PlayerQueue.AddSinglePlayer(username);
             //RunCommandQueue();
             StartRound(PlayerQueue.GetNextPlayer());
@@ -304,7 +304,7 @@ namespace InternetClawMachine.Games.GantreyGame
             GameRoundTimer.Start();
             Configuration.DrawingSettings.CurrentPlayerHasPlayed = false;
 
-            ChatClient.SendMessage(Configuration.Channel, String.Format("@{0} has control. You have {1} seconds to start drawing", PlayerQueue.CurrentPlayer, Configuration.DrawingSettings.SinglePlayerQueueNoCommandDuration));
+            ChatClient.SendMessage(Configuration.Channel, string.Format("@{0} has control. You have {1} seconds to start drawing", PlayerQueue.CurrentPlayer, Configuration.DrawingSettings.SinglePlayerQueueNoCommandDuration));
 
             Task.Run(async delegate ()
             {
@@ -316,7 +316,7 @@ namespace InternetClawMachine.Games.GantreyGame
                 //      it moves to second player, but this timer is going for the first player,
                 //      it then skips back to the first player but they're putting their commands in so slowly the first timer just finished
                 //      and the checks below this match their details it will end their turn early
-                long loopVal = GameLoopCounterValue;
+                var loopVal = GameLoopCounterValue;
 
                 //we need a check if they changed game mode or something weird happened
                 var args = new RoundEndedArgs() { Username = username, GameLoopCounterValue = loopVal, GameMode = GameMode };
@@ -356,9 +356,9 @@ namespace InternetClawMachine.Games.GantreyGame
             if (PlayerQueue.Count == 0)
             {
                 //check if it's a stringed command, all commands have to be valid
-                string regex = "(([fblrud]{1})([ ]{1}))+?";
+                var regex = "(([fblrud]{1})([ ]{1}))+?";
                 msg += " "; //add a space to the end for the regex
-                MatchCollection matches = Regex.Matches(msg, regex);
+                var matches = Regex.Matches(msg, regex);
                 //means we only have one letter commands
 
                 if (msg == "f" || msg == "b" || msg == "r" || msg == "l" || msg == "d" || msg == "u")
@@ -396,15 +396,15 @@ namespace InternetClawMachine.Games.GantreyGame
                 else
                 {
                     //check if it's a stringed command, all commands have to be valid
-                    string regex = "((([fbrlud]{1}|(fs)|(bs)|(rs)|(ls)|(a[0-9]{1,3})|(as[0-9]{1,3})){1})([ ]{1}))+?";
+                    var regex = "((([fbrlud]{1}|(fs)|(bs)|(rs)|(ls)|(a[0-9]{1,3})|(as[0-9]{1,3})){1})([ ]{1}))+?";
                     msg += " "; //add a space to the end for the regex
-                    MatchCollection matches = Regex.Matches(msg, regex);
+                    var matches = Regex.Matches(msg, regex);
                     //means we only have one letter commands
-                    int total = 0;
+                    var total = 0;
                     foreach (Match match in matches)
                     {
                         //grab the next direction
-                        GroupCollection data = match.Groups;
+                        var data = match.Groups;
                         var command = data[2];
                         total += command.Length + 1;
                     }
@@ -417,7 +417,7 @@ namespace InternetClawMachine.Games.GantreyGame
                             foreach (Match match in matches)
                             {
                                 //grab the next direction
-                                GroupCollection data = match.Groups;
+                                var data = match.Groups;
                                 var command = data[2];
                                 HandleSingleCommand(username, command.Value.Trim());
 
@@ -516,7 +516,7 @@ namespace InternetClawMachine.Games.GantreyGame
                 }
                 catch (Exception ex)
                 {
-                    string error = String.Format("ERROR {0} {1}", ex.Message, ex.ToString());
+                    var error = string.Format("ERROR {0} {1}", ex.Message, ex.ToString());
                     Logger.WriteLog(Logger.ErrorLog, error);
                 }
             }
@@ -554,7 +554,7 @@ namespace InternetClawMachine.Games.GantreyGame
                 }
                 catch (Exception ex)
                 {
-                    string error = String.Format("ERROR {0} {1}", ex.Message, ex.ToString());
+                    var error = string.Format("ERROR {0} {1}", ex.Message, ex.ToString());
                     Logger.WriteLog(Logger.ErrorLog, error);
                 }
                 finally
@@ -591,7 +591,7 @@ namespace InternetClawMachine.Games.GantreyGame
                 case ClawDirection.FREEMOVE:
                     Logger.WriteLog(Logger.MachineLog, "MOVE FREE MOVE");
                     //calculate the spot at this point, if we precalc it will use the coordinates from the starting point
-                    double angle = currentCommand.Angle.ToRadians();
+                    var angle = currentCommand.Angle.ToRadians();
                     var newCoordX = Math.Floor(Gantry.NormalSteps * Math.Sin(angle) + this.X);
                     var newCoordY = Math.Floor(Gantry.NormalSteps * Math.Cos(angle) + this.Y);
                     Gantry.XyMove((int)newCoordX, (int)newCoordY);

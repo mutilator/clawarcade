@@ -22,8 +22,8 @@ namespace InternetClawMachine.Hardware.WaterBot
         public bool Connect()
         {
             // Establish the remote endpoint for the socket.
-            IPAddress ipAddress = System.Net.IPAddress.Parse(IpAddress);
-            IPEndPoint remoteEp = new IPEndPoint(ipAddress, Port);
+            var ipAddress = System.Net.IPAddress.Parse(IpAddress);
+            var remoteEp = new IPEndPoint(ipAddress, Port);
 
             return Connect(remoteEp);
         }
@@ -32,8 +32,10 @@ namespace InternetClawMachine.Hardware.WaterBot
         {
             // Create a TCP/IP  socket.
             _workSocket = new Socket(remoteEp.AddressFamily,
-                SocketType.Stream, ProtocolType.Tcp);
-            _workSocket.ReceiveTimeout = 1000;
+                SocketType.Stream, ProtocolType.Tcp)
+            {
+                ReceiveTimeout = 1000
+            };
 
             try
             {
@@ -42,7 +44,7 @@ namespace InternetClawMachine.Hardware.WaterBot
             }
             catch (Exception ex)
             {
-                string error = String.Format("ERROR {0} {1}", ex.Message, ex.ToString());
+                var error = string.Format("ERROR {0} {1}", ex.Message, ex.ToString());
                 Logger.WriteLog(Logger.ErrorLog, error);
             }
             return false;
@@ -67,22 +69,22 @@ namespace InternetClawMachine.Hardware.WaterBot
                 throw new Exception("Not Connected");
             try
             {
-                byte[] bytes = new byte[1024];
+                var bytes = new byte[1024];
                 // Encode the data string into a byte array.
-                byte[] msg = Encoding.ASCII.GetBytes(command + "\n");
+                var msg = Encoding.ASCII.GetBytes(command + "\n");
 
                 // Send the data through the socket.
-                int bytesSent = _workSocket.Send(msg);
+                var bytesSent = _workSocket.Send(msg);
 
                 // Receive the response from the remote device.
-                int bytesRec = _workSocket.Receive(bytes);
+                var bytesRec = _workSocket.Receive(bytes);
                 var resp = Encoding.ASCII.GetString(bytes, 0, bytesRec).Trim();
                 if (resp == ".")
                     return true;
             }
             catch (Exception ex)
             {
-                string error = String.Format("ERROR {0} {1}", ex.Message, ex.ToString());
+                var error = string.Format("ERROR {0} {1}", ex.Message, ex.ToString());
                 Logger.WriteLog(Logger.ErrorLog, error);
             }
 

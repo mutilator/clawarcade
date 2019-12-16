@@ -9,7 +9,7 @@ namespace InternetClawMachine.Hardware.RFID
         public static byte MSelectedDevNo = 0;
 
         [DllImport("ZlDevManage.dll", EntryPoint = "ZLDM_StartSearchDev")]
-        public static extern UInt16 StartSearchDev();
+        public static extern ushort StartSearchDev();
 
         [DllImport("ZlDevManage.dll", EntryPoint = "ZLDM_GetVer")]
         public static extern int GetVer();

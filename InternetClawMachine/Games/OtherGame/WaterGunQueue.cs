@@ -24,9 +24,9 @@ namespace InternetClawMachine.Games
             if (PlayerQueue.Count == 0)
             {
                 //check if it's a stringed command, all commands have to be valid
-                string regex = "(([lrsud]{1})([ ]{1}))+?";
+                var regex = "(([lrsud]{1})([ ]{1}))+?";
                 msg += " "; //add a space to the end for the regex
-                MatchCollection matches = Regex.Matches(msg, regex);
+                var matches = Regex.Matches(msg, regex);
                 //means we only have one letter commands
 
                 if (msg == "l" || msg == "r" || msg == "u" || msg == "d" || msg == "s")
@@ -64,15 +64,15 @@ namespace InternetClawMachine.Games
                 else
                 {
                     //check if it's a stringed command, all commands have to be valid
-                    string regex = "(([lrud]{1}|(s[1-4]{0,1}){1})([ ]{1}))+?";
+                    var regex = "(([lrud]{1}|(s[1-4]{0,1}){1})([ ]{1}))+?";
                     msg += " "; //add a space to the end for the regex
-                    MatchCollection matches = Regex.Matches(msg, regex);
+                    var matches = Regex.Matches(msg, regex);
                     //means we only have one letter commands
-                    int total = 0;
+                    var total = 0;
                     foreach (Match match in matches)
                     {
                         //grab the next direction
-                        GroupCollection data = match.Groups;
+                        var data = match.Groups;
                         var command = data[2];
                         total += command.Length + 1;
                     }
@@ -84,7 +84,7 @@ namespace InternetClawMachine.Games
                             foreach (Match match in matches)
                             {
                                 //grab the next direction
-                                GroupCollection data = match.Groups;
+                                var data = match.Groups;
                                 var command = data[2];
                                 HandleSingleCommand(username, command.Value.Trim());
 
@@ -103,7 +103,7 @@ namespace InternetClawMachine.Games
 
         private void HandleSingleCommand(string username, string message)
         {
-            ClawDirection cmd = ClawDirection.NA;
+            var cmd = ClawDirection.NA;
             var command = message.ToLower().Substring(0, 1);
             switch (command)
             {
@@ -182,7 +182,7 @@ namespace InternetClawMachine.Games
         {
             GameModeTimer.Reset();
             GameModeTimer.Start();
-            ChatClient.SendMessage(Configuration.Channel, String.Format("Water Queue mode has begun! Type {0}help for commands. Type {0}play to opt-in to the player queue.", Configuration.CommandPrefix));
+            ChatClient.SendMessage(Configuration.Channel, string.Format("Water Queue mode has begun! Type {0}help for commands. Type {0}play to opt-in to the player queue.", Configuration.CommandPrefix));
             PlayerQueue.AddSinglePlayer(username);
             //RunCommandQueue();
             StartRound(PlayerQueue.GetNextPlayer());
@@ -215,7 +215,7 @@ namespace InternetClawMachine.Games
                 additionalTime = Configuration.WaterGunSettings.ReturnHomeTime - (GameModeTimer.ElapsedMilliseconds);
             }
 
-            ChatClient.SendMessage(Configuration.Channel, String.Format("@{0} has control for the next {1} seconds. You have {2} seconds to start playing", PlayerQueue.CurrentPlayer, Configuration.WaterGunSettings.SinglePlayerDuration + (additionalTime / 1000), Configuration.WaterGunSettings.SinglePlayerQueueNoCommandDuration + (additionalTime / 1000)));
+            ChatClient.SendMessage(Configuration.Channel, string.Format("@{0} has control for the next {1} seconds. You have {2} seconds to start playing", PlayerQueue.CurrentPlayer, Configuration.WaterGunSettings.SinglePlayerDuration + (additionalTime / 1000), Configuration.WaterGunSettings.SinglePlayerQueueNoCommandDuration + (additionalTime / 1000)));
 
             Task.Run(async delegate ()
             {
@@ -225,7 +225,7 @@ namespace InternetClawMachine.Games
                 if (!Configuration.WaterGunSettings.CurrentPlayerHasPlayed)
                 {
                     //we need a check if they changed game mode or something weird happened
-                    long longVal = GameLoopCounterValue;
+                    var longVal = GameLoopCounterValue;
                     if (PlayerQueue.CurrentPlayer.ToLower() == username.ToLower())
                     {
                         PlayerQueue.RemoveSinglePlayer(username);
@@ -246,7 +246,7 @@ namespace InternetClawMachine.Games
                     //      it moves to second player, but this timer is going for the first player,
                     //      it then skips back to the first player but they're putting their commands in so slowly the first timer just finished
                     //      and the checks below this match their details it will end their turn early
-                    long loopVal = GameLoopCounterValue;
+                    var loopVal = GameLoopCounterValue;
                     //we need a check if they changed game mode or something weird happened
                     var args = new RoundEndedArgs() { Username = username, GameLoopCounterValue = loopVal, GameMode = GameMode };
 

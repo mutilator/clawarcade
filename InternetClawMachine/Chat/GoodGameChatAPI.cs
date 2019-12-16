@@ -79,10 +79,7 @@ namespace InternetClawMachine
             var data = e.Data;
             _jsonSerializerSettings = new JsonSerializerSettings();
             var response = JsonConvert.DeserializeObject<GgReturnJsonObject>(data, _jsonSerializerSettings);
-            if (OnSendReceiveData != null)
-            {
-                OnSendReceiveData(this, new OnSendReceiveDataArgs() { Data = data, Direction = SendReceiveDirection.RECEIVED });
-            }
+            OnSendReceiveData?.Invoke(this, new OnSendReceiveDataArgs() { Data = data, Direction = SendReceiveDirection.RECEIVED });
 
             switch (response.Type)
             {
@@ -186,10 +183,7 @@ namespace InternetClawMachine
         {
             _socket.SendAsync(message, delegate (bool s)
             {
-                if (OnSendReceiveData != null)
-                {
-                    OnSendReceiveData(this, new OnSendReceiveDataArgs() { Data = message, Direction = SendReceiveDirection.SENT });
-                }
+                OnSendReceiveData?.Invoke(this, new OnSendReceiveDataArgs() { Data = message, Direction = SendReceiveDirection.SENT });
             });
         }
 
@@ -222,18 +216,12 @@ namespace InternetClawMachine
 
         private void RunPartReceived(string channelId, string id, string username)
         {
-            if (OnUserLeft != null)
-            {
-                OnUserLeft(this, new OnUserLeftArgs() { Username = username, Channel = channelId });
-            }
+            OnUserLeft?.Invoke(this, new OnUserLeftArgs() { Username = username, Channel = channelId });
         }
 
         private void RunJoinReceived(string channel, string userid, string username)
         {
-            if (OnUserJoined != null)
-            {
-                OnUserJoined(this, new OnUserJoinedArgs() { Username = username, Channel = channel });
-            }
+            OnUserJoined?.Invoke(this, new OnUserJoinedArgs() { Username = username, Channel = channel });
 
             _currentUserList.Add(new GgUserObject() { Id = userid, Username = username });
         }
@@ -282,27 +270,18 @@ namespace InternetClawMachine
         private void RunJoinReceived(JToken data)
         {
             var responseData = JsonConvert.DeserializeObject<GgJoinChannelResponse>(data.ToString(), _jsonSerializerSettings);
-            if (OnJoinedChannel != null)
-            {
-                OnJoinedChannel(this, new OnJoinedChannelArgs() { BotUsername = responseData.Name, Channel = responseData.ChannelName });
-            }
+            OnJoinedChannel?.Invoke(this, new OnJoinedChannelArgs() { BotUsername = responseData.Name, Channel = responseData.ChannelName });
             _currentUserList.Add(new GgUserObject() { Id = responseData.UserId, Username = responseData.Name });
         }
 
         private void _socket_OnError(object sender, ErrorEventArgs e)
         {
-            if (OnConnectionError != null)
-            {
-                OnConnectionError(this, new OnConnectionErrorArgs() { Error = e.Message });
-            }
+            OnConnectionError?.Invoke(this, new OnConnectionErrorArgs() { Error = e.Message });
         }
 
         private void _socket_OnClose(object sender, CloseEventArgs e)
         {
-            if (OnDisconnected != null)
-            {
-                OnDisconnected(this, new OnDisconnectedArgs() { BotUsername = Username });
-            }
+            OnDisconnected?.Invoke(this, new OnDisconnectedArgs() { BotUsername = Username });
         }
 
         public void Reconnect()

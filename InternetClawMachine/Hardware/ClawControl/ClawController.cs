@@ -167,8 +167,8 @@ namespace InternetClawMachine.Hardware.ClawControl
         public bool Connect()
         {
             // Establish the remote endpoint for the socket.
-            IPAddress ipAddress = System.Net.IPAddress.Parse(IpAddress);
-            IPEndPoint remoteEp = new IPEndPoint(ipAddress, Port);
+            var ipAddress = System.Net.IPAddress.Parse(IpAddress);
+            var remoteEp = new IPEndPoint(ipAddress, Port);
 
             return Connect(remoteEp);
         }
@@ -188,9 +188,10 @@ namespace InternetClawMachine.Hardware.ClawControl
 
             // Create a TCP/IP  socket.
             _workSocket = new Socket(remoteEp.AddressFamily,
-                SocketType.Stream, ProtocolType.Tcp);
-
-            _workSocket.ReceiveTimeout = 2000;
+                SocketType.Stream, ProtocolType.Tcp)
+            {
+                ReceiveTimeout = 2000
+            };
 
             try
             {
@@ -200,7 +201,7 @@ namespace InternetClawMachine.Hardware.ClawControl
                     return false;
 
                 _socketReader = new SocketAsyncEventArgs();
-                byte[] buffer = new byte[1024];
+                var buffer = new byte[1024];
                 _socketReader.SetBuffer(buffer, 0, 1024);
                 _socketReader.Completed += E_Completed;
                 StartReader();
@@ -211,7 +212,7 @@ namespace InternetClawMachine.Hardware.ClawControl
             }
             catch (Exception ex)
             {
-                string error = String.Format("ERROR {0} {1}", ex.Message, ex.ToString());
+                var error = string.Format("ERROR {0} {1}", ex.Message, ex.ToString());
                 Logger.WriteLog(Logger.ErrorLog, error);
             }
             return false;
@@ -230,7 +231,7 @@ namespace InternetClawMachine.Hardware.ClawControl
             }
             catch (Exception ex)
             {
-                string error = String.Format("ERROR {0} {1}", ex.Message, ex.ToString());
+                var error = string.Format("ERROR {0} {1}", ex.Message, ex.ToString());
                 Logger.WriteLog(Logger.ErrorLog, error);
             }
         }
@@ -243,7 +244,7 @@ namespace InternetClawMachine.Hardware.ClawControl
             }
             catch (Exception ex)
             {
-                string error = String.Format("ERROR {0} {1}", ex.Message, ex.ToString());
+                var error = string.Format("ERROR {0} {1}", ex.Message, ex.ToString());
                 Logger.WriteLog(Logger.ErrorLog, error);
             }
         }
@@ -313,13 +314,11 @@ namespace InternetClawMachine.Hardware.ClawControl
                 switch (resp)
                 {
                     case ClawEvents.EVENT_SENSOR1:
-                        if (OnBreakSensorTripped != null)
-                            OnBreakSensorTripped(this, new EventArgs());
+                        OnBreakSensorTripped?.Invoke(this, new EventArgs());
                         break;
 
                     case ClawEvents.EVENT_RESETBUTTON:
-                        if (OnResetButtonPressed != null)
-                            OnResetButtonPressed(this, new EventArgs());
+                        OnResetButtonPressed?.Invoke(this, new EventArgs());
                         break;
 
                     case ClawEvents.EVENT_PONG:
@@ -463,17 +462,17 @@ namespace InternetClawMachine.Hardware.ClawControl
                 throw new Exception("Not Connected");
             try
             {
-                byte[] bytes = new byte[1024];
+                var bytes = new byte[1024];
                 // Encode the data string into a byte array.
-                byte[] msg = Encoding.ASCII.GetBytes(command + "\n");
+                var msg = Encoding.ASCII.GetBytes(command + "\n");
                 Logger.WriteLog(Logger.MachineLog, "SEND: " + command);
                 Console.WriteLine("SEND: " + command);
                 // Send the data through the socket.
-                int bytesSent = _workSocket.Send(msg);
+                var bytesSent = _workSocket.Send(msg);
             }
             catch (Exception ex)
             {
-                string error = String.Format("ERROR {0} {1}", ex.Message, ex.ToString());
+                var error = string.Format("ERROR {0} {1}", ex.Message, ex.ToString());
                 Logger.WriteLog(Logger.ErrorLog, error);
             }
 
@@ -486,14 +485,14 @@ namespace InternetClawMachine.Hardware.ClawControl
                 throw new Exception("Not Connected");
             try
             {
-                byte[] bytes = new byte[1024];
+                var bytes = new byte[1024];
                 // Encode the data string into a byte array.
-                byte[] msg = Encoding.ASCII.GetBytes(command + "\n");
+                var msg = Encoding.ASCII.GetBytes(command + "\n");
                 Logger.WriteLog(Logger.MachineLog, "SEND: " + command);
                 Console.WriteLine("SEND: " + command);
                 // Send the data through the socket.
                 _lastCommandResponse = null;
-                int bytesSent = _workSocket.Send(msg);
+                var bytesSent = _workSocket.Send(msg);
 
                 //This is just waiting for a response in the hope that it pertains to your request and not an event.
                 while (_lastCommandResponse == null)
@@ -504,7 +503,7 @@ namespace InternetClawMachine.Hardware.ClawControl
             }
             catch (Exception ex)
             {
-                string error = String.Format("ERROR {0} {1}", ex.Message, ex.ToString());
+                var error = string.Format("ERROR {0} {1}", ex.Message, ex.ToString());
                 Logger.WriteLog(Logger.ErrorLog, error);
             }
 
@@ -542,7 +541,7 @@ namespace InternetClawMachine.Hardware.ClawControl
         {
             if (IsConnected)
             {
-                string dir = "s";
+                var dir = "s";
                 switch (enumDir)
                 {
                     case MovementDirection.FORWARD:
@@ -651,8 +650,8 @@ namespace InternetClawMachine.Hardware.ClawControl
 
         public void SetClawPower(int percent)
         {
-            int power = (int)(((double)percent / 100) * 255);
-            var str = String.Format("uno p {0}", power);
+            var power = (int)(((double)percent / 100) * 255);
+            var str = string.Format("uno p {0}", power);
             Console.WriteLine(str);
             SendCommandAsync(str);
         }
@@ -675,12 +674,12 @@ namespace InternetClawMachine.Hardware.ClawControl
 
         public void Strobe(int red, int blue, int green, int strobeCount, int strobeDelay)
         {
-            SendCommandAsync(String.Format("strobe {0} {1} {2} {3} {4} 0", red, blue, green, strobeCount, strobeDelay));
+            SendCommandAsync(string.Format("strobe {0} {1} {2} {3} {4} 0", red, blue, green, strobeCount, strobeDelay));
         }
 
         public void DualStrobe(int red, int blue, int green, int red2, int blue2, int green2, int strobeCount, int strobeDelay)
         {
-            SendCommandAsync(String.Format("uno ds {0}:{1}:{2} {3}:{4}:{5} {6} {7} 0", red, blue, green, red2, blue2, green2, strobeCount, strobeDelay));
+            SendCommandAsync(string.Format("uno ds {0}:{1}:{2} {3}:{4}:{5} {6} {7} 0", red, blue, green, red2, blue2, green2, strobeCount, strobeDelay));
         }
     }
 }

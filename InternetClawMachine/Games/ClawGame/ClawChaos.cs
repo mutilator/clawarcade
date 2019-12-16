@@ -20,7 +20,7 @@ namespace InternetClawMachine.Games.ClawGame
 
         public override void HandleMessage(string username, string message)
         {
-            ClawDirection cmd = ClawDirection.NA;
+            var cmd = ClawDirection.NA;
             switch (message.ToLower())
             {
                 case "stop":
@@ -60,7 +60,7 @@ namespace InternetClawMachine.Games.ClawGame
                     cmd = ClawDirection.DOWN;
                     var usr = username;
 
-                    SessionWinTracker user = SessionWinTracker.FirstOrDefault(u => u.Username == username);
+                    var user = SessionWinTracker.FirstOrDefault(u => u.Username == username);
                     if (user != null)
                         user = SessionWinTracker.First(u => u.Username == username);
                     else
@@ -81,7 +81,7 @@ namespace InternetClawMachine.Games.ClawGame
                     }
                     catch (Exception ex)
                     {
-                        string error = String.Format("ERROR {0} {1}", ex.Message, ex.ToString());
+                        var error = string.Format("ERROR {0} {1}", ex.Message, ex.ToString());
                         Logger.WriteLog(Logger.ErrorLog, error);
                     }
 
@@ -108,7 +108,7 @@ namespace InternetClawMachine.Games.ClawGame
         {
             GameModeTimer.Reset();
             GameModeTimer.Start();
-            ChatClient.SendMessage(Configuration.Channel, String.Format("Chaos mode has begun! Type {0}help for commands.", Configuration.CommandPrefix));
+            ChatClient.SendMessage(Configuration.Channel, string.Format("Chaos mode has begun! Type {0}help for commands.", Configuration.CommandPrefix));
             //RunCommandQueue();
             StartRound(username);
         }

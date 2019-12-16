@@ -157,7 +157,7 @@ namespace InternetClawMachine
 
         private void Client_OnUserLeft(object sender, OnUserLeftArgs e)
         {
-            string message = String.Format("{0} left the channel", e.Username);
+            var message = string.Format("{0} left the channel", e.Username);
             LogChat("#" + e.Channel, message);
             Configuration.UserList.Remove(e.Username);
             Dispatcher.BeginInvoke(new Action(() =>
@@ -168,7 +168,7 @@ namespace InternetClawMachine
 
         private void Client_OnUserJoined(object sender, OnUserJoinedArgs e)
         {
-            string message = String.Format("{0} joined the channel", e.Username);
+            var message = string.Format("{0} joined the channel", e.Username);
             LogChat("#" + e.Channel, message);
             Configuration.UserList.Add(e.Username);
             Dispatcher.BeginInvoke(new Action(() =>
@@ -185,7 +185,7 @@ namespace InternetClawMachine
                 foreach (var user in e.Users)
                 {
                     Configuration.UserList.Remove(user);
-                    string message = String.Format("{0} joined the channel", user);
+                    var message = string.Format("{0} joined the channel", user);
                     LogChat("#" + e.Channel, message);
                     lstViewers.Items.Add(user);
                 }
@@ -194,7 +194,7 @@ namespace InternetClawMachine
 
         private void Client_OnMessageSent(object sender, OnMessageSentArgs e)
         {
-            var message = String.Format("<{0}> {1}", e.SentMessage.DisplayName, e.SentMessage.Message);
+            var message = string.Format("<{0}> {1}", e.SentMessage.DisplayName, e.SentMessage.Message);
             AddDebugText(message);
 
             LogChat("#" + e.SentMessage.Channel, message);
@@ -230,7 +230,7 @@ namespace InternetClawMachine
 
         private void Client_OnJoinedChannel(object sender, OnJoinedChannelArgs e)
         {
-            string message = String.Format("{0} joined the channel", e.BotUsername);
+            var message = string.Format("{0} joined the channel", e.BotUsername);
             LogChat("#" + e.Channel, message);
             //Client.SendMessage(Configuration.Channel, "Reconnected!");
         }
@@ -239,7 +239,7 @@ namespace InternetClawMachine
         {
             try
             {
-                string message = String.Format("<{0}> {1}", e.WhisperMessage.Username, e.WhisperMessage.Message);
+                var message = string.Format("<{0}> {1}", e.WhisperMessage.Username, e.WhisperMessage.Message);
                 LogChat(e.WhisperMessage.Username, message);
 
                 if (Configuration.AdminUsers.Contains(e.WhisperMessage.Username))
@@ -275,22 +275,22 @@ namespace InternetClawMachine
         private void Client_OnNewSubscriber(object sender, OnNewSubscriberArgs e)
         {
             if (e.Subscriber.SubscriptionPlan == TwitchLib.Client.Enums.SubscriptionPlan.Prime)
-                Client.SendMessage(Configuration.Channel, String.Format("Welcome {0} to the subscribers! So kind of you to use your Twitch Prime on this channel! Use {1}help for your new sub only commands.", e.Subscriber.DisplayName, Configuration.CommandPrefix));
+                Client.SendMessage(Configuration.Channel, string.Format("Welcome {0} to the subscribers! So kind of you to use your Twitch Prime on this channel! Use {1}help for your new sub only commands.", e.Subscriber.DisplayName, Configuration.CommandPrefix));
             else
-                Client.SendMessage(Configuration.Channel, String.Format("Welcome {0} to the subscribers! Use {1}help for your new sub only commands.", e.Subscriber.DisplayName, Configuration.CommandPrefix));
+                Client.SendMessage(Configuration.Channel, string.Format("Welcome {0} to the subscribers! Use {1}help for your new sub only commands.", e.Subscriber.DisplayName, Configuration.CommandPrefix));
 
-            string message = String.Format("NEW SUBSCRIBER {0}", e.Subscriber.DisplayName);
+            var message = string.Format("NEW SUBSCRIBER {0}", e.Subscriber.DisplayName);
             LogChat("#" + e.Subscriber.RoomId, message);
         }
 
         private void Client_OnReSubscriber(object sender, OnReSubscriberArgs e)
         {
             if (e.ReSubscriber.SubscriptionPlan == TwitchLib.Client.Enums.SubscriptionPlan.Prime)
-                Client.SendMessage(Configuration.Channel, String.Format("Welcome {0} to the subscribers! So kind of you to use your Twitch Prime on this channel! Thank you for your {1} months of support!", e.ReSubscriber.DisplayName, e.ReSubscriber.MsgParamCumulativeMonths));
+                Client.SendMessage(Configuration.Channel, string.Format("Welcome {0} to the subscribers! So kind of you to use your Twitch Prime on this channel! Thank you for your {1} months of support!", e.ReSubscriber.DisplayName, e.ReSubscriber.MsgParamCumulativeMonths));
             else
-                Client.SendMessage(Configuration.Channel, String.Format("Welcome {0} to the subscribers! Thank you for your support for {1} months!", e.ReSubscriber.DisplayName, e.ReSubscriber.MsgParamCumulativeMonths));
+                Client.SendMessage(Configuration.Channel, string.Format("Welcome {0} to the subscribers! Thank you for your support for {1} months!", e.ReSubscriber.DisplayName, e.ReSubscriber.MsgParamCumulativeMonths));
 
-            string message = String.Format("NEW RESUBSCRIBER {0}", e.ReSubscriber.DisplayName);
+            var message = string.Format("NEW RESUBSCRIBER {0}", e.ReSubscriber.DisplayName);
             LogChat("#" + e.ReSubscriber.RoomId, message);
         }
 
@@ -339,7 +339,7 @@ namespace InternetClawMachine
         private void HandleChatCommand(string channel, string username, string chatMessage, bool isSubscriber)
         {
             username = username.ToLower();
-            var message = String.Format("<{0}> {1}", username, chatMessage);
+            var message = string.Format("<{0}> {1}", username, chatMessage);
             LogChat("#" + channel, message);
 
             var commandText = chatMessage.Substring(1);
@@ -356,12 +356,12 @@ namespace InternetClawMachine
                     if (DatabaseFunctions.ShouldReceiveDailyBucksBonus(Configuration, username))
                     {
                         DatabaseFunctions.AddStreamBuxBalance(Configuration, username, StreamBuxTypes.JOIN_STREAK_BONUS, Configuration.GetStreamBuxCost(StreamBuxTypes.JOIN_STREAK_BONUS));
-                        int bonus = Configuration.GetStreamBuxCost(StreamBuxTypes.DAILY_JOIN) + Configuration.GetStreamBuxCost(StreamBuxTypes.JOIN_STREAK_BONUS);
-                        Client.SendMessage(Configuration.Channel, String.Format("{0} just received 🍄{1} for playing today and 🍄{2} streak bonus.", username, Configuration.GetStreamBuxCost(StreamBuxTypes.DAILY_JOIN), Configuration.GetStreamBuxCost(StreamBuxTypes.JOIN_STREAK_BONUS)));
+                        var bonus = Configuration.GetStreamBuxCost(StreamBuxTypes.DAILY_JOIN) + Configuration.GetStreamBuxCost(StreamBuxTypes.JOIN_STREAK_BONUS);
+                        Client.SendMessage(Configuration.Channel, string.Format("{0} just received 🍄{1} for playing today and 🍄{2} streak bonus.", username, Configuration.GetStreamBuxCost(StreamBuxTypes.DAILY_JOIN), Configuration.GetStreamBuxCost(StreamBuxTypes.JOIN_STREAK_BONUS)));
                     }
                     else
                     {
-                        Client.SendMessage(Configuration.Channel, String.Format("{0} just received 🍄{1} for playing today.", username, Configuration.GetStreamBuxCost(StreamBuxTypes.DAILY_JOIN)));
+                        Client.SendMessage(Configuration.Channel, string.Format("{0} just received 🍄{1} for playing today.", username, Configuration.GetStreamBuxCost(StreamBuxTypes.DAILY_JOIN)));
                     }
                 }
             }
@@ -383,7 +383,7 @@ namespace InternetClawMachine
                         if (lastSeen > 0)
                         {
                             var seenTime = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc).AddSeconds(lastSeen);
-                            Client.SendMessage(Configuration.Channel, String.Format("{0} was last seen playing on {1}-{2}-{3}!", parms.Trim(), seenTime.Year, seenTime.Month, seenTime.Day));
+                            Client.SendMessage(Configuration.Channel, string.Format("{0} was last seen playing on {1}-{2}-{3}!", parms.Trim(), seenTime.Year, seenTime.Month, seenTime.Day));
                         }
                     }
                     break;
@@ -393,8 +393,8 @@ namespace InternetClawMachine
                     if (args.Length < 2)
                     {
                         //list options
-                        Client.SendMessage(Configuration.Channel, String.Format("Syntax: {0}redeem <perk> <args>", Configuration.CommandPrefix));
-                        Client.SendMessage(Configuration.Channel, String.Format("Options: scare (🍄{0}), scene (🍄{1}), belt (🍄{2}), rename (🍄{3})", Configuration.GetStreamBuxCost(StreamBuxTypes.SCARE) * -1, Configuration.GetStreamBuxCost(StreamBuxTypes.SCENE) * -1, Configuration.GetStreamBuxCost(StreamBuxTypes.BELT) * -1, Configuration.GetStreamBuxCost(StreamBuxTypes.RENAME) * -1));
+                        Client.SendMessage(Configuration.Channel, string.Format("Syntax: {0}redeem <perk> <args>", Configuration.CommandPrefix));
+                        Client.SendMessage(Configuration.Channel, string.Format("Options: scare (🍄{0}), scene (🍄{1}), belt (🍄{2}), rename (🍄{3})", Configuration.GetStreamBuxCost(StreamBuxTypes.SCARE) * -1, Configuration.GetStreamBuxCost(StreamBuxTypes.SCENE) * -1, Configuration.GetStreamBuxCost(StreamBuxTypes.BELT) * -1, Configuration.GetStreamBuxCost(StreamBuxTypes.RENAME) * -1));
                         break;
                     }
 
@@ -437,7 +437,7 @@ namespace InternetClawMachine
                     {
                         _lastRefillRequest = SessionTimer.ElapsedMilliseconds;
                         Emailer.SendEmail(Configuration.EmailAddress, "Claw needs a refill - " + username, "REFILL PLZ");
-                        Client.SendMessage(Configuration.Channel, String.Format("Summoning my master to reload me, one moment please."));
+                        Client.SendMessage(Configuration.Channel, string.Format("Summoning my master to reload me, one moment please."));
                     }
                     break;
 
@@ -463,14 +463,14 @@ namespace InternetClawMachine
                     }
                     else
                     {
-                        Client.SendMessage(Configuration.Channel, String.Format("I need {0} more votes before entering game voting mode", Configuration.VoteSettings.VotesNeededForVotingMode - Game.Votes.Count));
+                        Client.SendMessage(Configuration.Channel, string.Format("I need {0} more votes before entering game voting mode", Configuration.VoteSettings.VotesNeededForVotingMode - Game.Votes.Count));
                     }
                     break;
 
                 case "bux":
                     var user = username;
                     var clawBux = DatabaseFunctions.GetStreamBuxBalance(Configuration, user);
-                    Client.SendMessage(Configuration.Channel, String.Format("{0}'s balance: 🍄{1}", user, clawBux));
+                    Client.SendMessage(Configuration.Channel, string.Format("{0}'s balance: 🍄{1}", user, clawBux));
                     break;
 
                 case "mystats":
@@ -490,8 +490,8 @@ namespace InternetClawMachine
                                 }
                             }
                             Configuration.RecordsDatabase.Open();
-                            string sql = "SELECT count(*) FROM wins WHERE name = @username";
-                            SQLiteCommand command = new SQLiteCommand(sql, Configuration.RecordsDatabase);
+                            var sql = "SELECT count(*) FROM wins WHERE name = @username";
+                            var command = new SQLiteCommand(sql, Configuration.RecordsDatabase);
                             command.Parameters.Add(new SQLiteParameter("@username", user));
                             var wins = command.ExecuteScalar().ToString();
 
@@ -505,7 +505,7 @@ namespace InternetClawMachine
                             command.Parameters.Add(new SQLiteParameter("@username", user));
                             var moves = command.ExecuteScalar().ToString();
 
-                            int i = 0;
+                            var i = 0;
                             var outputTop = "";
 
                             sql = "select p.name, count(*) FROM wins w INNER JOIN plushie p ON w.PlushID = p.ID WHERE w.name = @username GROUP BY w.plushID ORDER BY count(*) DESC";
@@ -525,13 +525,13 @@ namespace InternetClawMachine
                             Configuration.RecordsDatabase.Close();
 
                             clawBux = DatabaseFunctions.GetStreamBuxBalance(Configuration, user);
-                            Client.SendMessage(Configuration.Channel, String.Format("{0} has {1} wins over {2} sessions using {3} moves to get them. Claw Bux - 🍄{4}", user, wins, sessions, moves, clawBux));
-                            Client.SendMessage(Configuration.Channel, String.Format("Top {0} wins.", i));
-                            Client.SendMessage(Configuration.Channel, String.Format("{0}", outputTop));
+                            Client.SendMessage(Configuration.Channel, string.Format("{0} has {1} wins over {2} sessions using {3} moves to get them. Claw Bux - 🍄{4}", user, wins, sessions, moves, clawBux));
+                            Client.SendMessage(Configuration.Channel, string.Format("Top {0} wins.", i));
+                            Client.SendMessage(Configuration.Channel, string.Format("{0}", outputTop));
                         }
                         catch (Exception ex)
                         {
-                            string error = String.Format("ERROR {0} {1}", ex.Message, ex.ToString());
+                            var error = string.Format("ERROR {0} {1}", ex.Message, ex.ToString());
                             Logger.WriteLog(Logger.ErrorLog, error);
                             Configuration.LoadDatebase();
                         }
@@ -547,13 +547,13 @@ namespace InternetClawMachine
 
                             var i = 0;
                             var outNumWins = i;
-                            List<string> outputWins = new List<string>();
+                            var outputWins = new List<string>();
 
                             //week
-                            string desc = " this week";
-                            string timestart = timestart = (Helpers.GetEpoch() - (Int32)(DateTime.UtcNow.Subtract(DateTime.Now.StartOfWeek(DayOfWeek.Monday)).TotalSeconds)).ToString();
+                            var desc = " this week";
+                            string timestart = timestart = (Helpers.GetEpoch() - (int)(DateTime.UtcNow.Subtract(DateTime.Now.StartOfWeek(DayOfWeek.Monday)).TotalSeconds)).ToString();
 
-                            string leadersql = "SELECT name, count(*) FROM wins WHERE datetime >= @timestart GROUP BY name ORDER BY count(*) DESC";
+                            var leadersql = "SELECT name, count(*) FROM wins WHERE datetime >= @timestart GROUP BY name ORDER BY count(*) DESC";
                             param = chatMessage.Split(' ');
 
                             if (param.Length == 2)
@@ -567,17 +567,17 @@ namespace InternetClawMachine
 
                                     case "month":
                                         desc = " this month";
-                                        timestart = (Helpers.GetEpoch() - (Int32)(DateTime.UtcNow.Subtract(new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1)).TotalSeconds)).ToString();
+                                        timestart = (Helpers.GetEpoch() - (int)(DateTime.UtcNow.Subtract(new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1)).TotalSeconds)).ToString();
                                         break;
 
                                     case "day":
                                         desc = " today";
-                                        timestart = (Helpers.GetEpoch() - (Int32)(DateTime.UtcNow.Subtract(new DateTime(DateTime.Today.Year, DateTime.Today.Month, DateTime.Today.Day, 0, 0, 0)).TotalSeconds)).ToString();
+                                        timestart = (Helpers.GetEpoch() - (int)(DateTime.UtcNow.Subtract(new DateTime(DateTime.Today.Year, DateTime.Today.Month, DateTime.Today.Day, 0, 0, 0)).TotalSeconds)).ToString();
                                         break;
 
                                     default: //week
                                         desc = " this week";
-                                        timestart = (Helpers.GetEpoch() - (Int32)(DateTime.UtcNow.Subtract(DateTime.Now.StartOfWeek(DayOfWeek.Monday)).TotalSeconds)).ToString();
+                                        timestart = (Helpers.GetEpoch() - (int)(DateTime.UtcNow.Subtract(DateTime.Now.StartOfWeek(DayOfWeek.Monday)).TotalSeconds)).ToString();
                                         break;
                                 }
                             }
@@ -596,13 +596,13 @@ namespace InternetClawMachine
                             }
                             Configuration.RecordsDatabase.Close();
 
-                            Client.SendMessage(Configuration.Channel, String.Format("Top {0} winners {1}.", outNumWins, desc));
+                            Client.SendMessage(Configuration.Channel, string.Format("Top {0} winners {1}.", outNumWins, desc));
                             foreach (var win in outputWins)
                                 Client.SendMessage(Configuration.Channel, win);
                         }
                         catch (Exception ex)
                         {
-                            string error = String.Format("ERROR {0} {1}", ex.Message, ex.ToString());
+                            var error = string.Format("ERROR {0} {1}", ex.Message, ex.ToString());
                             Logger.WriteLog(Logger.ErrorLog, error);
 
                             Configuration.LoadDatebase();
@@ -673,8 +673,10 @@ namespace InternetClawMachine
             {
                 Configuration.Channel = Configuration.GoodGameSettings.Channel;
                 Configuration.Username = Configuration.GoodGameSettings.Username;
-                Client = new GoodGameChatApi();
-                Client.Username = Configuration.Username;
+                Client = new GoodGameChatApi
+                {
+                    Username = Configuration.Username
+                };
                 ((GoodGameChatApi)Client).Channel = Configuration.Channel;
                 ((GoodGameChatApi)Client).AuthToken = Configuration.GoodGameSettings.AuthToken;
                 ((GoodGameChatApi)Client).UserId = Configuration.GoodGameSettings.UserId;
@@ -705,9 +707,11 @@ namespace InternetClawMachine
 
             LogChat("#" + Configuration.Channel, "SESSION START");
 
-            _stupidClawCam = new System.Timers.Timer();
-            _stupidClawCam.AutoReset = true;
-            _stupidClawCam.Interval = 500;
+            _stupidClawCam = new System.Timers.Timer
+            {
+                AutoReset = true,
+                Interval = 500
+            };
             _stupidClawCam.Elapsed += _stupidClawCam_Elapsed;
             _stupidClawCam.Start();
 
@@ -797,13 +801,13 @@ namespace InternetClawMachine
 
         public static bool PingHost(string nameOrAddress)
         {
-            bool pingable = false;
+            var pingable = false;
             Ping pinger = null;
 
             try
             {
                 pinger = new Ping();
-                PingReply reply = pinger.Send(nameOrAddress);
+                var reply = pinger.Send(nameOrAddress);
                 pingable = reply.Status == IPStatus.Success;
             }
             catch (PingException)
@@ -870,12 +874,12 @@ namespace InternetClawMachine
 
         private void ShowTwitterMessage()
         {
-            Client.SendMessage(Configuration.Channel, String.Format("Follow us on twitter @ClawArcade {0}", Configuration.TwitterUrl));
+            Client.SendMessage(Configuration.Channel, string.Format("Follow us on twitter @ClawArcade {0}", Configuration.TwitterUrl));
         }
 
         private void ShowDiscordMessage()
         {
-            Client.SendMessage(Configuration.Channel, String.Format("Join the twitch plays community discord @ {0}", Configuration.DiscordUrl));
+            Client.SendMessage(Configuration.Channel, string.Format("Join the twitch plays community discord @ {0}", Configuration.DiscordUrl));
         }
 
         private void Client_OnMessageReceived(object sender, OnMessageReceivedArgs e)
@@ -891,7 +895,7 @@ namespace InternetClawMachine
             if (!Configuration.UserList.Contains(e.ChatMessage.Username))
                 Configuration.UserList.Add(e.ChatMessage.Username);
 
-            var message = String.Format("<{0}> {1}", e.ChatMessage.Username, e.ChatMessage.Message);
+            var message = string.Format("<{0}> {1}", e.ChatMessage.Username, e.ChatMessage.Message);
             AddDebugText(message);
 
             LogChat("#" + e.ChatMessage.Channel, message);
@@ -938,23 +942,23 @@ namespace InternetClawMachine
 
         private void HandleBitsMessage(OnMessageReceivedArgs e)
         {
-            int bits = e.ChatMessage.Bits;
+            var bits = e.ChatMessage.Bits;
 
             if (bits > 1000)
             {
-                Client.SendMessage(Configuration.Channel, String.Format("Time for an upgrade, thanks for the bits {0}!", e.ChatMessage.DisplayName));
+                Client.SendMessage(Configuration.Channel, string.Format("Time for an upgrade, thanks for the bits {0}!", e.ChatMessage.DisplayName));
             }
             else if (bits > 500)
             {
-                Client.SendMessage(Configuration.Channel, String.Format("Someone really loves the claw, thanks for the bits {0}!", e.ChatMessage.DisplayName));
+                Client.SendMessage(Configuration.Channel, string.Format("Someone really loves the claw, thanks for the bits {0}!", e.ChatMessage.DisplayName));
             }
             else if (bits % 25 == 0)
             {
-                Client.SendMessage(Configuration.Channel, String.Format("More quarters for the machine, thanks {0}!", e.ChatMessage.DisplayName));
+                Client.SendMessage(Configuration.Channel, string.Format("More quarters for the machine, thanks {0}!", e.ChatMessage.DisplayName));
             }
             else
             {
-                Client.SendMessage(Configuration.Channel, String.Format("Shout out to {0} for their love of the claw machine!", e.ChatMessage.DisplayName));
+                Client.SendMessage(Configuration.Channel, string.Format("Shout out to {0} for their love of the claw machine!", e.ChatMessage.DisplayName));
             }
         }
 
@@ -1022,7 +1026,7 @@ namespace InternetClawMachine
             }
             catch (Exception ex)
             {
-                string error = String.Format("ERROR {0} {1}", ex.Message, ex.ToString());
+                var error = string.Format("ERROR {0} {1}", ex.Message, ex.ToString());
                 Logger.WriteLog(Logger.ErrorLog, error);
             }
         }
@@ -1212,8 +1216,10 @@ namespace InternetClawMachine
             Game.StartGame(username);
             if (Game is ClawGame)
             {
-                Binding myBinding = new Binding("PlushieTags");
-                myBinding.Source = ((ClawGame)Game);
+                var myBinding = new Binding("PlushieTags")
+                {
+                    Source = ((ClawGame)Game)
+                };
                 // Bind the new data source to the myText TextBlock control's Text dependency property.
                 lstPlushes.SetBinding(ListView.ItemsSourceProperty, myBinding);
             }
@@ -1713,14 +1719,16 @@ namespace InternetClawMachine
                 //chat watchdog
                 if (ConnectionWatchDog == null)
                 {
-                    ConnectionWatchDog = new System.Timers.Timer();
-                    ConnectionWatchDog.Interval = 60000;
+                    ConnectionWatchDog = new System.Timers.Timer
+                    {
+                        Interval = 60000
+                    };
                     ConnectionWatchDog.Elapsed += _connectionWatchDog_Elapsed;
                 }
             }
             catch (Exception ex)
             {
-                string error = String.Format("ERROR {0} {1}", ex.Message, ex.ToString());
+                var error = string.Format("ERROR {0} {1}", ex.Message, ex.ToString());
                 Logger.WriteLog(Logger.ErrorLog, error);
             }
         }
@@ -1969,7 +1977,7 @@ namespace InternetClawMachine
         {
             Task.Run(async delegate ()
             {
-                bool turnemon = false;
+                var turnemon = false;
                 if (((ClawGame)Game).MachineControl.IsLit)
                 {
                     ((ClawGame)Game).MachineControl.LightSwitch(false);
@@ -2121,7 +2129,7 @@ namespace InternetClawMachine
 
         private void Button_Click_5(object sender, RoutedEventArgs e)
         {
-            OAuthTokenRequestor dialog = new OAuthTokenRequestor() { ClientId = Configuration.TwitchSettings.ClientId };
+            var dialog = new OAuthTokenRequestor() { ClientId = Configuration.TwitchSettings.ClientId };
             if (dialog.ShowDialog() == true)
             {
                 Configuration.TwitchSettings.ApiKey = dialog.AccessToken;
@@ -2132,7 +2140,7 @@ namespace InternetClawMachine
         {
             Task.Run(async delegate ()
             {
-                bool turnemon = false;
+                var turnemon = false;
                 if (((ClawGame)Game).MachineControl.IsLit)
                 {
                     ((ClawGame)Game).MachineControl.LightSwitch(false);

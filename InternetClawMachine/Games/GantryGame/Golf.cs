@@ -202,9 +202,9 @@ namespace InternetClawMachine.Games.GantreyGame
             if (WinnersList.Count > 0)
             {
                 var rnd = new Random();
-                string winner = WinnersList[rnd.Next(WinnersList.Count - 1)];
+                var winner = WinnersList[rnd.Next(WinnersList.Count - 1)];
 
-                var saying = String.Format("{0} sunk the putt! It took {1} moves to get there.", winner, _moves);
+                var saying = string.Format("{0} sunk the putt! It took {1} moves to get there.", winner, _moves);
 
                 ChatClient.SendMessage(Configuration.Channel, saying);
                 StartupSequence = true;
@@ -320,7 +320,7 @@ namespace InternetClawMachine.Games.GantreyGame
             }
             catch (Exception ex)
             {
-                string error = String.Format("ERROR {0} {1}", ex.Message, ex.ToString());
+                var error = string.Format("ERROR {0} {1}", ex.Message, ex.ToString());
                 Logger.WriteLog(Logger.ErrorLog, error);
             }
         }
@@ -400,7 +400,7 @@ namespace InternetClawMachine.Games.GantreyGame
             Gantry.GetLocation(GantryAxis.A);
 
             //helps with stuck xy moves...
-            ChatClient.SendMessage(Configuration.Channel, String.Format("Quick Queue mode has begun! Type {0}help for commands. Type {0}play to opt-in to the player queue.", Configuration.CommandPrefix));
+            ChatClient.SendMessage(Configuration.Channel, string.Format("Quick Queue mode has begun! Type {0}help for commands. Type {0}play to opt-in to the player queue.", Configuration.CommandPrefix));
             Phase = GamePhase.DISTANCE_MOVE;
             _map = new GolfHelpers.AStar();
             _map.SetStarMap(11, 12);
@@ -447,7 +447,7 @@ namespace InternetClawMachine.Games.GantreyGame
             //we need to check if we're in the middle of a hit action
             //if we are the queue cannot reset because it's a string of commands to drop the putter, rotate, counter rotate, and then return to the up position
             //this all seems inefficient, need to think through how commands are sent to make this work without special handlers
-            int queueCnt = 0;
+            var queueCnt = 0;
             ClawCommand currentCmd = null;
             lock (CommandQueue)
             {
@@ -485,7 +485,7 @@ namespace InternetClawMachine.Games.GantreyGame
             }
 
             GameRoundTimer.Start();
-            ChatClient.SendMessage(Configuration.Channel, String.Format("@{0} has control. You have {1} seconds to start playing", PlayerQueue.CurrentPlayer, Configuration.GolfSettings.SinglePlayerQueueNoCommandDuration));
+            ChatClient.SendMessage(Configuration.Channel, string.Format("@{0} has control. You have {1} seconds to start playing", PlayerQueue.CurrentPlayer, Configuration.GolfSettings.SinglePlayerQueueNoCommandDuration));
 
             CurrentDroppingPlayer.Username = username;
             CurrentDroppingPlayer.GameLoop = GameLoopCounterValue;
@@ -495,7 +495,7 @@ namespace InternetClawMachine.Games.GantreyGame
                 //15 second timer to see if they're still active
                 var firstWait = (Configuration.GolfSettings.SinglePlayerQueueNoCommandDuration * 1000);
                 //we need a check if they changed game mode or something weird happened
-                long loopVal = GameLoopCounterValue;
+                var loopVal = GameLoopCounterValue;
                 //we need a check if they changed game mode or something weird happened
                 var args = new RoundEndedArgs() { Username = username, GameLoopCounterValue = loopVal, GameMode = GameMode };
                 await Task.Delay(firstWait);
@@ -584,8 +584,8 @@ namespace InternetClawMachine.Games.GantreyGame
             //no one in queue
             if (PlayerQueue.Count == 0 || PlayerQueue.CurrentPlayer == null)
             {
-                string regex = "([a-j])([0-9]{1,2}){1}";
-                MatchCollection matches = Regex.Matches(msg, regex);
+                var regex = "([a-j])([0-9]{1,2}){1}";
+                var matches = Regex.Matches(msg, regex);
                 //means we only have one letter commands
                 if (matches.Count > 0)
                 {
@@ -628,9 +628,9 @@ namespace InternetClawMachine.Games.GantreyGame
             if (PlayerQueue.Count == 0)
             {
                 //check if it's a stringed command, all commands have to be valid
-                string regex = "((([fbrlh]{1}|(hs)|(ch)|(chs)|(fs)|(bs)|(rs)|(ls)|(a[0-9]{1,3})){1})([ ]{1}))+?";
+                var regex = "((([fbrlh]{1}|(hs)|(ch)|(chs)|(fs)|(bs)|(rs)|(ls)|(a[0-9]{1,3})){1})([ ]{1}))+?";
                 msg += " "; //add a space to the end for the regex
-                MatchCollection matches = Regex.Matches(msg, regex);
+                var matches = Regex.Matches(msg, regex);
                 //means we only have one letter commands
 
                 if (msg == "f" || msg == "b" || msg == "r" || msg == "l" || msg == "h")
@@ -669,15 +669,15 @@ namespace InternetClawMachine.Games.GantreyGame
                 else
                 {
                     //check if it's a stringed command, all commands have to be valid
-                    string regex = "((([fbrlh]{1}|(hs)|(ch)|(chs)|(fs)|(bs)|(rs)|(ls)|(a[0-9]{1,3})){1})([ ]{1}))+?";
+                    var regex = "((([fbrlh]{1}|(hs)|(ch)|(chs)|(fs)|(bs)|(rs)|(ls)|(a[0-9]{1,3})){1})([ ]{1}))+?";
                     msg += " "; //add a space to the end for the regex
-                    MatchCollection matches = Regex.Matches(msg, regex);
+                    var matches = Regex.Matches(msg, regex);
                     //means we only have one letter commands
-                    int total = 0;
+                    var total = 0;
                     foreach (Match match in matches)
                     {
                         //grab the next direction
-                        GroupCollection data = match.Groups;
+                        var data = match.Groups;
                         var command = data[2];
                         total += command.Length + 1;
                     }
@@ -688,7 +688,7 @@ namespace InternetClawMachine.Games.GantreyGame
                         foreach (Match match in matches)
                         {
                             //grab the next direction
-                            GroupCollection data = match.Groups;
+                            var data = match.Groups;
                             var command = data[2];
 
                             HandleFineControlCommand(username, command.Value.Trim());
@@ -711,18 +711,18 @@ namespace InternetClawMachine.Games.GantreyGame
             var msg = message.ToLower();
 
             //check if it's a stringed command, all commands have to be valid
-            string regex = "([a-j])([0-9]{1,2}){1}";
-            MatchCollection matches = Regex.Matches(msg, regex);
+            var regex = "([a-j])([0-9]{1,2}){1}";
+            var matches = Regex.Matches(msg, regex);
             //means we only have one letter commands
             if (matches.Count > 0)
             {
                 //turn letter to number
-                int number = char.ToUpper(matches[0].Groups[1].ToString()[0]) - 65;
-                int yGrid = number;
+                var number = char.ToUpper(matches[0].Groups[1].ToString()[0]) - 65;
+                var yGrid = number;
                 //x grid is fine, regex only allows specific letter
                 //y grid however can allow from 0-99 and we need to account for our map grid
 
-                int xGrid = int.Parse(matches[0].Groups[2].ToString()) - 1;
+                var xGrid = int.Parse(matches[0].Groups[2].ToString()) - 1;
                 //TODO - move this to use the map definiton
                 //don't allow anything more than our current grid
                 if (xGrid > 9 || xGrid < 0)
@@ -752,7 +752,7 @@ namespace InternetClawMachine.Games.GantreyGame
                 {
                     _map.SetPoints(xCurGrid, yCurGrid, xGrid, yGrid);
 
-                    List<PathMapper> path = _map.Solve(1, 2000);
+                    var path = _map.Solve(1, 2000);
 
                     if ((path == null) || ((path.Count == 0) || ((path[0].X != xGrid) && (path[0].Y != yGrid))))
                     {
@@ -895,7 +895,7 @@ namespace InternetClawMachine.Games.GantreyGame
                 }
                 catch (Exception ex)
                 {
-                    string error = String.Format("ERROR {0} {1}", ex.Message, ex.ToString());
+                    var error = string.Format("ERROR {0} {1}", ex.Message, ex.ToString());
                     Logger.WriteLog(Logger.ErrorLog, error);
                 }
             }
@@ -933,7 +933,7 @@ namespace InternetClawMachine.Games.GantreyGame
                 }
                 catch (Exception ex)
                 {
-                    string error = String.Format("ERROR {0} {1}", ex.Message, ex.ToString());
+                    var error = string.Format("ERROR {0} {1}", ex.Message, ex.ToString());
                     Logger.WriteLog(Logger.ErrorLog, error);
                 }
                 finally

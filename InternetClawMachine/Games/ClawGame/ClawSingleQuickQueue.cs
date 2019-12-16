@@ -9,7 +9,7 @@ namespace InternetClawMachine.Games.ClawGame
         public ClawSingleQuickQueue(IChatApi client, BotConfiguration configuration, OBSWebsocket obs) : base(client, configuration, obs)
         {
             GameMode = GameModeType.SINGLEQUICKQUEUE;
-            StartMessage = String.Format("Quick Queue mode has begun! Type {0}help for commands. Type {0}play to opt-in to the player queue.", Configuration.CommandPrefix);
+            StartMessage = string.Format("Quick Queue mode has begun! Type {0}help for commands. Type {0}play to opt-in to the player queue.", Configuration.CommandPrefix);
         }
 
         public override void EndGame()
@@ -37,18 +37,18 @@ namespace InternetClawMachine.Games.ClawGame
             //take everyone that voted and add them to the queue? -- nope
             GameRoundTimer.Start();
 
-            string msg = String.Format("@{0} has control. You have {1} seconds to start playing", PlayerQueue.CurrentPlayer, Configuration.ClawSettings.SinglePlayerQueueNoCommandDuration);
+            var msg = string.Format("@{0} has control. You have {1} seconds to start playing", PlayerQueue.CurrentPlayer, Configuration.ClawSettings.SinglePlayerQueueNoCommandDuration);
             var hasPlayedPlayer = SessionWinTracker.Find(itm => itm.Username.ToLower() == PlayerQueue.CurrentPlayer.ToLower());
 
             if (hasPlayedPlayer != null && hasPlayedPlayer.Drops > 1)
-                msg = String.Format("@{0} has control.", PlayerQueue.CurrentPlayer);
+                msg = string.Format("@{0} has control.", PlayerQueue.CurrentPlayer);
 
             ChatClient.SendMessage(Configuration.Channel, msg);
 
             Task.Run(async delegate ()
             {
-                long sequence = DateTime.Now.Ticks;
-                Logger.WriteLog(Logger.DebugLog, String.Format("STARTROUND: [{0}] Waiting for {1} in game loop {2}", sequence, username, GameLoopCounterValue));
+                var sequence = DateTime.Now.Ticks;
+                Logger.WriteLog(Logger.DebugLog, string.Format("STARTROUND: [{0}] Waiting for {1} in game loop {2}", sequence, username, GameLoopCounterValue));
 
                 //15 second timer to see if they're still active
                 var firstWait = (Configuration.ClawSettings.SinglePlayerQueueNoCommandDuration * 1000);

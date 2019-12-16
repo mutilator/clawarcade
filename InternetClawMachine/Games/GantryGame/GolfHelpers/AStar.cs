@@ -34,9 +34,9 @@ namespace InternetClawMachine.Games.GolfHelpers
             //define map
             _mapArray = new List<PathMapper>(GridSize);
 
-            int xx = 0;
-            int yy = 0;
-            int idx = 0;
+            var xx = 0;
+            var yy = 0;
+            var idx = 0;
             for (idx = 0; idx < GridSize; idx++)
             {
                 xx = idx % GridWidth;
@@ -62,12 +62,12 @@ namespace InternetClawMachine.Games.GolfHelpers
         {
             int sX;
             int sY;
-            int idx = 0;
-            int xx = 0;
-            int yy = 0;
-            int size = 1;
+            var idx = 0;
+            var xx = 0;
+            var yy = 0;
+            var size = 1;
             PathMapper newCell;
-            bool die = false;
+            var die = false;
             int tmpIdx;
             for (idx = 0; idx < GridSize; idx++)
             {
@@ -149,18 +149,18 @@ namespace InternetClawMachine.Games.GolfHelpers
             PathMapper newCell;
             int sX;
             int sY;
-            int idx = 0;
-            int xx = 0;
-            int yy = 0;
-            int size = 1;
-            Boolean die = false;
-            int startX = eX - maxGap;
-            int startY = eY - maxGap;
-            int endX = eX + maxGap;
-            int endY = eY + maxGap;
+            var idx = 0;
+            var xx = 0;
+            var yy = 0;
+            var size = 1;
+            var die = false;
+            var startX = eX - maxGap;
+            var startY = eY - maxGap;
+            var endX = eX + maxGap;
+            var endY = eY + maxGap;
 
-            int startIdx = startX + startY * GridWidth;
-            int endIdx = endX + endY * GridWidth;
+            var startIdx = startX + startY * GridWidth;
+            var endIdx = endX + endY * GridWidth;
             int tmpIdx;
             for (idx = startIdx; idx <= endIdx; idx++)
             {
@@ -232,8 +232,8 @@ namespace InternetClawMachine.Games.GolfHelpers
             Reset();
 
             //trace(destinationCell.x, destinationCell.y);
-            Boolean isSolved = false;
-            int iter = 0;
+            var isSolved = false;
+            var iter = 0;
 
             isSolved = StepPathfinder(gapSize);
 
@@ -251,9 +251,9 @@ namespace InternetClawMachine.Games.GolfHelpers
             //set pointer to last cell on list
             //if pointer is pointing to originCell, then finish
             //if pointer is not pointing at origin cell, then process, and set pointer to parent of current cell
-            List<PathMapper> solutionPath = new List<PathMapper>();
-            int count = 0;
-            PathMapper cellPointer = _closedList[_closedList.Count - 1];
+            var solutionPath = new List<PathMapper>();
+            var count = 0;
+            var cellPointer = _closedList[_closedList.Count - 1];
             while (cellPointer != _originCell)
             {
                 if (count++ > 2000)
@@ -268,7 +268,7 @@ namespace InternetClawMachine.Games.GolfHelpers
             return solutionPath;
         }
 
-        private Boolean StepPathfinder(int gapSize)
+        private bool StepPathfinder(int gapSize)
         {
             //trace(cnt++);
             if (_currentCell == _destinationCell)
@@ -285,9 +285,9 @@ namespace InternetClawMachine.Games.GolfHelpers
             //----------------------------------------------------------------------------------------------------
 
             //add legal adjacent cells from above to the open list
-            List<PathMapper> adjacentCell = new List<PathMapper>();
+            var adjacentCell = new List<PathMapper>();
 
-            Boolean canAdd = true;
+            var canAdd = true;
             float newX;
             float newY;
             int yy;
@@ -454,8 +454,8 @@ namespace InternetClawMachine.Games.GolfHelpers
 
             int g;
             float h;
-            int adjLen = adjacentCell.Count;
-            for (int ii = 0; ii < adjLen; ii++)
+            var adjLen = adjacentCell.Count;
+            for (var ii = 0; ii < adjLen; ii++)
             {
                 g = _currentCell.G + 1;
 
@@ -482,7 +482,7 @@ namespace InternetClawMachine.Games.GolfHelpers
             }
 
             //Remove current cell from openList and add to closedList.
-            int indexOfCurrent = _openList.IndexOf(_currentCell);
+            var indexOfCurrent = _openList.IndexOf(_currentCell);
             _closedList.Add(_currentCell);
             _currentCell.IsClosed = true;
 
@@ -547,7 +547,7 @@ namespace InternetClawMachine.Games.GolfHelpers
         //Resets algorithm without clearing cells
         public void Reset()
         {
-            for (int xx = 0; xx < GridSize; xx++)
+            for (var xx = 0; xx < GridSize; xx++)
             {
                 _mapArray[xx].ParentCell = null;
                 _mapArray[xx].G = 0;
@@ -566,9 +566,9 @@ namespace InternetClawMachine.Games.GolfHelpers
         //Sets all filled cells to free cells (does not affect origin or destination cells)
         public void ClearMap()
         {
-            int xx = 0;
-            int yy = 0;
-            int idx = 0;
+            var xx = 0;
+            var yy = 0;
+            var idx = 0;
             for (idx = 0; idx < GridSize; idx++)
             {
                 xx = idx % GridWidth;

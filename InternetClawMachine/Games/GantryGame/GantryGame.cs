@@ -28,9 +28,9 @@ namespace InternetClawMachine.Games.GantreyGame
                     if (PlayerQueue.Contains(username))
                     {
                         if (PlayerQueue.CurrentPlayer.ToLower() == username.ToLower())
-                            ChatClient.SendMessage(Configuration.Channel, String.Format("You're already in the queue and it's currently your turn, go go go!"));
+                            ChatClient.SendMessage(Configuration.Channel, string.Format("You're already in the queue and it's currently your turn, go go go!"));
                         else
-                            ChatClient.SendMessage(Configuration.Channel, String.Format("You're already in the queue."));
+                            ChatClient.SendMessage(Configuration.Channel, string.Format("You're already in the queue."));
                         return;
                     }
 
@@ -46,11 +46,11 @@ namespace InternetClawMachine.Games.GantreyGame
                     }
                     else if (pos == 1) //lol i'm so lazy
                     {
-                        ChatClient.SendMessage(Configuration.Channel, String.Format("Added to player queue, you're up next to play."));
+                        ChatClient.SendMessage(Configuration.Channel, string.Format("Added to player queue, you're up next to play."));
                     }
                     else
                     {
-                        ChatClient.SendMessage(Configuration.Channel, String.Format("Added to player queue, you're {0} people away from playing.", pos));
+                        ChatClient.SendMessage(Configuration.Channel, string.Format("Added to player queue, you're {0} people away from playing.", pos));
                     }
 
                     break;
