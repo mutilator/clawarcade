@@ -1,18 +1,34 @@
 ﻿using InternetClawMachine.Games.GameHelpers;
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Windows.Documents;
 
 namespace InternetClawMachine.Hardware.ClawControl
 {
     public delegate void ClawInfoEventArgs(IMachineControl controller, string message);
 
+    /**
+     * Talk to the claw machine controller
+     *
+     * All commands are sent with a sequence number, this number is echoed back in the response to the command. Events not predicated by a command are returned with a sequence of 0
+     * Send format: sequence command arguments
+     *    e.g. 2 f 200 - this would be sequence 2, forward command for 200 ms
+     *   
+     *
+     * Receive format: response:sequence values
+     *    e.g. 900:2 - this is a response to the above command, 900 is a generic info response, 2 is the sequence
+     *   or 107:0 - this is an event, the zero means this is not a response to anything 
+     *
+     */
     internal class ClawController : IMachineControl
     {
+
         public event EventHandler OnDisconnected;
 
         public event EventHandler OnPingTimeout;
@@ -66,13 +82,30 @@ namespace InternetClawMachine.Hardware.ClawControl
         private SocketAsyncEventArgs _socketReader;
         private byte[] _receiveBuffer = new byte[2048];
         private int _receiveIdx;
+        private int _currentWaitSequenceNumberCommand;
         private string _lastCommandResponse;
         private string _lastDirection = "s";
-        private int _pingTimeReceived = 0; //the last ping time we received
-        private const int _maximumPingTime = 1000; //ping timeout threshold in ms
+        private int _sequence = 0;
+        private const int _maximumPingTime = 5000; //ping timeout threshold in ms
         private Stopwatch PingTimer { get; } = new Stopwatch();
+        private List<ClawPing> _pingQueue = new List<ClawPing>();
 
         public bool IsClawPlayActive { get; set; }
+
+        /// <summary>
+        /// Sequence numbers, initialized at 1, increment each time a command is sent
+        /// </summary>
+        private int Sequence
+        {
+            get
+            {
+                //always increment 1 whenever this is requested, this way we have a base of 1 rather than 0
+                int nextVal = _sequence++;
+                if (_sequence > 5000) _sequence = 0; //just set an arbitrary max
+
+                return nextVal;
+            }
+        }
 
         /// <summary>
         /// Record of the last ping round trip
@@ -280,16 +313,15 @@ namespace InternetClawMachine.Hardware.ClawControl
                 {
                     _receiveBuffer[_receiveIdx] = e.Buffer[i];
                     _receiveIdx++;
-                    if (e.Buffer[i] != '\n') continue;
-                    var response = Encoding.UTF8.GetString(_receiveBuffer, 0, _receiveIdx);
-                    _lastCommandResponse = response;
-                    Console.WriteLine(response);
-                    HandleMessage(response);
-                    e.SetBuffer(0, 1024);
-                    _receiveIdx = 0; //reset index to zero
+                    if (e.Buffer[i] != '\n') continue; //read until a newline
 
+                    var response = Encoding.UTF8.GetString(_receiveBuffer, 0, _receiveIdx);
+
+                    HandleMessage(response);
+                    _receiveIdx = 0; //reset index to zero
                     Array.Clear(_receiveBuffer, 0, _receiveBuffer.Length); //also make sure the array is zeroed
                 }
+                e.SetBuffer(0, 1024);
             }
             else
             {
@@ -301,18 +333,38 @@ namespace InternetClawMachine.Hardware.ClawControl
         private void HandleMessage(string response)
         {
             response = response.Trim();
+
+            
+
+
             Logger.WriteLog(Logger.MachineLog, "RECEIVE: " + response);
             var delims = response.Split(' ');
-            if (delims.Length < 1 || response.Trim().Length == 0)
+
+            if (delims.Length < 1 || response.Length == 0)
             {
                 //Console.WriteLine(response);
             }
             else
             {
-                var resp = (ClawEvents)int.Parse(delims[0]);
+                //split the first argument based on colon, this gives us the command response and the sequence number
+                var aryEventResp = delims[0].Split(':');
+                var eventResp = delims[0];
+                var sequence = 0;
+                if (aryEventResp.Length > 1) //make sure we have a response and sequence number
+                {
+                    eventResp = aryEventResp[0];
+                    sequence = int.Parse(aryEventResp[1]);
+                    if (sequence == _currentWaitSequenceNumberCommand) //if this sequence is a command we're waiting for then set that response
+                    {
+                        _currentWaitSequenceNumberCommand = 0;
+                        _lastCommandResponse = response;
+                    }
+
+                }
+                var resp = (ClawEvents)int.Parse(eventResp);
                 switch (resp)
                 {
-                    case ClawEvents.EVENT_SENSOR1:
+                    case ClawEvents.EVENT_BELT_SENSOR:
                         OnBreakSensorTripped?.Invoke(this, new EventArgs());
                         break;
 
@@ -321,12 +373,18 @@ namespace InternetClawMachine.Hardware.ClawControl
                         break;
 
                     case ClawEvents.EVENT_PONG:
-                        try
+                        
+                        for(int i = 0; i < _pingQueue.Count; i++)
                         {
-                            if (delims.Length > 1)
-                                _pingTimeReceived = int.Parse(delims[1]);
+                            var ping = _pingQueue[i];
+                            if (ping.Sequence == sequence)
+                            {
+                                ping.Success = true;
+                                _pingQueue.RemoveAt(i);
+                                OnPingSuccess?.Invoke(this, new EventArgs());
+                                break;
+                            }
                         }
-                        catch { } //unhandled so we let a pingtimout occur if the response is malformed
 
                         break;
 
@@ -408,31 +466,38 @@ namespace InternetClawMachine.Hardware.ClawControl
 
         private void Ping()
         {
-            PingTimer.Reset();
-            PingTimer.Start();
-            _pingTimeReceived = -1;
-            SendCommandAsync("ping " + PingTimer.ElapsedMilliseconds);
+            //only restart the timer if there are no outstanding pings
+            if (_pingQueue.Count == 0)
+            {
+                PingTimer.Reset();
+                PingTimer.Start();
+            }
+
+            int sequence = SendCommandAsync("ping " + PingTimer.ElapsedMilliseconds);
+            var ping = new ClawPing() {Success = false, Sequence = sequence};
+            _pingQueue.Add(ping);
 
             //kick off an async validating ping
             Task.Run(async delegate
             {
                 await Task.Delay(_maximumPingTime); //simply wait some second to check for the last ping
 
-                Latency = PingTimer.ElapsedMilliseconds - _maximumPingTime - _pingTimeReceived;
+                Latency = PingTimer.ElapsedMilliseconds - _maximumPingTime;
                 if (!_workSocket.Connected)
                 {
+                    _pingQueue.Clear();
                     //don't do anything if we disconnected afterward
                 }
-                else if (Latency > _maximumPingTime || _pingTimeReceived == -1)
+                else if (!ping.Success) //no response, TIMEOUT!
                 {
-                    Logger.WriteLog(Logger.MachineLog, "Ping timeout: " + Latency + " (" + _pingTimeReceived + ")");
+                    _pingQueue.Clear();
+                    Logger.WriteLog(Logger.MachineLog, "Ping timeout: " + Latency);
                     _workSocket.Disconnect(false);
                     OnPingTimeout?.Invoke(this, new EventArgs());
                     OnDisconnected?.Invoke(this, new EventArgs());
                 }
                 else
                 {
-                    OnPingSuccess?.Invoke(this, new EventArgs());
                     //start a ping in 10 seconds?
                     await Task.Delay(10000);
                     Ping();
@@ -456,18 +521,24 @@ namespace InternetClawMachine.Hardware.ClawControl
             Connect();
         }
 
-        public string SendCommandAsync(string command)
+        public int SendCommandAsync(string command)
         {
             if (!IsConnected)
                 throw new Exception("Not Connected");
+
+            int seq = Sequence; //sequence increments each time it's asked for, just asking once
             try
             {
+                
+                command = seq + " " + command; //add a sequence number
                 // Encode the data string into a byte array.
                 var msg = Encoding.ASCII.GetBytes(command + "\n");
                 Logger.WriteLog(Logger.MachineLog, "SEND: " + command);
                 Console.WriteLine("SEND: " + command);
                 // Send the data through the socket.
                 _workSocket.Send(msg);
+
+
             }
             catch (Exception ex)
             {
@@ -475,7 +546,7 @@ namespace InternetClawMachine.Hardware.ClawControl
                 Logger.WriteLog(Logger.ErrorLog, error);
             }
 
-            return "";
+            return seq;
         }
 
         public string SendCommand(string command)
@@ -484,11 +555,14 @@ namespace InternetClawMachine.Hardware.ClawControl
                 throw new Exception("Not Connected");
             try
             {
+                int seq = Sequence; //sequence increments each time it's asked for, just asking once
+                command = seq + " " + command; //add a sequence number
                 // Encode the data string into a byte array.
                 var msg = Encoding.ASCII.GetBytes(command + "\n");
                 Logger.WriteLog(Logger.MachineLog, "SEND: " + command);
                 Console.WriteLine("SEND: " + command);
                 // Send the data through the socket.
+                _currentWaitSequenceNumberCommand = seq;
                 _lastCommandResponse = null;
                 _workSocket.Send(msg);
 
@@ -648,20 +722,10 @@ namespace InternetClawMachine.Hardware.ClawControl
             }
         }
 
-        public void RunConveyorSticky(bool run)
-        {
-            if (!IsConnected) return;
-            if (run)
-                SendCommandAsync("sbelt 1");
-            else
-                SendCommandAsync("sbelt 0");
-        }
-
         public void SetClawPower(int percent)
         {
             var power = (int)((double)percent / 100 * 255);
             var str = string.Format("uno p {0}", power);
-            Console.WriteLine(str);
             SendCommandAsync(str);
         }
 
@@ -678,17 +742,23 @@ namespace InternetClawMachine.Hardware.ClawControl
 
         public void ToggleLaser(bool on)
         {
-            //not implmented
+            //not implemented
         }
 
         public void Strobe(int red, int blue, int green, int strobeCount, int strobeDelay)
         {
-            SendCommandAsync(string.Format("strobe {0} {1} {2} {3} {4} 0", red, blue, green, strobeCount, strobeDelay));
+            SendCommandAsync($"strobe {red} {blue} {green} {strobeCount} {strobeDelay} 0");
         }
 
         public void DualStrobe(int red, int blue, int green, int red2, int blue2, int green2, int strobeCount, int strobeDelay)
         {
-            SendCommandAsync(string.Format("uno ds {0}:{1}:{2} {3}:{4}:{5} {6} {7} 0", red, blue, green, red2, blue2, green2, strobeCount, strobeDelay));
+            SendCommandAsync($"uno ds {red}:{blue}:{green} {red2}:{blue2}:{green2} {strobeCount} {strobeDelay} 0");
         }
+    }
+
+    class ClawPing
+    {
+        public int Sequence { set; get; }
+        public bool Success { set; get; }
     }
 }

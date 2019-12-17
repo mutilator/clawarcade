@@ -2,7 +2,7 @@
 {
     public enum ClawEvents
     {
-        EVENT_SENSOR1 = 100,
+        EVENT_BELT_SENSOR = 100,
         EVENT_PONG = 101,
         EVENT_RESETBUTTON = 102,
         EVENT_DROPPING_CLAW = 103,

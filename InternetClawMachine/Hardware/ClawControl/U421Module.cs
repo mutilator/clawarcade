@@ -229,11 +229,6 @@ namespace InternetClawMachine.Hardware.ClawControl
             WriteMachineData();
         }
 
-        public void RunConveyorSticky(bool run)
-        {
-            _conveyorEnabled = run;
-            WriteMachineData();
-        }
 
         public async Task StopMove()
         {

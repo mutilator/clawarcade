@@ -150,6 +150,8 @@ int _clawRemoteMoveDurationBackward = 0;
 int _clawRemoteMoveDurationLeft = 0;
 int _clawRemoteMoveDurationRight = 0;
 int _clawRemoteMoveDurationDrop = 0;
+int _clawRemoteMoveDurationDown = 0;
+int _clawRemoteMoveDurationUp = 0;
 
 
 //When did the move begin
@@ -158,14 +160,18 @@ unsigned long _clawRemoteMoveStartTimeBackward = 0;
 unsigned long _clawRemoteMoveStartTimeLeft = 0;
 unsigned long _clawRemoteMoveStartTimeRight = 0;
 unsigned long _clawRemoteMoveStartTimeDrop = 0;
+unsigned long _clawRemoteMoveStartTimeDown = 0;
+unsigned long _clawRemoteMoveStartTimeUp = 0;
 
 //used for looking at a readable string when passing commands to moveFromRemote()
 const byte CLAW_FORWARD = 1;
 const byte CLAW_BACKWARD = 2;
 const byte CLAW_LEFT = 3;
 const byte CLAW_RIGHT = 4;
-const byte CLAW_DROP = 5;
-const byte CLAW_RECOIL = 6;
+const byte CLAW_DROP = 5; //drop command, used as a one shot drop procedure
+const byte CLAW_RECOIL = 6; //recoil command, used as a one shot recoil
+const byte CLAW_UP = 7; //pull claw up, used for small movements
+const byte CLAW_DOWN = 8; //pull claw down, used for small movements
 
 bool _hasQueuedCommand = false; //flag for speed if we have a command queued to go out
 char _queuedCommand[100]; //probly too big
@@ -722,6 +728,16 @@ void checkMovements()
         stopMotorRight();
         _clawRemoteMoveStartTimeRight = 0;
     }
+    if (_clawRemoteMoveDurationDown > 0 && _clawRemoteMoveStartTimeDown > 0 && curTime - _clawRemoteMoveStartTimeDown >= _clawRemoteMoveDurationDown)
+    {
+        stopMotorDown();
+        _clawRemoteMoveStartTimeDown = 0;
+    }
+    if (_clawRemoteMoveDurationUp > 0 && _clawRemoteMoveStartTimeUp > 0 && curTime - _clawRemoteMoveStartTimeUp >= _clawRemoteMoveDurationUp)
+    {
+        stopMotorUp();
+        _clawRemoteMoveStartTimeUp = 0;
+    }
 }
 void checkFlipperRuntime()
 {
@@ -772,19 +788,7 @@ void sendEvent(int event)
 {
     if (event > 0)
     {
-        char outputData[400];
-        if (event == EVENT_CONVEYOR_TRIPPED) //only if we do something special?
-        {
-            sprintf(outputData, "%i", EVENT_CONVEYOR_TRIPPED);
-            broadcastToClients(outputData);
-        } else if (event == EVENT_GAME_RESET) //only if we do something special?
-        {
-            sprintf(outputData, "%i", EVENT_GAME_RESET);
-            broadcastToClients(outputData);
-        } else {
-            sprintf(outputData, "%i", event);
-            broadcastToClients(outputData);
-        }
+        broadcastToClients(event, "");
     }
 }
 
@@ -796,13 +800,12 @@ void sendEvent(int event)
  * 
  * 
  */
-void broadcastToClients(char outputData[])
+void broadcastToClients(int event, char outputData[])
 {
-    Serial.println(outputData);
     for (byte i=0; i < _clientCount; i++)
     {
         if (_clients[i] && _clients[i].connected())
-            _clients[i].println(outputData);
+            sendFormattedResponse(_clients[i], event, "0", outputData);
     }
 }
 void handleTelnetConnectors()
@@ -891,71 +894,119 @@ void handleClientComms(EthernetClient &client)
 
 void handleTelnetCommand(EthernetClient &client)
 {
-    char outputData[400];
-    char command[_numChars]= {0}; //holds the command
-    char argument[_numChars]= {0}; //holds the axis
-    char argument2[_numChars]= {0}; //holds the setting
-    char argument3[_numChars]= {0}; //holds the setting
-    char argument4[_numChars]= {0}; //holds the setting
-    char argument5[_numChars]= {0}; //holds the setting
-    char argument6[_numChars]= {0}; //holds the setting
+    static char outputData[400];
+    static char sequence[_numChars]= {0}; //holds the command
+    static char command[_numChars]= {0}; //holds the command
+    static char argument[_numChars]= {0}; //holds the axis
+    static char argument2[_numChars]= {0}; //holds the setting
+    static char argument3[_numChars]= {0}; //holds the setting
+    static char argument4[_numChars]= {0}; //holds the setting
+    static char argument5[_numChars]= {0}; //holds the setting
+    static char argument6[_numChars]= {0}; //holds the setting
+
+    //clear old values
+    memset(outputData, 0, sizeof(outputData));
+    memset(sequence, 0, sizeof(sequence));
+    memset(command, 0, sizeof(command));
+    memset(argument, 0, sizeof(argument));
+    memset(argument2, 0, sizeof(argument2));
+    memset(argument3, 0, sizeof(argument3));
+    memset(argument4, 0, sizeof(argument4));
+    memset(argument5, 0, sizeof(argument5));
+    memset(argument6, 0, sizeof(argument6));
+
     //simplistic approach
-    sscanf(_incomingCommand, "%s %s %s %s %s %s %s", command, argument, argument2, argument3, argument4, argument5, argument6);
+    sscanf(_incomingCommand, "%s %s %s %s %s %s %s %s", sequence, command, argument, argument2, argument3, argument4, argument5, argument6);
+
 
     /*
     
     */
     if (strcmp(command,"reset") == 0) { //restart machine
-        client.println(""); //ack
+
+        sendFormattedResponse(client, EVENT_INFO, sequence, "");
+
         startupMachine();
+
     } else if (strcmp(command,"debug") == 0) { //some debug info
-        sprintf(outputData, "%i %i %i %i %i %i %i", EVENT_INFO, _currentState, _lastState, _halfTimespanRunWidth, _halfTimespanRunDepth, _wiggleTime, _failsafeMotorLimit);
-        client.println(outputData);
+
+        sprintf(outputData, "%i %i %i %i %i %i %i %s", EVENT_INFO, _currentState, _lastState, _halfTimespanRunWidth, _halfTimespanRunDepth, _wiggleTime, _failsafeMotorLimit);
+        sendFormattedResponse(client, EVENT_INFO, sequence, outputData);
+
     } else if (strcmp(command,"state") == 0) { //set machine state manually
-        client.println(""); //ack
+
+        sendFormattedResponse(client, EVENT_INFO, sequence, "");
+
         int state = atoi(argument);
         changeState(state);
+
     } else if (strcmp(command,"ps") == 0) { //pin setting
-        client.println(""); //ack
+
+        sendFormattedResponse(client, EVENT_INFO, sequence, "");
+
         int pin = atoi(argument);
         int val = atoi(argument2);
         digitalWrite(pin, val);
+
     } else if (strcmp(command,"pr") == 0) { //pin read
         
         int pin = atoi(argument);
-        client.print(EVENT_INFO); 
-        client.println(digitalRead(pin));
+
+        sprintf(outputData, "%i", digitalRead(pin));
+        sendFormattedResponse(client, EVENT_INFO, argument, outputData);
+
     } else if (strcmp(command,"pm") == 0) { //pin mode
-        client.println(""); //ack
+
+        sendFormattedResponse(client, EVENT_INFO, sequence, "");
+
         int pin = atoi(argument);
         int mode = atoi(argument2);
         pinMode(pin, mode);
+
     } else if (strcmp(command,"f") == 0) { //forward
-        client.println(""); //ack
+
+        sendFormattedResponse(client, EVENT_INFO, sequence, "");
+
         int duration = atoi(argument);
         moveFromRemote(CLAW_FORWARD, duration);
+
     } else if (strcmp(command, "b") == 0) { //backward
-        client.println(""); //ack
+
+        sendFormattedResponse(client, EVENT_INFO, sequence, "");
+
         int duration = atoi(argument);
         moveFromRemote(CLAW_BACKWARD, duration);
+
     } else if (strcmp(command, "l") == 0) { //left
-        client.println(""); //ack
+
+        sendFormattedResponse(client, EVENT_INFO, sequence, "");
+
         int duration = atoi(argument);
         moveFromRemote(CLAW_LEFT, duration);
+
     } else if (strcmp(command,"r") == 0) { //right
-        client.println(""); //ack
+
+        sendFormattedResponse(client, EVENT_INFO, sequence, "");
+
         int duration = atoi(argument);
         moveFromRemote(CLAW_RIGHT, duration);
+
     } else if (strcmp(command,"d") == 0) { //drop
-        client.println(""); //ack
+
+        sendFormattedResponse(client, EVENT_INFO, sequence, "");
+
         int duration = atoi(argument);
         moveFromRemote(CLAW_DROP, duration);
+
     } else if (strcmp(command,"s") == 0) { //stop movement
+
+        sendFormattedResponse(client, EVENT_INFO, sequence, "");
+
         //don't do anything if we're not in a mode to accept input
         if (_currentState != STATE_RUNNING)
             return;
         
-        client.println(""); //ack
+        
         stopMotorLeft();
         stopMotorRight();
         stopMotorForward();
@@ -963,22 +1014,37 @@ void handleTelnetCommand(EthernetClient &client)
         stopMotorUp();
         stopMotorDown();
         
+    } else if (strcmp(command,"u") == 0) { //move claw up
+
+        sendFormattedResponse(client, EVENT_INFO, sequence, "");
+
+        int duration = atoi(argument);
+        moveFromRemote(CLAW_UP, duration);
+
+    } else if (strcmp(command,"dn") == 0) { //move claw down, "d" is taken for drop
+
+        sendFormattedResponse(client, EVENT_INFO, sequence, "");
+
+        int duration = atoi(argument);
+        moveFromRemote(CLAW_DOWN, duration);
+
     } else if (strcmp(command,"belt") == 0) { //move belt for # milliseconds
-        client.println(""); //ack
+
+        sendFormattedResponse(client, EVENT_INFO, sequence, "");
+
         int val = atoi(argument);
         moveConveyorBelt(val);
-    } else if (strcmp(command,"sbelt") == 0) { //sticky belt, turn on/off and leave it
-        client.println(""); //ack
-        int val = atoi(argument);
-        if (val == 1)
-            digitalWrite(_PINConveyorBelt, RELAYPINON);
-        else
-            digitalWrite(_PINConveyorBelt, RELAYPINOFF);
+
     } else if (strcmp(command,"flip") == 0) { //move flipper out and back
-        client.println(""); //ack
+
+        sendFormattedResponse(client, EVENT_INFO, sequence, "");
+
         startFlipper();
+
     } else if (strcmp(command,"light") == 0) { //lights on or off
-        client.println(""); //ack
+
+        sendFormattedResponse(client, EVENT_INFO, sequence, "");
+
         if (strcmp(argument,"on") == 0)
         {
             digitalWrite(_PINLightsWhite, RELAYPINON);
@@ -987,98 +1053,130 @@ void handleTelnetCommand(EthernetClient &client)
         }
         
     } else if (strcmp(command,"cl") == 0) { //check limit
+
         int dir = atoi(argument);
-        client.print(EVENT_INFO);
+        int isLimit = 0;
         switch (dir)
         {
             case CLAW_BACKWARD:
+
                 if (isLimitBackward())
-                    client.println(" 1");
-                else
-                    client.println(" 0");
+                    isLimit = 1;
                 break;
+
             case CLAW_FORWARD:
+
                 if (isLimitForward())
-                    client.println(" 1");
-                else
-                    client.println(" 0");
+                    isLimit = 1;
                 break;
+
             case CLAW_LEFT:
+
                 if (isLimitLeft())
-                    client.println(" 1");
-                else
-                    client.println(" 0");
+                    isLimit = 1;
                 break;
+
             case CLAW_RIGHT:
+
                 if (isLimitRight())
-                    client.println(" 1");
-                else
-                    client.println(" 0");
+                    isLimit = 1;
                 break;
+
             case CLAW_DROP:
+
                 if (isLimitDown())
-                    client.println(" 1");
-                else
-                    client.println(" 0");
+                    isLimit = 1;
                 break;
+
             case CLAW_RECOIL:
+
                 if (isLimitUp())
-                    client.println(" 1");
-                else
-                    client.println(" 0");
+                    isLimit = 1;
                 break;
+
         }
+        sprintf(outputData, "%i", isLimit);
+        sendFormattedResponse(client, EVENT_INFO, sequence, outputData);
+
     } else if (strcmp(command,"center") == 0) { //custom center
         
         _runToCenterDurationWidth = atoi(argument);
         _runToCenterDurationDepth = atoi(argument2);
-        client.print(EVENT_INFO);
-        client.print(" ");
-        client.print(_runToCenterDurationWidth);
-        client.print(" ");
-        client.println(_runToCenterDurationDepth);
+        sprintf(outputData, "%i %i", _runToCenterDurationWidth, _runToCenterDurationDepth);
+        sendFormattedResponse(client, EVENT_INFO, sequence, outputData);
+
+    } else if (strcmp(command,"claw") == 0) { //open or close claw
+
+        sendFormattedResponse(client, EVENT_INFO, sequence, "");
+        int val = atoi(argument);
+        if (val == 1)
+            closeClaw();
+        else 
+            openClaw();
+
     } else if (strcmp(command,"creset") == 0) { //reset custom centering
+
         _runToCenterDurationWidth = _halfTimespanRunWidth;
         _runToCenterDurationDepth = _halfTimespanRunDepth;
-        client.print(EVENT_INFO);
-        client.print(" ");
-        client.print(_runToCenterDurationWidth);
-        client.print(" ");
-        client.println(_runToCenterDurationDepth);
+        
+        sprintf(outputData, "%i %i", _runToCenterDurationWidth, _runToCenterDurationDepth);
+        sendFormattedResponse(client, EVENT_INFO, sequence, outputData);
+
     } else if (strcmp(command,"w") == 0) { //wiggle when reaching home
-        client.print(EVENT_INFO);
+
         if (strcmp(argument,"on") == 0)
         {
             _doWiggle = true;
-            client.println(" on");
+            sendFormattedResponse(client, EVENT_INFO, sequence, "on");
         } else {
             _doWiggle = false;
-            client.println(" off");
+            sendFormattedResponse(client, EVENT_INFO, sequence, "off");
         }
+
     } else if (strcmp(command,"wt") == 0) { //wiggle time, how long to move each direction
+
+        sendFormattedResponse(client, EVENT_INFO, sequence, "");
         _wiggleTime = atoi(argument);
+
     } else if (strcmp(command,"strobe") == 0) { //strobe the lights
-        client.println(""); //ack
+
+        sendFormattedResponse(client, EVENT_INFO, sequence, "");
         sprintf(_queuedCommand, "s %s %s %s %s %s %s", argument, argument2, argument3, argument4, argument5, argument6);
         _hasQueuedCommand = true;
+
     } else if (strcmp(command,"uno") == 0) { //send generic commands to uno
-        client.println(""); //ack
+
+        sendFormattedResponse(client, EVENT_INFO, sequence, "");
         sprintf(_queuedCommand, "%s %s %s %s %s %s", argument, argument2, argument3, argument4, argument5, argument6);
         _hasQueuedCommand = true;
+
     } else if (strcmp(command,"ping") == 0) { //pinging
-        int val = atoi(argument);
-        sprintf(outputData, "%i %i", EVENT_PONG, val);
-        client.println(outputData);
+
+        sendFormattedResponse(client, EVENT_PONG, sequence, argument);
+
     } else {
 
         //always send an acknowledgement that it processed a command, even if nothing fired, it means we cleared the command buffer
         //this is in an else because each function needs to send it's own ack BEFORE it executes functions
         //prevents the command ack from triggering after events occur because of the action
         //e.g. press Down sends a down event immediately which has to come after command ack
-        client.println("");
+        sendFormattedResponse(client, EVENT_INFO, "-1", "");
     }
 }
+void sendFormattedResponse(EthernetClient &client, int event, char sequence[], char response[])
+{
+    client.print(event);
+    client.print(":");
+    client.print(sequence);
+    client.print(" "); //ack
+    client.println(response);
+}
 
+/**
+ * Run the conveyor belt for the passed number of milliseconds
+ * 0 = stop
+ * -1 = no limit
+ */
 void moveConveyorBelt(int runTime)
 {
     if (runTime > 0)
@@ -1086,6 +1184,10 @@ void moveConveyorBelt(int runTime)
         digitalWrite(_PINConveyorBelt, RELAYPINON);
         _timestampConveyorBeltStart = millis();
         _conveyorBeltRunTime = runTime;
+    } else if (runTime < 0) {
+        digitalWrite(_PINConveyorBelt, RELAYPINON);
+    } else {
+        digitalWrite(_PINConveyorBelt, RELAYPINOFF);
     }
 }
 
@@ -1135,6 +1237,16 @@ void moveFromRemote(byte direction, int duration)
             _clawRemoteMoveDurationDrop = duration;
             _clawRemoteMoveStartTimeDrop = millis();
             dropClawProcedure();
+            break;
+        case CLAW_DOWN:
+            _clawRemoteMoveDurationDown = duration;
+            _clawRemoteMoveStartTimeDown = millis();
+            runMotorDown();
+            break;
+        case CLAW_UP:
+            _clawRemoteMoveDurationUp = duration;
+            _clawRemoteMoveStartTimeUp = millis();
+            runMotorUp();
             break;
     }
 }

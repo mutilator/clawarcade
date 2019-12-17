@@ -1672,12 +1672,12 @@ namespace InternetClawMachine
 
         private void btnBeltOn_PreviewMouseDown(object sender, MouseButtonEventArgs e)
         {
-            (Game as ClawGame)?.MachineControl.RunConveyorSticky(true);
+            (Game as ClawGame)?.MachineControl.RunConveyor(-1);
         }
 
         private void btnBeltOn_PreviewMouseUp(object sender, MouseButtonEventArgs e)
         {
-            (Game as ClawGame)?.MachineControl.RunConveyorSticky(false);
+            (Game as ClawGame)?.MachineControl.RunConveyor(0);
         }
 
         private void btnChatConnect_Click(object sender, RoutedEventArgs e)
@@ -1709,6 +1709,7 @@ namespace InternetClawMachine
             if (!Client.IsConnected && Configuration.AutoReconnectChat)
             {
                 Client.Connect();
+                
             }
         }
 

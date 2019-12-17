@@ -30,8 +30,6 @@ namespace InternetClawMachine.Hardware.ClawControl
 
         Task RunConveyor(int duration);
 
-        void RunConveyorSticky(bool enabled);
-
         void SetClawPower(int percent);
 
         void ToggleLaser(bool on);
