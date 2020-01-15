@@ -35,9 +35,9 @@ namespace InternetClawMachine.Chat
 
         void Disconnect();
 
-        void Connect();
+        bool Connect();
 
-        void Reconnect();
+        bool Reconnect();
 
         void SendMessage(string channel, string message);
 
@@ -156,6 +156,7 @@ namespace InternetClawMachine.Chat
         public string BotUsername { get; set; }
         public bool IsSubscriber { get; set; }
         public double BitsInDollars { get; set; }
+        public string CustomRewardId { get; internal set; }
     }
 
     public class WhisperMessage

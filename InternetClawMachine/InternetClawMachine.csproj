@@ -166,21 +166,18 @@
     <Reference Include="System.Xaml">
       <RequiredTargetFramework>4.0</RequiredTargetFramework>
     </Reference>
-    <Reference Include="TwitchLib.Client, Version=3.0.4.0, Culture=neutral, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>bin\Release\TwitchLib.Client.dll</HintPath>
+    <Reference Include="TwitchLib.Client">
+      <HintPath>J:\github\TwitchLib.Client\TwitchLib.Client\bin\Release\netstandard2.0\TwitchLib.Client.dll</HintPath>
     </Reference>
-    <Reference Include="TwitchLib.Client.Enums, Version=3.0.4.0, Culture=neutral, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>bin\Release\TwitchLib.Client.Enums.dll</HintPath>
+    <Reference Include="TwitchLib.Client.Enums">
+      <HintPath>J:\github\TwitchLib.Client\TwitchLib.Client\bin\Release\netstandard2.0\TwitchLib.Client.Enums.dll</HintPath>
     </Reference>
-    <Reference Include="TwitchLib.Client.Models, Version=3.0.4.0, Culture=neutral, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>bin\Release\TwitchLib.Client.Models.dll</HintPath>
+    <Reference Include="TwitchLib.Client.Models">
+      <HintPath>J:\github\TwitchLib.Client\TwitchLib.Client\bin\Release\netstandard2.0\TwitchLib.Client.Models.dll</HintPath>
     </Reference>
     <Reference Include="TwitchLib.Communication, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>bin\Release\TwitchLib.Communication.dll</HintPath>
+      <HintPath>J:\github\TwitchLib.Client\TwitchLib.Client\bin\Release\netstandard2.0\TwitchLib.Communication.dll</HintPath>
     </Reference>
     <Reference Include="websocket-sharp, Version=1.0.2.59611, Culture=neutral, PublicKeyToken=5660b08a1845a91e, processorArchitecture=MSIL">
       <HintPath>..\packages\WebSocketSharp.1.0.3-rc11\lib\websocket-sharp.dll</HintPath>
@@ -211,6 +208,8 @@
     <Compile Include="OAuthTokenRequestor.xaml.cs">
       <DependentUpon>OAuthTokenRequestor.xaml</DependentUpon>
     </Compile>
+    <Compile Include="OBSSceneFilters.cs" />
+    <Compile Include="PlushieObject.cs" />
     <Compile Include="Settings\ClawGameSettings.cs" />
     <Compile Include="Settings\DrawingSettings.cs" />
     <Compile Include="Settings\BotConfiguration.cs" />
@@ -253,6 +252,7 @@
     <Compile Include="Settings\MixerSettings.cs" />
     <Compile Include="Settings\OBSSettings.cs" />
     <Compile Include="Settings\TwitchSettings.cs" />
+    <Compile Include="Settings\UserList.cs" />
     <Compile Include="Settings\VoteSettings.cs" />
     <Compile Include="Settings\WaterGunSettings.cs" />
     <Compile Include="StreamBuxTypes.cs" />
@@ -261,6 +261,8 @@
     <Compile Include="Hardware\ClawControl\U421Module.cs" />
     <Compile Include="Hardware\ClawControl\USBm.cs" />
     <Compile Include="Hardware\WaterBot.cs" />
+    <Compile Include="Translator.cs" />
+    <Compile Include="UserPrefs.cs" />
     <Compile Include="WebServer.cs" />
     <Compile Include="Games\GameHelpers\WinTracker.cs" />
     <Compile Include="Hardware\RFID\ZLDM.cs" />

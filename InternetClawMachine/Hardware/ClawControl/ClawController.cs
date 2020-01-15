@@ -73,6 +73,8 @@ namespace InternetClawMachine.Hardware.ClawControl
 
         public event EventHandler OnMotorTimeoutDown;
 
+        public event EventHandler OnClawTimeout;
+
         public event ClawInfoEventArgs OnInfoMessage;
         
         public string IpAddress { set; get; }
@@ -241,6 +243,7 @@ namespace InternetClawMachine.Hardware.ClawControl
                 StartReader();
                 Thread.Sleep(200);
                 //kick off the first ping
+                _pingQueue.Clear();
                 Ping();
                 return true;
             }
@@ -308,13 +311,14 @@ namespace InternetClawMachine.Hardware.ClawControl
             {
                 //echo the data received back to the client
                 //e.SetBuffer(e.Offset, e.BytesTransferred);
+                var hasDataLine = false;
                 int i;
                 for (i = 0; i < e.BytesTransferred; i++)
                 {
                     _receiveBuffer[_receiveIdx] = e.Buffer[i];
                     _receiveIdx++;
                     if (e.Buffer[i] != '\n') continue; //read until a newline
-
+                    hasDataLine = true;
                     var response = Encoding.UTF8.GetString(_receiveBuffer, 0, _receiveIdx);
 
                     HandleMessage(response);
@@ -322,6 +326,7 @@ namespace InternetClawMachine.Hardware.ClawControl
                     Array.Clear(_receiveBuffer, 0, _receiveBuffer.Length); //also make sure the array is zeroed
                 }
                 e.SetBuffer(0, 1024);
+                
             }
             else
             {
@@ -338,6 +343,7 @@ namespace InternetClawMachine.Hardware.ClawControl
 
 
             Logger.WriteLog(Logger.MachineLog, "RECEIVE: " + response);
+            Console.WriteLine("RECEIVE:" + response);
             var delims = response.Split(' ');
 
             if (delims.Length < 1 || response.Length == 0)
@@ -356,7 +362,7 @@ namespace InternetClawMachine.Hardware.ClawControl
                     sequence = int.Parse(aryEventResp[1]);
                     if (sequence == _currentWaitSequenceNumberCommand) //if this sequence is a command we're waiting for then set that response
                     {
-                        _currentWaitSequenceNumberCommand = 0;
+                        _currentWaitSequenceNumberCommand = -1;
                         _lastCommandResponse = response;
                     }
 
@@ -379,6 +385,7 @@ namespace InternetClawMachine.Hardware.ClawControl
                             var ping = _pingQueue[i];
                             if (ping.Sequence == sequence)
                             {
+                                Latency = PingTimer.ElapsedMilliseconds - ping.StartTime;
                                 ping.Success = true;
                                 _pingQueue.RemoveAt(i);
                                 OnPingSuccess?.Invoke(this, new EventArgs());
@@ -436,6 +443,10 @@ namespace InternetClawMachine.Hardware.ClawControl
                         OnMotorTimeoutDown?.Invoke(this, new EventArgs());
                         break;
 
+                    case ClawEvents.EVENT_FAILSAFE_CLAW:
+                        OnClawTimeout?.Invoke(this, new EventArgs());
+                        break;
+
                     case ClawEvents.EVENT_DROPPING_CLAW:
                         OnClawDropping?.Invoke(this, new EventArgs());
                         break;
@@ -473,8 +484,9 @@ namespace InternetClawMachine.Hardware.ClawControl
                 PingTimer.Start();
             }
 
-            int sequence = SendCommandAsync("ping " + PingTimer.ElapsedMilliseconds);
-            var ping = new ClawPing() {Success = false, Sequence = sequence};
+            var ms = PingTimer.ElapsedMilliseconds;
+            int sequence = SendCommandAsync("ping " + ms);
+            var ping = new ClawPing() { Success = false, Sequence = sequence, StartTime = ms };
             _pingQueue.Add(ping);
 
             //kick off an async validating ping
@@ -490,11 +502,28 @@ namespace InternetClawMachine.Hardware.ClawControl
                 }
                 else if (!ping.Success) //no response, TIMEOUT!
                 {
-                    _pingQueue.Clear();
-                    Logger.WriteLog(Logger.MachineLog, "Ping timeout: " + Latency);
-                    _workSocket.Disconnect(false);
-                    OnPingTimeout?.Invoke(this, new EventArgs());
-                    OnDisconnected?.Invoke(this, new EventArgs());
+                    //first, check if any pings AFTER this have succeeded, maybe this got delayed for some reason
+                    var hasOtherSuccess = false;
+                    foreach (var p in _pingQueue)
+                    {
+                        if (p.Sequence > ping.Sequence && p.Success)
+                            hasOtherSuccess = true;
+                    }
+
+                    if (hasOtherSuccess) 
+                    {
+                        //if another successful ping was after this one we just remove it and continue on
+                        //also don't spawn a new ping because the subsequent ping will do taht
+                        _pingQueue.Remove(ping);
+                    }
+                    else //yea we really timed out
+                    {
+                        _pingQueue.Clear();
+                        Logger.WriteLog(Logger.MachineLog, "Ping timeout: " + Latency);
+                        _workSocket.Disconnect(false);
+                        OnPingTimeout?.Invoke(this, new EventArgs());
+                        OnDisconnected?.Invoke(this, new EventArgs());
+                    }
                 }
                 else
                 {
@@ -685,7 +714,7 @@ namespace InternetClawMachine.Hardware.ClawControl
 
         public async Task MoveDown(int duration)
         {
-            await Move(MovementDirection.CLAWCLOSE, duration);
+            await Move(MovementDirection.DOWN, duration);
         }
 
         public async Task MoveForward(int duration)
@@ -760,5 +789,6 @@ namespace InternetClawMachine.Hardware.ClawControl
     {
         public int Sequence { set; get; }
         public bool Success { set; get; }
+        public long StartTime { get; internal set; }
     }
 }

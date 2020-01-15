@@ -541,9 +541,9 @@ namespace InternetClawMachine.Games.GantryGame
             OnRoundStarted(new RoundStartedArgs() { Username = username, GameMode = GameMode });
         }
 
-        public override void HandleCommand(string channel, string username, string chatMessage, bool isSubscriber)
+        public override void HandleCommand(string channel, string username, string chatMessage, bool isSubscriber, string customRewardId)
         {
-            base.HandleCommand(channel, username, chatMessage, isSubscriber);
+            base.HandleCommand(channel, username, chatMessage, isSubscriber, customRewardId);
             if (_returningHome)
                 return;
             var commandText = chatMessage.Substring(1);
@@ -912,7 +912,7 @@ namespace InternetClawMachine.Games.GantryGame
             ProcessCommands();
         }
 
-        public override void ShowHelp()
+        public override void ShowHelp(string username)
         {
             ChatClient.SendMessage(Configuration.Channel, "Commands: ");
             ChatClient.SendMessage(Configuration.Channel, "f, b, l, r, h, ch - Move the gantry, alternate CAPS and lower case to use commands faster");

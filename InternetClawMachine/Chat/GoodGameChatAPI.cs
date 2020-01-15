@@ -40,9 +40,10 @@ namespace InternetClawMachine.Chat
 
         public event EventHandler<OnSendReceiveDataArgs> OnSendReceiveData;
 
-        public void Connect()
+        public bool Connect()
         {
             _socket.Connect();
+            return true;
         }
 
         public void Disconnect()
@@ -284,7 +285,7 @@ namespace InternetClawMachine.Chat
             OnDisconnected?.Invoke(this, new OnDisconnectedArgs() { BotUsername = Username });
         }
 
-        public void Reconnect()
+        public bool Reconnect()
         {
             throw new NotImplementedException();
         }

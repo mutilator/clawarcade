@@ -168,14 +168,14 @@ namespace InternetClawMachine.Games.OtherGame
             }
         }
 
-        public override void ShowHelp()
+        public override void ShowHelp(string username)
         {
             ChatClient.SendMessage(Configuration.Channel, "Commands: ");
             ChatClient.SendMessage(Configuration.Channel, "l, r, u, d, s1-4 - Control the gun; left, right, up, down, and shoot 1-4 seconds, .5 default");
             ChatClient.SendMessage(Configuration.Channel, "gift turn <nickname> - Gifts your turn to someone else");
         }
 
-        public override void ShowHelpSub()
+        public override void ShowHelpSub(string username)
         {
         }
 

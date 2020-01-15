@@ -100,17 +100,17 @@ namespace InternetClawMachine.Games.ClawGame
             Task.Run(async delegate { await ProcessQueue(); });
         }
 
-        public override void ShowHelp()
+        public override void ShowHelp(string username)
         {
-            ChatClient.SendMessage(Configuration.Channel, "Commands: refer to the panels below the stream for more commands");
-            ChatClient.SendMessage(Configuration.Channel, "s, f, b, l, r, d - Move the crane, alternate CAPS and lower case to use commands faster");
+            ChatClient.SendMessage(Configuration.Channel, Translator.GetTranslation("gameClawChaosHelp1", Configuration.UserList.GetUserLocalization(username)));
+            ChatClient.SendMessage(Configuration.Channel, Translator.GetTranslation("gameClawChaosHelp2", Configuration.UserList.GetUserLocalization(username)));
         }
 
         public override void StartGame(string username)
         {
             GameModeTimer.Reset();
             GameModeTimer.Start();
-            ChatClient.SendMessage(Configuration.Channel, string.Format("Chaos mode has begun! Type {0}help for commands.", Configuration.CommandPrefix));
+            ChatClient.SendMessage(Configuration.Channel, string.Format(Translator.GetTranslation("gameClawChaosStartGame", Configuration.UserList.GetUserLocalization(username)), Configuration.CommandPrefix));
             //RunCommandQueue();
             StartRound(username);
         }

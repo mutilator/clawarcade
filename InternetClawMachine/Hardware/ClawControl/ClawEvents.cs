@@ -10,18 +10,21 @@
         EVENT_RECOILED_CLAW = 105,
         EVENT_RETURNED_HOME = 106,
         EVENT_RETURNED_CENTER = 107,
+
         EVENT_LIMIT_LEFT = 200,
         EVENT_LIMIT_RIGHT = 201,
         EVENT_LIMIT_FORWARD = 202,
         EVENT_LIMIT_BACKWARD = 203,
         EVENT_LIMIT_UP = 204,
         EVENT_LIMIT_DOWN = 205,
+
         EVENT_FAILSAFE_LEFT = 300,
         EVENT_FAILSAFE_RIGHT = 301,
         EVENT_FAILSAFE_FORWARD = 302,
         EVENT_FAILSAFE_BACKWARD = 303,
         EVENT_FAILSAFE_UP = 304,
         EVENT_FAILSAFE_DOWN = 305,
+        EVENT_FAILSAFE_CLAW = 306
 
         /// <summary>
         /// Used for passing information responses

@@ -12,6 +12,7 @@ namespace InternetClawMachine
         public static string ErrorLog;
         public static string MachineLog;
         public static string DebugLog;
+        public static LogLevel Level = LogLevel.ERROR;
 
         public static void Init(string defaultFolder, string errpfx, string machpfx, string dbgpfx)
         {
@@ -23,11 +24,21 @@ namespace InternetClawMachine
 
         public static void WriteLog(string logfile, string message)
         {
+            WriteLog(logfile, message, LogLevel.ERROR);
+        }
+
+        public static void WriteLog(string logfile, string message, LogLevel logLevel)
+        {
             if (_defaultLogFolder == null)
             {
                 MessageBox.Show("No log folder defined");
                 return;
             }
+
+            //see if we're logging at this level
+            if (Level < logLevel)
+                return;
+
             var date = DateTime.Now.ToString("dd-MM-yyyy");
             var timestamp = DateTime.Now.ToString("HH:mm:ss.ff");
             var fileHandle = GetFileHandle(logfile, date);
@@ -89,6 +100,14 @@ namespace InternetClawMachine
             {
                 key.Value.Close();
             }
+        }
+
+        public enum LogLevel
+        {
+            ERROR,
+            WARNING,
+            DEBUG,
+            TRACE
         }
     }
 }

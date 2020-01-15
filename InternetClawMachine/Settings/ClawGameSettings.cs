@@ -7,6 +7,7 @@ namespace InternetClawMachine.Settings
     public class ClawGameSettings : INotifyPropertyChanged
     {
         private bool _wiggleMode;
+        private bool _blackLightMode;
 
         public int StrobeRedChannel { set; get; }
         public int StrobeBlueChannel { set; get; }
@@ -138,7 +139,22 @@ namespace InternetClawMachine.Settings
         /// <summary>
         /// How long after the sensor is tripped do we acknowledge the sensor again
         /// </summary>
-        public long BreakSensorWaitTime { get; internal set; }
+        public long BreakSensorWaitTime { get; set; }
+
+        /// <summary>
+        /// Whether black light mode is enabled
+        /// </summary>
+        public bool BlackLightMode
+        {
+            set
+            {
+                var fire = !value.Equals(_blackLightMode);
+                _blackLightMode = value;
+                if (fire)
+                    OnPropertyChanged("BlackLightMode");
+            }
+            get => _blackLightMode;
+        }
 
         public event PropertyChangedEventHandler PropertyChanged;
 

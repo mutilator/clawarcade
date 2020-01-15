@@ -169,7 +169,7 @@ namespace InternetClawMachine.Settings
             MixerSettings = new MixerSettings();
             WaterGunSettings = new WaterGunSettings();
             DrawingSettings = new DrawingSettings();
-            UserList = new List<string>();
+            UserList = new UserList();
             Coords = new Coordinates();
             DataExchanger = new JsonDataExchange();
             EventMode = EventMode.NORMAL;
@@ -227,7 +227,7 @@ namespace InternetClawMachine.Settings
         /// List of users that are in the current channel
         /// </summary>
         [JsonIgnore]
-        public List<string> UserList { set; get; }
+        public UserList UserList { set; get; }
 
         /// <summary>
         /// AUto reconnect to chat
@@ -351,6 +351,7 @@ namespace InternetClawMachine.Settings
             };
             JsonConvert.PopulateObject(File.ReadAllText(botConfigFile), this);
             Init();
+            LoadDatebase();
         }
 
         public event PropertyChangedEventHandler PropertyChanged;

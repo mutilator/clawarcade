@@ -55,6 +55,19 @@
                 </Setter.Value>
             </Setter>
         </Style>
+        <DataTemplate x:Key="HeaderTemplateArrowUp">
+            <DockPanel LastChildFill="True" Width="{Binding ActualWidth, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type GridViewColumnHeader}}}">
+                <Path x:Name="arrowUp" StrokeThickness="1" Fill="Gray" Data="M 5,10 L 15,10 L 10,5 L 5,10" DockPanel.Dock="Right" Width="20" HorizontalAlignment="Right" Margin="5,0,5,0" SnapsToDevicePixels="True"/>
+                <TextBlock Text="{Binding }" />
+            </DockPanel>
+        </DataTemplate>
+
+        <DataTemplate x:Key="HeaderTemplateArrowDown">
+            <DockPanel LastChildFill="True" Width="{Binding ActualWidth, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type GridViewColumnHeader}}}">
+                <Path x:Name="arrowDown" StrokeThickness="1" Fill="Gray"  Data="M 5,5 L 10,10 L 15,5 L 5,5" DockPanel.Dock="Right" Width="20" HorizontalAlignment="Right" Margin="5,0,5,0" SnapsToDevicePixels="True"/>
+                <TextBlock Text="{Binding }" />
+            </DockPanel>
+        </DataTemplate>
     </Window.Resources>
 
     <Grid Margin="0,0,0,2" Width="772" Height="852">
@@ -70,7 +83,7 @@
             <Button Content="Backward" HorizontalAlignment="Left" Margin="586,96,0,0" VerticalAlignment="Top" Width="98" x:Name="btnBackward" PreviewMouseDown="btnBackward_MouseDown" PreviewMouseUp="btnBackward_MouseUp" />
             <Button Content="Left" HorizontalAlignment="Left" Margin="508,59,0,0" VerticalAlignment="Top" Width="76" x:Name="btnLeft" PreviewMouseDown="btnLeft_MouseDown" PreviewMouseUp="btnLeft_MouseUp" />
             <Button Content="Right" HorizontalAlignment="Left" Margin="689,59,0,0" VerticalAlignment="Top" Width="74" x:Name="btnRight" PreviewMouseDown="btnRight_MouseDown" PreviewMouseUp="btnRight_MouseUp" />
-            <Button Content="Drop" HorizontalAlignment="Left" Margin="606,59,0,0" VerticalAlignment="Top" Width="64" x:Name="btnDrop" PreviewMouseDown="btnDrop_MouseDown" PreviewMouseUp="btnDrop_MouseUp" Click="BtnDrop_Click" />
+            <Button Content="Drop" HorizontalAlignment="Left" Margin="606,59,0,0" VerticalAlignment="Top" Width="64" x:Name="btnDrop" PreviewMouseDown="btnDrop_MouseDown" PreviewMouseUp="btnDrop_MouseUp" />
             <ListBox HorizontalAlignment="Left" Height="186" Margin="371,43,0,0" VerticalAlignment="Top" Width="125" x:Name="lstViewers" Background="Black" Foreground="#FF408080" BorderBrush="Red" BorderThickness="0" />
             <Label Content="Viewers" HorizontalAlignment="Left" Margin="371,14,0,0" VerticalAlignment="Top" />
             <Button Content="Reconnect" HorizontalAlignment="Left" Margin="371,312,0,0" VerticalAlignment="Top" Width="125" x:Name="btnReconnect" Click="btnReconnect_Click" />
@@ -89,7 +102,8 @@
                 <ListBoxItem Content="Bounty" />
                 <ListBoxItem Content="Easter" />
                 <ListBoxItem Content="Halloween" />
-                <ListBoxItem Content="Birthday" />
+                <ListBoxItem Content="Birthday1" />
+                <ListBoxItem Content="Birthday2"/>
             </ComboBox>
             <Button x:Name="btnSaveConfig" Content="Save Configuration" HorizontalAlignment="Left" Margin="590,810,0,0" VerticalAlignment="Top" Width="162" Click="btnSaveConfig_Click" />
             <TabControl HorizontalAlignment="Left" Height="447" Margin="15,358,0,0" VerticalAlignment="Top" Width="742">
@@ -102,11 +116,11 @@
                         <Label Content="WinNotificationDelay" HorizontalAlignment="Left" Margin="10,61,0,0" VerticalAlignment="Top" RenderTransformOrigin="-0.026,-0.077" />
                         <Label x:Name="lblwinNotificationDelay" HorizontalAlignment="Left" Margin="169,61,0,0" VerticalAlignment="Top" RenderTransformOrigin="0.368,-0.308" Content="{Binding Value, ElementName=sldrwinNotificationDelay}" />
                         <Label Content="Web Server URI" HorizontalAlignment="Left" Margin="224,7,0,0" VerticalAlignment="Top" />
-                        <TextBox HorizontalAlignment="Left" Height="23" Margin="328,10,0,0" Text="{Binding WebserverURI}" VerticalAlignment="Top" Width="120" />
+                        <TextBox HorizontalAlignment="Left" Height="23" Margin="328,10,0,0" Text="{Binding WebserverUri}" VerticalAlignment="Top" Width="120" />
                         <Label Content="Discord URL" HorizontalAlignment="Left" Margin="224,35,0,0" VerticalAlignment="Top" />
-                        <TextBox HorizontalAlignment="Left" Height="23" Margin="328,38,0,0" Text="{Binding DiscordURL}" VerticalAlignment="Top" Width="120" />
+                        <TextBox HorizontalAlignment="Left" Height="23" Margin="328,38,0,0" Text="{Binding DiscordUrl}" VerticalAlignment="Top" Width="120" />
                         <Label Content="Twitter URL" HorizontalAlignment="Left" Margin="224,63,0,0" VerticalAlignment="Top" />
-                        <TextBox HorizontalAlignment="Left" Height="23" Margin="328,66,0,0" Text="{Binding TwitterURL}" VerticalAlignment="Top" Width="120" />
+                        <TextBox HorizontalAlignment="Left" Height="23" Margin="328,66,0,0" Text="{Binding TwitterUrl}" VerticalAlignment="Top" Width="120" />
                         <Slider x:Name="sldrwinNotificationDelay_Copy" HorizontalAlignment="Left" Margin="10,136,0,0" VerticalAlignment="Top" Width="113" Maximum="100" Minimum="0" LargeChange="1" SmallChange=".05" Value="{Binding GoalProgressIncrement, Mode=TwoWay}" IsSnapToTickEnabled="True" TickFrequency="250" />
                         <Label Content="GoalProgressIncrement" HorizontalAlignment="Left" Margin="10,110,0,0" VerticalAlignment="Top" RenderTransformOrigin="-0.026,-0.077" />
                         <Label x:Name="lblwinNotificationDelay_Copy" HorizontalAlignment="Left" Margin="169,110,0,0" VerticalAlignment="Top" RenderTransformOrigin="0.368,-0.308" Content="{Binding Value, ElementName=sldrwinNotificationDelay}" />
@@ -129,14 +143,16 @@
                         <TextBox HorizontalAlignment="Left" Height="23" Margin="328,178,0,0" TextWrapping="NoWrap"  Text="{Binding MailFrom}" VerticalAlignment="Top" Width="120" />
                         <Label Content="Email To" HorizontalAlignment="Left" Margin="224,206,0,0" VerticalAlignment="Top" />
                         <TextBox HorizontalAlignment="Left" Height="23" Margin="328,209,0,0" TextWrapping="NoWrap" Text="{Binding EmailAddress}" VerticalAlignment="Top" Width="120" />
+                        <ComboBox x:Name="cmbLogLevel" HorizontalAlignment="Left" VerticalAlignment="Top" Width="120" Margin="328,241,0,0" SelectionChanged="CmbLogLevel_SelectionChanged" DisplayMemberPath="Name"/>
+                        <Label Content="Log Level" HorizontalAlignment="Left" Margin="224,241,0,0" VerticalAlignment="Top" />
                     </Grid>
                 </TabItem>
                 <TabItem Header="Plushes" Padding="20,2">
                     <Grid>
-                        <ListView x:Name="lstPlushes" HorizontalAlignment="Left" Height="362" VerticalAlignment="Top" Width="716" Margin="10,10,0,0">
+                        <ListView x:Name="lstPlushes" HorizontalAlignment="Left" Height="318" VerticalAlignment="Top" Width="716" Margin="10,10,0,0" GridViewColumnHeader.Click="LstPlushes_OnClick">
                             <ListView.View>
                                 <GridView>
-                                    <GridViewColumn DisplayMemberBinding="{Binding PlushID}" Header="ID" Width="50" />
+                                    <GridViewColumn DisplayMemberBinding="{Binding PlushId}" Header="Id" Width="50" />
                                     <GridViewColumn DisplayMemberBinding="{Binding Name}" Header="Plush" Width="200" />
                                     <GridViewColumn DisplayMemberBinding="{Binding WasGrabbed}" Header="Grabbed" Width="85" />
                                     <GridViewColumn DisplayMemberBinding="{Binding ChangedBy}" Header="Changed By" Width="150" />
@@ -144,13 +160,14 @@
                                 </GridView>
                             </ListView.View>
                         </ListView>
-                        <Button x:Name="btnMarkGrabbed" Content="Mark Grabbed" HorizontalAlignment="Left" Margin="10,377,0,0" VerticalAlignment="Top" Width="126" Click="BtnMarkGrabbed_Click" />
-                        <Button x:Name="btnPlushListRefresh" Content="Refresh" HorizontalAlignment="Left" Margin="141,377,0,0" VerticalAlignment="Top" Width="81" Click="BtnPlushListRefresh_Click" />
-                        <TextBox x:Name="txtLastEPC" Height="29" TextWrapping="NoWrap" Margin="308,379,273,11" />
-                        <Label Content="Last EPC Scan" HorizontalAlignment="Left" Height="28" Margin="222,380,0,0" VerticalAlignment="Top" Width="95" />
-                        <TextBox x:Name="txtPLushName" Height="29" TextWrapping="Wrap" Text="" Margin="549,380,96,10" />
-                        <Label Content="Plush Name" HorizontalAlignment="Left" Height="28" Margin="463,383,0,0" VerticalAlignment="Top" Width="95" />
-                        <Button x:Name="btnPlushAddNew" Content="Add" HorizontalAlignment="Left" Margin="645,377,0,0" VerticalAlignment="Top" Width="81" Click="BtnPlushAddNew_Click" />
+                        <Button x:Name="btnMarkGrabbed" Content="Grabbed" HorizontalAlignment="Left" Margin="10,377,0,0" VerticalAlignment="Top" Width="88" Click="BtnMarkGrabbed_Click" />
+                        <Button x:Name="btnPlushListRefresh" Content="Refresh" HorizontalAlignment="Left" Margin="103,377,0,0" VerticalAlignment="Top" Width="81" Click="BtnPlushListRefresh_Click" />
+                        <TextBox x:Name="txtLastEPC" Height="29" TextWrapping="NoWrap" Margin="284,332,215,58" />
+                        <Label Content="Last EPC Scan" HorizontalAlignment="Left" Height="28" Margin="189,333,0,0" VerticalAlignment="Top" Width="95" />
+                        <TextBox x:Name="txtPLushName" Height="29" TextWrapping="Wrap" Text="" Margin="284,366,215,24" />
+                        <Label Content="Plush Name" HorizontalAlignment="Left" Height="28" Margin="189,366,0,0" VerticalAlignment="Top" Width="95" />
+                        <Button x:Name="btnPlushAddNew" Content="Add" HorizontalAlignment="Left" Margin="538,333,0,0" VerticalAlignment="Top" Width="81" Click="BtnPlushAddNew_Click" />
+                        <Button Content="Clear" HorizontalAlignment="Left" Margin="538,370,0,0" VerticalAlignment="Top" Width="81" Click="Button_Click_2"/>
                     </Grid>
                 </TabItem>
                 <TabItem Header="Queue" Padding="20,2">
@@ -302,22 +319,22 @@
                             <TabItem Header="RFID">
                                 <Grid>
 
-                                    <Slider x:Name="sldrAntStrength" HorizontalAlignment="Left" Margin="10,107,0,0" VerticalAlignment="Top" Width="112" Maximum="150"  PreviewMouseUp="sldrAntStrength_PreviewMouseUp" Minimum="1" SmallChange="1" IsSnapToTickEnabled="True" Value="{Binding ClawSettings.RFIDAntennaPower, Mode=TwoWay}" />
+                                    <Slider x:Name="sldrAntStrength" HorizontalAlignment="Left" Margin="10,107,0,0" VerticalAlignment="Top" Width="112" Maximum="150"  PreviewMouseUp="sldrAntStrength_PreviewMouseUp" Minimum="1" SmallChange="1" IsSnapToTickEnabled="True" Value="{Binding ClawSettings.RfidAntennaPower, Mode=TwoWay}" />
                                     <Label Content="Antenna strength" HorizontalAlignment="Left" Margin="10,81,0,0" VerticalAlignment="Top" RenderTransformOrigin="-0.026,-0.077" />
                                     <Label x:Name="lblAntennaStrength" HorizontalAlignment="Left" Margin="134,81,0,0" VerticalAlignment="Top" RenderTransformOrigin="0.368,-0.308" Content="{Binding Value, ElementName=sldrAntStrength}" />
                                     <Button x:Name="btnRFIDReset" Content="Reset RFID" HorizontalAlignment="Left" Margin="10,130,0,0" VerticalAlignment="Top" Width="141" Click="btnRFIDReset_Click" />
                                     <Button x:Name="btnRFIDConnect" Content="RFID Connect" HorizontalAlignment="Left" Margin="10,167,0,0" VerticalAlignment="Top" Width="141" Click="btnRFIDConnect_Click" />
                                     <Label Content="IP Address" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top" />
-                                    <TextBox HorizontalAlignment="Left" Height="23" Margin="114,13,0,0" TextWrapping="Wrap" Text="{Binding ClawSettings.RFIDReaderIPAddress}" VerticalAlignment="Top" Width="120" />
+                                    <TextBox HorizontalAlignment="Left" Height="23" Margin="114,13,0,0" TextWrapping="Wrap" Text="{Binding ClawSettings.RfidReaderIpAddress}" VerticalAlignment="Top" Width="120" />
                                     <Label Content="Port" HorizontalAlignment="Left" Margin="10,41,0,0" VerticalAlignment="Top" />
-                                    <TextBox HorizontalAlignment="Left" Height="23" Margin="114,41,0,0" TextWrapping="Wrap" Text="{Binding ClawSettings.RFIDReaderPort}" VerticalAlignment="Top" Width="120" />
+                                    <TextBox HorizontalAlignment="Left" Height="23" Margin="114,41,0,0" TextWrapping="Wrap" Text="{Binding ClawSettings.RfidReaderPort}" VerticalAlignment="Top" Width="120" />
                                 </Grid>
                             </TabItem>
                             <TabItem Header="Claw Controller" Margin="-1,0,-19,0">
                                 <Grid>
                                     <CheckBox x:Name="chkLightsOn" Content="Lights On" HorizontalAlignment="Left" Margin="219,89,0,0" VerticalAlignment="Top" Click="chkLightsOn_Click" IsChecked="True" />
                                     <CheckBox x:Name="chkNewController" Content="New Controller" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top" IsChecked="{Binding ClawSettings.UseNewClawController, Mode=TwoWay}" />
-                                    <TextBox HorizontalAlignment="Left" Height="23" Margin="85,53,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="120" Text="{Binding ClawSettings.ClawControllerIPAddress, Mode=TwoWay}" />
+                                    <TextBox HorizontalAlignment="Left" Height="23" Margin="85,53,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="120" Text="{Binding ClawSettings.ClawControllerIpAddress, Mode=TwoWay}" />
                                     <TextBox HorizontalAlignment="Left" Height="23" Margin="85,84,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="120" Text="{Binding ClawSettings.ClawControllerPort, Mode=TwoWay}" />
                                     <Label Content="IP Address" HorizontalAlignment="Left" Margin="10,52,0,0" VerticalAlignment="Top" />
                                     <Label Content="Port" HorizontalAlignment="Left" Margin="10,83,0,0" VerticalAlignment="Top" />
@@ -353,6 +370,7 @@
                                     <Label Content="Send Command" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="415,16,0,0" />
                                     <TextBlock x:Name="txtClawCommandResponse" HorizontalAlignment="Left" TextWrapping="Wrap" Text="Response..." VerticalAlignment="Top" Margin="415,64,0,0" Height="105" Width="285" />
                                     <CheckBox x:Name="chkWiggleMode" Content="Wiggle Mode" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="219,69,0,0" IsChecked="{Binding ClawSettings.WiggleMode, Mode=TwoWay}" />
+                                    <CheckBox x:Name="chkBlackLightsOn" Content="Black Lights" HorizontalAlignment="Left" Margin="219,107,0,0" VerticalAlignment="Top" IsChecked="{Binding ClawSettings.BlackLightMode, Mode=TwoWay}" Click="ChkBlackLightsOn_Click"/>
                                 </Grid>
                             </TabItem>
                             <TabItem Header="Golf Controller" HorizontalAlignment="Left" Height="20" VerticalAlignment="Top" Width="129" Margin="18,0,-18,0">
@@ -413,12 +431,12 @@
                                     <Label Content="Username" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top" />
                                     <TextBox HorizontalAlignment="Left" Height="23" Margin="98,13,0,0" TextWrapping="Wrap" Text="{Binding TwitchSettings.Username}" VerticalAlignment="Top" Width="120" />
                                     <Label Content="API Key" HorizontalAlignment="Left" Margin="10,96,0,0" VerticalAlignment="Top" />
-                                    <TextBox HorizontalAlignment="Left" Height="23" Margin="98,97,0,0" Text="{Binding TwitchSettings.APIKey}"  VerticalAlignment="Top" Width="120" />
+                                    <TextBox HorizontalAlignment="Left" Height="23" Margin="98,97,0,0" Text="{Binding TwitchSettings.ApiKey}"  VerticalAlignment="Top" Width="120" />
                                     <Label Content="Channel" HorizontalAlignment="Left" Margin="10,38,0,0" VerticalAlignment="Top" />
                                     <TextBox HorizontalAlignment="Left" Height="23" Margin="98,41,0,0" TextWrapping="Wrap" Text="{Binding TwitchSettings.Channel}" VerticalAlignment="Top" Width="120" />
                                     <Button Content="Get New Key" HorizontalAlignment="Left" VerticalAlignment="Top" Width="120" Margin="98,125,0,0" Click="Button_Click_5" />
                                     <Label Content="Client ID" HorizontalAlignment="Left" Margin="10,68,0,0" VerticalAlignment="Top" />
-                                    <TextBox HorizontalAlignment="Left" Height="23" Margin="98,69,0,0" Text="{Binding TwitchSettings.ClientID}"  VerticalAlignment="Top" Width="120" />
+                                    <TextBox HorizontalAlignment="Left" Height="23" Margin="98,69,0,0" Text="{Binding TwitchSettings.ClientId}"  VerticalAlignment="Top" Width="120" />
                                 </Grid>
                             </TabItem>
                             <TabItem Header="Goodgame.ru" Padding="20,2">
@@ -432,7 +450,7 @@
                                     <Label Content="URL" HorizontalAlignment="Left" Margin="10,193,0,0" VerticalAlignment="Top" />
                                     <TextBox HorizontalAlignment="Left" Height="23" Margin="98,196,0,0" Text="{Binding GoodGameSettings.Url}" VerticalAlignment="Top" Width="120" />
                                     <Label Content="User ID" HorizontalAlignment="Left" Margin="10,68,0,0" VerticalAlignment="Top" />
-                                    <TextBox HorizontalAlignment="Left" Height="23" Margin="98,69,0,0" Text="{Binding GoodGameSettings.UserID}"  VerticalAlignment="Top" Width="120" />
+                                    <TextBox HorizontalAlignment="Left" Height="23" Margin="98,69,0,0" Text="{Binding GoodGameSettings.UserId}"  VerticalAlignment="Top" Width="120" />
                                 </Grid>
                             </TabItem>
                             <TabItem Header="Mixer" Padding="20,2">
@@ -440,7 +458,7 @@
                                     <Label Content="Username" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top" />
                                     <TextBox HorizontalAlignment="Left" Height="23" Margin="98,13,0,0" TextWrapping="Wrap" Text="{Binding MixerSettings.Username}" VerticalAlignment="Top" Width="120" />
                                     <Label Content="API Key" HorizontalAlignment="Left" Margin="10,68,0,0" VerticalAlignment="Top" />
-                                    <TextBox HorizontalAlignment="Left" Height="23" Margin="98,69,0,0" Text="{Binding MixerSettings.ClientID}"  VerticalAlignment="Top" Width="120" />
+                                    <TextBox HorizontalAlignment="Left" Height="23" Margin="98,69,0,0" Text="{Binding MixerSettings.ClientId}"  VerticalAlignment="Top" Width="120" />
                                     <Label Content="Channel" HorizontalAlignment="Left" Margin="10,38,0,0" VerticalAlignment="Top" />
                                     <TextBox HorizontalAlignment="Left" Height="23" Margin="98,41,0,0" TextWrapping="Wrap" Text="{Binding MixerSettings.Channel}" VerticalAlignment="Top" Width="120" />
                                     <Label Content="Secret" HorizontalAlignment="Left" Margin="10,94,0,0" VerticalAlignment="Top" />
@@ -453,9 +471,9 @@
                 <TabItem Header="OBS" Padding="20,2">
                     <Grid>
                         <Label Content="Websocket URL" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top" />
-                        <TextBox HorizontalAlignment="Left" Height="23" Margin="114,13,0,0" Text="{Binding OBSSettings.Url}" VerticalAlignment="Top" Width="120" />
+                        <TextBox HorizontalAlignment="Left" Height="23" Margin="114,13,0,0" Text="{Binding ObsSettings.Url}" VerticalAlignment="Top" Width="120" />
                         <Label Content="Password" HorizontalAlignment="Left" Margin="10,38,0,0" VerticalAlignment="Top" />
-                        <TextBox HorizontalAlignment="Left" Height="23" Margin="114,41,0,0" Text="{Binding OBSSettings.Password}" VerticalAlignment="Top" Width="120" />
+                        <TextBox HorizontalAlignment="Left" Height="23" Margin="114,41,0,0" Text="{Binding ObsSettings.Password}" VerticalAlignment="Top" Width="120" />
                     </Grid>
                 </TabItem>
             </TabControl>

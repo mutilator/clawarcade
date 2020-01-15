@@ -537,7 +537,7 @@ namespace InternetClawMachine.Games.GantryGame
             });
         }
 
-        public override void ShowHelp()
+        public override void ShowHelp(string username)
         {
             ChatClient.SendMessage(Configuration.Channel, "Commands: ");
             ChatClient.SendMessage(Configuration.Channel, "f, b, l, r, u, d - Move the gantry, alternate CAPS and lower case to use commands faster");

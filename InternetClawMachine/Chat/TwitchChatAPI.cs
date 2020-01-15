@@ -1,6 +1,10 @@
 ﻿using System;
+using Microsoft.Extensions.Logging;
+using Serilog;
 using TwitchLib.Client;
+using TwitchLib.Client.Enums;
 using TwitchLib.Client.Events;
+using TwitchLib.Client.Extensions;
 using TwitchLib.Client.Models;
 
 namespace InternetClawMachine.Chat
@@ -50,17 +54,17 @@ namespace InternetClawMachine.Chat
 
         public event EventHandler<OnSendReceiveDataArgs> OnSendReceiveData;
 
-        public void Initialze(ConnectionCredentials credentials, string channel)
+        public void Initialize(ConnectionCredentials credentials, string channel)
         {
             _channel = channel;
             _credentials = credentials;
-
             _client = new TwitchClient();
 
             _client.Initialize(_credentials, _channel);
             _client.AddChatCommandIdentifier('!');
             _client.AutoReListenOnException = true;
 
+            _client.OnSendReceiveData += _client_OnSendReceiveData;
             _client.OnJoinedChannel += Client_OnJoinedChannel;
             _client.OnMessageReceived += Client_OnMessageReceived;
             _client.OnWhisperReceived += Client_OnWhisperReceived;
@@ -75,6 +79,11 @@ namespace InternetClawMachine.Chat
             _client.OnChatCommandReceived += Client_OnChatCommandReceived;
             _client.OnSendReceiveData += Client_OnSendReceiveData;
             _client.OnReSubscriber += Client_OnReSubscriber;
+        }
+
+        private void _client_OnSendReceiveData(object sender, TwitchLib.Client.Events.OnSendReceiveDataArgs e)
+        {
+            Console.WriteLine(e.Direction + ": " + e.Data);
         }
 
         private void Client_OnDisconnected(object sender, TwitchLib.Communication.Events.OnDisconnectedEventArgs e)
@@ -151,6 +160,7 @@ namespace InternetClawMachine.Chat
             {
                 ChatMessage = new ChatMessage()
                 {
+                    CustomRewardId = e.ChatMessage.CustomRewardId,
                     Message = e.ChatMessage.Message,
                     Username = e.ChatMessage.Username,
                     Bits = e.ChatMessage.Bits,
@@ -166,10 +176,10 @@ namespace InternetClawMachine.Chat
             OnJoinedChannel?.Invoke(sender, new OnJoinedChannelArgs() { BotUsername = e.BotUsername, Channel = e.Channel });
         }
 
-        public void Reconnect()
+        public bool Reconnect()
         {
             Disconnect();
-            Connect();
+            return Connect();
         }
 
         public void Disconnect()
@@ -177,11 +187,12 @@ namespace InternetClawMachine.Chat
             _client.Disconnect();
         }
 
-        public void Connect()
+        public bool Connect()
         {
             if (_client.IsConnected)
                 _client.Disconnect();
-            _client.Connect();
+           _client.Connect();
+           return true;
         }
 
         public void Init(string hostAddress)

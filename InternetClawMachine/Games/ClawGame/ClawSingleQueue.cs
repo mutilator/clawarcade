@@ -19,7 +19,7 @@ namespace InternetClawMachine.Games.ClawGame
             GameMode = GameModeType.SINGLEQUEUE;
             CurrentDroppingPlayer = new DroppingPlayer();
             MachineControl.OnReturnedHome += MachineControl_OnReturnedHome;
-            StartMessage = string.Format("Queue mode has begun! Type {0}help for commands. Type {0}play to opt-in to the player queue.", Configuration.CommandPrefix);
+            StartMessage = string.Format(Translator.GetTranslation("gameClawSingleQueueStartGame", Translator.DefaultLanguage), Configuration.CommandPrefix);
         }
 
         private void MachineControl_OnReturnedHome(object sender, EventArgs e)
@@ -46,24 +46,76 @@ namespace InternetClawMachine.Games.ClawGame
             MachineControl.OnReturnedHome -= MachineControl_OnReturnedHome;
         }
 
-        public override void HandleCommand(string channel, string username, string chatMessage, bool isSubscriber)
+        public override void HandleCommand(string channel, string username, string chatMessage, bool isSubscriber, string customRewardId)
         {
-            base.HandleCommand(channel, username, chatMessage, isSubscriber);
+            base.HandleCommand(channel, username, chatMessage, isSubscriber, customRewardId);
             var commandText = chatMessage.Substring(1);
             if (chatMessage.IndexOf(" ") >= 0)
                 commandText = chatMessage.Substring(1, chatMessage.IndexOf(" ") - 1);
 
+
+            var translateCommand = Translator.FindWord(commandText, "en-US");
+
             string[] param;
 
-            //simple check to not time-out their turn
-            if (PlayerQueue.CurrentPlayer != null && username.ToLower() == PlayerQueue.CurrentPlayer.ToLower() && commandText.ToLower() != "play")
-                CurrentPlayerHasPlayed = true;
 
             //split our args
             param = chatMessage.Split(' ');
 
-            switch (commandText.ToLower())
+            switch (translateCommand.FinalWord)
             {
+                case "play":
+                    if (Configuration.EventMode == EventMode.BOUNTY && Bounty == null)
+                    {
+                        ChatClient.SendMessage(Configuration.Channel, Translator.GetTranslation("responseEventPlay", Configuration.UserList.GetUserLocalization(username)));
+                        return;
+                    }
+                    if (PlayerQueue.Contains(username))
+                    {
+                        if (PlayerQueue.CurrentPlayer.ToLower() == username.ToLower())
+                            ChatClient.SendMessage(Configuration.Channel, Translator.GetTranslation("gameClawCommandPlayInQueue1", Configuration.UserList.GetUserLocalization(username)));
+                        else
+                            ChatClient.SendMessage(Configuration.Channel, Translator.GetTranslation("gameClawCommandPlayInQueue2", Configuration.UserList.GetUserLocalization(username)));
+                        return;
+                    }
+
+                    //check if the current player has played and if they have not, check if their initial timeout period has passed (are they afk)
+                    //if there is only one player playing they get a grace period of their entire time limit rather than the 15 second limit, keeps the game flowing better
+                    //if there are multiple people playing it won't matter since they timeout after 15 seconds
+                    if (!CurrentPlayerHasPlayed && GameRoundTimer.ElapsedMilliseconds > Configuration.ClawSettings.SinglePlayerQueueNoCommandDuration * 1000)
+                    {
+                        var rargs = new RoundEndedArgs() { Username = username, GameLoopCounterValue = GameLoopCounterValue, GameMode = GameMode };
+                        base.OnTurnEnded(rargs);
+                        PlayerQueue.RemoveSinglePlayer(PlayerQueue.CurrentPlayer);
+                    }
+
+                    //rather than having something constantly checking for the next player the end time of the current player is used to move to the next
+                    //however if no player is in the queue this will never come about so we need to check it here
+                    var pos = PlayerQueue.AddSinglePlayer(username);
+
+                    pos = pos - PlayerQueue.Index;
+
+                    if (pos == 0)
+                    {
+                        StartRound(username);
+                    }
+                    else
+                    {
+                        if (pos == 1)//lol i'm so lazy
+                            ChatClient.SendMessage(Configuration.Channel, Translator.GetTranslation("gameClawCommandPlayQueueAdd1", Configuration.UserList.GetUserLocalization(username)));
+                        else
+                            ChatClient.SendMessage(Configuration.Channel, string.Format(Translator.GetTranslation("gameClawCommandPlayQueueAdd2", Configuration.UserList.GetUserLocalization(username)), pos));
+                    }
+
+                    break;
+                case "quit":
+                case "leave":
+                    var idx = PlayerQueue.Index + 1;
+                    if (PlayerQueue.Count <= idx)
+                        idx = 0;
+                    var newPlayer = PlayerQueue.Count == 1?null:PlayerQueue.Players[idx];
+                    GiftTurn(username.ToLower(), newPlayer);
+                    break;
                 case "gift":
                     if (param.Length != 2)
                         break;
@@ -164,7 +216,12 @@ namespace InternetClawMachine.Games.ClawGame
 
         private void GiftTurn(string currentPlayer, string newPlayer)
         {
-            if (Configuration.UserList.Contains(newPlayer))
+            if (newPlayer == null)
+            {
+                PlayerQueue.RemoveSinglePlayer(currentPlayer);
+                StartRound(null);
+            }
+            else if (Configuration.UserList.Contains(newPlayer))
             {
                 PlayerQueue.ReplacePlayer(currentPlayer, newPlayer);
                 PlayerQueue.SelectPlayer(newPlayer); //force selection even though it should be OK
@@ -269,13 +326,13 @@ namespace InternetClawMachine.Games.ClawGame
             Task.Run(async delegate { await ProcessQueue(); });
         }
 
-        public override void ShowHelp()
+        public override void ShowHelp(string username)
         {
-            ChatClient.SendMessage(Configuration.Channel, "Commands: refer to the panels below the stream for more commands");
-            ChatClient.SendMessage(Configuration.Channel, "f, b, l, r, d - Move the crane, alternate CAPS and lower case to use commands faster");
-            ChatClient.SendMessage(Configuration.Channel, "fs, bs, ls, rs - Move the crane a small amount");
-            ChatClient.SendMessage(Configuration.Channel, "gift turn <nickname> - Gifts your turn to someone else");
-            ChatClient.SendMessage(Configuration.Channel, "Remember; you can use multiple commands per line, separate each with a space");
+            ChatClient.SendMessage(Configuration.Channel, Translator.GetTranslation("gameClawSingleHelp1", Configuration.UserList.GetUserLocalization(username)));
+            ChatClient.SendMessage(Configuration.Channel, Translator.GetTranslation("gameClawSingleHelp2", Configuration.UserList.GetUserLocalization(username)));
+            ChatClient.SendMessage(Configuration.Channel, Translator.GetTranslation("gameClawSingleHelp3", Configuration.UserList.GetUserLocalization(username)));
+            ChatClient.SendMessage(Configuration.Channel, Translator.GetTranslation("gameClawSingleHelp4", Configuration.UserList.GetUserLocalization(username)));
+            ChatClient.SendMessage(Configuration.Channel, Translator.GetTranslation("gameClawSingleHelp5", Configuration.UserList.GetUserLocalization(username)));
         }
 
         public override void StartGame(string username)
@@ -313,12 +370,12 @@ namespace InternetClawMachine.Games.ClawGame
             //take everyone that voted and add them to the queue? -- nope
             GameRoundTimer.Start();
 
-            var msg = string.Format("@{0} has control for the next {1} seconds. You have {2} seconds to start playing", PlayerQueue.CurrentPlayer, Configuration.ClawSettings.SinglePlayerDuration, Configuration.ClawSettings.SinglePlayerQueueNoCommandDuration);
+            var msg = string.Format(Translator.GetTranslation("gameClawSingleQueueStartRound", Configuration.UserList.GetUserLocalization(username)), PlayerQueue.CurrentPlayer, Configuration.ClawSettings.SinglePlayerDuration, Configuration.ClawSettings.SinglePlayerQueueNoCommandDuration);
 
             var hasPlayedPlayer = SessionWinTracker.Find(itm => itm.Username.ToLower() == PlayerQueue.CurrentPlayer.ToLower());
 
             if (hasPlayedPlayer != null && hasPlayedPlayer.Drops > 1)
-                msg = string.Format("@{0} has control.", PlayerQueue.CurrentPlayer);
+                msg = string.Format(Translator.GetTranslation("gameClawSingleQueueStartRoundShort", Configuration.UserList.GetUserLocalization(username)), PlayerQueue.CurrentPlayer);
 
             ChatClient.SendMessage(Configuration.Channel, msg);
 

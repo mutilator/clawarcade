@@ -147,12 +147,14 @@ namespace InternetClawMachine
         public static UserPrefs GetUserPrefs(BotConfiguration configuration, string username)
         {
             var prefs = new UserPrefs() { Username = username };
+            if (configuration.RecordsDatabase == null) 
+                throw new Exception("Database not opened");
             lock (configuration.RecordsDatabase)
             {
                 configuration.RecordsDatabase.Open();
                 try
                 {
-                    var sql = "SELECT lights_on, scene, custom_win_clip, strobe_settings FROM user_prefs WHERE lower(username) = @username";
+                    var sql = "SELECT lights_on, scene, custom_win_clip, strobe_settings, localization, blacklightmode FROM user_prefs WHERE lower(username) = @username";
 
                     var command = new SQLiteCommand(sql, configuration.RecordsDatabase);
                     command.Parameters.Add(new SQLiteParameter("@username", prefs.Username));
@@ -164,6 +166,8 @@ namespace InternetClawMachine
                             prefs.Scene = plushes.GetValue(1).ToString();
                             prefs.WinClipName = plushes.GetValue(2).ToString();
                             prefs.CustomStrobe = plushes.GetValue(3).ToString();
+                            prefs.Localization = plushes.GetValue(4).ToString();
+                            prefs.BlackLightsOn = plushes.GetValue(5).ToString() == "1";
 
                             prefs.FromDatabase = true;
                             break;
@@ -188,20 +192,32 @@ namespace InternetClawMachine
                 {
                     if (prefs.FromDatabase)
                     {
-                        sql = "UPDATE user_prefs SET lights_on = @lightsOn, scene = @scene, strobe_settings = @strobe WHERE lower(username) = @username";
+                        sql =
+                            "UPDATE user_prefs SET localization = @localization, lights_on = @lightsOn, scene = @scene, strobe_settings = @strobe, blacklightmode = @blacklightmode WHERE lower(username) = @username";
                     }
                     else
                     {
-                        sql = "INSERT INTO user_prefs (username, lights_on, scene, strobe_settings) VALUES (@username, @lightsOn, @scene,@strobe)";
+                        sql =
+                            "INSERT INTO user_prefs (username, localization, lights_on, scene, strobe_settings, blacklightmode) VALUES (@username, @localization, @lightsOn, @scene,@strobe, @blacklightmode)";
                     }
+
                     var command = configuration.RecordsDatabase.CreateCommand();
                     command.CommandType = CommandType.Text;
                     command.CommandText = sql;
+                    command.Parameters.Add(new SQLiteParameter("@localization", prefs.Localization));
                     command.Parameters.Add(new SQLiteParameter("@lightsOn", prefs.LightsOn));
                     command.Parameters.Add(new SQLiteParameter("@scene", prefs.Scene));
                     command.Parameters.Add(new SQLiteParameter("@strobe", prefs.CustomStrobe));
                     command.Parameters.Add(new SQLiteParameter("@username", prefs.Username));
+                    command.Parameters.Add(new SQLiteParameter("@blacklightmode", prefs.BlackLightsOn));
+                    prefs.FromDatabase = true; //it's written to db now
                     command.ExecuteNonQuery();
+                }
+                catch (Exception ex)
+                {
+                    var error = string.Format("ERROR {0} {1}", ex.Message, ex);
+
+                    Logger.WriteLog(Logger.ErrorLog, error);
                 }
                 finally
                 {

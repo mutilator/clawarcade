@@ -11,7 +11,7 @@ namespace InternetClawMachine.Games.ClawGame
         public ClawSingleQuickQueue(IChatApi client, BotConfiguration configuration, OBSWebsocket obs) : base(client, configuration, obs)
         {
             GameMode = GameModeType.SINGLEQUICKQUEUE;
-            StartMessage = string.Format("Quick Queue mode has begun! Type {0}help for commands. Type {0}play to opt-in to the player queue.", Configuration.CommandPrefix);
+            StartMessage = string.Format(Translator.GetTranslation("gameClawSingleQuickQueueStartGame", Translator.DefaultLanguage), Configuration.CommandPrefix);
         }
 
         public override void EndGame()
@@ -39,18 +39,20 @@ namespace InternetClawMachine.Games.ClawGame
             //take everyone that voted and add them to the queue? -- nope
             GameRoundTimer.Start();
 
-            var msg = string.Format("@{0} has control. You have {1} seconds to start playing", PlayerQueue.CurrentPlayer, Configuration.ClawSettings.SinglePlayerQueueNoCommandDuration);
+            var msg = string.Format(Translator.GetTranslation("gameClawSingleQuickQueueStartRound", Configuration.UserList.GetUserLocalization(username)), PlayerQueue.CurrentPlayer, Configuration.ClawSettings.SinglePlayerQueueNoCommandDuration);
             var hasPlayedPlayer = SessionWinTracker.Find(itm => itm.Username.ToLower() == PlayerQueue.CurrentPlayer.ToLower());
 
             if (hasPlayedPlayer != null && hasPlayedPlayer.Drops > 1)
-                msg = string.Format("@{0} has control.", PlayerQueue.CurrentPlayer);
+                msg = string.Format(Translator.GetTranslation("gameClawSingleQuickQueueStartRoundShort", Configuration.UserList.GetUserLocalization(username)), PlayerQueue.CurrentPlayer);
 
             ChatClient.SendMessage(Configuration.Channel, msg);
 
-            Task.Run(async delegate ()
+            Task.Run(async delegate()
             {
                 var sequence = DateTime.Now.Ticks;
-                Logger.WriteLog(Logger.DebugLog, string.Format("STARTROUND: [{0}] Waiting for {1} in game loop {2}", sequence, username, GameLoopCounterValue));
+                Logger.WriteLog(Logger.DebugLog,
+                    string.Format("STARTROUND: [{0}] Waiting for {1} in game loop {2}", sequence, username,
+                        GameLoopCounterValue), Logger.LogLevel.DEBUG);
 
                 //15 second timer to see if they're still active
                 var firstWait = Configuration.ClawSettings.SinglePlayerQueueNoCommandDuration * 1000;
@@ -62,21 +64,30 @@ namespace InternetClawMachine.Games.ClawGame
                 //      and the checks below this match their details it will end their turn early
 
                 //we need a check if they changed game mode or something weird happened
-                var args = new RoundEndedArgs() { Username = username, GameLoopCounterValue = GameLoopCounterValue, GameMode = GameMode };
+                var args = new RoundEndedArgs()
+                    {Username = username, GameLoopCounterValue = GameLoopCounterValue, GameMode = GameMode};
 
                 await Task.Delay(firstWait);
 
+
+
                 //if after the first delay something skipped them, jump out
                 if (PlayerQueue.CurrentPlayer != args.Username || GameLoopCounterValue != args.GameLoopCounterValue)
+                {
+                    Logger.WriteLog(Logger.DebugLog, string.Format("STARTROUND: [{0}] Exit after first wait for {1} in game loop {2}, current player {3} game loop {4}", sequence, args.Username, args.GameLoopCounterValue, PlayerQueue.CurrentPlayer, GameLoopCounterValue), Logger.LogLevel.DEBUG);
                     return;
+                }
+
 
                 if (!CurrentPlayerHasPlayed && PlayerQueue.Count > 1)
                 {
+                    Logger.WriteLog(Logger.DebugLog, string.Format("STARTROUND: [{0}] STEP 1 Player didn't play: {1} in game loop {2}, current player {3} game loop {4}", sequence, args.Username, args.GameLoopCounterValue, PlayerQueue.CurrentPlayer, GameLoopCounterValue), Logger.LogLevel.DEBUG);
                     base.OnTurnEnded(args);
                     PlayerQueue.RemoveSinglePlayer(args.Username);
 
                     var nextPlayer = PlayerQueue.GetNextPlayer();
                     StartRound(nextPlayer);
+                    Logger.WriteLog(Logger.DebugLog, string.Format("STARTROUND: [{0}] STEP 2 Player didn't play: {1} in game loop {2}, current player {3} game loop {4}", sequence, args.Username, args.GameLoopCounterValue, PlayerQueue.CurrentPlayer, GameLoopCounterValue), Logger.LogLevel.DEBUG);
                 }
                 else
                 {
@@ -85,19 +96,26 @@ namespace InternetClawMachine.Games.ClawGame
                     //if after the second delay something skipped them, jump out
                     if (PlayerQueue.CurrentPlayer != args.Username || GameLoopCounterValue != args.GameLoopCounterValue)
                     {
+                        Logger.WriteLog(Logger.DebugLog, string.Format("STARTROUND: [{0}] Exit after second wait and new player started for {1} in game loop {2}, current player {3} game loop {4}", sequence, args.Username, args.GameLoopCounterValue, PlayerQueue.CurrentPlayer, GameLoopCounterValue), Logger.LogLevel.DEBUG);
                         return;
                     }
 
                     //if the claw is dropping then we can just let the claw return home event trigger the next player
                     if (!MachineControl.IsClawPlayActive) //otherwise cut their turn short and give the next person a chance
                     {
+                        Logger.WriteLog(Logger.DebugLog, string.Format("STARTROUND: [{0}] Exit after second wait timeout for {1} in game loop {2}, current player {3} game loop {4}", sequence, args.Username, args.GameLoopCounterValue, PlayerQueue.CurrentPlayer, GameLoopCounterValue), Logger.LogLevel.DEBUG);
                         base.OnTurnEnded(args);
+
                         //because the person never played they're probably AFK, remove them
                         if (!CurrentPlayerHasPlayed)
                             PlayerQueue.RemoveSinglePlayer(args.Username);
 
                         var nextPlayer = PlayerQueue.GetNextPlayer();
                         StartRound(nextPlayer);
+                    }
+                    else
+                    {
+                        Logger.WriteLog(Logger.DebugLog, string.Format("STARTROUND: [{0}] Exit after checking active claw play = TRUE for {1} in game loop {2}, current player {3} game loop {4}", sequence, args.Username, args.GameLoopCounterValue, PlayerQueue.CurrentPlayer, GameLoopCounterValue), Logger.LogLevel.DEBUG);
                     }
                 }
             });

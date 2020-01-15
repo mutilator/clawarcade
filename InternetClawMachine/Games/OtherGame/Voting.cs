@@ -57,12 +57,12 @@ namespace InternetClawMachine.Games.OtherGame
             }
         }
 
-        public override void ShowHelp()
+        public override void ShowHelp(string username)
         {
-            ChatClient.SendMessage(Configuration.Channel, "Commands: chaos, queue, single");
-            ChatClient.SendMessage(Configuration.Channel, "queue - Rotating queue of players with a single person controlling the crane, bot will rotate through users every " + Configuration.ClawSettings.SinglePlayerDuration + " seconds");
-            ChatClient.SendMessage(Configuration.Channel, "quick - Exactly like queue mode except the queue only rotates after the person sends a drop command");
-            ChatClient.SendMessage(Configuration.Channel, "chaos - The claw moves a direction based on the most popular command over the last # milliseconds (# scales with the number of people playing)");
+            ChatClient.SendMessage(Configuration.Channel, Translator.GetTranslation("gameVoteHelp1", Configuration.UserList.GetUserLocalization(username)));
+            ChatClient.SendMessage(Configuration.Channel,  string.Format(Translator.GetTranslation("gameVoteHelp2", Configuration.UserList.GetUserLocalization(username)), Configuration.ClawSettings.SinglePlayerDuration));
+            ChatClient.SendMessage(Configuration.Channel, Translator.GetTranslation("gameVoteHelp3", Configuration.UserList.GetUserLocalization(username)));
+            ChatClient.SendMessage(Configuration.Channel, Translator.GetTranslation("gameVoteHelp4", Configuration.UserList.GetUserLocalization(username)));
             //ChatClient.SendMessage(MainWindow._channel, "single - A single person controls the crane, randomly chosen from the pool of people that voted during the poll");
         }
 
@@ -70,7 +70,7 @@ namespace InternetClawMachine.Games.OtherGame
         {
             GameModeTimer.Reset();
             GameModeTimer.Start();
-            ChatClient.SendMessage(Configuration.Channel, string.Format("Voting mode has begun! You have {0} seconds to cast your votes. Type {1}help for commands.", Configuration.VoteSettings.VoteDuration, Configuration.CommandPrefix));
+            ChatClient.SendMessage(Configuration.Channel, string.Format(Translator.GetTranslation("gameVoteStartGame", Configuration.UserList.GetUserLocalization(username)), Configuration.VoteSettings.VoteDuration, Configuration.CommandPrefix));
             StartRound(username);
         }
 
@@ -80,7 +80,7 @@ namespace InternetClawMachine.Games.OtherGame
             GameRoundTimer.Reset();
             GameRoundTimer.Start();
 
-            ShowHelp();
+            ShowHelp(username);
             //start an event to end voting
             Task.Run(async delegate ()
             {

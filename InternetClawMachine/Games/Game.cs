@@ -275,7 +275,7 @@ namespace InternetClawMachine.Games
         {
         }
 
-        public virtual void HandleCommand(string channel, string username, string chatMessage, bool isSubscriber)
+        public virtual void HandleCommand(string channel, string username, string chatMessage, bool isSubscriber, string customRewardId)
         {
             var commandText = chatMessage.Substring(Configuration.CommandPrefix.Length);
             if (chatMessage.IndexOf(" ") >= 0)
@@ -299,11 +299,11 @@ namespace InternetClawMachine.Games
                                 DatabaseFunctions.AddStreamBuxBalance(Configuration, username, StreamBuxTypes.SCARE, Configuration.GetStreamBuxCost(StreamBuxTypes.SCARE));
                                 RunScare(true);
                                 Thread.Sleep(100);
-                                ChatClient.SendWhisper(username, string.Format("Remaining balance: 🍄{0}", DatabaseFunctions.GetStreamBuxBalance(Configuration, username)));
+                                ChatClient.SendWhisper(username, string.Format(Translator.GetTranslation("gameClawCommandBuxBal", Configuration.UserList.GetUserLocalization(username)), DatabaseFunctions.GetStreamBuxBalance(Configuration, username)));
                             }
                             else
                             {
-                                ChatClient.SendMessage(Configuration.Channel, string.Format("Insufficient bux. Balance: 🍄{0}", DatabaseFunctions.GetStreamBuxBalance(Configuration, username)));
+                                ChatClient.SendMessage(Configuration.Channel, string.Format(Translator.GetTranslation("gameClawCommandBuxInsuffBal", Configuration.UserList.GetUserLocalization(username)), DatabaseFunctions.GetStreamBuxBalance(Configuration, username)));
                             }
                             break;
                     }
@@ -338,17 +338,17 @@ namespace InternetClawMachine.Games
         {
         }
 
-        public virtual void ShowHelp()
+        public virtual void ShowHelp(string username)
         {
         }
 
-        public virtual void ShowHelpSub()
+        public virtual void ShowHelpSub(string username)
         {
-            ChatClient.SendMessage(Configuration.Channel, Configuration.CommandPrefix + "lights - Turn the machine lights on and off");
-            ChatClient.SendMessage(Configuration.Channel, Configuration.CommandPrefix + "rename oldName:newName - Rename a plush once every 30 days to a name of your choice");
-            ChatClient.SendMessage(Configuration.Channel, Configuration.CommandPrefix + "belt # - Run the belt for up to 15 seconds, sometimes plushes get stuck and you can be the hero");
-            ChatClient.SendMessage(Configuration.Channel, Configuration.CommandPrefix + "refill - Pings my owner to refill me");
-            ChatClient.SendMessage(Configuration.Channel, Configuration.CommandPrefix + "scene 1-3 - Choose a different layout for the stream during your turn");
+            ChatClient.SendMessage(Configuration.Channel, Configuration.CommandPrefix + Translator.GetTranslation("gameHelpSub1", Configuration.UserList.GetUserLocalization(username)));
+            ChatClient.SendMessage(Configuration.Channel, Configuration.CommandPrefix + Translator.GetTranslation("gameHelpSub2", Configuration.UserList.GetUserLocalization(username)));
+            ChatClient.SendMessage(Configuration.Channel, Configuration.CommandPrefix + Translator.GetTranslation("gameHelpSub3", Configuration.UserList.GetUserLocalization(username)));
+            ChatClient.SendMessage(Configuration.Channel, Configuration.CommandPrefix + Translator.GetTranslation("gameHelpSub4", Configuration.UserList.GetUserLocalization(username)));
+            ChatClient.SendMessage(Configuration.Channel, Configuration.CommandPrefix + Translator.GetTranslation("gameHelpSub5", Configuration.UserList.GetUserLocalization(username)));
         }
 
         public virtual Task ProcessQueue()

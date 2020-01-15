@@ -16,7 +16,7 @@ namespace InternetClawMachine.Games.GantryGame
         {
         }
 
-        public override void HandleCommand(string channel, string username, string chatMessage, bool isSubscriber)
+        public override void HandleCommand(string channel, string username, string chatMessage, bool isSubscriber, string customRewardId)
         {
             var commandText = chatMessage.Substring(1);
             if (chatMessage.IndexOf(" ") >= 0)
@@ -29,9 +29,9 @@ namespace InternetClawMachine.Games.GantryGame
                     if (PlayerQueue.Contains(username))
                     {
                         if (PlayerQueue.CurrentPlayer.ToLower() == username.ToLower())
-                            ChatClient.SendMessage(Configuration.Channel, string.Format("You're already in the queue and it's currently your turn, go go go!"));
+                            ChatClient.SendMessage(Configuration.Channel, Translator.GetTranslation("gameGantryCommandPlayInQueue1", Configuration.UserList.GetUserLocalization(username)));
                         else
-                            ChatClient.SendMessage(Configuration.Channel, string.Format("You're already in the queue."));
+                            ChatClient.SendMessage(Configuration.Channel, Translator.GetTranslation("gameGantryCommandPlayInQueue2", Configuration.UserList.GetUserLocalization(username)));
                         return;
                     }
 
@@ -47,20 +47,20 @@ namespace InternetClawMachine.Games.GantryGame
                     }
                     else if (pos == 1) //lol i'm so lazy
                     {
-                        ChatClient.SendMessage(Configuration.Channel, string.Format("Added to player queue, you're up next to play."));
+                        ChatClient.SendMessage(Configuration.Channel, Translator.GetTranslation("gameGantryCommandPlayQueueAdd1", Configuration.UserList.GetUserLocalization(username)));
                     }
                     else
                     {
-                        ChatClient.SendMessage(Configuration.Channel, string.Format("Added to player queue, you're {0} people away from playing.", pos));
+                        ChatClient.SendMessage(Configuration.Channel, string.Format(Translator.GetTranslation("gameGantryCommandPlayQueueAdd2", Configuration.UserList.GetUserLocalization(username)), pos));
                     }
 
                     break;
 
                 case "help":
-                    ShowHelp();
+                    ShowHelp(username);
 
                     if (isSubscriber)
-                        ShowHelpSub();
+                        ShowHelpSub(username);
                     break;
             }
         }

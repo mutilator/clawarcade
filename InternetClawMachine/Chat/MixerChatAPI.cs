@@ -226,10 +226,10 @@ namespace InternetClawMachine.Chat
             OnJoinedChannel?.Invoke(sender, new OnJoinedChannelArgs() { BotUsername = e.BotUsername, Channel = e.Channel });
         }
 
-        public void Reconnect()
+        public bool Reconnect()
         {
             Disconnect();
-            Connect();
+            return Connect();
         }
 
         public void Disconnect()
@@ -237,11 +237,12 @@ namespace InternetClawMachine.Chat
             _client.Disconnect();
         }
 
-        public void Connect()
+        public bool Connect()
         {
             if (_client.Connected)
                 _client.Disconnect();
-            _client.Connect();
+            var rtn = _client.Connect();
+            return rtn.Result;
         }
 
         public void Init(string hostAddress)
