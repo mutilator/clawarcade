@@ -342,8 +342,8 @@ namespace InternetClawMachine.Hardware.ClawControl
             
 
 
-            Logger.WriteLog(Logger.MachineLog, "RECEIVE: " + response);
-            Console.WriteLine("RECEIVE:" + response);
+            Logger.WriteLog(Logger.MachineLog, "RECEIVE: " + response, Logger.LogLevel.DEBUG);
+            
             var delims = response.Split(' ');
 
             if (delims.Length < 1 || response.Length == 0)
@@ -562,8 +562,8 @@ namespace InternetClawMachine.Hardware.ClawControl
                 command = seq + " " + command; //add a sequence number
                 // Encode the data string into a byte array.
                 var msg = Encoding.ASCII.GetBytes(command + "\n");
-                Logger.WriteLog(Logger.MachineLog, "SEND: " + command);
-                Console.WriteLine("SEND: " + command);
+                Logger.WriteLog(Logger.MachineLog, "SEND: " + command, Logger.LogLevel.DEBUG);
+                
                 // Send the data through the socket.
                 _workSocket.Send(msg);
 
@@ -588,8 +588,8 @@ namespace InternetClawMachine.Hardware.ClawControl
                 command = seq + " " + command; //add a sequence number
                 // Encode the data string into a byte array.
                 var msg = Encoding.ASCII.GetBytes(command + "\n");
-                Logger.WriteLog(Logger.MachineLog, "SEND: " + command);
-                Console.WriteLine("SEND: " + command);
+                Logger.WriteLog(Logger.MachineLog, "SEND: " + command, Logger.LogLevel.DEBUG);
+                
                 // Send the data through the socket.
                 _currentWaitSequenceNumberCommand = seq;
                 _lastCommandResponse = null;
@@ -690,9 +690,9 @@ namespace InternetClawMachine.Hardware.ClawControl
                 if (duration > 0)
                 {
                     var guid = Guid.NewGuid();
-                    Console.WriteLine(guid + " sleeping: " + Thread.CurrentThread.ManagedThreadId);
+                    Logger.WriteLog(Logger.DebugLog,  guid + " sleeping: " + Thread.CurrentThread.ManagedThreadId, Logger.LogLevel.TRACE);
                     await Task.Delay(duration);
-                    Console.WriteLine(guid + " woke: " + Thread.CurrentThread.ManagedThreadId);
+                    Logger.WriteLog(Logger.DebugLog, guid + " woke: " + Thread.CurrentThread.ManagedThreadId, Logger.LogLevel.TRACE);
                 }
             }
         }

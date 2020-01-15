@@ -83,7 +83,7 @@ namespace InternetClawMachine.Chat
 
         private void _client_OnSendReceiveData(object sender, TwitchLib.Client.Events.OnSendReceiveDataArgs e)
         {
-            Console.WriteLine(e.Direction + ": " + e.Data);
+            Logger.WriteLog(Logger.DebugLog, "[TWITCH CHAT] " + e.Direction + ": " + e.Data, Logger.LogLevel.TRACE);
         }
 
         private void Client_OnDisconnected(object sender, TwitchLib.Communication.Events.OnDisconnectedEventArgs e)
@@ -178,7 +178,9 @@ namespace InternetClawMachine.Chat
 
         public bool Reconnect()
         {
+            
             Disconnect();
+            _client.Initialize(_credentials, _channel);
             return Connect();
         }
 
@@ -191,8 +193,8 @@ namespace InternetClawMachine.Chat
         {
             if (_client.IsConnected)
                 _client.Disconnect();
-           _client.Connect();
-           return true;
+            return _client.Connect();
+            
         }
 
         public void Init(string hostAddress)

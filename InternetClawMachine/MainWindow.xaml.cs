@@ -37,7 +37,6 @@ using OnDisconnectedArgs = InternetClawMachine.Chat.OnDisconnectedArgs;
 using OnJoinedChannelArgs = InternetClawMachine.Chat.OnJoinedChannelArgs;
 using OnMessageReceivedArgs = InternetClawMachine.Chat.OnMessageReceivedArgs;
 using OnMessageSentArgs = InternetClawMachine.Chat.OnMessageSentArgs;
-using OnSendReceiveDataArgs = InternetClawMachine.Chat.OnSendReceiveDataArgs;
 using OnUserJoinedArgs = InternetClawMachine.Chat.OnUserJoinedArgs;
 using OnUserLeftArgs = InternetClawMachine.Chat.OnUserLeftArgs;
 using OnWhisperReceivedArgs = InternetClawMachine.Chat.OnWhisperReceivedArgs;
@@ -48,10 +47,6 @@ namespace InternetClawMachine
 {
     /*
      * NOTES
-     *
-     * The game takes approx 13 seconds from the time Drop is pressed until the claw releases the object in the chute
-     * At approx. 18 seconds the claw has returned to the home position
-     *
      *
      *
      */
@@ -88,7 +83,7 @@ namespace InternetClawMachine
         /// <summary>
         /// Time to wait between reconnect attempts, exponential increase
         /// </summary>
-        private int _currentWaitDelay = 1000;
+        private int _reconnectWaitDelayInitial = 1000;
 
         /// <summary>
         /// Where is the config stored?
@@ -118,11 +113,6 @@ namespace InternetClawMachine
         /// Flag true if we need to perform a camera reset
         /// </summary>
         private bool ResetClawCamera { set; get; }
-
-        /// <summary>
-        /// Timer event to monitor the claw camera
-        /// </summary>
-        private System.Timers.Timer ConnectionWatchDog { set; get; }
 
         /// <summary>
         /// Line in the announcement file that's to be read next
@@ -166,6 +156,17 @@ namespace InternetClawMachine
 
         public WebServer WebServer { get; private set; }
 
+        GridViewColumnHeader _lastHeaderClicked = null;
+        ListSortDirection _lastDirection = ListSortDirection.Ascending;
+
+        /// <summary>
+        /// Whether we're running the announcement messages already
+        /// </summary>
+        private bool _runningAnnounceMessage = false;
+
+        private int _reconnectWaitDelay;
+        private bool _runChatConnectionWatchDog;
+
         #endregion Properties
 
         #region Twitch Client Events
@@ -190,21 +191,6 @@ namespace InternetClawMachine
                 Dispatcher?.BeginInvoke(new Action(() => { lstViewers.Items.Add(e.Username); }));
         }
 
-        private void Client_OnExistingUsersDetected(object sender, OnExistingUsersDetectedArgs e)
-        {
-            Dispatcher?.BeginInvoke(new Action(() =>
-            {
-                lstViewers.Items.Clear();
-                foreach (var user in e.Users)
-                {
-                    Configuration.UserList.Remove(user);
-                    var message = string.Format("{0} joined the channel", user);
-                    LogChat("#" + e.Channel, message);
-                    lstViewers.Items.Add(user);
-                }
-            }));
-        }
-
         private void Client_OnMessageSent(object sender, OnMessageSentArgs e)
         {
             var message = string.Format("<{0}> {1}", e.SentMessage.DisplayName, e.SentMessage.Message);
@@ -218,38 +204,24 @@ namespace InternetClawMachine
             Configuration.UserList.Clear();
             AddDebugText("Disconnected");
             if (!Configuration.AutoReconnectChat) return;
-            ClientReconnect();
+            StartChatConnectionWatchDog();
         }
 
         private void Client_OnConnectionError(object sender, OnConnectionErrorArgs e)
         {
             AddDebugText("Connection Error: " + e.Error);
             if (!Configuration.AutoReconnectChat) return;
-
-            ClientReconnect();
-        }
-
-        void ClientReconnect()
-        {
-            Configuration.ChatReconnectAttempts++;
-            if (!Client.Connect())
-            {
-                Task.Run(async delegate
-                {
-                    _currentWaitDelay *= 2;
-                    await Task.Delay(_currentWaitDelay);
-                    ClientReconnect();
-                });
-            }
+            StartChatConnectionWatchDog();
         }
 
         private void Client_OnConnected(object sender, OnConnectedArgs e)
         {
             Configuration.UserList.Clear();
             AddDebugText("Connected: " + e.AutoJoinChannel);
-            _currentWaitDelay = 1000;
-            
+            _reconnectWaitDelay = _reconnectWaitDelayInitial;
+            StopChatConnectionWatchDog();
         }
+
 
         private void Client_OnJoinedChannel(object sender, OnJoinedChannelArgs e)
         {
@@ -257,7 +229,6 @@ namespace InternetClawMachine
             
             LogChat("#" + e.Channel, message);
             StartRunningAnnounceMessage();
-            //Client.SendMessage(Configuration.Channel, "Reconnected!");
         }
 
         private void Client_OnWhisperReceived(object sender, OnWhisperReceivedArgs e)
@@ -395,6 +366,51 @@ namespace InternetClawMachine
         }
 
         #endregion UI Direction Update Functions
+
+
+        /// <summary>
+        /// Stop the reconnect attempt
+        /// </summary>
+        private void StopChatConnectionWatchDog()
+        {
+            _runChatConnectionWatchDog = false;
+        }
+        /// <summary>
+        /// Start a reconnection attempt, will retry at increasing intervals until successful
+        /// </summary>
+        private void StartChatConnectionWatchDog()
+        {
+            _runChatConnectionWatchDog = true;
+            Task.Run(async delegate
+            {
+                while (_runChatConnectionWatchDog)
+                {
+                    if (!Client.IsConnected)
+                    {
+                        ClientReconnect();
+                        _reconnectWaitDelay = (int)(_reconnectWaitDelay * 1.5);
+                    }
+                    else break; //exit if we're connected now
+
+                    await Task.Delay(_reconnectWaitDelay);
+                }
+            });
+        }
+
+        void ClientReconnect()
+        {
+            try
+            {
+                Configuration.ChatReconnectAttempts++;
+                Client.Connect(); //initiate connection
+            }
+            catch (Exception ex)
+            {
+                var error = string.Format("ERROR {0} {1}", ex.Message, ex);
+                Logger.WriteLog(Logger.ErrorLog, error, LogLevel.ERROR);
+            }
+
+        }
 
         private void HandleChatCommand(string channel, string username, string chatMessage, bool isSubscriber,
             string customRewardId)
@@ -1034,14 +1050,18 @@ namespace InternetClawMachine
 
         private void StartRunningAnnounceMessage()
         {
-            Task.Run(async delegate()
+            if (!_runningAnnounceMessage)
             {
-                while (true)
+                _runningAnnounceMessage = true;
+                Task.Run(async delegate()
                 {
-                    ShowAnnouncementMessage();
-                    await Task.Delay(Configuration.RecurringAnnounceDelay);
-                }
-            });
+                    while (_runningAnnounceMessage)
+                    {
+                        ShowAnnouncementMessage();
+                        await Task.Delay(Configuration.RecurringAnnounceDelay);
+                    }
+                });
+            }
         }
 
         private void ShowAnnouncementMessage()
@@ -1251,10 +1271,6 @@ namespace InternetClawMachine
             }
         }
 
-        private void Client_OnSendReceiveData(object sender, OnSendReceiveDataArgs e)
-        {
-            //Console.WriteLine(e.Data);
-        }
 
         private void MainWindow_GameModeEnded(object sender, EventArgs e)
         {
@@ -1928,22 +1944,7 @@ namespace InternetClawMachine
                 Client.Connect();
 
 
-                //chat watchdog
-                if (ConnectionWatchDog != null)
-                {
-                    ConnectionWatchDog.Stop();
-                    // ConnectionWatchDog.Start();
-                }
-                else
-                {
-
-                    ConnectionWatchDog = new System.Timers.Timer
-                    {
-                        Interval = 60000
-                    };
-                    ConnectionWatchDog.Elapsed += _connectionWatchDog_Elapsed;
-                    // ConnectionWatchDog.Start();
-                }
+                
             }
             catch (Exception ex)
             {
@@ -1951,15 +1952,7 @@ namespace InternetClawMachine
                 Logger.WriteLog(Logger.ErrorLog, error);
             }
         }
-
-        private void _connectionWatchDog_Elapsed(object sender, ElapsedEventArgs e)
-        {
-            if (!Client.IsConnected && Configuration.AutoReconnectChat)
-            {
-                ClientReconnect();
-
-            }
-        }
+        
 
         private void btnRFIDConnect_Click(object sender, RoutedEventArgs e)
         {
@@ -2515,14 +2508,11 @@ namespace InternetClawMachine
 
         }
 
-        private void Button_Click_2(object sender, RoutedEventArgs e)
+        private void btnClearPlushScan_Click(object sender, RoutedEventArgs e)
         {
             txtPLushName.Text = "";
             txtLastEPC.Text = "";
         }
-
-        GridViewColumnHeader _lastHeaderClicked = null;
-        ListSortDirection _lastDirection = ListSortDirection.Ascending;
 
         private void LstPlushes_OnClick(object sender, RoutedEventArgs e)
         {

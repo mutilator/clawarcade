@@ -24,7 +24,7 @@
         EVENT_FAILSAFE_BACKWARD = 303,
         EVENT_FAILSAFE_UP = 304,
         EVENT_FAILSAFE_DOWN = 305,
-        EVENT_FAILSAFE_CLAW = 306
+        EVENT_FAILSAFE_CLAW = 306,
 
         /// <summary>
         /// Used for passing information responses
