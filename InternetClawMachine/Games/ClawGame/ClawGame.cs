@@ -110,7 +110,7 @@ namespace InternetClawMachine.Games.ClawGame
         private void ClawGame_OnClawTimeout(object sender, EventArgs e)
         {
             Emailer.SendEmail(Configuration.EmailAddress, "Claw machine timeout closed", "Claw Timeout");
-            ResetMachine();
+            
         }
 
         private void ClawGame_OnMotorTimeoutUp(object sender, EventArgs e)

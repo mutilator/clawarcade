@@ -78,7 +78,7 @@ namespace InternetClawMachine
             {
                 foreach (KeyValuePair<string, string> entry in l.Dictionary)
                 {
-                    if (entry.Value.Equals(word))
+                    if (entry.Value.Equals(word,StringComparison.CurrentCultureIgnoreCase))
                     {
                         w.FinalWord = GetTranslation(entry.Key, localization);
                         w.SourceLocalization = l.Name;

@@ -292,8 +292,16 @@ namespace InternetClawMachine.Hardware.ClawControl
             switch (e.LastOperation)
             {
                 case SocketAsyncOperation.Receive:
-                    ProcessReceive(e);
+                    var commands = ProcessReceive(e);
                     StartReader();
+                    foreach (var response in commands)
+                    {
+                        var guid = Guid.NewGuid();
+                        Logger.WriteLog(Logger.MachineLog, String.Format("[{0}] BEFORE HANDLE RESPONSE", guid), Logger.LogLevel.TRACE);
+
+                        HandleMessage(response);
+                        Logger.WriteLog(Logger.MachineLog, String.Format("[{0}] AFTER HANDLE RESPONSE", guid), Logger.LogLevel.TRACE);
+                    }
                     break;
 
                 case SocketAsyncOperation.Send:
@@ -305,34 +313,34 @@ namespace InternetClawMachine.Hardware.ClawControl
             }
         }
 
-        private void ProcessReceive(SocketAsyncEventArgs e)
+        private string[] ProcessReceive(SocketAsyncEventArgs e)
         {
+            var commands = new List<string>();
             if (e.BytesTransferred > 0 && e.SocketError == SocketError.Success)
             {
                 //echo the data received back to the client
                 //e.SetBuffer(e.Offset, e.BytesTransferred);
-                var hasDataLine = false;
                 int i;
+                
                 for (i = 0; i < e.BytesTransferred; i++)
                 {
                     _receiveBuffer[_receiveIdx] = e.Buffer[i];
                     _receiveIdx++;
                     if (e.Buffer[i] != '\n') continue; //read until a newline
-                    hasDataLine = true;
                     var response = Encoding.UTF8.GetString(_receiveBuffer, 0, _receiveIdx);
-
-                    HandleMessage(response);
                     _receiveIdx = 0; //reset index to zero
                     Array.Clear(_receiveBuffer, 0, _receiveBuffer.Length); //also make sure the array is zeroed
+                    commands.Add(response);
+                    
                 }
                 e.SetBuffer(0, 1024);
-                
             }
             else
             {
                 if (!_workSocket.Connected)
                     OnDisconnected?.Invoke(this, new EventArgs());
             }
+            return commands.ToArray();
         }
 
         private void HandleMessage(string response)

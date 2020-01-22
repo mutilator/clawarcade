@@ -514,7 +514,7 @@ namespace InternetClawMachine
                             var seenTime = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc).AddSeconds(lastSeen);
                             Client.SendMessage(Configuration.Channel,
                                 string.Format(
-                                    Translator.GetTranslation("responseSeen",
+                                    Translator.GetTranslation("responseCommandSeen",
                                         Configuration.UserList.GetUserLocalization(username)), parms.Trim(),
                                     seenTime.Year, seenTime.Month, seenTime.Day));
                         }
