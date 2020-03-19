@@ -16,7 +16,7 @@ const int _PINMoveBackward = 40;
 const int _PINMoveDown = 36;
 const int _PINMoveUp = 34;
 
-const int _PINClawPower = 38;
+const int _PINClawSolenoid = 38;
 
 const int _PINLimitLeft = 43;
 const int _PINLimitRight = 37;
@@ -39,7 +39,7 @@ const int _PINLed = 13;
 //const int RELAYPINON = LOW; //INVERTED BOARD
 //const int RELAYPINOFF = HIGH;
 
-const int RELAYPINON = HIGH; 
+const int RELAYPINON = HIGH;
 const int RELAYPINOFF = LOW;
 
 const int LIMITON = LOW; //Pulldown
@@ -119,14 +119,16 @@ unsigned long _timestampMotorMoveRight = 0; //motor movement failsafe stamp
 unsigned long _timestampMotorMoveForward = 0; //motor movement failsafe stamp
 unsigned long _timestampMotorMoveBackward = 0; //motor movement failsafe stamp
 unsigned long _timestampClawClosed = 0;
+unsigned long _timestampBeltRun = 0;
 
 
 int _timespanRunWidth = 0; //amount of time it took to run from right side to left side
 int _timespanRunDepth = 0; //amount of time it took to run from back to front
-int _halfTimespanRunWidth = 0; //half time, where the center 
+int _halfTimespanRunWidth = 0; //half time, where the center
 int _halfTimespanRunDepth = 0; //half time, where the center
 int _runToCenterDurationDepth = 0;
 int _runToCenterDurationWidth = 0;
+bool _enableReturnToChute = true; //after drop, return to chute?
 
 //boot state of the motor, only set in stopMotor* and runMotor* functions
 bool _isMotorRunningUp = false;
@@ -139,7 +141,8 @@ bool _isClawClosed = false;
 
 
 int _failsafeMotorLimit = 10000; //second limit for how long a motor can move before it should hit a limit
-int _failsafeClawOpened = 10000; //limit for how long the claw can be closed
+int _failsafeClawOpened = 15000; //limit for how long the claw can be closed
+int _failsafeBeltLimit = 30000; //limit for running conveyor belt
 
 //CONVEYOR BELT STUFF - network determines how long to run but everything else is internal with the process
 int _conveyorBeltRunTime = 0;
@@ -233,7 +236,7 @@ void loop() {
         startupMachine();
         _needsSecondaryInit = false;
     }
-    
+
     handleTelnetConnectors();
     handleSerialCommands();
     checkConveyorSensor();
@@ -244,7 +247,7 @@ void loop() {
 
     checkLimits();
     checkStates();
-    
+
 }
 
 
@@ -254,9 +257,9 @@ void initEthernet()
 }
 
 /**
- * 
+ *
  * INITIALIZATION FUNCTIONS
- * 
+ *
  */
 void initGeneral()
 {
@@ -274,7 +277,7 @@ void initMovement()
     pinMode(_PINMoveBackward, OUTPUT);
     pinMode(_PINMoveDown, OUTPUT);
     pinMode(_PINMoveUp, OUTPUT);
-    pinMode(_PINClawPower, OUTPUT);
+    pinMode(_PINClawSolenoid, OUTPUT);
 
 
     //Limit switch inputs
@@ -292,7 +295,7 @@ void initMovement()
     digitalWrite(_PINMoveBackward, RELAYPINOFF);
     digitalWrite(_PINMoveDown, RELAYPINOFF);
     digitalWrite(_PINMoveUp, RELAYPINOFF);
-    digitalWrite(_PINClawPower, RELAYPINOFF);
+    digitalWrite(_PINClawSolenoid, RELAYPINOFF);
 
 }
 
@@ -315,9 +318,9 @@ void initConveyor()
 
 
 /**
- * 
+ *
  * Claw functionality
- * 
+ *
  */
 
 void checkLimits()
@@ -330,7 +333,7 @@ void checkLimits()
         debugLine("Hit Limit Up");
         //up and down events require a bit of extra pause when the limit sensor is hit just to make sure it's all the way there
         delay(200); //brief rest for the claw
-        
+
 
         if (curTime - _timestampMotorMoveUp > _failsafeMotorLimit)
         {
@@ -425,7 +428,7 @@ void checkStates()
             //This code didnt work as expected because as the tension is released the switch is untriggered and causes this to loop
             if (_lastState == STATE_CHECK_CENTERING && !isLimitUp())
             {
-                
+
                 //runMotorUp(); //runs the motor up, limit switch checks will stop it, stays in the running state while it's recoiling so it accepts commands
                 //also keeps the claw tight
 
@@ -508,7 +511,7 @@ void checkStates()
             }
 
             break;
-            
+
         case STATE_CHECK_HOMING_B:
             if (isLimitBackward())
             {
@@ -523,12 +526,12 @@ void checkStates()
                 debugLine("Homing Backward but motor not running");
                 runMotorBackward(false);
             }
-            
+
             break;
         case STATE_CHECK_CENTERING:
             {
                 unsigned long diffTime = millis() - _timestampRunCenter;
-                
+
                 bool isRightStopped = false;
                 if (diffTime > _runToCenterDurationWidth)
                 {
@@ -542,7 +545,7 @@ void checkStates()
                     stopMotorForward();
                     if (isRightStopped)
                     {
-                        
+
                         _recoilLimitOverride = false; //disable the limit override, limit check will turn off the motor
                         changeState(STATE_RUNNING);
                         sendEvent(EVENT_RETURNED_CENTER);
@@ -554,7 +557,7 @@ void checkStates()
             if (isLimitDown())
             {
                 stopMotorDown();
-                delay(500); //brief rest for the claw
+                delay(300); //brief rest for the claw
                 dropClawProcedure();
             }
             else if (!_isMotorRunningDown) //a scenario where the motor was stopped but it's not at the limit
@@ -581,7 +584,7 @@ void checkStates()
             if (isLimitLeft())
             {
                 stopMotorLeft();
-                delay(500); //brief rest for the claw
+                delay(300); //brief rest for the claw
                 returnToWinChute();
             }
             else if (!_isMotorRunningLeft) //a scenario where the motor was stopped but it's not at the limit
@@ -595,7 +598,7 @@ void checkStates()
             if (isLimitBackward())
             {
                 stopMotorBackward();
-                delay(500); //brief rest for the claw
+                delay(300); //brief rest for the claw
                 returnToWinChute();
             }
             else if (!_isMotorRunningBackward) //a scenario where the motor was stopped but it's not at the limit
@@ -610,9 +613,9 @@ void checkStates()
 }
 
 /**
- * 
+ *
  * Kicks off startup procedure, recoils claw, runs to the back right corner of the machine then performHoming()
- * 
+ *
  */
 void startupMachine()
 {
@@ -647,9 +650,9 @@ void startupMachine()
 }
 
 /**
- * 
+ *
  * Starting from the back right side of the machine, run to the left, time it, run to the front, time it, divide the time by two, save it, then returnCenterFromChute()
- * 
+ *
  */
 void performHoming()
 {
@@ -697,9 +700,9 @@ void performHoming()
 }
 
 /**
- * 
+ *
  * Drop claw, recoil, and returnToWinChute()
- * 
+ *
  */
 void dropClawProcedure()
 {
@@ -715,10 +718,13 @@ void dropClawProcedure()
     else if (_currentState == STATE_CHECK_DROP_RECOIL)
     {
         sendEvent(EVENT_RECOILED_CLAW);
-        returnToWinChute();
+        if (_enableReturnToChute)
+            returnToWinChute();
+        else
+            changeState(STATE_RUNNING);
         return;
     }
-    
+
     else //start drop if all else fails
     {
         changeState(STATE_CHECK_DROP_TENSION);
@@ -729,9 +735,9 @@ void dropClawProcedure()
 }
 
 /**
- * 
+ *
  * run to left & front of machine, open claw, then returnCenterFromChute()
- * 
+ *
  */
 void returnToWinChute()
 {
@@ -772,9 +778,9 @@ void returnToWinChute()
 }
 
 /**
- * 
+ *
  * To return to center take the times set from performHoming and then run to the back/right for that amount of time
- * 
+ *
  */
 void returnCenterFromChute()
 {
@@ -789,9 +795,9 @@ void returnCenterFromChute()
 
 
 /**
- * 
+ *
  * EVENT HANDLING
- * 
+ *
  */
 void handleSerialCommands()
 {
@@ -832,9 +838,9 @@ void handleSerialCommands()
 }
 
 /**
- * 
+ *
  * Checks movement time limits set from remote clients
- * 
+ *
  */
 void checkMovements()
 {
@@ -888,7 +894,8 @@ void checkFlipperRuntime()
 
 void checkBeltRuntime()
 {
-    if (_timestampConveyorBeltStart > 0 && millis() - _timestampConveyorBeltStart >= _conveyorBeltRunTime)
+    if ((_timestampConveyorBeltStart > 0 && millis() - _timestampConveyorBeltStart >= _conveyorBeltRunTime) ||
+        (millis() - _timestampConveyorBeltStart >= _failsafeBeltLimit))
     {
         digitalWrite(_PINConveyorBelt, RELAYPINOFF);
         _timestampConveyorBeltStart = 0;
@@ -903,7 +910,7 @@ void checkConveyorSensor()
     {
         if (millis() - _timestampConveyorSensorTripped > _conveyorSensorTripDelay)
             sendEvent(EVENT_CONVEYOR_TRIPPED);
-        
+
         _timestampConveyorSensorTripped = millis();
     }
 }
@@ -916,10 +923,10 @@ void checkGameReset()
         //if enough time passed, send event
         if (millis() - _timestampGameResetTrippedTime > _gameResetTripDelay)
             sendEvent(EVENT_GAME_RESET);
-        
+
         //button is still pressed, keep resetting the time so the timer to next event kicks off from the end of the button hold
         _timestampGameResetTrippedTime = millis();
-        
+
     }
 }
 
@@ -933,9 +940,9 @@ void sendEvent(int event)
 }
 
 /**
- * 
+ *
  *  NETWORK COMMUNICATION
- * 
+ *
  */
 void broadcastToClients(int event, char outputData[])
 {
@@ -1025,13 +1032,13 @@ void handleClientComms(EthernetClient &client)
 }
 
 /**
- * 
- * 
- * 
+ *
+ *
+ *
  * NETWORK COMMANDS
- * 
- * 
- * 
+ *
+ *
+ *
  */
 
 
@@ -1065,7 +1072,7 @@ void handleTelnetCommand(EthernetClient &client)
 
 
     /*
-    
+
     */
     if (strcmp(command,"reset") == 0) { //restart machine
 
@@ -1114,7 +1121,7 @@ void handleTelnetCommand(EthernetClient &client)
         pinMode(pin, val);
 
     } else if (strcmp(command,"pr") == 0) { //pin read
-        
+
         int pin = atoi(argument);
 
         sprintf(outputData, "%i", digitalRead(pin));
@@ -1170,15 +1177,15 @@ void handleTelnetCommand(EthernetClient &client)
         //don't do anything if we're not in a mode to accept input
         if (_currentState != STATE_RUNNING)
             return;
-        
-        
+
+
         stopMotorLeft();
         stopMotorRight();
         stopMotorForward();
         stopMotorBackward();
         stopMotorUp();
         stopMotorDown();
-        
+
     } else if (strcmp(command,"u") == 0) { //move claw up
 
         sendFormattedResponse(client, EVENT_INFO, sequence, "");
@@ -1193,6 +1200,17 @@ void handleTelnetCommand(EthernetClient &client)
         int duration = atoi(argument);
         moveFromRemote(CLAW_DOWN, duration);
 
+    } else if (strcmp(command,"rtnchute") == 0) { //set return to chute
+
+        if (strcmp(argument,"on") == 0)
+        {
+            _enableReturnToChute = true;
+            sendFormattedResponse(client, EVENT_INFO, sequence, "on");
+        } else {
+            _enableReturnToChute = false;
+            sendFormattedResponse(client, EVENT_INFO, sequence, "off");
+        }
+
     } else if (strcmp(command,"belt") == 0) { //move belt for # milliseconds
 
         sendFormattedResponse(client, EVENT_INFO, sequence, "");
@@ -1206,7 +1224,7 @@ void handleTelnetCommand(EthernetClient &client)
         int val = atoi(argument);
         if (val == 1)
             closeClaw();
-        else 
+        else
             openClaw();
 
     } else if (strcmp(command,"flip") == 0) { //move flipper out and back
@@ -1225,9 +1243,9 @@ void handleTelnetCommand(EthernetClient &client)
         } else {
             digitalWrite(_PINLightsWhite, RELAYPINOFF);
         }
-        
+
     } else if (strcmp(command,"clap") == 0) { //clap claw
-        
+
         sendFormattedResponse(client, EVENT_INFO, sequence, "");
         clapClaw();
 
@@ -1278,7 +1296,7 @@ void handleTelnetCommand(EthernetClient &client)
         sendFormattedResponse(client, EVENT_INFO, sequence, outputData);
 
     } else if (strcmp(command,"center") == 0) { //custom center
-        
+
         _runToCenterDurationWidth = atoi(argument);
         _runToCenterDurationDepth = atoi(argument2);
         sprintf(outputData, "%i %i", _runToCenterDurationWidth, _runToCenterDurationDepth);
@@ -1288,7 +1306,7 @@ void handleTelnetCommand(EthernetClient &client)
 
         _runToCenterDurationWidth = _halfTimespanRunWidth;
         _runToCenterDurationDepth = _halfTimespanRunDepth;
-        
+
         sprintf(outputData, "%i %i", _runToCenterDurationWidth, _runToCenterDurationDepth);
         sendFormattedResponse(client, EVENT_INFO, sequence, outputData);
 
@@ -1370,7 +1388,7 @@ void startFlipper()
 
 /**
  * @brief  Move the motor a direction for a specified duration
- * @note   
+ * @note
  * @param  direction: Direction to move
  * @param  duration: Duration to move in ms
  * @retval None
@@ -1422,9 +1440,9 @@ void moveFromRemote(byte direction, int duration)
 }
 
 /**
- * 
+ *
  * Motor & Limit Handling
- * 
+ *
  */
 
 
@@ -1599,14 +1617,14 @@ void closeClaw()
 {
     _timestampClawClosed = millis();
     _isClawClosed = true;
-    digitalWrite(_PINClawPower, RELAYPINON);
+    digitalWrite(_PINClawSolenoid, RELAYPINON);
 }
 
 void openClaw()
 {
     _timestampClawClosed = 0;
     _isClawClosed = false;
-    digitalWrite(_PINClawPower, RELAYPINOFF);
+    digitalWrite(_PINClawSolenoid, RELAYPINOFF);
 }
 void changeState(int newState)
 {
@@ -1622,7 +1640,7 @@ void changeState(int newState)
 }
 /**
  * @brief  Wiggle the claw
- * @note   
+ * @note
  * @retval None
  */
 void wiggleClaw()
