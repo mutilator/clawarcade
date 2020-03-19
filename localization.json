@@ -1,0 +1,578 @@
+[
+    {
+        "localization": "en-US",
+        "dictionary": {
+            "announceTwitter": "Follow us on twitter @ClawArcade {0}",
+            "announceDiscord": "Join the twitch plays community discord @{0}",
+
+            "commandPlay": "play",
+            "commandStats": "stats",
+            "commandRedeem": "redeem",
+            "commandRefill": "refill",
+            "commandLeaders": "leaders",
+            "commandSeen": "seen",
+            "commandBelt": "belt",
+            "commandPlush": "plush",
+            "commandHelp": "help",
+
+            "actionWordRigged": "rigged",
+            "actionWordDoh": "doh",
+            "actionWordOops": "oops",
+            "actionWordNoo": "nooo",
+            "actionWordNoooo": "noooo",
+            "actionWordNooooo": "nooooo",
+            "actionWordNoooooo": "noooooo",
+            "actionWordBibleThump": "biblethump",
+
+            "responseRigged": "git gud. 100% power every drop not enough for you?",
+            "responseBits1": "Time for an upgrade, thanks for the bits {0}!",
+            "responseBits2": "Someone really loves the claw, thanks for the bits {0}!",
+            "responseBits3": "More quarters for the machine, thanks {0}",
+            "responseBits4": "Shout out to {0} for their love of the claw machine!",
+
+            "responseSubPrime": "Welcome {0} to the subscribers! So kind of you to use your Twitch Prime on this channel! Use {1}help for your new sub only commands.",
+            "responseSub": "Welcome {0} to the subscribers! Use {1}help for your new sub only commands.",
+            "responseReSubPrime": "Welcome {0} to the subscribers! So kind of you to use your Twitch Prime on this channel! Thank you for your {1} months of support!",
+            "responseReSub": "Welcome {0} to the subscribers! Thank you for your support for {1} months!",
+
+            "responseBuxDailyStreak": "{0} just received 🍄{1} for playing today and 🍄{2} streak bonus.",
+            "responseBuxDaily": "{0} just received 🍄{1} for playing today.",
+            "responseCommandBuxBalance": "{0}'s balance: 🍄{1}",
+
+            "responseCommandRefill": "Summoning my master to reload me, one moment please.",
+
+            "responseCommandSeen": "{0} was last seen playing on {1}-{2}-{3}!",
+            "responseCommandRedeemHelpSyn": "Syntax: {0}redeem <perk> <args>",
+            "responseCommandRedeemHelpOpt": "Options: scare (🍄{0}), scene (🍄{1}), belt (🍄{2}), rename (🍄{3})",
+
+            "responseCommandStats1": "{0} has {1} wins over {2} sessions using {3} moves to get them. Claw Bux - 🍄{4}",
+            "responseCommandStats2": "Top {0} wins.",
+
+            "responseCommandLeadersAll": "Top {0} winners ever.",
+            "responseCommandLeadersWeek": "Top {0} winners this week.",
+            "responseCommandLeadersMonth": "Top {0} winners this month.",
+            "responseCommandLeadersToday": "Top {0} winners today.",
+            
+            "gameClawCommandBuxBal": "Remaining balance: 🍄{0}",
+            "gameClawCommandBuxInsuffBal": "Insufficient bux: 🍄{0}",
+
+            "responseEventEaster1": "@{0} grabbed a {1}! You've earned a 🍄{2} bonus!",
+            "responseEventPlay": "Please wait for the sheriff to begin the game.",
+
+            "gameHelpSub1": "lights - Turn the machine lights on and off",
+            "gameHelpSub2": "rename oldName:newName - Rename a plush once every 30 days to a name of your choice",
+            "gameHelpSub3": "belt # - Run the belt for up to 15 seconds, sometimes plushes get stuck and you can be the hero",
+            "gameHelpSub4": "refill - Pings my owner to refill me",
+            "gameHelpSub5": "scene 1-3 - Choose a different layout for the stream during your turn",
+
+            "gameClawGrabPlush": "@{0} grabbed {1}",
+
+            "gameGantryCommandPlayInQueue1": "You're already in the queue and it's currently your turn, go go go!",
+            "gameGantryCommandPlayInQueue2": "You're already in the queue.",
+            "gameGantryCommandPlayQueueAdd1": "Added to player queue, you're up next to play.",
+            "gameGantryCommandPlayQueueAdd2": "Added to player queue, you're {0} people away from playing.",
+
+
+            "gameClawCommandPlayRealtime": "You're already playing, type {0}help for commands. This command is only valid in a queue mode.",
+            "gameClawCommandPlayInQueue1": "You're already in the queue and it's currently your turn, go go go!",
+            "gameClawCommandPlayInQueue2": "You're already in the queue.",
+            "gameClawCommandPlayQueueAdd1": "Added to player queue, you're up next to play.",
+            "gameClawCommandPlayQueueAdd2": "Added to player queue, you're {0} people away from playing.",
+
+            "gameClawCommandStrobeHelp1": "Syntax: {0}strobe red blue green [count] [delay]",
+            "gameClawCommandStrobeHelp2": "Colors scale 0-255, count 1-100, delay 1-120, ex '{0}strobe 255 0 0' creates a red strobe",
+            "gameClawCommandStrobeSet": "Custom strobe set!",
+
+            "gameClawCommandRenameHelp1": "Syntax: {0}rename oldName:newName",
+            "gameClawCommandRenameSuccess": "{0} has been renamed to {1}. Thanks for being a subscriber!",
+            "gameClawCommandRenameSuccessBux": "{0} has been renamed to {1}. Thanks for being a loyal viewer!",
+            "gameClawCommandRenameError1": "Plushes can only be renamed once every 30 days. You have {0} days to go.",
+            "gameClawCommandRenameError2": "Error renaming plush: {0}",
+            "gameClawCommandRenameError3": "Please wait 30 days between renaming plushes. You have {0} days to go.",
+
+            "gameClawCommandPlushHelp1": "Syntax: {0}plush <name>",
+            "gameClawCommandPlushResp": "{0} was grabbed {1} times. Top {2} masters:",
+
+            "gameClawCommandBountyHelp": "Syntax: {0}bounty <amount> <plush>",
+            "gameClawCommandBountyExisting": "There is currently a bounty on the head of {0} for 🍄{1}.",
+            "gameClawCommandBountyAdd": "The bounty on {0}'s head is now 🍄{1}.",
+            "gameClawResponseBountyWin": "Congratulations to @{0} for grabbing {1}. You receive the bounty on its head of 🍄{2}!",
+            
+            "gameClawCommandRedeemRenameHelp1": "Syntax: {0}redeem rename oldName:newName",
+            "gameClawCommandSceneQuery": "Your current scene is {0}",
+
+
+            "gameClawCommandBountySaying1": "A plush has escaped from prison! A bounty of 🍄<<bux>> has been placed on the head of <<plush>>.",
+            "gameClawCommandBountySaying2": "A plushymon escaped its trainer. A bounty of 🍄<<bux>> has been placed on the head of <<plush>>.",
+            "gameClawCommandBountySaying3": "A plush didn't pay their bills. The bank placed a bounty on the head of <<plush>> for 🍄<<bux>>.",
+            "gameClawCommandBountySaying4": "A plush didn't clean its room. A bounty of 🍄<<bux>> has been placed on the head of <<plush>>.",
+            "gameClawCommandBountySaying5": "A plush hacked clawarcade. The FBI placed a bounty on the head of <<plush>> for 🍄<<bux>>.",
+            "gameClawCommandBountySaying6": "A spy was discovered stealing clawarcade secrets. The CIA placed a bounty on the head of <<plush>> for 🍄<<bux>>.",
+            "gameClawCommandBountySaying7": "The car mechanic didn't do his job right. An angry wife placed a bounty on the head of <<plush>> for 🍄<<bux>>.",
+            "gameClawCommandBountySaying8": "A mad scientist tried to make frankenplush. The townspeople placed a bounty on <<plush>> for 🍄<<bux>>.",
+            "gameClawCommandBountySaying9": "Evil powers are growing. 🍄<<bux>> has been placed on the head of the evil Dr. <<plush>>.",
+
+            "gameClawChaosHelp1": "Commands: refer to the panels below the stream for more commands",
+            "gameClawChaosHelp2": "s, f, b, l, r, d - Move the crane, alternate CAPS and lower case to use commands faster",
+            "gameClawChaosStartGame": "Chaos mode has begun! Type {0}help for commands.",
+
+            "gameClawSingleHelp1": "Commands: refer to the panels below the stream for more commands",
+            "gameClawSingleHelp2": "f, b, l, r, d - Move the crane, alternate CAPS and lower case to use commands faster",
+            "gameClawSingleHelp3": "fs, bs, ls, rs - Move the crane a small amount",
+            "gameClawSingleHelp4": "gift turn <nickname> - Gifts your turn to someone else",
+            "gameClawSingleHelp5": "Remember; you can use multiple commands per line, separate each with a space",
+
+            "gameClawSingleQuickQueueStartGame": "Quick Queue mode has begun! Type {0}help for commands. Type {0}play to opt-in to the player queue.",
+            "gameClawSingleQuickQueueStartRound": "@{0} has control. You have {1} seconds to start playing.",
+            "gameClawSingleQuickQueueStartRoundShort": "@{0} has control.",
+
+            "gameClawSingleQueueStartGame": "Queue mode has begun! Type {0}help for commands. Type {0}play to opt-in to the player queue.",
+            "gameClawSingleQueueStartRound": "@{0} has control for the next {1} seconds. You have {2} seconds to start playing",
+            "gameClawSingleQueueStartRoundShort": "@{0} has control.",
+
+            "gameClawModeChaos": "chaos",
+            "gameClawModeQueue": "queue",
+            "gameClawModeQuick": "quick",
+
+            "gameVoteNoVotes": "No votes were cast. Defaulting to chaos mode.",
+            "gameVoteHelp1": "Commands: chaos, queue, single",
+            "gameVoteHelp2": "queue - Rotating queue of players with a single person controlling the crane, bot will rotate through users every {0} seconds.",
+            "gameVoteHelp3": "quick - Exactly like queue mode except the queue only rotates after the person sends a drop command",
+            "gameVoteHelp4": "chaos - The claw moves a direction based on the most popular command over the last # milliseconds (# scales with the number of people playing)",
+            "gameVoteStartGame": "Voting mode has begun! You have {0} seconds to cast your votes. Type {1}help for commands.",
+            "gameVoteMoreVotes": "I need {0} more votes before entering game voting mode" 
+        }
+    },
+        {
+        "localization": "es-ES",
+        "dictionary": {
+            "announceTwitter": "Siguenos en Twitter @ClawArcade {0}",
+            "announceDiscord": "Únete a la comunidad de discord @{0}",
+           
+            "commandPlay": "jugar",
+            "commandStats": "estadísticas",
+            "commandRedeem": "canjear",
+            "commandRefill": "rellenar",
+            "commandLeaders": "líderes",
+            "commandSeen": "visto",
+            "commandBelt": "cinta",
+            "commandPlush": "peluche",
+            "commandHelp": "ayuda",
+           
+            "actionWordRigged": "manipulada",
+            "actionWordDoh": "doh",
+            "actionWordOops": "oops",
+            "actionWordNoo": "nooo",
+            "actionWordNoooo": "noooo",
+            "actionWordNooooo": "nooooo",
+            "actionWordNoooooo": "noooooo",
+            "actionWordBibleThump": "biblethump",
+           
+            "responseRigged": "La maquina esta ofreciendo el 100% de su potencia, no es suficiente para ti?",
+            "responseBits1": "Tiempo para una actualización, ¡gracias por los bits {0}!",
+            "responseBits2": "Alguien realmente ama la garra, gracias por los bits {0}!",
+            "responseBits3": "Más trimestres para la máquina, gracias {0}",
+            "responseBits4": "¡Grita a {0} por su amor a la máquina de peluches!",
+           
+            "responseSubPrime": "¡Bienvenido {0} a los suscriptores! ¡Muchas gracias por utilizar Twitch Prime en este canal! Utilice la ayuda {1} para sus nuevos comandos de solo suscriptores",
+            "responseSub": "¡Bienvenido {0} a los suscriptores! Utilice la ayuda {1} para sus nuevos comandos de solo sub",
+            "responseReSubPrime": "¡Bienvenido {0} a los suscriptores! ¡Gracias por utilizar Twitch Prime en este canal! ¡Gracias por sus {1} meses de apoyo!",
+            "responseReSub": "¡Bienvenido {0} a los suscriptores! ¡Gracias por su apoyo durante {1} meses!",
+           
+            "responseBuxDailyStreak": "{0} acaba de recibir 🍄{1} por jugar hoy y bonus {2} bonificación por racha",
+            "responseBuxDaily": "{0} acaba de recibir 🍄{1} por jugar hoy",
+            "responseCommandBuxBalance": "Saldo de {0}: 🍄{1}",
+           
+            "responseCommandRefill": "Invocando a mi maestro para que me vuelva a cargar, un momento por favor",
+           
+            "responseCommandSeen": "{0} se vio por última vez jugando en {1} - {2} - {3}!",
+            "responseCommandRedeemHelpSyn": "Sintaxis: {0}canjear <perk> <args>",
+            "responseCommandRedeemHelpOpt": "Opciones: susto (🍄{0}), escena (🍄{1}), cinturón (🍄{2}), renombrar (🍄{3})",
+           
+            "responseCommandStats1": "{0} tiene {1} victorias sobre {2} sesiones utilizando {3} movimientos para obtenerlos. Garra Bux - 🍄{4}",
+            "responseCommandStats2": "Top {0} gana",
+           
+            "responseCommandLeadersAll": "Top {0} ganadores de la historia",
+            "responseCommandLeadersWeek": "Top {0} ganadores de esta semana",
+            "responseCommandLeadersMonth": "Top {0} ganadores de este mes",
+            "responseCommandLeadersToday": "Top {0} ganadores de hoy",
+           
+            "gameClawCommandBuxBal": "Saldo restante: 🍄{0}",
+            "gameClawCommandBuxInsuffBal": "Saldo restante: 🍄{0}",
+           
+            "responseEventEaster1": "¡@{0} agarró a {1}! ¡Has ganado un bono 🍄{2}!",
+            "responseEventPlay": "Espera a que el sheriff comience el juego",
+           
+            "gameHelpSub1": "lights - Enciende y apaga las luces de la máquina",
+            "gameHelpSub2": "rename oldName: newName - Cambia el nombre de un peluche una vez cada 30 días al nombre que elijas",
+            "gameHelpSub3": "belt # - Corre la cinta por hasta 15 segundos, a veces los peluches se atascan y puedes ser el héroe",
+            "gameHelpSub4": "refill - Avisale a mi dueño para que me rellene de peluches",
+            "gameHelpSub5": "scene 1-3 - Elige un diseño diferente para la transmisión durante tu turno",
+           
+            "gameClawGrabPlush": "@{0} agarró {1}",
+           
+            "gameGantryCommandPlayInQueue1": "Ya estás en la cola y es tu turno, ¡vamos, vamos, vamos!",
+            "gameGantryCommandPlayInQueue2": "Ya estás en la cola",
+            "gameGantryCommandPlayQueueAdd1": "Agregado a la cola del jugador, estás listo para jugar",
+            "gameGantryCommandPlayQueueAdd2": "Agregado a la cola del jugador, debes esperar a {0} personas para jugar",
+           
+           
+            "gameClawCommandPlayRealtime": "Ya estás jugando, escribe {0} ayuda para los comandos. Este comando solo es válido en el modo de espera",
+            "gameClawCommandPlayInQueue1": "Ya estás en la cola y es tu turno, ¡vamos, vamos, vamos!",
+            "gameClawCommandPlayInQueue2": "Ya estás en la cola",
+            "gameClawCommandPlayQueueAdd1": "Agregado a la cola del jugador, eres el próximo en jugar",
+            "gameClawCommandPlayQueueAdd2": "Agregado a la cola del jugador, debes esperar a {0} personas para jugar",
+      
+            "gameClawCommandStrobeHelp1": "Sintaxis: {0}strobe rojo azul verde [cuenta] [retraso]",
+            "gameClawCommandStrobeHelp2": "Escala de colores 0-255, cuenta 1-100, retraso 1-120, ex '{0} estroboscopio 255 0 0' crea un estroboscopio rojo",
+            "gameClawCommandStrobeSet": "¡Juego estroboscópico personalizado!",
+           
+            "gameClawCommandRenameHelp1": "Sintaxis: {0}rename oldName: newName",
+            "gameClawCommandRenameSuccess": "{0} ha cambiado de nombre a {1}. ¡Gracias por suscribirse!",
+            "gameClawCommandRenameSuccessBux": "{0} ha cambiado de nombre a {1}. ¡Gracias por ser un fiel espectador!",
+            "gameClawCommandRenameError1": "Los peluches solo se pueden renombrar una vez cada 30 días. Te quedan {0} días",
+            "gameClawCommandRenameError2": "Error al renombrar peluche: {0}",
+            "gameClawCommandRenameError3": "Por favor, espere 30 días entre cambiar el nombre de los peluches. Le quedan {0} días",
+ 
+            "gameClawCommandPlushHelp1": "Sintaxis: {0}peluche <nombre>",
+            "gameClawCommandPlushResp": "{0} fue capturado {1} veces. Principales {2} maestros:",
+ 
+            "gameClawCommandBountyHelp": "Sintaxis: {0}bounty <amount> <plush>",
+            "gameClawCommandBountyExisting": "Actualmente hay una recompensa en la cabeza de {0} por 🍄{1}",
+            "gameClawCommandBountyAdd": "La recompensa en la cabeza de {0} ahora es 🍄{1}.",
+            "gameClawResponseBountyWin": "Felicitaciones a @{0} por agarrar {1}. ¡Recibes la recompensa por su cabeza de 🍄{2}!",
+ 
+            "gameClawCommandRedeemRenameHelp1": "Sintaxis: {0} canjear renombrar oldName: newName",
+            "gameClawCommandSceneQuery": "Tu escena actual es {0}",
+ 
+ 
+            "gameClawCommandBountySaying1": "¡Un peluche ha escapado de la prisión! Se ha colocado una recompensa de 🍄<<bux>> en la cabeza de <<plush>>",
+            "gameClawCommandBountySaying2": "Un plushymon escapó de su entrenador. Se ha colocado una recompensa de 🍄<<bux>> en la cabeza de <<plush>>",
+            "gameClawCommandBountySaying3": "Un peluche no pagó sus facturas. El banco colocó una recompensa en la cabeza de <<plush>> por 🍄<<bux>>",
+            "gameClawCommandBountySaying4": "Un peluche no limpió su habitación. Se ha colocado una recompensa de 🍄<<bux>> en la cabeza de <<plush>>",
+            "gameClawCommandBountySaying5": "Un clawarcade hackeado de felpa. El FBI colocó una recompensa en la cabeza de <<plush>> por 🍄<<bux>>",
+            "gameClawCommandBountySaying6": "Se descubrió un espía robando secretos de clawarcade. La CIA colocó una recompensa en la cabeza de <<plush>> por 🍄<<bux>>",
+            "gameClawCommandBountySaying7": "El mecánico de automóviles no hizo bien su trabajo. Una esposa enojada colocó una recompensa en la cabeza de <<plush>> por 🍄<<bux>>",
+            "gameClawCommandBountySaying8": "Un científico loco intentó hacer frankenplush. La gente del pueblo puso una recompensa en <<plush>> por 🍄<<bux>>",
+            "gameClawCommandBountySaying9": "Los poderes del mal están creciendo. 🍄<<bux>> se ha colocado en la cabeza del malvado Dr. <<plush>>",
+ 
+            "gameClawChaosHelp1": "Comandos: consulte los paneles debajo de la secuencia para obtener más comandos",
+            "gameClawChaosHelp2": "s, f, b, l, r, d - Mueve la grúa, alterna MAYÚSCULAS y minúsculas para usar comandos más rápido",
+            "gameClawChaosStartGame": "¡El modo de caos ha comenzado! Escriba {0} ayuda para los comandos",
+ 
+            "gameClawSingleHelp1": "Comandos: consulte los paneles debajo de la secuencia para obtener más comandos",
+            "gameClawSingleHelp2": "f, b, l, r, d - Mueve la grúa, alterna MAYÚSCULAS y minúsculas para usar comandos más rápido",
+            "gameClawSingleHelp3": "fs, bs, ls, rs - Mueve la grúa un poco",
+            "gameClawSingleHelp4": "gift turn <nickname> - Regala tu turno a otra persona",
+            "gameClawSingleHelp5": "Recuerda; puedes usar varios comandos por línea, separa cada uno con un espacio",
+ 
+            "gameClawSingleQuickQueueStartGame": "¡El modo de cola rápida ha comenzado! Escriba {0} ayuda para los comandos. Escriba {0}play para participar en la cola de juego",
+            "gameClawSingleQuickQueueStartRound": "@{0} tiene el control. Tienes {1} segundos para comenzar a jugar",
+            "gameClawSingleQuickQueueStartRoundShort": "@{0} tiene el control",
+ 
+            "gameClawSingleQueueStartGame": "¡El modo de cola ha comenzado! Escriba {0} ayuda para los comandos. Escriba {0}play para participar en la cola de juego",
+            "gameClawSingleQueueStartRound": "@{0} tiene el control durante los próximos {1} segundos. Tienes {2} segundos para comenzar a jugar",
+            "gameClawSingleQueueStartRoundShort": "@{0} tiene el control",
+ 
+            "gameClawModeChaos": "caos",
+            "gameClawModeQueue": "cola",
+            "gameClawModeQuick": "rápido",
+ 
+            "gameVoteNoVotes": "No se emitieron votos. Por defecto en modo caos",
+            "gameVoteHelp1": "Comandos: caos, cola, soltero",
+            "gameVoteHelp2": "cola - Cola giratoria de jugadores con una sola persona controlando la grúa, el robot rotará a través de los usuarios cada {0} segundos",
+            "gameVoteHelp3": "rápido: exactamente igual que el modo de cola, excepto que la cola solo gira después de que la persona envía un comando de caída",
+            "gameVoteHelp4": "caos: la garra se mueve en una dirección basada en el comando más popular durante los últimos # milisegundos (# escala con el número de personas que juegan)",
+            "gameVoteStartGame": "¡El modo de votación ha comenzado! Tienes {0} segundos para emitir tus votos. Escribe {1} ayuda para los comandos",
+            "gameVoteMoreVotes": "Necesito {0} votos más antes de ingresar al modo de votación del juego"
+        }
+    },
+    {
+        "localization": "fr-FR",
+        "dictionary": {
+            "announceTwitter": "Suivez-nous sur twitter @ClawArcade {0}",
+            "announceDiscord": "Rejoignez le discord de la communauté des jeux Twitch @{0}",
+
+            "commandPlay": "jouer",
+            "commandStats": "stats",
+            "commandRedeem": "racheter",
+            "commandRefill": "recharger",
+            "commandLeaders": "leaders",
+            "commandSeen": "vu",
+            "commandBelt": "ceinture",
+            "commandPlush": "peluche",
+            "commandHelp": "aide",
+
+            "actionWordRigged": "truqué",
+            "actionWordDoh": "doh",
+            "actionWordOops": "oups",
+            "actionWordNoo": "nooo",
+            "actionWordNoooo": "noooo",
+            "actionWordNooooo": "nooooo",
+            "actionWordNoooooo": "noooooo",
+            "actionWordBibleThump": "biblethump",
+
+            "responseRigged": "La machine se donne à 100% cela ne te suffit pas?",
+            "responseBits1": "Temps pour la mise à jour, merci pour les bits {0}!",
+            "responseBits2": "Quelqu'un aime vraiment la machine à pince, merci pour les bits {0}!",
+            "responseBits3": "Plus de trimestres pour la machine, merci {0}",
+            "responseBits4": "Criez à {0} pour leur amour de la machine à griffes!",
+
+            "responseSubPrime": "Bienvenue {0} aux abonnés! Merci de bien vouloir utiliser votre Twitch Prime sur cette chaine ! Utilisez l'aide {1} pour vos nouvelles commandes de sub uniquement.",
+            "responseSub": "Bienvenue {0} aux abonnés! Utilisez l'aide {1} pour vos nouvelles commandes de sub uniquement.",
+            "responseReSubPrime": "Bienvenue {0} aux abonnés ! Merci de bien vouloir utiliser votre Twitch Prime sur cette chaîne! Merci pour vos {1} mois de support!",
+            "responseReSub": "Bienvenue {0} aux abonnés! Merci de votre soutien pendant {1} mois!",
+
+            "responseBuxDailyStreak": "{0} vient de recevoir 🍄{1} pour avoir joué aujourd'hui et 🍄{2} bonus de connexion consécutive.",
+            "responseBuxDaily": "{0} vient de recevoir 🍄{1} pour avoir jouer aujourd'hui.",
+            "responseCommandBuxBalance": "Solde {0}: 🍄{1}",
+
+            "responseCommandRefill": "Appelez mon maître pour me recharger, un instant s'il vous plaît.",
+
+            "responseCommandSeen": "{0} a été vu pour la dernière fois en train de jouer sur {1} - {2} - {3}!",
+            "responseCommandRedeemHelpSyn": "Syntaxe: {0}redeem <perk> <args>",
+            "responseCommandRedeemHelpOpt": "Options: effrayer (🍄{0}), scène (🍄{1}), ceinture (🍄{2}), renommer (🍄{3})",
+
+            "responseCommandStats1": "{0} a {1} victoires sur {2} sessions en utilisant {3} mouvements pour les obtenir. Machine à pince - 🍄{4}",
+            "responseCommandStats2": "Top {0} victoires.",
+
+            "responseCommandLeadersAll": "Top {0} gagnant de tous les temps.",
+            "responseCommandLeadersWeek": "Top {0} gagnant cette semaine.",
+            "responseCommandLeadersMonth": "Top {0} gagnant de ce mois.",
+            "responseCommandLeadersToday": "Top {0} gagnant aujourd'hui.",
+
+            "gameClawCommandBuxBal": "Solde restant: 🍄{0}",
+            "gameClawCommandBuxInsuffBal": "Solde restant: 🍄{0}",
+
+            "responseEventEaster1": "@{0} a récupéré un {1}! Vous avez gagné un bonus de 🍄{2}!",
+            "responseEventPlay": "Veuillez attendre que le shérif commence le jeu.",
+
+            "gameHelpSub1": "lumières - Allumer et éteindre les lumières de la machine",
+            "gameHelpSub2": "rename oldName:newName - Renommez une peluche tous les 30 jours par celui de votre choix",
+            "gameHelpSub3": "ceinture # - Faites courir la ceinture jusqu'à 15 secondes, parfois les peluches se coincent et vous pouvez être le héros",
+            "gameHelpSub4": "refill - Appelle mon propriétaire pour me remplir",
+            "gameHelpSub5": "scene 1-3 - Choisissez une scène différente pendant votre tour",
+
+            "gameClawGrabPlush": "@{0} saisi {1}",
+
+            "gameGantryCommandPlayInQueue1": "Vous êtes déjà dans la file d'attente et c'est actuellement votre tour, allez, allez!",
+            "gameGantryCommandPlayInQueue2": "Vous êtes déjà dans la file d'attente.",
+            "gameGantryCommandPlayQueueAdd1": "Ajouté à la file d'attente des joueurs, vous êtes le prochain à jouer.",
+            "gameGantryCommandPlayQueueAdd2": "Ajouté à la file d'attente des joueurs, {0} personnes avant votre tour.",
+
+
+            "gameClawCommandPlayRealtime": "Vous jouez déjà tapez {0} aide pour les commandes. Cette commande n'est valide qu'en mode file d'attente.",
+            "gameClawCommandPlayInQueue1": "Vous êtes déjà dans la file d'attente et c'est actuellement votre tour, allez, allez!",
+            "gameClawCommandPlayInQueue2": "Vous êtes déjà dans la file d'attente.",
+            "gameClawCommandPlayQueueAdd1": "Ajouté à la file d'attente des joueurs, vous êtes le prochain à jouer.",
+            "gameClawCommandPlayQueueAdd2": "Ajouté à la file d'attente des joueurs, vous êtes {0} personnes à jouer.",
+
+            "gameClawCommandStrobeHelp1": "Syntaxe: {0}strobe rouge bleu vert [count] [delay]",
+            "gameClawCommandStrobeHelp2": "Échelle de couleurs 0-255, compte 1-100, délai 1-120, ex '{0}strobe 255 0 0' crée un clignotement rouge",
+            "gameClawCommandStrobeSet": "Ensemble stroboscopique personnalisé!",
+
+            "gameClawCommandRenameHelp1": "Syntaxe: {0}rename oldName:newName",
+            "gameClawCommandRenameSuccess": "{0} a été renommé en {1}. Merci d'être abonné!",
+            "gameClawCommandRenameSuccessBux": "{0} a été renommé en {1}. Merci d'être un fidèle spectateur!",
+            "gameClawCommandRenameError1": "Les peluches ne peuvent être renommées qu'une fois tous les 30 jours. Il vous reste {0} jours.",
+            "gameClawCommandRenameError2": "Erreur lors du renommage de peluche: {0}",
+            "gameClawCommandRenameError3": "Veuillez patienter 30 jours entre les renommages de peluches. Vous avez {0} jours.",
+
+            "gameClawCommandPlushHelp1": "Syntaxe: {0}plush <nom>",
+            "gameClawCommandPlushResp": "{0} a été saisi {1} fois. Meilleurs {2} maîtres:",
+
+            "gameClawCommandBountyHelp": "Syntaxe: {0}bounty <amount> <plush>",
+            "gameClawCommandBountyExisting": "Il y a actuellement une prime à la tête de {0} pour 🍄{1}.",
+            "gameClawCommandBountyAdd": "La prime sur la tête de {0} est maintenant 🍄{1}.",
+            "gameClawResponseBountyWin": "Félicitations à @ {0} pour avoir récupéré {1}. Vous recevez la prime sur sa tête de 🍄 {2}!",
+
+            "gameClawCommandRedeemRenameHelp1": "Syntaxe: {0}redeem rename oldName:newName",
+            "gameClawCommandSceneQuery": "Votre scène actuelle est {0}",
+
+
+            "gameClawCommandBountySaying1": "Une peluche s'est échappée de prison! Une prime de 🍄<<bux>> a été placée sur la tête de <<plush>>.",
+            "gameClawCommandBountySaying2": "Un peluche a échappé à son entraîneur. Une prime de 🍄<<bux>> a été placée sur la tête de <<plush>>.",
+            "gameClawCommandBountySaying3": "Une peluche n'a pas payé ses factures. La banque a placé une prime sur la tête de <<plush>> pour 🍄<<bux>>.",
+            "gameClawCommandBountySaying4": "Une peluche n'a pas nettoyé sa chambre. Une prime de 🍄<<bux>> a été placée sur la tête de <<plush>>.",
+            "gameClawCommandBountySaying5": "Une clawarcade en peluche piratée. Le FBI a placé une prime sur la tête de <<plush>> pour 🍄<<bux>>.",
+            "gameClawCommandBountySaying6": "Un espion a été découvert en train de voler des secrets de clawarcade. La CIA a placé une prime sur la tête de <<plush>> pour 🍄<<bux>>.",
+            "gameClawCommandBountySaying7": "Le mécanicien automobile n'a pas fait son travail correctement. Une femme en colère a placé une prime sur la tête de <<plush>> pour 🍄<<bux>>.",
+            "gameClawCommandBountySaying8": "Un savant fou a essayé de faire Frankenplush. Les habitants ont placé une prime sur <<plush>> pour 🍄<<bux>>.",
+            "gameClawCommandBountySaying9": "Les pouvoirs maléfiques augmentent. 🍄<<bux>> a été placé sur la tête du Dr diabolique <<plush>>.",
+
+            "gameClawChaosHelp1": "Commandes: reportez-vous aux panneaux situés sous le flux pour plus de commandes",
+            "gameClawChaosHelp2": "s, f, b, l, r, d - Déplacer la grue, alterner les majuscules et les minuscules pour utiliser les commandes plus rapidement",
+            "gameClawChaosStartGame": "Le mode Chaos a commencé! Tapez {0} aide pour les commandes.",
+
+            "gameClawSingleHelp1": "Commandes: reportez-vous aux panneaux situés sous le flux pour plus de commandes",
+            "gameClawSingleHelp2": "f, b, l, r, d - Déplacer la grue, alterner les majuscules et les minuscules pour utiliser les commandes plus rapidement",
+            "gameClawSingleHelp3": "fs, bs, ls, rs - Déplacer légèrement la grue",
+            "gameClawSingleHelp4": "tour de cadeau <nickname> - Cadeaux à votre tour à quelqu'un d'autre",
+            "gameClawSingleHelp5": "N'oubliez pas, vous pouvez utiliser plusieurs commandes par ligne, chacune séparée par un espace",
+
+            "gameClawSingleQuickQueueStartGame": "Le mode de file d'attente rapide a commencé! Tapez {0} aide pour les commandes. Tapez {0} play pour activer la file d'attente des joueurs.",
+            "gameClawSingleQuickQueueStartRound": "@{0} a le contrôle. Vous avez {1} secondes d’attente  pour commencer à jouer.",
+            "gameClawSingleQuickQueueStartRoundShort": "@{0} a le contrôle.",
+
+            "gameClawSingleQueueStartGame": "Le mode file d'attente a commencé! Tapez {0} aide pour les commandes. Tapez {0} play pour vous inscrire à la file d'attente des joueurs.",
+            "gameClawSingleQueueStartRound": "@{0} a le contrôle pendant les {1} secondes suivantes. Vous avez {2} secondes d’attente pour commencer à jouer.",
+            "gameClawSingleQueueStartRoundShort": "@{0} a le contrôle.",
+
+            "gameClawModeChaos": "chaos",
+            "gameClawModeQueue": "file d'attente",
+            "gameClawModeQuick": "rapide",
+
+            "gameVoteNoVotes": "Aucun vote n'a été émis. Par défaut en mode chaos.",
+            "gameVoteHelp1": "Commandes: chaos, file d'attente, single",
+            "gameVoteHelp2": "queue - File d'attente tournante des joueurs avec une seule personne contrôlant la grue, le bot tournera à travers les utilisateurs toutes les {0} secondes.",
+            "gameVoteHelp3": "quick - Exactement comme le mode file d'attente, sauf que la file d'attente ne tourne qu'après l'envoi d'une commande de suppression",
+            "gameVoteHelp4": "chaos – Le grappin se déplace dans une direction basée sur la commande la plus populaire au cours des dernières # millisecondes (# varie en fonction du nombre de personnes jouant)",
+            "gameVoteStartGame": "Le mode de vote a commencé! Vous avez {0} secondes pour voter. Tapez {1} aide pour les commandes.",
+            "gameVoteMoreVotes": "J'ai besoin de {0} votes supplémentaires avant de passer en mode de vote"
+        }
+    },
+    {
+        "localization": "ru-RU",
+        "dictionary": {
+            "announceTwitter": "Следуйте за нами в твиттере @ClawArcade {0}",
+            "announceDiscord": "Присоединяйтесь к сообществу дергающихся игр @{0}",
+
+            "commandPlay": "играть",
+            "commandStats": "статистика",
+            "commandRedeem": "выкупить",
+            "commandRefill": "refill",
+            "commandLeaders": "лидеры",
+            "commandSeen": "видел",
+            "commandBelt": "ремень",
+            "commandPlush": "plush",
+            "commandHelp": "помощь",
+
+            "actionWordRigged": "rigged",
+            "actionWordDoh": "doh",
+            "actionWordOops": "ой",
+            "actionWordNoo": "nooo",
+            "actionWordNoooo": "noooo",
+            "actionWordNooooo": "nooooo",
+            "actionWordNoooooo": "noooooo",
+            "actionWordBibleThump": "biblethump",
+
+            "responseRigged": "мерзавец гуд. 100% мощности каждой капли недостаточно для тебя?",
+            "responseBits1": "Время для обновления, спасибо за биты {0}!",
+            "responseBits2": "Кто-то действительно любит коготь, спасибо за биты {0}!",
+            "responseBits3": "Больше четвертей за машину, спасибо {0}",
+            "responseBits4": "Привет {0} за любовь к когтевой машине!",
+
+            "responseSubPrime": "Добро пожаловать {0} подписчикам! Так что любезно использовать ваш Twitch Prime на этом канале! Используйте справку {1} ​​для ваших новых подчиненных команд.",
+            "responseSub": "Добро пожаловать {0} подписчикам! Используйте {1} справку для новых команд только для подчиненных.",
+            "responseReSubPrime": "Добро пожаловать {0} подписчикам! Так что любезно вы используете свой Twitch Prime на этом канале! Спасибо за вашу {1} ​​месячную поддержку!",
+            "responseReSub": "Добро пожаловать {0} подписчикам! Спасибо за вашу поддержку в течение {1} месяцев!",
+
+            "responseBuxDailyStreak": "{0} только что получил 🍄{1} за сегодняшнюю игру и 🍄{2} бонус серии.",
+            "responseBuxDaily": "{0} только что получил 🍄{1} за игру сегодня.",
+            "responseCommandBuxBalance": "баланс {0}: 🍄{1}",
+
+            "responseCommandRefill": "Вызови моего хозяина, чтобы перезагрузить меня, пожалуйста, один момент.",
+
+            "responseCommandSeen": "{0} в последний раз играли на {1} - {2} - {3}!",
+            "responseCommandRedeemHelpSyn": "Синтаксис: {0} выкупить <perk> <args>",
+            "responseCommandRedeemHelpOpt": "Опции: напугать (🍄{0}), сцена (🍄{1}), пояс (🍄{2}), переименовать (🍄{3})",
+
+            "responseCommandStats1": "{0} имеет {1} побед за {2} сессий, используя {3} ходов для их получения. Claw Bux - 🍄{4}",
+            "responseCommandStats2": "Top {0} побед.",
+
+            "responseCommandLeadersAll": "Лучшие {0} победители когда-либо.",
+            "responseCommandLeadersWeek": "Лучшие {0} победители на этой неделе.",
+            "responseCommandLeadersMonth": "Лучшие {0} победители в этом месяце.",
+            "responseCommandLeadersToday": "Лучшие {0} победители сегодня.",
+
+            "gameClawCommandBuxBal": "Оставшийся баланс: 🍄{0}",
+            "gameClawCommandBuxInsuffBal": "Оставшийся баланс: 🍄{0}",
+
+            "responseEventEaster1": "@{0} получил {1}! Вы заработали 🍄{2} бонус!",
+            "responseEventPlay": "Пожалуйста, подождите, пока шериф начнет игру.",
+
+            "gameHelpSub1": "свет - включить и выключить свет машины",
+            "gameHelpSub2": "переименовать oldName: newName - переименовывать плюш один раз в 30 дней на любое имя по вашему выбору",
+            "gameHelpSub3": "belt # - Запустите ремень на срок до 15 секунд, иногда плюши застревают, и вы можете стать героем",
+            "gameHelpSub4": "refill - Пинг мой владелец, чтобы пополнить меня",
+            "gameHelpSub5": "сцена 1-3 - выберите другой макет для потока во время своего хода",
+
+            "gameClawGrabPlush": "@{0} схватил {1}",
+
+            "gameGantryCommandPlayInQueue1": "Вы уже в очереди, и сейчас ваша очередь, иди иди иди!",
+            "gameGantryCommandPlayInQueue2": "Вы уже в очереди.",
+            "gameGantryCommandPlayQueueAdd1": "Добавлен в очередь игрока, вы находитесь рядом с игрой.",
+            "gameGantryCommandPlayQueueAdd2": "Добавленный в очередь игрока, вы {0} не участвуете в игре.",
+
+
+            "gameClawCommandPlayRealtime": "Вы уже играете, введите {0} справку для команд. Эта команда действительна только в режиме очереди.",
+            "gameClawCommandPlayInQueue1": "Вы уже в очереди, и сейчас ваша очередь, иди иди иди!",
+            "gameClawCommandPlayInQueue2": "Вы уже в очереди.",
+            "gameClawCommandPlayQueueAdd1": "Добавлено в очередь игрока, вы находитесь рядом с игрой.",
+            "gameClawCommandPlayQueueAdd2": "Добавлено в очередь игрока, вы {0} человек не играете.",
+
+            "gameClawCommandStrobeHelp1": "Синтаксис: {0} строб красный синий зеленый [count] [delay]",
+            "gameClawCommandStrobeHelp2": "Шкала цветов 0-255, счетчик 1-100, задержка 1-120, например, строб {0} 255 0 0 'создает красный строб",
+            "gameClawCommandStrobeSet": "Пользовательский строб установлен!",
+
+            "gameClawCommandRenameHelp1": "Синтаксис: {0} переименовать oldName: newName",
+            "gameClawCommandRenameSuccess": "{0} был переименован в {1}. Спасибо за подписку!",
+            "gameClawCommandRenameSuccessBux": "{0} был переименован в {1}. Спасибо за то, что вы лояльный зритель!",
+            "gameClawCommandRenameError1": "Плюши можно переименовывать только раз в 30 дней. У вас есть {0} дней.",
+            "gameClawCommandRenameError2": "Ошибка переименования плюша: {0}",
+            "gameClawCommandRenameError3": "Пожалуйста, подождите 30 дней между переименованием плюшей. У вас есть {0} дней.",
+
+            "gameClawCommandPlushHelp1": "Синтаксис: {0} плюш <имя>",
+            "gameClawCommandPlushResp": "{0} был захвачен {1} раз. Топ {2} мастеров:",
+
+            "gameClawCommandBountyHelp": "Синтаксис: {0} щедрость <сумма> <плюш>",
+            "gameClawCommandBountyExisting": "В настоящее время существует награда за {0} за 🍄{1}.",
+            "gameClawCommandBountyAdd": "Щедрость на голову {0} теперь 🍄{1}.",
+            "gameClawResponseBountyWin": "Поздравляем @ {0} с захватом {1}. Вы получаете вознаграждение за голову 🍄 {2}!",
+
+            "gameClawCommandRedeemRenameHelp1": "Синтаксис: {0} выкупить переименовать oldName: newName",
+            "gameClawCommandSceneQuery": "Ваша текущая сцена {0}",
+
+
+            "gameClawCommandBountySaying1": "Из тюрьмы сбежал плюш! Щедрость 🍄<<bux>> была помещена в голову <<plush>>.",
+            "gameClawCommandBountySaying2": "Плюшемон избежал своего тренера. Щедрость 🍄<<bux>> была помещена в голову <<plush>>.",
+            "gameClawCommandBountySaying3": "Плюш не оплатил свои счета. Банк назначил награду за голову <<plush>> за 🍄<<bux>>.",
+            "gameClawCommandBountySaying4": "Плюш не убирал свою комнату. Щит 🍄<<bux>> был помещен в голову <<plush>>.",
+            "gameClawCommandBountySaying5": "Плюшевая взломанная клаваркада. ФБР назначило награду за голову\" плюша \"за 🍄<<bux>>.",
+            "gameClawCommandBountySaying6": "Обнаружен шпион, крадущий секреты клаваркады. ЦРУ назначило награду за голову\" плюша \"за 🍄<<bux>>.",
+            "gameClawCommandBountySaying7": "Автомеханик не выполнил свою работу правильно. Разъяренная жена наложила награду на голову <<plush>> for 🍄<<bux>>.",
+            "gameClawCommandBountySaying8": "Сумасшедший ученый пытался сделать откровенный плюш. Горожане наградили <<plush>> за 🍄<<bux>>.",
+            "gameClawCommandBountySaying9": "Злые силы растут. 🍄<<bux>> был возложен на голову злого доктора <<plush>>.",
+
+            "gameClawChaosHelp1": "Команды: для получения дополнительных команд обратитесь к панелям под потоком",
+            "gameClawChaosHelp2": "s, f, b, l, r, d - перемещать кран, чередовать буквы CAPS и строчные буквы, чтобы быстрее использовать команды",
+            "gameClawChaosStartGame": "Режим хаоса начался! Введите {0} справку для команд.",
+
+            "gameClawSingleHelp1": "Команды: для получения дополнительных команд обратитесь к панелям под потоком",
+            "gameClawSingleHelp2": "f, b, l, r, d - перемещать кран, альтернативные буквы CAPS и нижний регистр, чтобы быстрее использовать команды",
+            "gameClawSingleHelp3": "fs, bs, ls, rs - переместить кран на небольшое количество",
+            "gameClawSingleHelp4": "подарочная очередь <никнейм> - дарит свою очередь кому-то другому",
+            "gameClawSingleHelp5": "Помните; вы можете использовать несколько команд в каждой строке, разделяя их пробелом",
+
+            "gameClawSingleQuickQueueStartGame": "Режим быстрой очереди начался! Введите справку {0} для команд. Наберите {0} play, чтобы подписаться на очередь игрока.",
+            "gameClawSingleQuickQueueStartRound": "@{0} имеет контроль. У вас есть {1} секунд, чтобы начать играть.",
+            "gameClawSingleQuickQueueStartRoundShort": "@{0} имеет контроль.",
+
+            "gameClawSingleQueueStartGame": "Режим очереди начался! Введите {0} справку для команд. Введите {0} play, чтобы подписаться на очередь игрока.",
+            "gameClawSingleQueueStartRound": "@{0} контролирует следующие {1} секунды. У вас есть {2} секунд для начала игры",
+            "gameClawSingleQueueStartRoundShort": "@{0} имеет контроль.",
+
+            "gameClawModeChaos": "хаос",
+            "gameClawModeQueue": "queue",
+            "gameClawModeQuick": "быстрый",
+
+            "gameVoteNoVotes": "Голоса не поданы. По умолчанию режим хаоса.",
+            "gameVoteHelp1": "Команды: хаос, очередь, одиночка",
+            "gameVoteHelp2": "queue - Вращающаяся очередь игроков с одним человеком, управляющим краном, бот будет проходить через пользователей каждые {0} секунд.",
+            "gameVoteHelp3": "быстро - точно так же, как режим очереди, за исключением того, что очередь вращается только после того, как человек отправил команду сброса",
+            "gameVoteHelp4": "хаос - коготь движется в направлении, основанном на самой популярной команде за последние # миллисекунды (# масштабируется с количеством людей, играющих)",
+            "gameVoteStartGame": "Режим голосования начался! У вас есть {0} секунд, чтобы отдать свои голоса. Введите {1} справку для команд.",
+            "gameVoteMoreVotes": "Мне нужно {0} больше голосов перед входом в режим голосования"
+        }
+    }
+]

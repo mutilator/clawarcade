@@ -104,6 +104,7 @@
                 <ListBoxItem Content="Halloween" />
                 <ListBoxItem Content="Birthday1" />
                 <ListBoxItem Content="Birthday2"/>
+                <ListBoxItem Content="Toilet Paper"/>
             </ComboBox>
             <Button x:Name="btnSaveConfig" Content="Save Configuration" HorizontalAlignment="Left" Margin="590,810,0,0" VerticalAlignment="Top" Width="162" Click="btnSaveConfig_Click" />
             <TabControl HorizontalAlignment="Left" Height="447" Margin="15,358,0,0" VerticalAlignment="Top" Width="742">
@@ -199,7 +200,7 @@
                         <Slider x:Name="sldrcameraResetDelay" HorizontalAlignment="Left" Margin="347,120,0,0" VerticalAlignment="Top" Width="113" Maximum="5000" Minimum="1" SmallChange="250" LargeChange="250" Value="{Binding ClawSettings.CameraResetDelay, Mode=TwoWay}" IsSnapToTickEnabled="True" TickFrequency="250" />
                         <Label Content="cameraResetDelay" HorizontalAlignment="Left" Margin="347,89,0,0" VerticalAlignment="Top" RenderTransformOrigin="-0.026,-0.077" />
                         <Label x:Name="lblcameraResetDelay" HorizontalAlignment="Left" Margin="487,89,0,0" VerticalAlignment="Top" RenderTransformOrigin="0.368,-0.308" Content="{Binding Value, ElementName=sldrcameraResetDelay}" />
-                        <CheckBox x:Name="chkAutoBountyMode" Content="Auto Bounty" HorizontalAlignment="Left" Margin="549,263,0,0" VerticalAlignment="Top" IsChecked="{Binding ClawSettings.AutoBountyMode, Mode=TwoWay}" />
+                        <CheckBox x:Name="chkAutoBountyMode" Content="Auto Bounty" HorizontalAlignment="Left" Margin="553,243,0,0" VerticalAlignment="Top" IsChecked="{Binding ClawSettings.AutoBountyMode, Mode=TwoWay}" />
                         <Slider x:Name="sldrAutoBountyAmount" HorizontalAlignment="Left" Margin="12,272,0,0" VerticalAlignment="Top" Width="114" Maximum="5000" Value="{Binding ClawSettings.AutoBountyAmount, Mode=TwoWay}" SmallChange="100" LargeChange="100" IsSnapToTickEnabled="True" TickFrequency="100" />
                         <Label Content="AutoBountyAmount" HorizontalAlignment="Left" Margin="12,245,0,0" VerticalAlignment="Top" RenderTransformOrigin="-0.026,-0.077" />
                         <Label x:Name="lblconveyorRunAfterDrop_Copy" HorizontalAlignment="Left" Margin="147,246,0,0" VerticalAlignment="Top" RenderTransformOrigin="0.368,-0.308" Content="{Binding Value, ElementName=sldrAutoBountyAmount}" />
@@ -219,20 +220,21 @@
                         <Button x:Name="btnScene1" Content="Scene 1" HorizontalAlignment="Left" Margin="551,31,0,0" VerticalAlignment="Top" Width="109" Click="btnScene1_Click" />
                         <Button x:Name="btnScene2" Content="Scene 2" HorizontalAlignment="Left" Margin="551,68,0,0" VerticalAlignment="Top" Width="111" Click="btnScene2_Click" />
                         <Button x:Name="btnScene3" Content="Scene 3" HorizontalAlignment="Left" Margin="551,105,0,0" VerticalAlignment="Top" Width="111" Click="btnScene3_Click" />
-                        <CheckBox x:Name="chkAttractMode" Content="Attract Mode" HorizontalAlignment="Left" Margin="549,283,0,0" VerticalAlignment="Top" Checked="chkAttractMode_Checked" Click="chkAttractMode_Click" />
-                        <CheckBox x:Name="ClawPower" Content="Enable Lasers" HorizontalAlignment="Left" Margin="549,301,0,0" VerticalAlignment="Top" Click="ClawPower_Click" IsEnabled="False" />
+                        <CheckBox x:Name="chkAttractMode" Content="Attract Mode" HorizontalAlignment="Left" Margin="553,263,0,0" VerticalAlignment="Top" Checked="chkAttractMode_Checked" Click="chkAttractMode_Click" />
+                        <CheckBox x:Name="ClawPower" Content="Enable Lasers" HorizontalAlignment="Left" Margin="553,281,0,0" VerticalAlignment="Top" Click="ClawPower_Click" IsEnabled="False" />
 
                         <Label Content="Claw Camera IP" HorizontalAlignment="Left" Margin="551,146,0,0" VerticalAlignment="Top" />
                         <TextBox HorizontalAlignment="Left" Height="23" Margin="551,177,0,0" Text="{Binding ClawSettings.ClawCameraAddress}" VerticalAlignment="Top" Width="120" />
-                        <Label Content="Greenscreen" HorizontalAlignment="Left" Margin="549,342,0,0" VerticalAlignment="Top" RenderTransformOrigin="-0.026,-0.077" />
-                        <Button Content="Enable" HorizontalAlignment="Left" Margin="550,367,0,0" VerticalAlignment="Top" Width="80" Click="Button_Click_3" />
-                        <Button Content="Disable" HorizontalAlignment="Left" Margin="635,367,0,0" VerticalAlignment="Top" Width="80" Click="Button_Click_4" />
+                        <Label Content="Greenscreen" HorizontalAlignment="Left" Margin="551,304,0,0" VerticalAlignment="Top" RenderTransformOrigin="-0.026,-0.077" />
+                        <Button Content="Enable" HorizontalAlignment="Left" Margin="552,329,0,0" VerticalAlignment="Top" Width="80" Click="Button_Click_3" />
+                        <Button Content="Disable" HorizontalAlignment="Left" Margin="637,329,0,0" VerticalAlignment="Top" Width="80" Click="Button_Click_4" />
                         <Slider x:Name="sldrconveyorRunFlipper" HorizontalAlignment="Left" Margin="195,272,0,0" VerticalAlignment="Top" Width="113" Maximum="5000" Minimum="1" Value="{Binding ClawSettings.ConveyorRunDuringFlipper, Mode=TwoWay}" SmallChange="100" LargeChange="100" IsSnapToTickEnabled="True" TickFrequency="100" />
                         <Label Content="conveyorRunFlipper" HorizontalAlignment="Left" Margin="195,246,0,0" VerticalAlignment="Top" RenderTransformOrigin="-0.026,-0.077" />
                         <Label x:Name="lblconveyorRunFlipper" HorizontalAlignment="Left" Margin="327,246,0,0" VerticalAlignment="Top" RenderTransformOrigin="0.368,-0.308" Content="{Binding Value, ElementName=sldrconveyorRunFlipper}" />
                         <Slider x:Name="sldrBreakSensorWaitTime" HorizontalAlignment="Left" Margin="195,317,0,0" VerticalAlignment="Top" Width="113" Maximum="30000" Minimum="1" Value="{Binding ClawSettings.ConveyorRunDuringFlipper, Mode=TwoWay}" SmallChange="100" LargeChange="1000" IsSnapToTickEnabled="True" TickFrequency="100" />
                         <Label Content="BreakSensorWaitTime" HorizontalAlignment="Left" Margin="195,291,0,0" VerticalAlignment="Top" RenderTransformOrigin="-0.026,-0.077" />
                         <Label x:Name="lblconveyorBreakSensorWait" HorizontalAlignment="Left" Margin="327,291,0,0" VerticalAlignment="Top" RenderTransformOrigin="0.368,-0.308" Content="{Binding Value, ElementName=sldrBreakSensorWaitTime}" />
+                        <ComboBox x:Name="cmbBackgrounds" HorizontalAlignment="Left" VerticalAlignment="Top" Width="165" Margin="552,376,0,0" SelectionChanged="CmbBackgrounds_SelectionChanged"  ItemsSource="{Binding ClawSettings.ObsBackgroundOptions}" DisplayMemberPath="Name"/>
                     </Grid>
                 </TabItem>
                 <TabItem Header="Golf" Padding="20,2">

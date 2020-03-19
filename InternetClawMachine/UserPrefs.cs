@@ -17,6 +17,7 @@ namespace InternetClawMachine
         public string WinClipName { get; internal set; }
         public string CustomStrobe { get; internal set; }
         public bool BlackLightsOn { get; internal set; }
+        public string GreenScreen { get; internal set; }
 
         public UserPrefs()
         {

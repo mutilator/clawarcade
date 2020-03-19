@@ -7,6 +7,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using InternetClawMachine.Chat;
 using InternetClawMachine.Settings;
+using InternetClawMachine.Hardware.ClawControl;
 
 namespace InternetClawMachine.Games.ClawGame
 {
@@ -19,7 +20,16 @@ namespace InternetClawMachine.Games.ClawGame
             GameMode = GameModeType.SINGLEQUEUE;
             CurrentDroppingPlayer = new DroppingPlayer();
             MachineControl.OnReturnedHome += MachineControl_OnReturnedHome;
+            ((ClawController)MachineControl).OnClawRecoiled += ClawSingleQueue_OnClawRecoiled;
             StartMessage = string.Format(Translator.GetTranslation("gameClawSingleQueueStartGame", Translator.DefaultLanguage), Configuration.CommandPrefix);
+        }
+
+        private void ClawSingleQueue_OnClawRecoiled(object sender, EventArgs e)
+        {
+            if (Configuration.EventMode == EventMode.TP)
+            {
+                MachineControl_OnReturnedHome(sender, e);
+            }
         }
 
         private void MachineControl_OnReturnedHome(object sender, EventArgs e)
@@ -110,6 +120,8 @@ namespace InternetClawMachine.Games.ClawGame
                     break;
                 case "quit":
                 case "leave":
+                    if (PlayerQueue.CurrentPlayer == null || PlayerQueue.CurrentPlayer.ToLower() != username.ToLower())
+                        break;
                     var idx = PlayerQueue.Index + 1;
                     if (PlayerQueue.Count <= idx)
                         idx = 0;
@@ -119,8 +131,11 @@ namespace InternetClawMachine.Games.ClawGame
                 case "gift":
                     if (param.Length != 2)
                         break;
+                    if (PlayerQueue.CurrentPlayer == null || PlayerQueue.CurrentPlayer.ToLower() != username.ToLower())
+                        break;
                     var nickname = param[1].Trim().ToLower();
-                    GiftTurn(username.ToLower(), nickname);
+                    if (username.ToLower() != nickname)
+                        GiftTurn(username.ToLower(), nickname);
 
                     break;
             }
@@ -155,7 +170,8 @@ namespace InternetClawMachine.Games.ClawGame
                 if (msg.StartsWith("gift turn "))
                 {
                     var nickname = msg.Replace("gift turn ", "").Trim().ToLower();
-                    GiftTurn(username.ToLower(), nickname);
+                    if (username.ToLower() != nickname)
+                        GiftTurn(username.ToLower(), nickname);
                 }
 
                 //check if it's a single command or stringed commands

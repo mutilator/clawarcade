@@ -154,7 +154,7 @@ namespace InternetClawMachine
                 configuration.RecordsDatabase.Open();
                 try
                 {
-                    var sql = "SELECT lights_on, scene, custom_win_clip, strobe_settings, localization, blacklightmode FROM user_prefs WHERE lower(username) = @username";
+                    var sql = "SELECT lights_on, scene, custom_win_clip, strobe_settings, localization, blacklightmode, greenscreen FROM user_prefs WHERE lower(username) = @username";
 
                     var command = new SQLiteCommand(sql, configuration.RecordsDatabase);
                     command.Parameters.Add(new SQLiteParameter("@username", prefs.Username));
@@ -168,6 +168,7 @@ namespace InternetClawMachine
                             prefs.CustomStrobe = plushes.GetValue(3).ToString();
                             prefs.Localization = plushes.GetValue(4).ToString();
                             prefs.BlackLightsOn = plushes.GetValue(5).ToString() == "1";
+                            prefs.GreenScreen = plushes.GetValue(6).ToString();
 
                             prefs.FromDatabase = true;
                             break;
@@ -193,12 +194,12 @@ namespace InternetClawMachine
                     if (prefs.FromDatabase)
                     {
                         sql =
-                            "UPDATE user_prefs SET localization = @localization, lights_on = @lightsOn, scene = @scene, strobe_settings = @strobe, blacklightmode = @blacklightmode WHERE lower(username) = @username";
+                            "UPDATE user_prefs SET localization = @localization, lights_on = @lightsOn, scene = @scene, strobe_settings = @strobe, blacklightmode = @blacklightmode, greenscreen = @greenscreen WHERE lower(username) = @username";
                     }
                     else
                     {
                         sql =
-                            "INSERT INTO user_prefs (username, localization, lights_on, scene, strobe_settings, blacklightmode) VALUES (@username, @localization, @lightsOn, @scene,@strobe, @blacklightmode)";
+                            "INSERT INTO user_prefs (username, localization, lights_on, scene, strobe_settings, blacklightmode, greenscreen) VALUES (@username, @localization, @lightsOn, @scene,@strobe, @blacklightmode, @greenscreen)";
                     }
 
                     var command = configuration.RecordsDatabase.CreateCommand();
@@ -210,6 +211,7 @@ namespace InternetClawMachine
                     command.Parameters.Add(new SQLiteParameter("@strobe", prefs.CustomStrobe));
                     command.Parameters.Add(new SQLiteParameter("@username", prefs.Username));
                     command.Parameters.Add(new SQLiteParameter("@blacklightmode", prefs.BlackLightsOn));
+                    command.Parameters.Add(new SQLiteParameter("@greenscreen", prefs.GreenScreen));
                     prefs.FromDatabase = true; //it's written to db now
                     command.ExecuteNonQuery();
                 }

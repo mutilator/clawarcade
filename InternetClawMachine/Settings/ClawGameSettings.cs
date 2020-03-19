@@ -142,6 +142,27 @@ namespace InternetClawMachine.Settings
         public long BreakSensorWaitTime { get; set; }
 
         /// <summary>
+        /// Override the green screen to keep it off
+        /// </summary>
+        public bool GreenScreenOverrideOff { get; set; }
+
+        /// <summary>
+        /// The default background used during a stream, this can be changed by players
+        /// </summary>
+        public BackgroundDefinition ObsBackgroundActive { set; get; }
+
+        /// <summary>
+        /// The default background that is reserted to after playing
+        /// </summary>
+        public BackgroundDefinition ObsBackgroundDefault { set; get; }
+
+        /// <summary>
+        /// List of backgrounds people can use for their stream
+        /// </summary>
+        public List<BackgroundDefinition> ObsBackgroundOptions { set; get; }
+
+
+        /// <summary>
         /// Whether black light mode is enabled
         /// </summary>
         public bool BlackLightMode
@@ -155,6 +176,8 @@ namespace InternetClawMachine.Settings
             }
             get => _blackLightMode;
         }
+
+        
 
         public event PropertyChangedEventHandler PropertyChanged;
 

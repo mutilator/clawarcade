@@ -187,7 +187,12 @@ namespace InternetClawMachine
             var userPrefs = DatabaseFunctions.GetUserPrefs(Configuration, e.Username);
             if (userPrefs != null)
                 Configuration.UserList.Add(userPrefs);
-
+            
+            var add = true;
+            foreach (var itm in lstViewers.Items)
+                if ((string)itm == e.Username.ToLower())
+                    add = false;
+            if (add)
                 Dispatcher?.BeginInvoke(new Action(() => { lstViewers.Items.Add(e.Username); }));
         }
 
@@ -1102,7 +1107,10 @@ namespace InternetClawMachine
             if (!Configuration.UserList.Contains(username))
             {
                 var userPrefs = DatabaseFunctions.GetUserPrefs(Configuration, username);
+
                 Configuration.UserList.Add(userPrefs);
+
+                Dispatcher?.BeginInvoke(new Action(() => { lstViewers.Items.Add(e.ChatMessage.Username.ToLower()); }));
             }
 
             if (e.ChatMessage.Message.StartsWith(Configuration.CommandPrefix) ||
@@ -2121,6 +2129,9 @@ namespace InternetClawMachine
                 case "Birthday2":
                     Configuration.EventMode = EventMode.BIRTHDAY2;
                     break;
+                case "Toilet Paper":
+                    Configuration.EventMode = EventMode.TP;
+                    break;
                 default:
                     Configuration.EventMode = EventMode.NORMAL;
                     break;
@@ -2208,6 +2219,7 @@ namespace InternetClawMachine
 
         private void Button_Click_3(object sender, RoutedEventArgs e)
         {
+            Configuration.ClawSettings.GreenScreenOverrideOff = false;
             try
             {
                 foreach (var filter in Configuration.ObsSettings.GreenScreenNormalSideCamera)
@@ -2234,6 +2246,7 @@ namespace InternetClawMachine
 
         private void Button_Click_4(object sender, RoutedEventArgs e)
         {
+            Configuration.ClawSettings.GreenScreenOverrideOff = true;
             try
             {
                 foreach (var filter in Configuration.ObsSettings.GreenScreenNormalSideCamera)
@@ -2634,6 +2647,29 @@ namespace InternetClawMachine
         {
             Logger.Level = ((LogLevelOption) cmbLogLevel.SelectedItem).Level;
         }
+
+        private void CmbBackgrounds_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (cmbBackgrounds.SelectedIndex >= 0)
+            {
+                var background = (BackgroundDefinition)cmbBackgrounds.Items[cmbBackgrounds.SelectedIndex];
+                //TODO - don't hardcode this
+                try
+                {
+                    //hide the existing scenes first?
+                    foreach (var bg in Configuration.ClawSettings.ObsBackgroundOptions)
+                        foreach (var scene in bg.Scenes)
+                            ObsConnection.SetSourceRender(scene, bg.Name == background.Name);
+
+                    Configuration.ClawSettings.ObsBackgroundActive = background;
+                }
+                catch (Exception x)
+                {
+                    var error = string.Format("ERROR {0} {1}", x.Message, x);
+                    Logger.WriteLog(Logger.ErrorLog, error);
+                }
+            }
+        }
     }
 
     public class LogLevelOption
@@ -2650,7 +2686,8 @@ namespace InternetClawMachine
         EASTER,
         HALLOWEEN,
         BIRTHDAY,
-        BIRTHDAY2
+        BIRTHDAY2,
+        TP
     }
 
     public class GameModeSelections
