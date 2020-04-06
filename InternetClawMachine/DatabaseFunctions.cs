@@ -194,12 +194,12 @@ namespace InternetClawMachine
                     if (prefs.FromDatabase)
                     {
                         sql =
-                            "UPDATE user_prefs SET localization = @localization, lights_on = @lightsOn, scene = @scene, strobe_settings = @strobe, blacklightmode = @blacklightmode, greenscreen = @greenscreen WHERE lower(username) = @username";
+                            "UPDATE user_prefs SET localization = @localization, lights_on = @lightsOn, scene = @scene, strobe_settings = @strobe, blacklightmode = @blacklightmode, greenscreen = @greenscreen, custom_win_clip = @winclip WHERE lower(username) = @username";
                     }
                     else
                     {
                         sql =
-                            "INSERT INTO user_prefs (username, localization, lights_on, scene, strobe_settings, blacklightmode, greenscreen) VALUES (@username, @localization, @lightsOn, @scene,@strobe, @blacklightmode, @greenscreen)";
+                            "INSERT INTO user_prefs (username, localization, lights_on, scene, strobe_settings, blacklightmode, greenscreen, custom_win_clip) VALUES (@username, @localization, @lightsOn, @scene,@strobe, @blacklightmode, @greenscreen, @winclip)";
                     }
 
                     var command = configuration.RecordsDatabase.CreateCommand();
@@ -212,6 +212,7 @@ namespace InternetClawMachine
                     command.Parameters.Add(new SQLiteParameter("@username", prefs.Username));
                     command.Parameters.Add(new SQLiteParameter("@blacklightmode", prefs.BlackLightsOn));
                     command.Parameters.Add(new SQLiteParameter("@greenscreen", prefs.GreenScreen));
+                    command.Parameters.Add(new SQLiteParameter("@winclip", prefs.WinClipName));
                     prefs.FromDatabase = true; //it's written to db now
                     command.ExecuteNonQuery();
                 }

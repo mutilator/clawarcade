@@ -10,6 +10,8 @@ namespace InternetClawMachine.Settings
 {
     public class BotConfiguration : INotifyPropertyChanged
     {
+        public event EventHandler<EventModeArgs> EventModeChanged;
+
         private string _botConfigFile;// = "botconfig.json";
 
         /// <summary>
@@ -73,6 +75,7 @@ namespace InternetClawMachine.Settings
         }
 
         private int _chatReconnectAttempts;
+        private EventModeSettings _eventMode;
 
         /// <summary>
         /// How many times chat reconnected
@@ -172,7 +175,6 @@ namespace InternetClawMachine.Settings
             UserList = new UserList();
             Coords = new Coordinates();
             DataExchanger = new JsonDataExchange();
-            EventMode = EventMode.NORMAL;
         }
 
         /// <summary>
@@ -215,7 +217,18 @@ namespace InternetClawMachine.Settings
         /// <summary>
         /// Current event mode for the bot
         /// </summary>
-        public EventMode EventMode { set; get; }
+        public EventModeSettings EventMode
+        {
+            set
+            {
+                _eventMode = value;
+                EventModeChanged?.Invoke(this, new EventModeArgs() { Event = _eventMode });
+            }
+            get
+            {
+                return _eventMode;
+            }
+        }
 
         /// <summary>
         /// Costs of redeemable items, loaded from the DB at runtime to reduce DB calls
@@ -347,9 +360,10 @@ namespace InternetClawMachine.Settings
             _botConfigFile = botConfigFile;
             var settings = new JsonSerializerSettings
             {
-                Formatting = Formatting.Indented
+                Formatting = Formatting.Indented,
+                ObjectCreationHandling = ObjectCreationHandling.Replace,
             };
-            JsonConvert.PopulateObject(File.ReadAllText(botConfigFile), this);
+            JsonConvert.PopulateObject(File.ReadAllText(botConfigFile), this, settings);
             Init();
             LoadDatebase();
         }

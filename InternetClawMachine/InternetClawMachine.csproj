@@ -229,6 +229,8 @@
     <Compile Include="Chat\MixerChatAPI.cs" />
     <Compile Include="DatabaseFunctions.cs" />
     <Compile Include="EpochToDate.cs" />
+    <Compile Include="Settings\EventModeArgs.cs" />
+    <Compile Include="EventModeSettings.cs" />
     <Compile Include="Games\ClawGame\PlayWinClipEventArgs.cs" />
     <Compile Include="Games\GameHelpers\Bounty.cs" />
     <Compile Include="Hardware\ClawControl\ClawController.cs" />
@@ -297,6 +299,7 @@
     <Compile Include="WebServer.cs" />
     <Compile Include="Games\GameHelpers\WinTracker.cs" />
     <Compile Include="Hardware\RFID\ZLDM.cs" />
+    <Compile Include="WinRedemptionOption.cs" />
     <Page Include="MainWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>

@@ -177,7 +177,15 @@ namespace InternetClawMachine.Settings
             get => _blackLightMode;
         }
 
+        /// <summary>
+        /// Points options for redemption for custom win animations
+        /// </summary>
+        public List<WinRedemptionOption> WinRedemptionOptions { set; get; }
         
+        /// <summary>
+        /// Claw machine event modes
+        /// </summary>
+        public List<EventModeSettings> EventModes { set; get; }
 
         public event PropertyChangedEventHandler PropertyChanged;
 

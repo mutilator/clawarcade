@@ -26,7 +26,7 @@ namespace InternetClawMachine.Games.ClawGame
 
         private void ClawSingleQueue_OnClawRecoiled(object sender, EventArgs e)
         {
-            if (Configuration.EventMode == EventMode.TP)
+            if (Configuration.EventMode.DisableReturnHome)
             {
                 MachineControl_OnReturnedHome(sender, e);
             }
@@ -75,7 +75,7 @@ namespace InternetClawMachine.Games.ClawGame
             switch (translateCommand.FinalWord)
             {
                 case "play":
-                    if (Configuration.EventMode == EventMode.BOUNTY && Bounty == null)
+                    if (Configuration.EventMode.DisableBounty && Bounty == null)
                     {
                         ChatClient.SendMessage(Configuration.Channel, Translator.GetTranslation("responseEventPlay", Configuration.UserList.GetUserLocalization(username)));
                         return;
@@ -380,6 +380,7 @@ namespace InternetClawMachine.Games.ClawGame
             if (username == null)
             {
                 PlayerQueue.Clear();
+                OnRoundStarted(new RoundStartedArgs() { Username = username, GameMode = GameMode });
                 return;
             }
 

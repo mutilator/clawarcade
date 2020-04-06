@@ -96,16 +96,7 @@
             <Button x:Name="btnOBSConnect" Content="OBS Connect" HorizontalAlignment="Left" Margin="224,297,0,0" VerticalAlignment="Top" Width="125" Click="btnOBSConnect_Click" />
             <Button x:Name="btnUp" Content="Up" HorizontalAlignment="Left" Margin="508,183,0,0" VerticalAlignment="Top" Width="109" PreviewMouseDown="btnUp_PreviewMouseDown" PreviewMouseUp="btnUp_PreviewMouseUp" />
 
-            <ComboBox x:Name="cmbEventMode" HorizontalAlignment="Left" Margin="634,312,0,0" VerticalAlignment="Top" Width="120" SelectedIndex="0" SelectionChanged="cmbEventMode_SelectionChanged">
-                <ListBoxItem Content="Normal" />
-                <ListBoxItem Content="Duplo" />
-                <ListBoxItem Content="Bounty" />
-                <ListBoxItem Content="Easter" />
-                <ListBoxItem Content="Halloween" />
-                <ListBoxItem Content="Birthday1" />
-                <ListBoxItem Content="Birthday2"/>
-                <ListBoxItem Content="Toilet Paper"/>
-            </ComboBox>
+            <ComboBox x:Name="cmbEventMode" HorizontalAlignment="Left" Margin="634,312,0,0" VerticalAlignment="Top" Width="120" SelectedIndex="0" SelectionChanged="cmbEventMode_SelectionChanged" ItemsSource="{Binding ClawSettings.EventModes}" DisplayMemberPath="DisplayName"/>
             <Button x:Name="btnSaveConfig" Content="Save Configuration" HorizontalAlignment="Left" Margin="590,810,0,0" VerticalAlignment="Top" Width="162" Click="btnSaveConfig_Click" />
             <TabControl HorizontalAlignment="Left" Height="447" Margin="15,358,0,0" VerticalAlignment="Top" Width="742">
                 <TabItem Header="General" Padding="20,2">

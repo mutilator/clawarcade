@@ -1,0 +1,104 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace InternetClawMachine
+{
+    public enum EventMode
+    {
+        NORMAL,
+        SPECIAL
+    }
+
+    public class EventModeSettings
+    {
+        /// <summary>
+        /// Type of event
+        /// </summary>
+        public string DisplayName { set; get; }
+
+        /// <summary>
+        /// Type of event
+        /// </summary>
+        public EventMode EventMode { set; get; }
+
+        /// <summary>
+        /// Definiton of greenscreen to show during event
+        /// </summary>
+        public BackgroundDefinition GreenScreen { set; get; }
+
+        /// <summary>
+        /// This can be any scene you'd like to force display, iamges, video, sound, anything
+        /// </summary>
+        public List<string> BackgroundScenes { set; get; }
+
+        /// <summary>
+        /// Display this animation instead of the confetti, override any other custom animation
+        /// </summary>
+        public string WinAnimation { set; get; }
+
+        /// <summary>
+        /// Disable the normal lighting
+        /// </summary>
+        public bool LightsOff { set; get; }
+
+        /// <summary>
+        /// Enable the black lights
+        /// </summary>
+        public bool BlacklightsOn { set; get; }
+
+        /// <summary>
+        /// Ignore all RF scans, connections and events are still fired they're just ignored
+        /// </summary>
+        public bool DisableRFScan { set; get; }
+
+        /// <summary>
+        /// Belt doesn't run 
+        /// </summary>
+        public bool DisableBelt { set; get; }
+
+        /// <summary>
+        /// Claw does not return home after recoil
+        /// </summary>
+        public bool DisableReturnHome { get; set; }
+
+        /// <summary>
+        /// Disable changing of bounty by anyone other than admins
+        /// </summary>
+        public bool DisableBounty { get; internal set; }
+
+        /// <summary>
+        /// If an IR scan triggers a win
+        /// </summary>
+        public bool IRTriggersWin { get; set; }
+
+        /// <summary>
+        /// Multiplier for a win during event
+        /// </summary>
+        public int WinMultiplier { get; set; }
+
+        /// <summary>
+        /// Custom sayign when something is grabbed
+        /// </summary>
+        public string CustomWinTextResource { get; internal set; }
+
+        /// <summary>
+        /// Allow users custom scene settings to apply
+        /// </summary>
+        public bool AllowOverrideScene { set; get; }
+
+        /// <summary>
+        /// Allow users to override lights settings, both lighting and blacklights
+        /// </summary>
+        public bool AllowOverrideLights { set; get; }
+
+        /// <summary>
+        /// Allow users to override the greenscreen with their custom settings
+        /// </summary>
+        public bool AllowOverrideGreenscreen { set; get; }
+
+        
+    }
+}

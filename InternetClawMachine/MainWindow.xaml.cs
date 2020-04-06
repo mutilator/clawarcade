@@ -57,6 +57,8 @@ namespace InternetClawMachine
 
     public partial class MainWindow : Window
     {
+        
+
         #region Fields
 
         /// <summary>
@@ -864,8 +866,6 @@ namespace InternetClawMachine
             Emailer.MailFrom = Configuration.MailFrom;
             Emailer.MailServer = Configuration.MailServer;
 
-            Configuration.EventMode = EventMode.NORMAL;
-
             ObsConnection = new OBSWebsocket();
             ObsConnection.Connected += OBSConnection_Connected;
 
@@ -1345,6 +1345,7 @@ namespace InternetClawMachine
             if (!(Game is ClawGame))
                 return;
 
+
         }
 
         private void StartGameModeRealTime()
@@ -1522,8 +1523,8 @@ namespace InternetClawMachine
             //game modes
             if (IsPaused)
                 return;
-
-            Game.HandleMessage(username, message);
+            if (Game != null)
+                Game.HandleMessage(username, message);
         }
 
         private void AddDebugText(string txt)
@@ -2108,33 +2109,10 @@ namespace InternetClawMachine
 
         private void cmbEventMode_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
         {
-            switch (((ListBoxItem) cmbEventMode.SelectedItem).Content.ToString())
+            if (cmbEventMode.SelectedItem != null)
             {
-                //TODO - just make the combobox show the enum?
-                case "Duplo":
-                    Configuration.EventMode = EventMode.DUPLO;
-                    break;
-                case "Bounty":
-                    Configuration.EventMode = EventMode.BOUNTY;
-                    break;
-                case "Easter":
-                    Configuration.EventMode = EventMode.EASTER;
-                    break;
-                case "Halloween":
-                    Configuration.EventMode = EventMode.HALLOWEEN;
-                    break;
-                case "Birthday1":
-                    Configuration.EventMode = EventMode.BIRTHDAY;
-                    break;
-                case "Birthday2":
-                    Configuration.EventMode = EventMode.BIRTHDAY2;
-                    break;
-                case "Toilet Paper":
-                    Configuration.EventMode = EventMode.TP;
-                    break;
-                default:
-                    Configuration.EventMode = EventMode.NORMAL;
-                    break;
+                Configuration.EventMode = (EventModeSettings)cmbEventMode.SelectedItem;
+
             }
         }
 
@@ -2677,18 +2655,7 @@ namespace InternetClawMachine
         public string Name { set; get; }
         public LogLevel Level { set; get; }
     }
-    public enum EventMode
-    {
-        NORMAL,
-        DUPLO,
-        BALL,
-        BOUNTY,
-        EASTER,
-        HALLOWEEN,
-        BIRTHDAY,
-        BIRTHDAY2,
-        TP
-    }
+
 
     public class GameModeSelections
     {

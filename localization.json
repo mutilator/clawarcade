@@ -58,6 +58,10 @@
 
             "responseEventEaster1": "@{0} grabbed a {1}! You've earned a 🍄{2} bonus!",
             "responseEventPlay": "Please wait for the sheriff to begin the game.",
+            "responseEventDuplo": "@{0} grabbed some duplos! Here's your {1}x claw bux bonus!",
+            "responseEventBall": "@{0} grabbed a ball! Here's your {1}x claw bux bonus!",
+            "responseEventBirthday": "Let's watch mutilator stuff his face some more! Here is your claw bux bonus!",
+            "responseEventEaster2": "@{0} grabbed some eggs! Here's your {1}x claw bux bonus!",
 
             "gameHelpSub1": "lights - Turn the machine lights on and off",
             "gameHelpSub2": "rename oldName:newName - Rename a plush once every 30 days to a name of your choice",
@@ -66,6 +70,7 @@
             "gameHelpSub5": "scene 1-3 - Choose a different layout for the stream during your turn",
 
             "gameClawGrabPlush": "@{0} grabbed {1}",
+            "gameClawGrabSomething": "@{0} grabbed something but I wasn't told what.",
 
             "gameGantryCommandPlayInQueue1": "You're already in the queue and it's currently your turn, go go go!",
             "gameGantryCommandPlayInQueue2": "You're already in the queue.",

@@ -50,6 +50,8 @@ namespace InternetClawMachine.Games
         /// </summary>
         public event EventHandler<RoundStartedArgs> RoundStarted;
 
+        
+
         ///
         public BotConfiguration Configuration { get; set; }
 
@@ -406,4 +408,5 @@ namespace InternetClawMachine.Games
         public string Username { set; get; }
         public GameModeType GameMode { set; get; }
     }
+
 }

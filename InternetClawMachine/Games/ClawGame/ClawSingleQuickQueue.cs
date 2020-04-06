@@ -33,6 +33,7 @@ namespace InternetClawMachine.Games.ClawGame
             if (username == null)
             {
                 PlayerQueue.Clear();
+                OnRoundStarted(new RoundStartedArgs() { Username = username, GameMode = GameMode });
                 return;
             }
 
