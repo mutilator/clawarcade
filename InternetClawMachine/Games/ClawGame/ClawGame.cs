@@ -34,6 +34,8 @@ namespace InternetClawMachine.Games.ClawGame
 
         private Random _rnd = new Random();
         private long _lastSensorTrip;
+        private int _failsafeCurrentResets;
+        private int _failsafeMaxResets = 4; //TODO - move this to config
 
         /// <summary>
         /// Number of drops since the last win
@@ -116,24 +118,58 @@ namespace InternetClawMachine.Games.ClawGame
 
         private void InitializeEventSettings(EventModeSettings eventConfig)
         {
-
-            //Black lights
-            if (eventConfig.BlacklightsOn && !Configuration.ClawSettings.BlackLightMode)
-                Configuration.ClawSettings.BlackLightMode = true;
+            //home location
+            if (Configuration.ClawSettings.UseNewClawController)
+            {
+                try
+                {
+                    ((ClawController)MachineControl).SendCommandAsync("shome " + (int)Configuration.EventMode.ClawHomeLocation);
+                }
+                catch { }
+            }
 
             //Lights
             if (eventConfig.LightsOff && MachineControl.IsLit)
                 MachineControl.LightSwitch(false);
 
+            //Black lights
+            if (eventConfig.BlacklightsOn && !Configuration.ClawSettings.BlackLightMode)
+                Configuration.ClawSettings.BlackLightMode = true;
+
+            
+
             //Fix greenscreen
-            foreach (var bg in Configuration.ClawSettings.ObsBackgroundOptions)
+
+            foreach (var bg in Configuration.ClawSettings.ObsGreenScreenOptions)
                 foreach (var scene in bg.Scenes)
-                    ObsConnection.SetSourceRender(scene, eventConfig.GreenScreen != null && bg.Name == eventConfig.GreenScreen.Name);
+                {
+                    try
+                    {
+                        ObsConnection.SetSourceRender(scene, ((eventConfig.GreenScreen != null && bg.Name == eventConfig.GreenScreen.Name) || (eventConfig.GreenScreen == null && Configuration.ClawSettings.ObsGreenScreenDefault.Name == bg.Name)));
+                    }
+                    catch (Exception ex) //skip over scenes that error out, log errors
+                    {
+                        var error = string.Format("ERROR {0} {1}", ex.Message, ex);
+                        Logger.WriteLog(Logger.ErrorLog, error);
+
+                    }
+                }
 
             //update background
-            //TODO have a list of backgrounds and loop to hide those like greenscreen
-            foreach (var bg in eventConfig.BackgroundScenes)
-                ObsConnection.SetSourceRender(bg, true);
+            foreach (var bg in Configuration.ClawSettings.ObsBackgroundOptions)
+            {
+                try
+                {
+                    //if bg defined and is in the list, set it, otherwise if no bg defined set default
+                    ObsConnection.SetSourceRender(bg.SourceName, ((eventConfig.BackgroundScenes != null && eventConfig.BackgroundScenes.Any(s => s.SourceName == bg.SourceName)) || ((eventConfig.BackgroundScenes == null || eventConfig.BackgroundScenes.Count == 0) && Configuration.ClawSettings.ObsBackgroundDefault.SourceName == bg.SourceName)), bg.SceneName);
+                }
+                catch (Exception ex) //skip over scenes that error out, log errors
+                {
+                    var error = string.Format("ERROR {0} {1}", ex.Message, ex);
+                    Logger.WriteLog(Logger.ErrorLog, error);
+                }
+            }
+            
         }
 
         private void ClawGame_OnClawRecoiled(object sender, EventArgs e)
@@ -158,12 +194,19 @@ namespace InternetClawMachine.Games.ClawGame
 
         private void ResetMachine()
         {
-            Task.Run(async delegate
+            if (_failsafeCurrentResets < _failsafeMaxResets)
             {
-                await Task.Delay(10000);
-                ((ClawController)MachineControl).SendCommand("state 0");
-                ((ClawController)MachineControl).SendCommand("reset");
-            });
+                _failsafeCurrentResets++;
+                Task.Run(async delegate
+                {
+                    await Task.Delay(10000);
+                    ((ClawController)MachineControl).SendCommand("state 0");
+                    ((ClawController)MachineControl).SendCommand("reset");
+                });
+            } else
+            {
+                ChatClient.SendMessage(Configuration.Channel, "Machine has failed to reset the maximum number of times. Use !discord to contact the owner.");
+            }
         }
 
         private void ClawGame_OnMotorTimeoutRight(object sender, EventArgs e)
@@ -236,6 +279,7 @@ namespace InternetClawMachine.Games.ClawGame
         {
             base.Init();
 
+            _failsafeCurrentResets++;
             SessionDrops = 0;
             SessionWinTracker.Clear();
             File.WriteAllText(Configuration.FileDrops, "");
@@ -258,6 +302,7 @@ namespace InternetClawMachine.Games.ClawGame
                         {
                             ((ClawController)MachineControl).SendCommandAsync("w off");
                         }
+                        
 
                         HandleBlackLightMode();
                     }
@@ -382,7 +427,7 @@ namespace InternetClawMachine.Games.ClawGame
                         PlushieTags = new List<PlushieObject>();
 
                     Configuration.RecordsDatabase.Open();
-                    var sql = "SELECT p.Name, c.PlushID, c.EPC, p.ChangedBy, p.ChangeDate, p.WinStream, p.BountyStream, p.BonusBux FROM plushie p INNER JOIN plushie_codes c ON p.ID = c.PlushID WHERE p.Active = 1";
+                    var sql = "SELECT p.Name, c.PlushID, c.EPC, p.ChangedBy, p.ChangeDate, p.WinStream, p.BountyStream, p.BonusBux FROM plushie p INNER JOIN plushie_codes c ON p.ID = c.PlushID WHERE p.Active = 1 ORDER BY p.name";
                     var command = new SQLiteCommand(sql, Configuration.RecordsDatabase);
                     using (var dbPlushies = command.ExecuteReader())
                     {
@@ -493,13 +538,13 @@ namespace InternetClawMachine.Games.ClawGame
                 {
                     lock (ObsConnection)
                     {
-                        ObsConnection.SetSourceRender(clipName.SourceName, false, clipName.Scene);
-                        ObsConnection.SetSourceRender(clipName.SourceName, true, clipName.Scene);
+                        ObsConnection.SetSourceRender(clipName.SourceName, false, clipName.SceneName);
+                        ObsConnection.SetSourceRender(clipName.SourceName, true, clipName.SceneName);
                     }
                     await Task.Delay(ms);
                     lock (ObsConnection)
                     {
-                        ObsConnection.SetSourceRender(clipName.SourceName, false, clipName.Scene);
+                        ObsConnection.SetSourceRender(clipName.SourceName, false, clipName.SceneName);
                     }
                 }
                 catch (Exception ex)
@@ -508,11 +553,6 @@ namespace InternetClawMachine.Games.ClawGame
                     Logger.WriteLog(Logger.ErrorLog, error);
                 }
             }
-        }
-
-        private string RunWinScenario(PlushieObject objPlush)
-        {
-            return RunWinScenario(objPlush, null);
         }
 
         private string RunWinScenario(PlushieObject objPlush, string forcedWinner)
@@ -531,9 +571,15 @@ namespace InternetClawMachine.Games.ClawGame
             else if (WinnersList.Count > 0)
             {
                 winner = WinnersList[rnd.Next(WinnersList.Count - 1)];
+            } else if (PlayerQueue.CurrentPlayer != null) //there are no lists of winners use the current player
+            {
+                winner = PlayerQueue.CurrentPlayer;
+            } else //
+            {
+                winner = null;
             }
 
-            if (winner.Length > 0)
+            if (!string.IsNullOrEmpty(winner))
             {
                 //see if they're in the tracker yeta
                 var user = SessionWinTracker.FirstOrDefault(u => u.Username == winner);
@@ -551,7 +597,7 @@ namespace InternetClawMachine.Games.ClawGame
                 //otherwise if just a custon win, mainly for events, use this
                 else if (!string.IsNullOrEmpty(Configuration.EventMode.CustomWinTextResource))
                 {
-                    string.Format(Translator.GetTranslation(Configuration.EventMode.CustomWinTextResource, Configuration.UserList.GetUserLocalization(winner)), winner, Configuration.EventMode.WinMultiplier);
+                    saying = string.Format(Translator.GetTranslation(Configuration.EventMode.CustomWinTextResource, Configuration.UserList.GetUserLocalization(winner)), winner, Configuration.EventMode.WinMultiplier);
                     DatabaseFunctions.AddStreamBuxBalance(Configuration, user.Username, StreamBuxTypes.WIN, Configuration.GetStreamBuxCost(StreamBuxTypes.WIN) * Configuration.EventMode.WinMultiplier);
                 }
                 else if (objPlush != null)
@@ -595,14 +641,17 @@ namespace InternetClawMachine.Games.ClawGame
             }
 
             //start a thread to display the message
-            var childThread = new Thread(new ThreadStart(delegate ()
+            if (!string.IsNullOrEmpty(saying))
             {
-                
-                Thread.Sleep(Configuration.WinNotificationDelay);
-                ChatClient.SendMessage(Configuration.Channel, saying);
-                Logger.WriteLog(Logger.MachineLog, saying);
-            }));
-            childThread.Start();
+                var childThread = new Thread(new ThreadStart(delegate ()
+                {
+
+                    Thread.Sleep(Configuration.WinNotificationDelay);
+                    ChatClient.SendMessage(Configuration.Channel, saying);
+                    Logger.WriteLog(Logger.MachineLog, saying);
+                }));
+                childThread.Start();
+            }
 
 
             return winner;
@@ -729,7 +778,7 @@ namespace InternetClawMachine.Games.ClawGame
                     RunBelt(Configuration.ClawSettings.ConveyorWaitFor);
 
                 if (Configuration.EventMode.IRTriggersWin)
-                    RunWinScenario(null);
+                    TriggerWin(null,null,true);
                 
             }
 
@@ -819,19 +868,19 @@ namespace InternetClawMachine.Games.ClawGame
                             var chosenBG = cgargs[1].ToLower();
 
                             //hide the existing scenes first?
-                            foreach (var bg in Configuration.ClawSettings.ObsBackgroundOptions)
+                            foreach (var bg in Configuration.ClawSettings.ObsGreenScreenOptions)
                             {
                                 if (bg.Name.ToLower() == chosenBG)
                                 {
 
-                                    var oBg = new BackgroundDefinition()
+                                    var oBg = new GreenScreenDefinition()
                                     {
                                         Name = bg.Name,
                                         TimeActivated = Helpers.GetEpoch()
                                     };
                                     oBg.Scenes = new List<string>();
                                     oBg.Scenes.AddRange(bg.Scenes.ToArray());
-                                    Configuration.ClawSettings.ObsBackgroundActive = oBg;
+                                    Configuration.ClawSettings.ObsGreenScreenActive = oBg;
                                 }
 
                                 foreach (var sceneName in bg.Scenes)
@@ -852,7 +901,7 @@ namespace InternetClawMachine.Games.ClawGame
                             var chosenBG = cbargs[1].ToLower();
 
                             //hide the existing scenes first?
-                            foreach (var bg in Configuration.ClawSettings.ObsBackgroundOptions)
+                            foreach (var bg in Configuration.ClawSettings.ObsGreenScreenOptions)
                             {
                                 if (bg.Name.ToLower() == chosenBG)
                                 {
@@ -1104,15 +1153,15 @@ namespace InternetClawMachine.Games.ClawGame
                         switch (newScene)
                         {
                             case 2:
-                                userPrefs.Scene = Configuration.ObsScreenSourceNames.SceneClaw2.Scene;
+                                userPrefs.Scene = Configuration.ObsScreenSourceNames.SceneClaw2.SceneName;
                                 break;
 
                             case 3:
-                                userPrefs.Scene = Configuration.ObsScreenSourceNames.SceneClaw3.Scene;
+                                userPrefs.Scene = Configuration.ObsScreenSourceNames.SceneClaw3.SceneName;
                                 break;
 
                             default:
-                                userPrefs.Scene = Configuration.ObsScreenSourceNames.SceneClaw1.Scene;
+                                userPrefs.Scene = Configuration.ObsScreenSourceNames.SceneClaw1.SceneName;
                                 break;
                         }
                         DatabaseFunctions.WriteUserPrefs(Configuration, userPrefs);
@@ -1764,15 +1813,15 @@ namespace InternetClawMachine.Games.ClawGame
             switch (scene)
             {
                 case 2:
-                    ChangeScene(Configuration.ObsScreenSourceNames.SceneClaw2.Scene);
+                    ChangeScene(Configuration.ObsScreenSourceNames.SceneClaw2.SceneName);
                     break;
 
                 case 3:
-                    ChangeScene(Configuration.ObsScreenSourceNames.SceneClaw3.Scene);
+                    ChangeScene(Configuration.ObsScreenSourceNames.SceneClaw3.SceneName);
                     break;
 
                 default:
-                    ChangeScene(Configuration.ObsScreenSourceNames.SceneClaw1.Scene);
+                    ChangeScene(Configuration.ObsScreenSourceNames.SceneClaw1.SceneName);
                     break;
             }
         }
@@ -2098,26 +2147,26 @@ namespace InternetClawMachine.Games.ClawGame
             if (!ObsConnection.IsConnected)
                 return;
 
+
             var userPrefs = Configuration.UserList.GetUser(e.Username);
             //if no user prefs, then we just load defaults here, generally this is the end of a users turn so we set back to defaults
-            if (userPrefs == null)
+            if (userPrefs == null && Configuration.EventMode.EventMode == EventMode.NORMAL)
             {
+
                 //if the background override was set check if we need to revert it
-                if (Configuration.ClawSettings.ObsBackgroundActive.TimeActivated > 0 && Helpers.GetEpoch() - Configuration.ClawSettings.ObsBackgroundActive.TimeActivated >= 86400)
-                    Configuration.ClawSettings.ObsBackgroundActive = Configuration.ClawSettings.ObsBackgroundDefault;
+                if (Configuration.ClawSettings.ObsGreenScreenActive.TimeActivated > 0 && Helpers.GetEpoch() - Configuration.ClawSettings.ObsGreenScreenActive.TimeActivated >= 86400)
+                    Configuration.ClawSettings.ObsGreenScreenActive = Configuration.ClawSettings.ObsGreenScreenDefault;
 
-                foreach (var bg in Configuration.ClawSettings.ObsBackgroundOptions)
+                foreach (var bg in Configuration.ClawSettings.ObsGreenScreenOptions)
                     foreach (var scene in bg.Scenes)
-                        ObsConnection.SetSourceRender(scene, bg.Name == Configuration.ClawSettings.ObsBackgroundActive.Name);
+                        ObsConnection.SetSourceRender(scene, bg.Name == Configuration.ClawSettings.ObsGreenScreenActive.Name);
 
                 return;
-            }
-
-            //check if an event mode is active, if so then no user overrides can take place
-            if (Configuration.EventMode.EventMode != EventMode.NORMAL)
+            } else if (userPrefs == null)
             {
                 return;
             }
+
 
             
             //check blacklight mode, if they don't have it and it's currently enabled, disable it first
@@ -2152,7 +2201,7 @@ namespace InternetClawMachine.Games.ClawGame
                         var newScene = userPrefs.Scene;
                         if (userPrefs.Scene.Length == 0)
                         {
-                            newScene = Configuration.ObsScreenSourceNames.SceneClaw1.Scene;
+                            newScene = Configuration.ObsScreenSourceNames.SceneClaw1.SceneName;
                         }
 
                         ChangeScene(newScene);
@@ -2208,7 +2257,7 @@ namespace InternetClawMachine.Games.ClawGame
                     //check if they have a custom greenscreen defined
                     if (!string.IsNullOrEmpty(userPrefs.GreenScreen))
                     {
-                        foreach (var bg in Configuration.ClawSettings.ObsBackgroundOptions)
+                        foreach (var bg in Configuration.ClawSettings.ObsGreenScreenOptions)
                             foreach (var scene in bg.Scenes)
                                 ObsConnection.SetSourceRender(scene, bg.Name == userPrefs.GreenScreen);
 
@@ -2216,12 +2265,12 @@ namespace InternetClawMachine.Games.ClawGame
                     else
                     {
                         //if the background override was set check if we need to revert it
-                        if (Configuration.ClawSettings.ObsBackgroundActive.TimeActivated > 0 && Helpers.GetEpoch() - Configuration.ClawSettings.ObsBackgroundActive.TimeActivated >= 86400)
-                            Configuration.ClawSettings.ObsBackgroundActive = Configuration.ClawSettings.ObsBackgroundDefault;
+                        if (Configuration.ClawSettings.ObsGreenScreenActive.TimeActivated > 0 && Helpers.GetEpoch() - Configuration.ClawSettings.ObsGreenScreenActive.TimeActivated >= 86400)
+                            Configuration.ClawSettings.ObsGreenScreenActive = Configuration.ClawSettings.ObsGreenScreenDefault;
 
-                        foreach (var bg in Configuration.ClawSettings.ObsBackgroundOptions)
+                        foreach (var bg in Configuration.ClawSettings.ObsGreenScreenOptions)
                             foreach (var scene in bg.Scenes)
-                                ObsConnection.SetSourceRender(scene, bg.Name == Configuration.ClawSettings.ObsBackgroundActive.Name);
+                                ObsConnection.SetSourceRender(scene, bg.Name == Configuration.ClawSettings.ObsGreenScreenActive.Name);
 
                     }
                 }
@@ -2349,7 +2398,7 @@ namespace InternetClawMachine.Games.ClawGame
 
         public void TriggerWin(string epc)
         {
-            TriggerWin(epc, null);
+            TriggerWin(epc, null, false);
         }
 
         /// <summary>
@@ -2357,7 +2406,7 @@ namespace InternetClawMachine.Games.ClawGame
         /// </summary>
         /// <param name="epc">Tag to give win for</param>
         /// <param name="forcedWinner">person to declare the winner</param>
-        public void TriggerWin(string epc, string forcedWinner)
+        public void TriggerWin(string epc, string forcedWinner, bool irscanwin)
         {
             /*
                  var text = InputBox.Show("What is it?").Text;
@@ -2371,26 +2420,36 @@ namespace InternetClawMachine.Games.ClawGame
                 var timestamp = DateTime.Now.ToString("HH:mm:ss.ff");
                 File.AppendAllText(Configuration.FileScans, string.Format("{0} {1} {2},", date, timestamp, epc));
                 var existing = PlushieTags.FirstOrDefault(itm => itm.EpcList.Contains(epc));
-                if (existing != null || forcedWinner != null)
-                {
-                    if (existing != null)
-                    {
-                        File.AppendAllText(Configuration.FileScans, existing.Name);
 
-                        if (!existing.WasGrabbed)
+                //TODO - refactor all of this, it's a hodgepodge built overtime initially requiring only a plush scan
+                if (existing != null || forcedWinner != null || irscanwin)
+                {
+                    if (existing != null || irscanwin)
+                    {
+                        if (existing != null)
+                            File.AppendAllText(Configuration.FileScans, existing.Name);
+
+                        if ((existing != null && !existing.WasGrabbed) || irscanwin)
                         {
-                            existing.WasGrabbed = true;
+                            if (existing != null)
+                                existing.WasGrabbed = true;
+
                             var winner = RunWinScenario(existing, forcedWinner);
 
+                            if (winner == null)
+                            {
+                                return;
+                            }
                             var specialClip = false; //this is an override so confetti doesn't play
 
                             var prefs = Configuration.UserList.GetUser(winner);
 
-                            RunStrobe(prefs);
+                            if (!Configuration.EventMode.DisableStrobe)
+                                RunStrobe(prefs);
 
                             //a lot of the animations are timed and setup in code because I don't want to make a whole animation class
                             //bounty mode
-                            if (Bounty != null && Bounty.Name.ToLower() == existing.Name.ToLower())
+                            if (existing != null && Bounty != null && Bounty.Name.ToLower() == existing.Name.ToLower())
                             {
                                 specialClip = true;
                                 if (winner != null)
@@ -2404,14 +2463,7 @@ namespace InternetClawMachine.Games.ClawGame
                                     DatabaseFunctions.AddStreamBuxBalance(Configuration, winner, StreamBuxTypes.BOUNTY,
                                         Bounty.Amount);
                                 }
-                                /*
-                                var sourceSettings = new JObject();
-                                sourceSettings.Add("text", Bounty.Name);
-                                OBSConnection.SetSourceSettings(Configuration.OBSScreenSourceNames.BountyWantedText.SourceName, sourceSettings);
-                                PlayClipAsync(Configuration.OBSScreenSourceNames.BountyEndScreen, 14000);
-                                PlayClipAsync(Configuration.OBSScreenSourceNames.BountyWantedRIP, 9500);
-                                PlayClipAsync(Configuration.OBSScreenSourceNames.BountyWantedText, 9500);
-                                */
+
 
                                 var data = new JObject();
                                 data.Add("text", Bounty.Name);
@@ -2459,21 +2511,27 @@ namespace InternetClawMachine.Games.ClawGame
                                 // TODO - move this to a more dynamic action
                                 specialClip = true;
                                 RunScare();
-                            }
-                            else if (existing.WinStream.Length > 0 && !specialClip)
+                            } else if (prefs != null && !string.IsNullOrEmpty(prefs.WinClipName) && (Configuration.EventMode.EventMode == EventMode.NORMAL || Configuration.EventMode.WinAnimation == null))
                             {
-                                if (prefs != null && !string.IsNullOrEmpty(prefs.WinClipName))
-                                {
-                                    
-                                    //OBSSceneSource src = new OBSSceneSource() { SourceName = prefs.WinClipName, Type = OBSSceneSourceType.IMAGE, Scene = "VideosScene" };
-                                    //PlayClipAsync(src, 8000);
-                                    var data = new JObject();
-                                    data.Add("name", prefs.WinClipName);
-                                    data.Add("duration", 8000);
 
-                                    WsConnection.SendCommand(MediaWebSocketServer.CommandMedia, data);
-                                    specialClip = true;
-                                }
+                                //OBSSceneSource src = new OBSSceneSource() { SourceName = prefs.WinClipName, Type = OBSSceneSourceType.IMAGE, Scene = "VideosScene" };
+                                //PlayClipAsync(src, 8000);
+                                var data = new JObject();
+                                data.Add("name", prefs.WinClipName);
+                                data.Add("duration", 8000);
+
+                                WsConnection.SendCommand(MediaWebSocketServer.CommandMedia, data);
+                                specialClip = true;
+                            } else if (Configuration.EventMode.EventMode != EventMode.NORMAL && Configuration.EventMode.WinAnimation != null)
+                            {
+                                specialClip = true;
+                                var data = new JObject();
+                                data.Add("name", Configuration.EventMode.WinAnimation);
+                                WsConnection.SendCommand(MediaWebSocketServer.CommandMedia, data);
+                            }
+                            else if (existing != null && existing.WinStream.Length > 0 && !specialClip)
+                            {
+                                
 
                                 if (existing.PlushId == 23) //sharky
                                 {

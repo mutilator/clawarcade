@@ -152,14 +152,15 @@
                                 </GridView>
                             </ListView.View>
                         </ListView>
-                        <Button x:Name="btnMarkGrabbed" Content="Grabbed" HorizontalAlignment="Left" Margin="10,377,0,0" VerticalAlignment="Top" Width="88" Click="BtnMarkGrabbed_Click" />
-                        <Button x:Name="btnPlushListRefresh" Content="Refresh" HorizontalAlignment="Left" Margin="103,377,0,0" VerticalAlignment="Top" Width="81" Click="BtnPlushListRefresh_Click" />
+                        <Button x:Name="btnMarkGrabbed" Content="Grabbed" HorizontalAlignment="Left" Margin="10,333,0,0" VerticalAlignment="Top" Width="88" Click="BtnMarkGrabbed_Click" />
+                        <Button x:Name="btnPlushListRefresh" Content="Refresh" HorizontalAlignment="Left" Margin="103,333,0,0" VerticalAlignment="Top" Width="81" Click="BtnPlushListRefresh_Click" />
                         <TextBox x:Name="txtLastEPC" Height="29" TextWrapping="NoWrap" Margin="284,332,215,58" />
                         <Label Content="Last EPC Scan" HorizontalAlignment="Left" Height="28" Margin="189,333,0,0" VerticalAlignment="Top" Width="95" />
                         <TextBox x:Name="txtPLushName" Height="29" TextWrapping="Wrap" Text="" Margin="284,366,215,24" />
                         <Label Content="Plush Name" HorizontalAlignment="Left" Height="28" Margin="189,366,0,0" VerticalAlignment="Top" Width="95" />
                         <Button x:Name="btnPlushAddNew" Content="Add" HorizontalAlignment="Left" Margin="538,333,0,0" VerticalAlignment="Top" Width="81" Click="BtnPlushAddNew_Click" />
                         <Button x:Name="btnClearPlushScan" Content="Clear" HorizontalAlignment="Left" Margin="538,370,0,0" VerticalAlignment="Top" Width="81" Click="btnClearPlushScan_Click"/>
+                        <Button x:Name="btnIRScanned" Content="IR Scan" HorizontalAlignment="Left" Margin="10,370,0,0" VerticalAlignment="Top" Width="88" Click="BtnIRScanned_Click"/>
                     </Grid>
                 </TabItem>
                 <TabItem Header="Queue" Padding="20,2">

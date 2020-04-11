@@ -4,7 +4,7 @@
 
 namespace InternetClawMachine
 {
-    public class BackgroundDefinition
+    public class GreenScreenDefinition
     {
         public string Name { set; get; }
         public List<string> Scenes { set; get; }

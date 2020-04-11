@@ -1,4 +1,6 @@
-﻿using System;
+﻿using InternetClawMachine.Hardware.ClawControl;
+using InternetClawMachine.Settings;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -27,12 +29,14 @@ namespace InternetClawMachine
         /// <summary>
         /// Definiton of greenscreen to show during event
         /// </summary>
-        public BackgroundDefinition GreenScreen { set; get; }
+        public GreenScreenDefinition GreenScreen { set; get; }
 
         /// <summary>
         /// This can be any scene you'd like to force display, iamges, video, sound, anything
         /// </summary>
-        public List<string> BackgroundScenes { set; get; }
+        public List<ObsSceneSource> BackgroundScenes { set; get; }
+
+        
 
         /// <summary>
         /// Display this animation instead of the confetti, override any other custom animation
@@ -67,7 +71,7 @@ namespace InternetClawMachine
         /// <summary>
         /// Disable changing of bounty by anyone other than admins
         /// </summary>
-        public bool DisableBounty { get; internal set; }
+        public bool DisableBounty { get;  set; }
 
         /// <summary>
         /// If an IR scan triggers a win
@@ -82,7 +86,7 @@ namespace InternetClawMachine
         /// <summary>
         /// Custom sayign when something is grabbed
         /// </summary>
-        public string CustomWinTextResource { get; internal set; }
+        public string CustomWinTextResource { get;  set; }
 
         /// <summary>
         /// Allow users custom scene settings to apply
@@ -99,6 +103,14 @@ namespace InternetClawMachine
         /// </summary>
         public bool AllowOverrideGreenscreen { set; get; }
 
-        
+        /// <summary>
+        /// Where this event calls home
+        /// </summary>
+        public ClawHomeLocation ClawHomeLocation { set; get; }
+
+        /// <summary>
+        /// Disable strobe on win
+        /// </summary>
+        public bool DisableStrobe { get;  set; }
     }
 }

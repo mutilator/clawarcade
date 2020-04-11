@@ -35,6 +35,13 @@ const int _PINGameReset = 15;
 
 const int _PINLed = 13;
 
+const int _PINStickMoveLeft = 22;
+const int _PINStickMoveRight = 23;
+const int _PINStickMoveForward = 24;
+const int _PINStickMoveBackward = 25;
+const int _PINStickMoveDown = 26;
+
+
 //High/Low settings for what determines on and off state
 //const int RELAYPINON = LOW; //INVERTED BOARD
 //const int RELAYPINOFF = HIGH;
@@ -44,6 +51,13 @@ const int RELAYPINOFF = LOW;
 
 const int LIMITON = LOW; //Pulldown
 const int LIMITOFF = HIGH;
+
+/*
+
+    EEPROM LOCATIONS
+
+*/
+const int _memHomeLocation = 0;//where are we storing the home location
 
 bool _doWiggle = false; //whether we wiggle when performing drop
 int _wiggleTime = 300; //amount of time to move each direction during the wiggle
@@ -82,6 +96,8 @@ const int EVENT_FAILSAFE_CLAW = 306; //hit a FAILSAFE
 
 const int EVENT_INFO = 900; //Event to show when we want to pass info back
 
+
+
 /*
 
   STATE MANAGEMENT
@@ -95,12 +111,23 @@ const byte STATE_CHECK_DROP_TENSION = 4;
 const byte STATE_CHECK_DROP_RECOIL = 5;
 const byte STATE_CHECK_RUNCHUTE_LEFT = 6;
 const byte STATE_CHECK_RUNCHUTE_BACK = 7;
-const byte STATE_CLAW_STARTUP = 8;
-const byte STATE_CHECK_STARTUP_RECOIL = 9;
-const byte STATE_CHECK_STARTUP_RIGHT = 10;
-const byte STATE_CHECK_STARTUP_FORWARD = 11;
-const byte STATE_CHECK_HOMING = 12;
-const byte STATE_FAILSAFE = 13;
+const byte STATE_CHECK_RUNCHUTE_RIGHT = 8;
+const byte STATE_CHECK_RUNCHUTE_FORWARD = 9;
+const byte STATE_CLAW_STARTUP = 10;
+const byte STATE_CHECK_STARTUP_RECOIL = 11;
+const byte STATE_CHECK_STARTUP_RIGHT = 12;
+const byte STATE_CHECK_STARTUP_FORWARD = 13;
+const byte STATE_CHECK_HOMING = 14;
+const byte STATE_FAILSAFE = 15;
+
+
+
+const byte HOME_LOCATION_FL = 0; //Set home locaton front left - default
+const byte HOME_LOCATION_FR = 1; //Set home locaton front right
+const byte HOME_LOCATION_BL = 2; //Set home locaton back left
+const byte HOME_LOCATION_BR = 3; //Set home locaton back right
+
+byte _homeLocation = HOME_LOCATION_FL; //Set home locaton front left - default
 
 
 //Storing times
@@ -138,11 +165,17 @@ bool _isMotorRunningRight = false;
 bool _isMotorRunningForward = false;
 bool _isMotorRunningBackward = false;
 bool _isClawClosed = false;
+bool _moveFromJoystickBackward = false;
+bool _moveFromJoystickForward = false;
+bool _moveFromJoystickLeft = false;
+bool _moveFromJoystickRight = false;
 
-
-int _failsafeMotorLimit = 10000; //second limit for how long a motor can move before it should hit a limit
+int _conveyorSensorTripped = HIGH; //used to determine if trip is on a high or low
+int _failsafeMotorLimit = 15000; //second limit for how long a motor can move before it should hit a limit
 int _failsafeClawOpened = 15000; //limit for how long the claw can be closed
 int _failsafeBeltLimit = 30000; //limit for running conveyor belt
+int _failsafeMaxResets = 4; //maximum number of times we can hit a failsafe before giving up completely
+int _failsafeCurrentResets = 0; //how many times we've hit a failsave and not recovered
 
 //CONVEYOR BELT STUFF - network determines how long to run but everything else is internal with the process
 int _conveyorBeltRunTime = 0;
@@ -244,10 +277,10 @@ void loop() {
     checkFlipperRuntime();
     checkMovements();
     checkGameReset();
+    handleJoystick();
 
     checkLimits();
     checkStates();
-
 }
 
 
@@ -297,6 +330,13 @@ void initMovement()
     digitalWrite(_PINMoveUp, RELAYPINOFF);
     digitalWrite(_PINClawSolenoid, RELAYPINOFF);
 
+    //Setup console controls
+    pinMode(_PINStickMoveLeft, INPUT_PULLUP);
+    pinMode(_PINStickMoveRight, INPUT_PULLUP);
+    pinMode(_PINStickMoveForward, INPUT_PULLUP);
+    pinMode(_PINStickMoveBackward, INPUT_PULLUP);
+    pinMode(_PINStickMoveDown, INPUT_PULLUP);
+
 }
 
 void initLights()
@@ -310,12 +350,64 @@ void initConveyor()
     pinMode(_PINConveyorBelt, OUTPUT);
     pinMode(_PINConveyorFlipper, OUTPUT);
 
-    pinMode(_PINConveyorSensor, INPUT);
+    pinMode(_PINConveyorSensor, INPUT_PULLUP);
 
     digitalWrite(_PINConveyorBelt, RELAYPINOFF); //relay
     digitalWrite(_PINConveyorFlipper, LOW); //talk to digispark
 }
 
+void handleJoystick()
+{
+    //ignore console when 
+    if (_currentState != STATE_RUNNING)
+        return;
+
+    int val = digitalRead(_PINStickMoveBackward);
+    if (val == LOW)
+    {
+        _moveFromJoystickBackward = true;
+        runMotorBackward(false);
+    } else if (_moveFromJoystickBackward) {
+        _moveFromJoystickBackward = false;
+        stopMotorBackward();
+    }
+
+    val = digitalRead(_PINStickMoveForward);
+    if (val == LOW)
+    {
+        _moveFromJoystickForward = true;
+        runMotorForward(false);
+    } else if (_moveFromJoystickForward) {
+        _moveFromJoystickForward = false;
+        stopMotorForward();
+    }
+
+    val = digitalRead(_PINStickMoveLeft);
+    if (val == LOW)
+    {
+        _moveFromJoystickLeft = true;
+        runMotorLeft(false);
+    } else if (_moveFromJoystickLeft) {
+        _moveFromJoystickLeft = false;
+        stopMotorLeft();
+    }
+
+    val = digitalRead(_PINStickMoveRight);
+    if (val == LOW)
+    {
+        _moveFromJoystickRight = true;
+        runMotorRight(false);
+    } else if (_moveFromJoystickRight) {
+        _moveFromJoystickRight = false;
+        stopMotorRight();
+    }
+
+    val = digitalRead(_PINStickMoveDown);
+    if (val == LOW)
+    {
+        dropClawProcedure();
+    }
+}
 
 /**
  *
@@ -340,6 +432,7 @@ void checkLimits()
             stopMotorUp(); //failsafe kills motor regardless of override
             changeState(STATE_FAILSAFE);
             sendEvent(EVENT_FAILSAFE_UP);
+            return; //if we hit a failsafe, don't send anymore notifications
         }
         else if (!_recoilLimitOverride) //motor override not in effect
         {
@@ -347,6 +440,7 @@ void checkLimits()
             sendEvent(EVENT_LIMIT_UP);
         }
     }
+
     if (_isMotorRunningDown && (isLimitDown() || curTime - _timestampMotorMoveDown > _failsafeMotorLimit))
     {
         debugLine("Hit Limit Down");
@@ -357,10 +451,12 @@ void checkLimits()
         {
             changeState(STATE_FAILSAFE);
             sendEvent(EVENT_FAILSAFE_DOWN);
+            return; //if we hit a failsafe, don't send anymore notifications
         }
         else
             sendEvent(EVENT_LIMIT_DOWN);
     }
+
     if (_isMotorRunningLeft && (isLimitLeft() || curTime - _timestampMotorMoveLeft > _failsafeMotorLimit))
     {
         debugLine("Hit Limit Left");
@@ -369,10 +465,12 @@ void checkLimits()
         {
             changeState(STATE_FAILSAFE);
             sendEvent(EVENT_FAILSAFE_LEFT);
+            return; //if we hit a failsafe, don't send anymore notifications
         }
         else
             sendEvent(EVENT_LIMIT_LEFT);
     }
+
     if (_isMotorRunningRight && (isLimitRight() || curTime - _timestampMotorMoveRight > _failsafeMotorLimit))
     {
         debugLine("Hit Limit Right");
@@ -381,10 +479,12 @@ void checkLimits()
         {
             changeState(STATE_FAILSAFE);
             sendEvent(EVENT_FAILSAFE_RIGHT);
+            return; //if we hit a failsafe, don't send anymore notifications
         }
         else
             sendEvent(EVENT_LIMIT_RIGHT);
     }
+
     if (_isMotorRunningForward && (isLimitForward() || curTime - _timestampMotorMoveForward > _failsafeMotorLimit))
     {
         debugLine("Hit Limit Forward");
@@ -393,10 +493,12 @@ void checkLimits()
         {
             changeState(STATE_FAILSAFE);
             sendEvent(EVENT_FAILSAFE_FORWARD);
+            return; //if we hit a failsafe, don't send anymore notifications
         }
         else
             sendEvent(EVENT_LIMIT_FORWARD);
     }
+
     if (_isMotorRunningBackward && (isLimitBackward() || curTime - _timestampMotorMoveBackward > _failsafeMotorLimit))
     {
         debugLine("Hit Limit Backward");
@@ -405,10 +507,12 @@ void checkLimits()
         {
             changeState(STATE_FAILSAFE);
             sendEvent(EVENT_FAILSAFE_BACKWARD);
+            return; //if we hit a failsafe, don't send anymore notifications
         }
         else
             sendEvent(EVENT_LIMIT_BACKWARD);
     }
+
     if (_isClawClosed && (curTime - _timestampClawClosed > _failsafeClawOpened))
     {
         debugLine("Hit claw open failsafe");
@@ -532,20 +636,23 @@ void checkStates()
             {
                 unsigned long diffTime = millis() - _timestampRunCenter;
 
-                bool isRightStopped = false;
+                bool isWidthReached = false; //for left/right movement
                 if (diffTime > _runToCenterDurationWidth)
                 {
                     debugLine("width centered");
                     stopMotorRight();
-                    isRightStopped = true;
+                    stopMotorLeft();
+                    isWidthReached = true;
                 }
+
                 if (diffTime > _runToCenterDurationDepth)
                 {
                     debugLine("depth centered");
                     stopMotorForward();
-                    if (isRightStopped)
+                    stopMotorBackward();
+                    if (isWidthReached)
                     {
-
+                        _failsafeCurrentResets = 0; //reset the failsafe counter because we properly reset
                         _recoilLimitOverride = false; //disable the limit override, limit check will turn off the motor
                         changeState(STATE_RUNNING);
                         sendEvent(EVENT_RETURNED_CENTER);
@@ -594,6 +701,33 @@ void checkStates()
             }
 
             break;
+        case STATE_CHECK_RUNCHUTE_RIGHT:
+            if (isLimitRight())
+            {
+                stopMotorRight();
+                delay(300); //brief rest for the claw
+                returnToWinChute();
+            }
+            else if (!_isMotorRunningRight) //a scenario where the motor was stopped but it's not at the limit
+            {
+                debugLine("Run chute right but motor not running");
+                runMotorRight(false);
+            }
+            break;
+        case STATE_CHECK_RUNCHUTE_FORWARD:
+            if (isLimitForward())
+            {
+                stopMotorForward();
+                delay(300); //brief rest for the claw
+                returnToWinChute();
+            }
+            else if (!_isMotorRunningForward) //a scenario where the motor was stopped but it's not at the limit
+            {
+                debugLine("Run chute forward check but motor not running");
+                runMotorForward(false);
+            }
+
+            break;
         case STATE_CHECK_RUNCHUTE_BACK:
             if (isLimitBackward())
             {
@@ -607,7 +741,6 @@ void checkStates()
                 runMotorBackward(false);
             }
             break;
-
 
     }
 }
@@ -747,21 +880,35 @@ void returnToWinChute()
         //recoil claw with force when returning home
         _recoilLimitOverride = true;
         runMotorUp(true);
-        changeState(STATE_CHECK_RUNCHUTE_LEFT);
-        runMotorLeft(false);
+
+        if (_homeLocation == HOME_LOCATION_FR || _homeLocation == HOME_LOCATION_BR) //run right
+        {
+            changeState(STATE_CHECK_RUNCHUTE_RIGHT);
+            runMotorLeft(false);
+        } else
+        { // if (_homeLocation == HOME_LOCATION_FL)
+            changeState(STATE_CHECK_RUNCHUTE_LEFT);
+            runMotorLeft(false);
+        }
         return;
     }
 
-    //ran left
-    if (_currentState == STATE_CHECK_RUNCHUTE_LEFT)
+    //ran left/right to limit
+    if (_currentState == STATE_CHECK_RUNCHUTE_LEFT || _currentState == STATE_CHECK_RUNCHUTE_RIGHT)
     {
-        changeState(STATE_CHECK_RUNCHUTE_BACK);
-        runMotorBackward(false);
+        if (_homeLocation == HOME_LOCATION_BR || _homeLocation == HOME_LOCATION_BL) //run forward (back of machine)
+        {
+            changeState(STATE_CHECK_RUNCHUTE_FORWARD);
+            runMotorForward(false);
+        } else {
+            changeState(STATE_CHECK_RUNCHUTE_BACK); //run backward (front of machine)
+            runMotorBackward(false);
+        }
         return;
     }
 
-    //ran back, over the win chute now
-    if (_currentState == STATE_CHECK_RUNCHUTE_BACK)
+    //over the win chute now
+    if (_currentState == STATE_CHECK_RUNCHUTE_BACK || _currentState == STATE_CHECK_RUNCHUTE_FORWARD)
     {
         sendEvent(EVENT_RETURNED_HOME);
         openClaw();
@@ -775,6 +922,7 @@ void returnToWinChute()
         returnCenterFromChute();
         return;
     }
+
 }
 
 /**
@@ -787,8 +935,18 @@ void returnCenterFromChute()
     _timestampRunCenter = millis();
     debugLine("running centering");
     changeState(STATE_CHECK_CENTERING);
-    runMotorRight(false);
-    runMotorForward(false);
+
+    
+    //start direction based on the home
+    if (_homeLocation == HOME_LOCATION_BL || _homeLocation == HOME_LOCATION_FL)
+        runMotorRight(false);
+    else
+        runMotorLeft(false);
+    
+    if (_homeLocation == HOME_LOCATION_FL || _homeLocation == HOME_LOCATION_FR)
+        runMotorForward(false);
+    else
+        runMotorBackward(false);
 }
 
 
@@ -905,13 +1063,18 @@ void checkBeltRuntime()
 
 void checkConveyorSensor()
 {
+    static unsigned long curTime = 0; //memory placeholder
+
+    curTime = millis();
     int sensorVal = digitalRead(_PINConveyorSensor);
-    if (sensorVal == HIGH)
+    if (sensorVal == _conveyorSensorTripped)
     {
-        if (millis() - _timestampConveyorSensorTripped > _conveyorSensorTripDelay)
+        
+
+        if (curTime - _timestampConveyorSensorTripped > _conveyorSensorTripDelay)
             sendEvent(EVENT_CONVEYOR_TRIPPED);
 
-        _timestampConveyorSensorTripped = millis();
+        _timestampConveyorSensorTripped = curTime;
     }
 }
 
@@ -946,11 +1109,9 @@ void sendEvent(int event)
  */
 void broadcastToClients(int event, char outputData[])
 {
-    if (_isDebugMode)
-    {
-        Serial.print(event);
-        debugLine(outputData);
-    }
+    debugString(event);
+    debugString(":0 ");
+    debugLine(outputData);
 
     for (byte i=0; i < _clientCount; i++)
     {
@@ -1077,7 +1238,7 @@ void handleTelnetCommand(EthernetClient &client)
     if (strcmp(command,"reset") == 0) { //restart machine
 
         sendFormattedResponse(client, EVENT_INFO, sequence, "");
-
+        _failsafeCurrentResets = 0; //force failsafe counter reset
         startupMachine();
 
     } else if (strcmp(command,"dbg") == 0) { //some debug info
@@ -1094,7 +1255,7 @@ void handleTelnetCommand(EthernetClient &client)
 
     } else if (strcmp(command,"debug") == 0) { //some debug info
 
-        sprintf(outputData, "%i %i %i %i %i %i %s", _currentState, _lastState, _halfTimespanRunWidth, _halfTimespanRunDepth, _wiggleTime, _failsafeMotorLimit, _queuedCommand);
+        sprintf(outputData, "%i,%i,%i,%i,%i,%i,%i,%s", _currentState, _lastState, _halfTimespanRunWidth, _halfTimespanRunDepth, _wiggleTime, _failsafeMotorLimit, _homeLocation, _queuedCommand);
         sendFormattedResponse(client, EVENT_INFO, sequence, outputData);
 
     } else if (strcmp(command,"state") == 0) { //set machine state manually
@@ -1294,6 +1455,15 @@ void handleTelnetCommand(EthernetClient &client)
         }
         sprintf(outputData, "%i", isLimit);
         sendFormattedResponse(client, EVENT_INFO, sequence, outputData);
+
+    } else if (strcmp(command,"shome") == 0) { //set home location
+
+        _homeLocation = atoi(argument);
+        sprintf(outputData, "home set %i", _homeLocation);
+        sendFormattedResponse(client, EVENT_INFO, sequence, outputData);
+
+    } else if (strcmp(command,"rhome") == 0) { //run to home location
+        sendFormattedResponse(client, EVENT_INFO, sequence, "");
 
     } else if (strcmp(command,"center") == 0) { //custom center
 
@@ -1562,6 +1732,9 @@ void runMotorUp(bool override)
 
 void stopMotorLeft()
 {
+    if (!_isMotorRunningLeft) //avoid useless writes
+        return;
+
     debugLine("Method: Stop Left");
     _isMotorRunningLeft = false;
     digitalWrite(_PINMoveLeft, RELAYPINOFF);
@@ -1569,6 +1742,9 @@ void stopMotorLeft()
 
 void stopMotorRight()
 {
+    if (!_isMotorRunningRight) //avoid useless writes
+        return;
+
     debugLine("Method: Stop Right");
     _isMotorRunningRight = false;
     digitalWrite(_PINMoveRight, RELAYPINOFF);
@@ -1576,6 +1752,9 @@ void stopMotorRight()
 
 void stopMotorForward()
 {
+    if (!_isMotorRunningForward) //avoid useless writes
+        return;
+
     debugLine("Method: Stop Forward");
     _isMotorRunningForward = false;
     digitalWrite(_PINMoveForward, RELAYPINOFF);
@@ -1583,6 +1762,9 @@ void stopMotorForward()
 
 void stopMotorBackward()
 {
+    if (!_isMotorRunningBackward) //avoid useless writes
+        return;
+
     debugLine("Method: Stop Backward");
     _isMotorRunningBackward = false;
     digitalWrite(_PINMoveBackward, RELAYPINOFF);
@@ -1605,12 +1787,16 @@ void stopMotorUp()
 void debugLine(char* message)
 {
     if (_isDebugMode)
+    {
         Serial.println(message);
+    }
 }
 void debugString(char* message)
 {
     if (_isDebugMode)
+    {
         Serial.print(message);
+    }
 }
 
 void closeClaw()
@@ -1628,13 +1814,11 @@ void openClaw()
 }
 void changeState(int newState)
 {
-    if (_isDebugMode)
-    {
-        Serial.print("Change State - Old: ");
-        Serial.print(_currentState);
-        Serial.print(" New: ");
-        Serial.println(newState);
-    }
+    debugString("Chg State - Old: ");
+    debugString(_currentState);
+    debugString("; New: ");
+    debugLine(newState);
+
     _lastState = _currentState;
     _currentState = newState;
 }

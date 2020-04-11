@@ -235,10 +235,10 @@ namespace InternetClawMachine.Games
                 var rnd = _rnd.Next(120000);
                 await Task.Delay(20000 + rnd);
             }
-            ObsConnection.SetSourceRender(Configuration.ObsScreenSourceNames.ThemeHalloweenScare.SourceName, false, Configuration.ObsScreenSourceNames.ThemeHalloweenScare.Scene);
-            ObsConnection.SetSourceRender(Configuration.ObsScreenSourceNames.ThemeHalloweenScare.SourceName, true, Configuration.ObsScreenSourceNames.ThemeHalloweenScare.Scene);
+            ObsConnection.SetSourceRender(Configuration.ObsScreenSourceNames.ThemeHalloweenScare.SourceName, false, Configuration.ObsScreenSourceNames.ThemeHalloweenScare.SceneName);
+            ObsConnection.SetSourceRender(Configuration.ObsScreenSourceNames.ThemeHalloweenScare.SourceName, true, Configuration.ObsScreenSourceNames.ThemeHalloweenScare.SceneName);
             await Task.Delay(4000);
-            ObsConnection.SetSourceRender(Configuration.ObsScreenSourceNames.ThemeHalloweenScare.SourceName, false, Configuration.ObsScreenSourceNames.ThemeHalloweenScare.Scene);
+            ObsConnection.SetSourceRender(Configuration.ObsScreenSourceNames.ThemeHalloweenScare.SourceName, false, Configuration.ObsScreenSourceNames.ThemeHalloweenScare.SceneName);
         }
 
         public void WriteDbMovementAction(string name, string direction)

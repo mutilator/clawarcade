@@ -149,18 +149,27 @@ namespace InternetClawMachine.Settings
         /// <summary>
         /// The default background used during a stream, this can be changed by players
         /// </summary>
-        public BackgroundDefinition ObsBackgroundActive { set; get; }
+        public GreenScreenDefinition ObsGreenScreenActive { set; get; }
 
         /// <summary>
         /// The default background that is reserted to after playing
         /// </summary>
-        public BackgroundDefinition ObsBackgroundDefault { set; get; }
+        public GreenScreenDefinition ObsGreenScreenDefault { set; get; }
 
         /// <summary>
         /// List of backgrounds people can use for their stream
         /// </summary>
-        public List<BackgroundDefinition> ObsBackgroundOptions { set; get; }
+        public List<GreenScreenDefinition> ObsGreenScreenOptions { set; get; }
 
+        /// <summary>
+        /// List of backgrounds people can use for their stream
+        /// </summary>
+        public List<ObsSceneSource> ObsBackgroundOptions { set; get; }
+
+        /// <summary>
+        /// Default background to load if none are chosen
+        /// </summary>
+        public ObsSceneSource ObsBackgroundDefault { set; get; }
 
         /// <summary>
         /// Whether black light mode is enabled

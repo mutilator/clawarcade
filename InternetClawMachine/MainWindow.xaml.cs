@@ -1490,7 +1490,7 @@ namespace InternetClawMachine
                     case GamePhase.FINE_CONTROL:
                         if (ObsConnection.IsConnected)
                         {
-                            ObsConnection.SetCurrentScene(Configuration.ObsScreenSourceNames.SceneGolfFine.Scene);
+                            ObsConnection.SetCurrentScene(Configuration.ObsScreenSourceNames.SceneGolfFine.SceneName);
                         }
 
                         break;
@@ -1498,7 +1498,7 @@ namespace InternetClawMachine
                     case GamePhase.DISTANCE_MOVE:
                         if (ObsConnection.IsConnected)
                         {
-                            ObsConnection.SetCurrentScene(Configuration.ObsScreenSourceNames.SceneGolfGrid.Scene);
+                            ObsConnection.SetCurrentScene(Configuration.ObsScreenSourceNames.SceneGolfGrid.SceneName);
                         }
 
                         break;
@@ -1811,13 +1811,13 @@ namespace InternetClawMachine
             if (IsPaused)
             {
                 ObsConnection.SetSourceRender(Configuration.ObsScreenSourceNames.Paused.SourceName, true,
-                    Configuration.ObsScreenSourceNames.Paused.Scene);
+                    Configuration.ObsScreenSourceNames.Paused.SceneName);
                 btnPause.Content = "Resume";
             }
             else
             {
                 ObsConnection.SetSourceRender(Configuration.ObsScreenSourceNames.Paused.SourceName, false,
-                    Configuration.ObsScreenSourceNames.Paused.Scene);
+                    Configuration.ObsScreenSourceNames.Paused.SceneName);
                 btnPause.Content = "Pause";
             }
         }
@@ -2156,7 +2156,7 @@ namespace InternetClawMachine
             }
 
             ((ClawGame) Game).TriggerWin(((PlushieObject) lstPlushes.SelectedItem).EpcList[0],
-                lstViewers.SelectedItem.ToString());
+                lstViewers.SelectedItem.ToString(), false);
             lstPlushes.Items.Refresh();
         }
 
@@ -2630,16 +2630,16 @@ namespace InternetClawMachine
         {
             if (cmbBackgrounds.SelectedIndex >= 0)
             {
-                var background = (BackgroundDefinition)cmbBackgrounds.Items[cmbBackgrounds.SelectedIndex];
+                var background = (GreenScreenDefinition)cmbBackgrounds.Items[cmbBackgrounds.SelectedIndex];
                 //TODO - don't hardcode this
                 try
                 {
                     //hide the existing scenes first?
-                    foreach (var bg in Configuration.ClawSettings.ObsBackgroundOptions)
+                    foreach (var bg in Configuration.ClawSettings.ObsGreenScreenOptions)
                         foreach (var scene in bg.Scenes)
                             ObsConnection.SetSourceRender(scene, bg.Name == background.Name);
 
-                    Configuration.ClawSettings.ObsBackgroundActive = background;
+                    Configuration.ClawSettings.ObsGreenScreenActive = background;
                 }
                 catch (Exception x)
                 {
@@ -2647,6 +2647,18 @@ namespace InternetClawMachine
                     Logger.WriteLog(Logger.ErrorLog, error);
                 }
             }
+        }
+
+        private void BtnIRScanned_Click(object sender, RoutedEventArgs e)
+        {
+            //trigger a win based on the first EPC for a plush
+            if (lstViewers.SelectedItem == null)
+            {
+                MessageBox.Show("No one selected, idiot!");
+                return;
+            }
+
+            ((ClawGame)Game).TriggerWin(null, null, true);
         }
     }
 

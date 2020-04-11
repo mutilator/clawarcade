@@ -75,7 +75,8 @@ namespace InternetClawMachine.Games.ClawGame
             switch (translateCommand.FinalWord)
             {
                 case "play":
-                    if (Configuration.EventMode.DisableBounty && Bounty == null)
+                    //TODO - Fix this so it doesnt rely on event name
+                    if (Configuration.EventMode.DisableBounty && Bounty == null && Configuration.EventMode.DisplayName == "Bounty")
                     {
                         ChatClient.SendMessage(Configuration.Channel, Translator.GetTranslation("responseEventPlay", Configuration.UserList.GetUserLocalization(username)));
                         return;

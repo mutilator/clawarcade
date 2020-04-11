@@ -752,15 +752,17 @@ namespace InternetClawMachine.Hardware.ClawControl
 
         public async Task RunConveyor(int runtime)
         {
-            if (IsConnected)
-            {
-                SendCommandAsync("belt " + runtime);
-                await Task.Delay(runtime);
-            }
+            if (!IsConnected)
+                return;
+            SendCommandAsync("belt " + runtime);
+            await Task.Delay(runtime);
+            
         }
 
         public void SetClawPower(int percent)
         {
+            if (!IsConnected)
+                return;
             var power = (int)((double)percent / 100 * 255);
             var str = string.Format("uno p {0}", power);
             SendCommandAsync(str);
@@ -798,5 +800,12 @@ namespace InternetClawMachine.Hardware.ClawControl
         public int Sequence { set; get; }
         public bool Success { set; get; }
         public long StartTime { get; internal set; }
+    }
+
+    public enum ClawHomeLocation {
+        FrontLeft,
+        FrontRight,
+        BackLeft,
+        BackRight
     }
 }
