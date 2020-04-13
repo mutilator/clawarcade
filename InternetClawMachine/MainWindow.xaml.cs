@@ -1232,7 +1232,7 @@ namespace InternetClawMachine
         {
             if (ObsConnection.IsConnected)
             {
-                if (Game.GameMode == GameModeType.GOLF || Game.GameMode == GameModeType.DRAWING)
+                if (Game != null && (Game.GameMode == GameModeType.GOLF || Game.GameMode == GameModeType.DRAWING))
                 {
                     Task.Run(() => ResetCamera(Configuration.ObsScreenSourceNames.CameraGantryCam.SourceName));
                     Task.Run(() => ResetCamera(Configuration.ObsScreenSourceNames.CameraGantryCam.SourceName));

@@ -121,13 +121,20 @@ namespace InternetClawMachine.Games.ClawGame
                     break;
                 case "quit":
                 case "leave":
-                    if (PlayerQueue.CurrentPlayer == null || PlayerQueue.CurrentPlayer.ToLower() != username.ToLower())
+                    if (PlayerQueue.CurrentPlayer == null)
                         break;
-                    var idx = PlayerQueue.Index + 1;
-                    if (PlayerQueue.Count <= idx)
-                        idx = 0;
-                    var newPlayer = PlayerQueue.Count == 1?null:PlayerQueue.Players[idx];
-                    GiftTurn(username.ToLower(), newPlayer);
+                    if (PlayerQueue.CurrentPlayer.ToLower() != username.ToLower())
+                    {                        
+                        PlayerQueue.RemoveSinglePlayer(username.ToLower()); //remove them from the queue if it's not their turn
+                    }
+                    else //otherwise they're doing it during their turn and we need to gift it to someone else
+                    {
+                        var idx = PlayerQueue.Index + 1;
+                        if (PlayerQueue.Count <= idx)
+                            idx = 0;
+                        var newPlayer = PlayerQueue.Count == 1 ? null : PlayerQueue.Players[idx];
+                        GiftTurn(username.ToLower(), newPlayer);
+                    }
                     break;
                 case "gift":
                     if (param.Length != 2)
