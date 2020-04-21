@@ -2660,6 +2660,16 @@ namespace InternetClawMachine
 
             ((ClawGame)Game).TriggerWin(null, null, true);
         }
+
+        private void CmbThemes_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            var thing = ObsConnection.GetSourceFilters("OverylayBackground-Scene1-1");
+            Console.WriteLine(thing.ToString());
+            if (Game is ClawGame)
+            {
+                ((ClawGame)Game).ChangeWireTheme((WireTheme)cmbThemes.SelectedItem);
+            }
+        }
     }
 
     public class LogLevelOption

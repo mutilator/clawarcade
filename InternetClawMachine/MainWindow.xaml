@@ -226,7 +226,9 @@
                         <Slider x:Name="sldrBreakSensorWaitTime" HorizontalAlignment="Left" Margin="195,317,0,0" VerticalAlignment="Top" Width="113" Maximum="30000" Minimum="1" Value="{Binding ClawSettings.ConveyorRunDuringFlipper, Mode=TwoWay}" SmallChange="100" LargeChange="1000" IsSnapToTickEnabled="True" TickFrequency="100" />
                         <Label Content="BreakSensorWaitTime" HorizontalAlignment="Left" Margin="195,291,0,0" VerticalAlignment="Top" RenderTransformOrigin="-0.026,-0.077" />
                         <Label x:Name="lblconveyorBreakSensorWait" HorizontalAlignment="Left" Margin="327,291,0,0" VerticalAlignment="Top" RenderTransformOrigin="0.368,-0.308" Content="{Binding Value, ElementName=sldrBreakSensorWaitTime}" />
-                        <ComboBox x:Name="cmbBackgrounds" HorizontalAlignment="Left" VerticalAlignment="Top" Width="165" Margin="552,376,0,0" SelectionChanged="CmbBackgrounds_SelectionChanged"  ItemsSource="{Binding ClawSettings.ObsBackgroundOptions}" DisplayMemberPath="Name"/>
+                        <ComboBox x:Name="cmbBackgrounds" HorizontalAlignment="Left" VerticalAlignment="Top" Width="165" Margin="552,376,0,0" SelectionChanged="CmbBackgrounds_SelectionChanged"  ItemsSource="{Binding ClawSettings.ObsGreenScreenOptions}" DisplayMemberPath="Name"/>
+                        <ComboBox x:Name="cmbThemes" HorizontalAlignment="Left" VerticalAlignment="Top" Width="165" Margin="373,376,0,0" ItemsSource="{Binding ClawSettings.WireThemes}" DisplayMemberPath="Name" SelectionChanged="CmbThemes_SelectionChanged"/>
+                        <Label Content="Theme" HorizontalAlignment="Left" Margin="373,350,0,0" VerticalAlignment="Top" RenderTransformOrigin="-0.026,-0.077" />
                     </Grid>
                 </TabItem>
                 <TabItem Header="Golf" Padding="20,2">

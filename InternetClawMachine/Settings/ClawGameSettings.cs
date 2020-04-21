@@ -196,6 +196,18 @@ namespace InternetClawMachine.Settings
         /// </summary>
         public List<EventModeSettings> EventModes { set; get; }
 
+        /// <summary>
+        /// List of all wire themes
+        /// </summary>
+        public List<WireTheme> WireThemes { set; get; }
+
+        /// <summary>
+        /// Which theme are we displaying (mostly keeps from having to reset it constantly)
+        /// </summary>
+        public WireTheme ActiveWireTheme { set; get; }
+
+        public List<OBSSceneFilters> WireFrameList { set; get; }
+
         public event PropertyChangedEventHandler PropertyChanged;
 
         protected void OnPropertyChanged([System.Runtime.CompilerServices.CallerMemberName] string propertyName = "")

@@ -6,7 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace InternetClawMachine
+namespace InternetClawMachine.Settings
 {
     public enum EventMode
     {
@@ -36,7 +36,10 @@ namespace InternetClawMachine
         /// </summary>
         public List<ObsSceneSource> BackgroundScenes { set; get; }
 
-        
+        /// <summary>
+        /// Set the options for the wire theme
+        /// </summary>
+        public WireTheme WireTheme { set; get; }
 
         /// <summary>
         /// Display this animation instead of the confetti, override any other custom animation

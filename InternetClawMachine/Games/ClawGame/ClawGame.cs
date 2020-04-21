@@ -136,40 +136,56 @@ namespace InternetClawMachine.Games.ClawGame
             if (eventConfig.BlacklightsOn && !Configuration.ClawSettings.BlackLightMode)
                 Configuration.ClawSettings.BlackLightMode = true;
 
-            
+            if (eventConfig.WireTheme != null)
+                ChangeWireTheme(eventConfig.WireTheme);
 
-            //Fix greenscreen
+            //grab current scene to make sure we skin all scenes
+            var currentscene = ObsConnection.GetCurrentScene().Name;
 
-            foreach (var bg in Configuration.ClawSettings.ObsGreenScreenOptions)
-                foreach (var scene in bg.Scenes)
+            //TODO - pull this from config
+            var scenes = new string[] { "Claw 1", "Claw 2", "Claw 3" };
+
+            //skin all scenes
+            for (var i = 0; i < scenes.Length; i++)
+            {
+                ObsConnection.SetCurrentScene(scenes[i]);
+
+
+
+                //Fix greenscreen
+                foreach (var bg in Configuration.ClawSettings.ObsGreenScreenOptions)
+                    foreach (var scene in bg.Scenes)
+                    {
+                        try
+                        {
+                            ObsConnection.SetSourceRender(scene, ((eventConfig.GreenScreen != null && bg.Name == eventConfig.GreenScreen.Name) || (eventConfig.GreenScreen == null && Configuration.ClawSettings.ObsGreenScreenDefault.Name == bg.Name)));
+                        }
+                        catch (Exception ex) //skip over scenes that error out, log errors
+                        {
+                            var error = string.Format("ERROR {0} {1}", ex.Message, ex);
+                            Logger.WriteLog(Logger.ErrorLog, error);
+
+                        }
+                    }
+
+                //update background
+                foreach (var bg in Configuration.ClawSettings.ObsBackgroundOptions)
                 {
                     try
                     {
-                        ObsConnection.SetSourceRender(scene, ((eventConfig.GreenScreen != null && bg.Name == eventConfig.GreenScreen.Name) || (eventConfig.GreenScreen == null && Configuration.ClawSettings.ObsGreenScreenDefault.Name == bg.Name)));
+                        //if bg defined and is in the list, set it, otherwise if no bg defined set default
+                        ObsConnection.SetSourceRender(bg.SourceName, ((eventConfig.BackgroundScenes != null && eventConfig.BackgroundScenes.Any(s => s.SourceName == bg.SourceName)) || ((eventConfig.BackgroundScenes == null || eventConfig.BackgroundScenes.Count == 0) && Configuration.ClawSettings.ObsBackgroundDefault.SourceName == bg.SourceName)), bg.SceneName);
                     }
                     catch (Exception ex) //skip over scenes that error out, log errors
                     {
                         var error = string.Format("ERROR {0} {1}", ex.Message, ex);
                         Logger.WriteLog(Logger.ErrorLog, error);
-
                     }
                 }
-
-            //update background
-            foreach (var bg in Configuration.ClawSettings.ObsBackgroundOptions)
-            {
-                try
-                {
-                    //if bg defined and is in the list, set it, otherwise if no bg defined set default
-                    ObsConnection.SetSourceRender(bg.SourceName, ((eventConfig.BackgroundScenes != null && eventConfig.BackgroundScenes.Any(s => s.SourceName == bg.SourceName)) || ((eventConfig.BackgroundScenes == null || eventConfig.BackgroundScenes.Count == 0) && Configuration.ClawSettings.ObsBackgroundDefault.SourceName == bg.SourceName)), bg.SceneName);
-                }
-                catch (Exception ex) //skip over scenes that error out, log errors
-                {
-                    var error = string.Format("ERROR {0} {1}", ex.Message, ex);
-                    Logger.WriteLog(Logger.ErrorLog, error);
-                }
             }
-            
+
+            //reset current scene
+            ObsConnection.SetCurrentScene(currentscene);
         }
 
         private void ClawGame_OnClawRecoiled(object sender, EventArgs e)
@@ -792,6 +808,7 @@ namespace InternetClawMachine.Games.ClawGame
 
         public override void HandleCommand(string channel, string username, string chatMessage, bool isSubscriber, string customRewardId)
         {
+            username = username.ToLower();
             base.HandleCommand(channel, username, chatMessage, isSubscriber, customRewardId);
 
             //if a reward id change command text to reflect the scene
@@ -807,6 +824,8 @@ namespace InternetClawMachine.Games.ClawGame
                 chatMessage = Configuration.CommandPrefix + "chgsbg " + chatMessage;
             else if (customRewardId == "aba1a822-db81-45be-b5ee-b5b362ee8ee4")
                 chatMessage = Configuration.CommandPrefix + "chgwinanm " + chatMessage;
+            else if (customRewardId == "e73b59d1-d716-4348-9faf-00daaf0b4d92")
+                chatMessage = Configuration.CommandPrefix + "theme " + chatMessage;
 
             var commandText = chatMessage.Substring(Configuration.CommandPrefix.Length).ToLower();
             if (chatMessage.IndexOf(" ") >= 0)
@@ -818,7 +837,7 @@ namespace InternetClawMachine.Games.ClawGame
             var translateCommand = Translator.FindWord(commandText, "en-US");
 
             //simple check to not time-out their turn
-            if (PlayerQueue.CurrentPlayer != null && username.ToLower() == PlayerQueue.CurrentPlayer.ToLower() && translateCommand.FinalWord != "play")
+            if (PlayerQueue.CurrentPlayer != null && username == PlayerQueue.CurrentPlayer.ToLower() && translateCommand.FinalWord != "play")
                 CurrentPlayerHasPlayed = true;
 
             //load user data
@@ -832,6 +851,32 @@ namespace InternetClawMachine.Games.ClawGame
 
                 switch (translateCommand.FinalWord)
                 {
+                    case "theme":
+                        if (customRewardId == "e73b59d1-d716-4348-9faf-00daaf0b4d92")
+                        {
+                            var cbwargs = chatMessage.Split(' ');
+                            if (cbwargs.Length != 2)
+                            {
+                                return;
+                            }
+
+                            var themeColor = cbwargs[1].ToLower();
+
+                            //todo do this better
+
+                            foreach (var opt in Configuration.ClawSettings.WireThemes)
+                            {
+                                if (opt.Name.ToLower() == themeColor)
+                                {
+                                    userPrefs.WireTheme = opt.Name;
+                                    DatabaseFunctions.WriteUserPrefs(Configuration, userPrefs);
+                                    if (PlayerQueue.CurrentPlayer.ToLower() == username.ToLower())
+                                        ChangeWireTheme(opt);
+                                    break;
+                                }
+                            }
+                        }
+                        break;
                     case "chgwinanm":
                         if (customRewardId == "aba1a822-db81-45be-b5ee-b5b362ee8ee4")
                         {
@@ -1047,7 +1092,7 @@ namespace InternetClawMachine.Games.ClawGame
                             DatabaseFunctions.WriteUserPrefs(Configuration, userPrefs);
                             ChatClient.SendMessage(Configuration.Channel, Translator.GetTranslation("gameClawCommandStrobeSet", Configuration.UserList.GetUserLocalization(username)));
 
-                            if (PlayerQueue.CurrentPlayer != null && PlayerQueue.CurrentPlayer.ToLower() == username.ToLower())
+                            if (PlayerQueue.CurrentPlayer != null && PlayerQueue.CurrentPlayer.ToLower() == username)
                                 RunStrobe(userPrefs);
                         }
                         catch (Exception ex)
@@ -1091,7 +1136,7 @@ namespace InternetClawMachine.Games.ClawGame
                                     daysToGo = Configuration.ClawSettings.TimePassedForRename - (curTime - plushLastRenameDate) / 60 / 60 / 24;
                                     if (daysToGo <= 0)
                                     {
-                                        WriteDbNewPushName(oldName, newName, username.ToLower());
+                                        WriteDbNewPushName(oldName, newName, username);
                                         foreach (var plush in PlushieTags)
                                             if (plush.Name == oldName)
                                                 plush.Name = newName;
@@ -1654,6 +1699,50 @@ namespace InternetClawMachine.Games.ClawGame
 
         }
 
+        public void ChangeWireTheme(WireTheme theme)
+        {
+
+
+            try
+            {
+                if (theme.Name == Configuration.ClawSettings.ActiveWireTheme.Name)
+                {
+                   return;
+                }
+
+                
+
+                //grab filters, if they exist don't bother sending more commands
+                var currentScene = ObsConnection.GetCurrentScene();
+                var sources = Configuration.ClawSettings.WireFrameList.FindAll(t => t.SceneName == currentScene.Name);
+                foreach (var source in sources)
+                {
+                    var filters = ObsConnection.GetSourceFilters(source.SourceName);
+
+                    //remove existing filters
+                    foreach(var filter in filters)
+                    {
+                        if (filter.Type == "color_filter")
+                        {
+                            ObsConnection.RemoveFilterFromSource(source.SourceName, filter.Name);
+                        }
+                    }
+
+                    //add new ones
+                    var newFilter = new JObject();
+                    newFilter.Add("hue_shift", theme.HueShift);
+                    ObsConnection.AddFilterToSource(source.SourceName, source.FilterName, source.FilterType, newFilter);
+                }
+
+                Configuration.ClawSettings.ActiveWireTheme = theme;
+            }
+            catch (Exception x)
+            {
+                var error = string.Format("ERROR {0} {1}", x.Message, x);
+                Logger.WriteLog(Logger.ErrorLog, error);
+            }
+        }
+
         private void DisableGreenScreenNormal()
         {
             try
@@ -2161,6 +2250,12 @@ namespace InternetClawMachine.Games.ClawGame
                     foreach (var scene in bg.Scenes)
                         ObsConnection.SetSourceRender(scene, bg.Name == Configuration.ClawSettings.ObsGreenScreenActive.Name);
 
+                
+                var theme = Configuration.ClawSettings.WireThemes.Find(t => t.Name.ToLower() == "default");
+
+                ChangeWireTheme(theme);
+                
+
                 return;
             } else if (userPrefs == null)
             {
@@ -2174,7 +2269,7 @@ namespace InternetClawMachine.Games.ClawGame
             if (!userPrefs.BlackLightsOn && Configuration.ClawSettings.BlackLightMode)
             {
                 //handler for event modes
-                if (Configuration.EventMode.EventMode != EventMode.NORMAL && Configuration.EventMode.AllowOverrideLights)
+                if (Configuration.EventMode.EventMode == EventMode.NORMAL || Configuration.EventMode.AllowOverrideLights)
                 {
                     try
                     {
@@ -2191,7 +2286,7 @@ namespace InternetClawMachine.Games.ClawGame
 
             //then change scenes
             //handler for event modes
-            if (Configuration.EventMode.EventMode != EventMode.NORMAL && Configuration.EventMode.AllowOverrideScene)
+            if (Configuration.EventMode.EventMode == EventMode.NORMAL || Configuration.EventMode.AllowOverrideScene)
             {
                 try
                 {
@@ -2216,7 +2311,7 @@ namespace InternetClawMachine.Games.ClawGame
 
             //now, if they need it enabled, enable it so set the background and filters and other related things
             //handler for event modes
-            if (Configuration.EventMode.EventMode != EventMode.NORMAL && Configuration.EventMode.AllowOverrideLights)
+            if (Configuration.EventMode.EventMode == EventMode.NORMAL || Configuration.EventMode.AllowOverrideLights)
             {
                 try
                 {
@@ -2250,7 +2345,7 @@ namespace InternetClawMachine.Games.ClawGame
             }
 
             //handler for event modes
-            if (Configuration.EventMode.EventMode != EventMode.NORMAL && Configuration.EventMode.AllowOverrideGreenscreen)
+            if (Configuration.EventMode.EventMode == EventMode.NORMAL || Configuration.EventMode.AllowOverrideGreenscreen)
             {
                 try
                 {
@@ -2279,6 +2374,19 @@ namespace InternetClawMachine.Games.ClawGame
                     var error = string.Format("ERROR {0} {1}", ex.Message, ex);
                     Logger.WriteLog(Logger.ErrorLog, error);
                 }
+            }
+
+            //handler for wire theme
+            if (!string.IsNullOrEmpty(userPrefs.WireTheme))
+            {
+                var theme = Configuration.ClawSettings.WireThemes.Find(t => t.Name.ToLower() == userPrefs.WireTheme.ToLower());
+                
+                ChangeWireTheme(theme);
+            } else
+            {
+                var theme = Configuration.ClawSettings.WireThemes.Find(t => t.Name.ToLower() == "default");
+
+                ChangeWireTheme(theme);
             }
         }
 

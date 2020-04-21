@@ -120,8 +120,23 @@ const byte STATE_CHECK_STARTUP_FORWARD = 13;
 const byte STATE_CHECK_HOMING = 14;
 const byte STATE_FAILSAFE = 15;
 
+/*
+
+    GAME mode
+
+*/
+const byte GAMEMODE_CLAW = 0; //normal mode
+const byte GAMEMODE_TARGET = 1; //start over home, drop to grab stuff, keep claw closed, move over drop location, open cloaw, return home
 
 
+byte _gameMode = GAMEMODE_CLAW;
+
+
+/*
+
+    HOME LOCATIONS
+
+*/
 const byte HOME_LOCATION_FL = 0; //Set home locaton front left - default
 const byte HOME_LOCATION_FR = 1; //Set home locaton front right
 const byte HOME_LOCATION_BL = 2; //Set home locaton back left
@@ -362,7 +377,25 @@ void handleJoystick()
     if (_currentState != STATE_RUNNING)
         return;
 
-    int val = digitalRead(_PINStickMoveBackward);
+    int val = digitalRead(_PINStickMoveDown);
+    if (val == LOW)
+    {
+        if ((_gameMode == GAMEMODE_CLAW) || 
+            (_gameMode == GAMEMODE_TARGET && !_isClawClosed)) //when in target mode we're only allowed to drop if the claw isnt closed
+            dropClawProcedure();
+        else if (_gameMode == GAMEMODE_TARGET && _isClawClosed)
+        {
+            openClaw();
+            delay(250);
+            returnToWinChute();
+        }
+        return;
+    }
+    
+    if (_gameMode == GAMEMODE_TARGET && !_isClawClosed) //don't allow joystick to move when it's over the chute, we need to drop & grab stuff first
+        return;
+
+    val = digitalRead(_PINStickMoveBackward);
     if (val == LOW)
     {
         _moveFromJoystickBackward = true;
@@ -402,11 +435,6 @@ void handleJoystick()
         stopMotorRight();
     }
 
-    val = digitalRead(_PINStickMoveDown);
-    if (val == LOW)
-    {
-        dropClawProcedure();
-    }
 }
 
 /**
@@ -515,9 +543,16 @@ void checkLimits()
 
     if (_isClawClosed && (curTime - _timestampClawClosed > _failsafeClawOpened))
     {
-        debugLine("Hit claw open failsafe");
+        debugLine("Closed failsafe");
         openClaw();
-        sendEvent(EVENT_FAILSAFE_CLAW);
+        if (_gameMode == GAMEMODE_CLAW)
+            sendEvent(EVENT_FAILSAFE_CLAW);
+        else if (_gameMode == GAMEMODE_TARGET)
+        {
+            delay(250);
+            returnToWinChute();
+        }
+        return;
     }
 }
 
@@ -839,31 +874,52 @@ void performHoming()
  */
 void dropClawProcedure()
 {
-    if (_currentState == STATE_CHECK_DROP_TENSION)
+    if (_gameMode == GAMEMODE_CLAW)
     {
-        changeState(STATE_CHECK_DROP_RECOIL);
-        sendEvent(EVENT_DROPPED_CLAW);
-        closeClaw();
-        runMotorUp(false);
-        return;
-    }
+        if (_currentState == STATE_CHECK_DROP_TENSION)
+        {
+            changeState(STATE_CHECK_DROP_RECOIL);
+            sendEvent(EVENT_DROPPED_CLAW);
+            closeClaw();
+            runMotorUp(false);
+            return;
+        }
 
-    else if (_currentState == STATE_CHECK_DROP_RECOIL)
+        else if (_currentState == STATE_CHECK_DROP_RECOIL)
+        {
+            sendEvent(EVENT_RECOILED_CLAW);
+            if (_enableReturnToChute)
+                returnToWinChute();
+            else
+                changeState(STATE_RUNNING);
+            return;
+        }
+
+        else //start drop if all else fails
+        {
+            changeState(STATE_CHECK_DROP_TENSION);
+            sendEvent(EVENT_DROPPING_CLAW);
+            runMotorDown(false);
+            return;
+        }
+    } else if (_gameMode == GAMEMODE_TARGET)
     {
-        sendEvent(EVENT_RECOILED_CLAW);
-        if (_enableReturnToChute)
-            returnToWinChute();
-        else
+        if (_currentState == STATE_CHECK_DROP_TENSION)
+        {
+            closeClaw();
+            changeState(STATE_CHECK_DROP_RECOIL);
+            
+            sendEvent(EVENT_DROPPED_CLAW);
+            runMotorUp(false);
+            return;
+        }
+
+        else if (_currentState == STATE_CHECK_DROP_RECOIL)
+        {
+            sendEvent(EVENT_RECOILED_CLAW);
             changeState(STATE_RUNNING);
-        return;
-    }
-
-    else //start drop if all else fails
-    {
-        changeState(STATE_CHECK_DROP_TENSION);
-        sendEvent(EVENT_DROPPING_CLAW);
-        runMotorDown(false);
-        return;
+            return;
+        }
     }
 }
 
@@ -874,25 +930,6 @@ void dropClawProcedure()
  */
 void returnToWinChute()
 {
-    //startup
-    if (_currentState == STATE_CHECK_DROP_RECOIL)
-    {
-        //recoil claw with force when returning home
-        _recoilLimitOverride = true;
-        runMotorUp(true);
-
-        if (_homeLocation == HOME_LOCATION_FR || _homeLocation == HOME_LOCATION_BR) //run right
-        {
-            changeState(STATE_CHECK_RUNCHUTE_RIGHT);
-            runMotorLeft(false);
-        } else
-        { // if (_homeLocation == HOME_LOCATION_FL)
-            changeState(STATE_CHECK_RUNCHUTE_LEFT);
-            runMotorLeft(false);
-        }
-        return;
-    }
-
     //ran left/right to limit
     if (_currentState == STATE_CHECK_RUNCHUTE_LEFT || _currentState == STATE_CHECK_RUNCHUTE_RIGHT)
     {
@@ -908,7 +945,7 @@ void returnToWinChute()
     }
 
     //over the win chute now
-    if (_currentState == STATE_CHECK_RUNCHUTE_BACK || _currentState == STATE_CHECK_RUNCHUTE_FORWARD)
+    else if (_currentState == STATE_CHECK_RUNCHUTE_BACK || _currentState == STATE_CHECK_RUNCHUTE_FORWARD)
     {
         sendEvent(EVENT_RETURNED_HOME);
         openClaw();
@@ -919,7 +956,27 @@ void returnToWinChute()
             wiggleClaw(); //blocking wiggle
 
         delay(250);
-        returnCenterFromChute();
+
+        if (_gameMode == GAMEMODE_CLAW)
+            returnCenterFromChute();
+        else if (_gameMode == GAMEMODE_TARGET)
+            changeState(STATE_RUNNING);
+        return;
+    } else 
+    {
+        //recoil claw with force when returning home
+        _recoilLimitOverride = true;
+        runMotorUp(true);
+
+        if (_homeLocation == HOME_LOCATION_FR || _homeLocation == HOME_LOCATION_BR) //run right
+        {
+            changeState(STATE_CHECK_RUNCHUTE_RIGHT);
+            runMotorLeft(false);
+        } else
+        { // if (_homeLocation == HOME_LOCATION_FL)
+            changeState(STATE_CHECK_RUNCHUTE_LEFT);
+            runMotorLeft(false);
+        }
         return;
     }
 
@@ -1456,6 +1513,21 @@ void handleTelnetCommand(EthernetClient &client)
         sprintf(outputData, "%i", isLimit);
         sendFormattedResponse(client, EVENT_INFO, sequence, outputData);
 
+    } else if (strcmp(command,"mode") == 0) { //set game mode
+
+        _gameMode = atoi(argument);
+        switch (_gameMode)
+        {
+            case GAMEMODE_TARGET:
+                returnToWinChute();
+                break;
+            default:
+                returnCenterFromChute();
+                break;
+        }
+        sprintf(outputData, "mode set %i", _gameMode);
+        sendFormattedResponse(client, EVENT_INFO, sequence, outputData);
+
     } else if (strcmp(command,"shome") == 0) { //set home location
 
         _homeLocation = atoi(argument);
@@ -1569,6 +1641,41 @@ void moveFromRemote(byte direction, int duration)
     if (_currentState != STATE_RUNNING)
         return;
 
+    //Handle dropping first
+    switch (direction)
+    {
+        case CLAW_DROP:
+            if ((_gameMode == GAMEMODE_CLAW) || 
+                (_gameMode == GAMEMODE_TARGET && !_isClawClosed)) //when in target mode we're only allowed to drop if the claw isnt closed
+            {
+                _clawRemoteMoveDurationDrop = duration;
+                _clawRemoteMoveStartTimeDrop = millis();
+                dropClawProcedure();
+            }
+            else if (_gameMode == GAMEMODE_TARGET && _isClawClosed)
+            {
+                openClaw();
+                delay(250);
+                returnToWinChute();
+            }
+            
+            break;
+        case CLAW_DOWN:
+            _clawRemoteMoveDurationDown = duration;
+            _clawRemoteMoveStartTimeDown = millis();
+            runMotorDown(false);
+            break;
+        case CLAW_UP:
+            _clawRemoteMoveDurationUp = duration;
+            _clawRemoteMoveStartTimeUp = millis();
+            runMotorUp(false);
+            break;
+    }
+
+    if (_gameMode == GAMEMODE_TARGET && !_isClawClosed) //don't allow joystick to move when it's over the chute, we need to drop & grab stuff first
+        return;
+
+    //handle movement now
     switch (direction)
     {
         case CLAW_FORWARD:
@@ -1590,21 +1697,6 @@ void moveFromRemote(byte direction, int duration)
             _clawRemoteMoveDurationRight = duration;
             _clawRemoteMoveStartTimeRight = millis();
             runMotorRight(false);
-            break;
-        case CLAW_DROP:
-            _clawRemoteMoveDurationDrop = duration;
-            _clawRemoteMoveStartTimeDrop = millis();
-            dropClawProcedure();
-            break;
-        case CLAW_DOWN:
-            _clawRemoteMoveDurationDown = duration;
-            _clawRemoteMoveStartTimeDown = millis();
-            runMotorDown(false);
-            break;
-        case CLAW_UP:
-            _clawRemoteMoveDurationUp = duration;
-            _clawRemoteMoveStartTimeUp = millis();
-            runMotorUp(false);
             break;
     }
 }

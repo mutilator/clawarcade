@@ -230,7 +230,7 @@
     <Compile Include="DatabaseFunctions.cs" />
     <Compile Include="EpochToDate.cs" />
     <Compile Include="Settings\EventModeArgs.cs" />
-    <Compile Include="EventModeSettings.cs" />
+    <Compile Include="Settings\EventModeSettings.cs" />
     <Compile Include="Games\ClawGame\PlayWinClipEventArgs.cs" />
     <Compile Include="Games\GameHelpers\Bounty.cs" />
     <Compile Include="Hardware\ClawControl\ClawController.cs" />
@@ -288,6 +288,7 @@
     <Compile Include="Settings\UserList.cs" />
     <Compile Include="Settings\VoteSettings.cs" />
     <Compile Include="Settings\WaterGunSettings.cs" />
+    <Compile Include="Settings\WireTheme.cs" />
     <Compile Include="StreamBuxTypes.cs" />
     <Compile Include="StreamTipAPI.cs" />
     <Compile Include="Chat\TwitchChatAPI.cs" />
