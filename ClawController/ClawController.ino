@@ -60,7 +60,7 @@ const int LIMITOFF = HIGH;
 const int _memHomeLocation = 0;//where are we storing the home location
 
 bool _doWiggle = false; //whether we wiggle when performing drop
-int _wiggleTime = 300; //amount of time to move each direction during the wiggle
+int _wiggleTime = 80; //amount of time to move each direction during the wiggle
 
 int _conveyorSensorTripDelay = 1000; //amount of time to wait before looking for another sensor event
 int _gameResetTripDelay = 4000; //amount of time to wait before looking for another sensor event
@@ -380,13 +380,16 @@ void handleJoystick()
     int val = digitalRead(_PINStickMoveDown);
     if (val == LOW)
     {
+        
         if ((_gameMode == GAMEMODE_CLAW) || 
             (_gameMode == GAMEMODE_TARGET && !_isClawClosed)) //when in target mode we're only allowed to drop if the claw isnt closed
             dropClawProcedure();
         else if (_gameMode == GAMEMODE_TARGET && _isClawClosed)
         {
             openClaw();
-            delay(250);
+            delay(500);
+            if (_doWiggle)
+                    wiggleClaw();
             returnToWinChute();
         }
         return;
@@ -558,30 +561,7 @@ void checkLimits()
 
 void checkStates()
 {
-    //There seems to be some oddness with retracting the claw and it thinking it's completely recoiled
-    //This check is in place to restart the recoil procedure if it's in one of the recoil/return home phases but the limit switch isnt hit
-    switch (_currentState)
-    {
-        case STATE_RUNNING:
-            /*
-            //This code didnt work as expected because as the tension is released the switch is untriggered and causes this to loop
-            if (_lastState == STATE_CHECK_CENTERING && !isLimitUp())
-            {
 
-                //runMotorUp(); //runs the motor up, limit switch checks will stop it, stays in the running state while it's recoiling so it accepts commands
-                //also keeps the claw tight
-
-            }
-            */
-            break;
-        case STATE_CHECK_RUNCHUTE_LEFT:
-            if (!isLimitUp())
-            {
-                stopMotorLeft();
-                changeState(STATE_CHECK_DROP_RECOIL); //change state back to recoil, code below will start the motor pulling the claw back up
-            }
-            break;
-    }
 
     //Now check the current state and perform an action
     switch (_currentState)
@@ -787,6 +767,9 @@ void checkStates()
  */
 void startupMachine()
 {
+    _gameMode = 0;
+    _homeLocation = HOME_LOCATION_FL;
+
     debugLine("startup called");
     if (!isLimitUp())
     {
@@ -904,21 +887,23 @@ void dropClawProcedure()
         }
     } else if (_gameMode == GAMEMODE_TARGET)
     {
-        if (_currentState == STATE_CHECK_DROP_TENSION)
+        switch (_currentState)
         {
-            closeClaw();
-            changeState(STATE_CHECK_DROP_RECOIL);
-            
-            sendEvent(EVENT_DROPPED_CLAW);
-            runMotorUp(false);
-            return;
-        }
-
-        else if (_currentState == STATE_CHECK_DROP_RECOIL)
-        {
-            sendEvent(EVENT_RECOILED_CLAW);
-            changeState(STATE_RUNNING);
-            return;
+            case STATE_CHECK_DROP_TENSION:
+                closeClaw();
+                changeState(STATE_CHECK_DROP_RECOIL);
+                sendEvent(EVENT_DROPPED_CLAW);
+                runMotorUp(false);
+                return;
+            case STATE_CHECK_DROP_RECOIL:
+                sendEvent(EVENT_RECOILED_CLAW);
+                changeState(STATE_RUNNING);
+                return;
+            case STATE_RUNNING:
+                changeState(STATE_CHECK_DROP_TENSION);
+                sendEvent(EVENT_DROPPING_CLAW);
+                runMotorDown(false);
+                return;
         }
     }
 }
@@ -943,9 +928,7 @@ void returnToWinChute()
         }
         return;
     }
-
-    //over the win chute now
-    else if (_currentState == STATE_CHECK_RUNCHUTE_BACK || _currentState == STATE_CHECK_RUNCHUTE_FORWARD)
+    else if (_currentState == STATE_CHECK_RUNCHUTE_BACK || _currentState == STATE_CHECK_RUNCHUTE_FORWARD) //over the win chute now
     {
         sendEvent(EVENT_RETURNED_HOME);
         openClaw();
@@ -960,9 +943,13 @@ void returnToWinChute()
         if (_gameMode == GAMEMODE_CLAW)
             returnCenterFromChute();
         else if (_gameMode == GAMEMODE_TARGET)
+        {
+            stopMotorUp(); //stop recoil
             changeState(STATE_RUNNING);
+        }
+
         return;
-    } else 
+    } else
     {
         //recoil claw with force when returning home
         _recoilLimitOverride = true;
@@ -971,7 +958,7 @@ void returnToWinChute()
         if (_homeLocation == HOME_LOCATION_FR || _homeLocation == HOME_LOCATION_BR) //run right
         {
             changeState(STATE_CHECK_RUNCHUTE_RIGHT);
-            runMotorLeft(false);
+            runMotorRight(false);
         } else
         { // if (_homeLocation == HOME_LOCATION_FL)
             changeState(STATE_CHECK_RUNCHUTE_LEFT);
@@ -1296,6 +1283,7 @@ void handleTelnetCommand(EthernetClient &client)
 
         sendFormattedResponse(client, EVENT_INFO, sequence, "");
         _failsafeCurrentResets = 0; //force failsafe counter reset
+        
         startupMachine();
 
     } else if (strcmp(command,"dbg") == 0) { //some debug info
@@ -1655,10 +1643,12 @@ void moveFromRemote(byte direction, int duration)
             else if (_gameMode == GAMEMODE_TARGET && _isClawClosed)
             {
                 openClaw();
-                delay(250);
+                delay(500);
+                if (_doWiggle)
+                    wiggleClaw();
+
                 returnToWinChute();
             }
-            
             break;
         case CLAW_DOWN:
             _clawRemoteMoveDurationDown = duration;

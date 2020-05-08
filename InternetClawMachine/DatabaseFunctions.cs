@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Data;
 using System.Data.SQLite;
+using InternetClawMachine.Games.GameHelpers;
 using InternetClawMachine.Settings;
 
 namespace InternetClawMachine
@@ -154,26 +155,34 @@ namespace InternetClawMachine
                 configuration.RecordsDatabase.Open();
                 try
                 {
-                    var sql = "SELECT lights_on, scene, custom_win_clip, strobe_settings, localization, blacklightmode, greenscreen FROM user_prefs WHERE lower(username) = @username";
+                    var sql = "SELECT lights_on, scene, custom_win_clip, strobe_settings, localization, blacklightmode, greenscreen, wiretheme, teamid FROM user_prefs WHERE lower(username) = @username";
 
                     var command = new SQLiteCommand(sql, configuration.RecordsDatabase);
                     command.Parameters.Add(new SQLiteParameter("@username", prefs.Username));
-                    using (var plushes = command.ExecuteReader())
+                    using (var users = command.ExecuteReader())
                     {
-                        while (plushes.Read())
+                        while (users.Read())
                         {
-                            prefs.LightsOn = plushes.GetValue(0).ToString() == "1";
-                            prefs.Scene = plushes.GetValue(1).ToString();
-                            prefs.WinClipName = plushes.GetValue(2).ToString();
-                            prefs.CustomStrobe = plushes.GetValue(3).ToString();
-                            prefs.Localization = plushes.GetValue(4).ToString();
-                            prefs.BlackLightsOn = plushes.GetValue(5).ToString() == "1";
-                            prefs.GreenScreen = plushes.GetValue(6).ToString();
+                            var tid = users.GetValue(8).ToString();
+                            prefs.LightsOn = users.GetValue(0).ToString() == "1";
+                            prefs.Scene = users.GetValue(1).ToString();
+                            prefs.WinClipName = users.GetValue(2).ToString();
+                            prefs.CustomStrobe = users.GetValue(3).ToString();
+                            prefs.Localization = users.GetValue(4).ToString();
+                            prefs.BlackLightsOn = users.GetValue(5).ToString() == "1";
+                            prefs.GreenScreen = users.GetValue(6).ToString();
+                            prefs.WireTheme = users.GetValue(7).ToString();
+                            
+                            prefs.TeamId = !string.IsNullOrEmpty(tid)?int.Parse(tid):-1;
+                            prefs.EventTeamId = -1;
 
                             prefs.FromDatabase = true;
                             break;
                         }
                     }
+                } catch (Exception e)
+                {
+                    Logger.WriteLog(Logger.DebugLog, string.Format("Error reading user: {0}", e.Message));
                 }
                 finally
                 {
@@ -182,6 +191,7 @@ namespace InternetClawMachine
             }
             return prefs;
         }
+
 
         public static bool WriteUserPrefs(BotConfiguration configuration, UserPrefs prefs)
         {
@@ -194,12 +204,12 @@ namespace InternetClawMachine
                     if (prefs.FromDatabase)
                     {
                         sql =
-                            "UPDATE user_prefs SET localization = @localization, lights_on = @lightsOn, scene = @scene, strobe_settings = @strobe, blacklightmode = @blacklightmode, greenscreen = @greenscreen, custom_win_clip = @winclip, wiretheme = @wiretheme WHERE lower(username) = @username";
+                            "UPDATE user_prefs SET localization = @localization, lights_on = @lightsOn, scene = @scene, strobe_settings = @strobe, blacklightmode = @blacklightmode, greenscreen = @greenscreen, custom_win_clip = @winclip, wiretheme = @wiretheme, teamid = @team_id, eventteamid = @event_team_id WHERE lower(username) = @username";
                     }
                     else
                     {
                         sql =
-                            "INSERT INTO user_prefs (username, localization, lights_on, scene, strobe_settings, blacklightmode, greenscreen, custom_win_clip, wiretheme) VALUES (@username, @localization, @lightsOn, @scene,@strobe, @blacklightmode, @greenscreen, @winclip, @wiretheme)";
+                            "INSERT INTO user_prefs (username, localization, lights_on, scene, strobe_settings, blacklightmode, greenscreen, custom_win_clip, wiretheme, teamid, eventteamid) VALUES (@username, @localization, @lightsOn, @scene,@strobe, @blacklightmode, @greenscreen, @winclip, @wiretheme, @team_id, @event_team_id)";
                     }
 
                     var command = configuration.RecordsDatabase.CreateCommand();
@@ -214,6 +224,8 @@ namespace InternetClawMachine
                     command.Parameters.Add(new SQLiteParameter("@greenscreen", prefs.GreenScreen));
                     command.Parameters.Add(new SQLiteParameter("@wiretheme", prefs.WireTheme));
                     command.Parameters.Add(new SQLiteParameter("@winclip", prefs.WinClipName));
+                    command.Parameters.Add(new SQLiteParameter("@team_id", prefs.TeamId));
+                    command.Parameters.Add(new SQLiteParameter("@event_team_id", prefs.EventTeamId));
                     prefs.FromDatabase = true; //it's written to db now
                     command.ExecuteNonQuery();
                 }
@@ -342,5 +354,201 @@ namespace InternetClawMachine
             }
             return plushObject;
         }
+
+        internal static int CreateTeam(BotConfiguration configuration, string teamName, string guid)
+        {
+            lock (configuration.RecordsDatabase)
+            {
+                configuration.RecordsDatabase.Open();
+                string sql;
+                try
+                {
+                    sql = "INSERT INTO teams (name, guid) VALUES (@name, @guid)";
+
+                    var command = configuration.RecordsDatabase.CreateCommand();
+                    command.CommandType = CommandType.Text;
+                    command.CommandText = sql;
+                    command.Parameters.Add(new SQLiteParameter("@name", teamName));
+                    command.Parameters.Add(new SQLiteParameter("@guid", guid));
+                    command.ExecuteNonQuery();
+
+                    sql = "SELECT id FROM teams WHERE name = @name AND guid = @guid";
+                    command = new SQLiteCommand(sql, configuration.RecordsDatabase);
+                    command.Parameters.Add(new SQLiteParameter("@name", teamName));
+                    command.Parameters.Add(new SQLiteParameter("@guid", guid));
+                    using (var singleTeam = command.ExecuteReader())
+                    {
+                        while (singleTeam.Read())
+                        {
+                            return int.Parse(singleTeam.GetValue(0).ToString());
+                        }
+                    }
+                }
+                finally
+                {
+                    configuration.RecordsDatabase.Close();
+                }
+            }
+            throw new Exception("Unable to create team");
+        }
+
+        internal static List<GameTeam> GetTeams(BotConfiguration configuration)
+        {
+            lock (configuration.RecordsDatabase)
+            {
+                var teams = new List<GameTeam>();
+                configuration.RecordsDatabase.Open();
+                string sql;
+                try
+                {
+                    sql = "SELECT t.id, t.name, t.guid, s.eventid, s.eventname FROM teams t LEFT JOIN sessions s ON t.guid = s.guid WHERE s.eventid = 0";
+
+                    var command = configuration.RecordsDatabase.CreateCommand();
+                    command.CommandType = CommandType.Text;
+                    command.CommandText = sql;
+
+                    using (var singleTeam = command.ExecuteReader())
+                    {
+                        while (singleTeam.Read())
+                        {
+                            var team = new GameTeam()
+                            {
+                                Id = int.Parse(singleTeam.GetValue(0).ToString()),
+                                Name = singleTeam.GetValue(1).ToString(),
+                                SessionGuid = singleTeam.GetValue(2).ToString(),
+                                EventType = (EventMode)Enum.Parse(typeof(EventMode), singleTeam.GetValue(3).ToString()),
+                                EventName = singleTeam.GetValue(4).ToString()
+
+                            };
+                            teams.Add(team);
+                        }
+                    }
+                }
+                finally
+                {
+                    configuration.RecordsDatabase.Close();
+                }
+                return teams;
+            }
+            throw new Exception("Unable to get teams");
+        }
+
+        internal static List<GameTeam> GetTeams(BotConfiguration configuration, string guid)
+        {
+            lock (configuration.RecordsDatabase)
+            {
+                var teams = new List<GameTeam>();
+                configuration.RecordsDatabase.Open();
+                string sql;
+                try
+                {
+                    sql = "SELECT id, name, t.guid, s.eventid, s.eventname FROM teams t LEFT JOIN sessions s ON t.guid = s.guid WHERE s.guid = @guid";
+
+                    var command = configuration.RecordsDatabase.CreateCommand();
+                    command.CommandType = CommandType.Text;
+                    command.CommandText = sql;
+                    command.Parameters.Add(new SQLiteParameter("@guid", guid));
+                    
+                    using (var singleTeam = command.ExecuteReader())
+                    {
+                        while (singleTeam.Read())
+                        {
+                            var team = new GameTeam()
+                            {
+                                Id = int.Parse(singleTeam.GetValue(0).ToString()),
+                                Name = singleTeam.GetValue(1).ToString(),
+                                SessionGuid = singleTeam.GetValue(2).ToString(),
+                                EventType = (EventMode)Enum.Parse(typeof(EventMode), singleTeam.GetValue(3).ToString()),
+                                EventName = singleTeam.GetValue(4).ToString()
+
+                            };
+                            teams.Add(team);
+                        }
+                    }
+                }
+                finally
+                {
+                    configuration.RecordsDatabase.Close();
+                }
+                return teams;
+            }
+            throw new Exception("Unable to get teams");
+        }
+
+
+        internal static void WriteDbWinRecord(BotConfiguration configuration, UserPrefs user, int prize)
+        {
+            WriteDbWinRecord(configuration, user, prize, configuration.SessionGuid.ToString());
+        }
+
+        internal static void WriteDbWinRecord(BotConfiguration configuration, UserPrefs user, int prize, string guid)
+        {
+            if (!configuration.RecordStats)
+                return;
+
+            lock (configuration.RecordsDatabase)
+            {
+                try
+                {
+                    configuration.RecordsDatabase.Open();
+                    var sql = "INSERT INTO wins (datetime, name, PlushID, guid, teamid) VALUES (@datetime, @name, @PlushID, @guid, @teamid)";
+                    var command = configuration.RecordsDatabase.CreateCommand();
+                    command.CommandType = CommandType.Text;
+                    command.CommandText = sql;
+                    command.Parameters.Add(new SQLiteParameter("@datetime", Helpers.GetEpoch()));
+                    command.Parameters.Add(new SQLiteParameter("@name", user.Username));
+                    command.Parameters.Add(new SQLiteParameter("@PlushID", prize));
+                    command.Parameters.Add(new SQLiteParameter("@guid", guid));
+
+                    if (configuration.EventMode.TeamRequired)
+                        command.Parameters.Add(new SQLiteParameter("@teamid", user.TeamId));
+                    else
+                        command.Parameters.Add(new SQLiteParameter("@teamid", user.EventTeamId));
+                    command.ExecuteNonQuery();
+                    
+                }
+                catch (Exception ex)
+                {
+                    var error = string.Format("ERROR {0} {1}", ex.Message, ex);
+                    Logger.WriteLog(Logger.ErrorLog, error);
+                }
+                finally
+                {
+                    configuration.RecordsDatabase.Close();
+                }
+            }
+        }
+
+        public static void WriteDbSessionRecord(BotConfiguration configuration, string guid, int eventid, string eventname)
+        {
+            lock (configuration.RecordsDatabase)
+            {
+                try
+                {
+                    configuration.RecordsDatabase.Open();
+
+                    var sql = "INSERT INTO sessions (datetime, guid, eventid, eventname) VALUES (@datetime, @guid, @eventid, @eventname)";
+
+                    var command = configuration.RecordsDatabase.CreateCommand();
+                    command.CommandType = CommandType.Text;
+                    command.CommandText = sql;
+                    command.Parameters.Add(new SQLiteParameter("@datetime", Helpers.GetEpoch()));
+                    command.Parameters.Add(new SQLiteParameter("@guid", guid));
+                    command.Parameters.Add(new SQLiteParameter("@eventid", eventid));
+                    command.Parameters.Add(new SQLiteParameter("@eventname", eventname));
+                    command.ExecuteNonQuery();
+                }
+                catch (Exception ex)
+                {
+                    var error = string.Format("ERROR {0} {1}", ex.Message, ex);
+                    Logger.WriteLog(Logger.ErrorLog, error);
+                }
+                finally
+                {
+                    configuration.RecordsDatabase.Close();
+                }
+            }
+        }
+
     }
 }

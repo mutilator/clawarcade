@@ -365,11 +365,11 @@ namespace InternetClawMachine.Games.GantryGame
 
                 if (msg == "f" || msg == "b" || msg == "r" || msg == "l" || msg == "d" || msg == "u")
                 {
-                    ChatClient.SendMessage(Configuration.Channel, Configuration.QueueNoPlayersText);
+                    ChatClient.SendMessage(Configuration.Channel, string.Format(Translator.GetTranslation("gameClawResponseNoQueue", Configuration.UserList.GetUserLocalization(username))));
                 }
                 else if (matches.Count > 0 && matches.Count * 2 == msg.Length && matches.Count < 10)
                 {
-                    ChatClient.SendMessage(Configuration.Channel, Configuration.QueueNoPlayersText);
+                    ChatClient.SendMessage(Configuration.Channel, string.Format(Translator.GetTranslation("gameClawResponseNoQueue", Configuration.UserList.GetUserLocalization(username))));
                 }
             }
             //all we need to do is verify the only person controlling it is the one who voted for it

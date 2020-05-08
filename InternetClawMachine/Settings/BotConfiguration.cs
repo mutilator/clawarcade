@@ -145,11 +145,6 @@ namespace InternetClawMachine.Settings
         public bool UsingMixer { get; set; }
 
         /// <summary>
-        /// String said when someone tries to play with an empty queue
-        /// </summary>
-        public string QueueNoPlayersText { set; get; }
-
-        /// <summary>
         /// Whether we record stats to the database
         /// </summary>
         public bool RecordStats { set; get; }
@@ -276,7 +271,6 @@ namespace InternetClawMachine.Settings
                 }
 
                 RecordsDatabase = new SQLiteConnection("Data Source=" + FileRecordsDatabase + "; Version=3;");
-                WriteDbSessionRecord(SessionGuid.ToString());
             }
             catch (Exception ex)
             {
@@ -285,38 +279,7 @@ namespace InternetClawMachine.Settings
             }
         }
 
-        public void WriteDbSessionRecord(string guid)
-        {
-            if (!RecordStats)
-                return;
-
-            lock (RecordsDatabase)
-            {
-                try
-                {
-                    RecordsDatabase.Open();
-                    var sql = "INSERT INTO sessions (datetime, guid) VALUES (" + Helpers.GetEpoch() + ", '" + guid + "')";
-                    var command = new SQLiteCommand(sql, RecordsDatabase);
-                    command.ExecuteNonQuery();
-                }
-                catch (Exception ex)
-                {
-                    var error = string.Format("ERROR {0} {1}", ex.Message, ex);
-                    Logger.WriteLog(Logger.ErrorLog, error);
-
-                    LoadDatebase();
-                }
-                finally
-                {
-                    RecordsDatabase.Close();
-                }
-            }
-        }
-
-        public void WriteDbSessionRecord()
-        {
-            WriteDbSessionRecord(SessionGuid.ToString());
-        }
+        
 
         public int GetStreamBuxCost(StreamBuxTypes reason)
         {

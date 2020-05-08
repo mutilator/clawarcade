@@ -21,6 +21,12 @@ namespace InternetClawMachine.Games
         private Random _rnd = new Random((int)DateTime.Now.Ticks);
 
         /// <summary>
+        /// Teams for players to join
+        /// </summary>
+        public List<GameTeam> Teams { set; get; }
+
+
+        /// <summary>
         /// flag for updating the player queue file
         /// </summary>
         internal bool RunUpdateTimer;
@@ -210,6 +216,7 @@ namespace InternetClawMachine.Games
 
         public virtual void Init()
         {
+            
             PlayerQueue.ChangedPlayerQueue += PlayerQueue_ChangedPlayerQueue;
             Configuration.StreamBuxCosts = DatabaseFunctions.LoadStreamBux(Configuration);
         }
@@ -329,6 +336,9 @@ namespace InternetClawMachine.Games
 
         public virtual void StartGame(string user)
         {
+            //create new session
+            Configuration.SessionGuid = Guid.NewGuid();
+            DatabaseFunctions.WriteDbSessionRecord(Configuration, Configuration.SessionGuid.ToString(), (int)Configuration.EventMode.EventMode, Configuration.EventMode.DisplayName);
         }
 
         public virtual void StartRound(string user)

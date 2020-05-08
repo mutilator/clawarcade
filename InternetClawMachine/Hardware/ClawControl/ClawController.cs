@@ -803,9 +803,14 @@ namespace InternetClawMachine.Hardware.ClawControl
     }
 
     public enum ClawHomeLocation {
-        FrontLeft,
-        FrontRight,
-        BackLeft,
-        BackRight
+        FRONTLEFT,
+        FRONTRIGHT,
+        BACKLEFT,
+        BACKRIGHT
+    }
+    public enum ClawMode
+    {
+        NORMAL,
+        TARGETING
     }
 }

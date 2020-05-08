@@ -2,7 +2,7 @@
 
 namespace InternetClawMachine
 {
-    public class UserPrefs : IEquatable<UserPrefs>
+    public class UserPrefs : IEquatable<UserPrefs>, IComparable<UserPrefs>
     {
         public string Username { set; get; }
         public bool LightsOn { set; get; }
@@ -19,6 +19,8 @@ namespace InternetClawMachine
         public bool BlackLightsOn { get; internal set; }
         public string GreenScreen { get; internal set; }
         public string WireTheme { get; internal set; }
+        public int TeamId { get; internal set; }
+        public int EventTeamId { get; internal set; }
 
         public UserPrefs()
         {
@@ -34,6 +36,15 @@ namespace InternetClawMachine
         public bool Equals(UserPrefs u)
         {
             return u != null && Username.Equals(u.Username);
+        }
+
+        public int CompareTo(UserPrefs other)
+        {
+            if (other == null)
+                return 1;
+
+            else
+                return Username.CompareTo(other.Username);
         }
     }
 }

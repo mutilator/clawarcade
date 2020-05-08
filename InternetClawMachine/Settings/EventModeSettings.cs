@@ -112,8 +112,23 @@ namespace InternetClawMachine.Settings
         public ClawHomeLocation ClawHomeLocation { set; get; }
 
         /// <summary>
+        /// Mode that determines how the controller behaves
+        /// </summary>
+        public ClawMode ClawMode { set; get; }
+
+        /// <summary>
         /// Disable strobe on win
         /// </summary>
         public bool DisableStrobe { get;  set; }
+
+        /// <summary>
+        /// Do we require a player to have a team defined?
+        /// </summary>
+        public bool TeamRequired { get; set; }
+
+        /// <summary>
+        /// Whether we force greenscreen off
+        /// </summary>
+        public bool GreenScreenOverrideOff { set; get; }
     }
 }

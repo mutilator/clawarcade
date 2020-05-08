@@ -588,7 +588,7 @@ namespace InternetClawMachine.Games.GantryGame
                 //means we only have one letter commands
                 if (matches.Count > 0)
                 {
-                    ChatClient.SendMessage(Configuration.Channel, Configuration.QueueNoPlayersText);
+                    ChatClient.SendMessage(Configuration.Channel, string.Format(Translator.GetTranslation("gameClawResponseNoQueue", Configuration.UserList.GetUserLocalization(username))));
                 }
 
                 regex = "((([fbrlh]{1}|(hs)|(ch)|(chs)|(fs)|(bs)|(rs)|(ls)|(a[0-9]{1,3})){1})([ ]{1}))+?";
@@ -598,11 +598,11 @@ namespace InternetClawMachine.Games.GantryGame
 
                 if (msg == "f" || msg == "b" || msg == "r" || msg == "l" || msg == "h")
                 {
-                    ChatClient.SendMessage(Configuration.Channel, Configuration.QueueNoPlayersText);
+                    ChatClient.SendMessage(Configuration.Channel, string.Format(Translator.GetTranslation("gameClawResponseNoQueue", Configuration.UserList.GetUserLocalization(username))));
                 }
                 else if (matches.Count > 0 && matches.Count * 2 == msg.Length && matches.Count < 10)
                 {
-                    ChatClient.SendMessage(Configuration.Channel, Configuration.QueueNoPlayersText);
+                    ChatClient.SendMessage(Configuration.Channel, string.Format(Translator.GetTranslation("gameClawResponseNoQueue", Configuration.UserList.GetUserLocalization(username))));
                 }
             }
             else if (PlayerQueue.CurrentPlayer != null && username.ToLower() == PlayerQueue.CurrentPlayer.ToLower())
@@ -634,11 +634,11 @@ namespace InternetClawMachine.Games.GantryGame
 
                 if (msg == "f" || msg == "b" || msg == "r" || msg == "l" || msg == "h")
                 {
-                    ChatClient.SendMessage(Configuration.Channel, Configuration.QueueNoPlayersText);
+                    ChatClient.SendMessage(Configuration.Channel, string.Format(Translator.GetTranslation("gameClawResponseNoQueue", Configuration.UserList.GetUserLocalization(username))));
                 }
                 else if (matches.Count > 0 && matches.Count * 2 == msg.Length && matches.Count < 10)
                 {
-                    ChatClient.SendMessage(Configuration.Channel, Configuration.QueueNoPlayersText);
+                    ChatClient.SendMessage(Configuration.Channel, string.Format(Translator.GetTranslation("gameClawResponseNoQueue", Configuration.UserList.GetUserLocalization(username))));
                 }
             }
             //all we need to do is verify the only person controlling it is the one who voted for it

@@ -175,27 +175,44 @@ namespace InternetClawMachine
 
         private void Client_OnUserLeft(object sender, OnUserLeftArgs e)
         {
-            var message = string.Format("{0} left the channel", e.Username);
-            LogChat("#" + e.Channel, message);
-            Configuration.UserList.Remove(e.Username);
-            Dispatcher?.BeginInvoke(new Action(() => { lstViewers.Items.Remove(e.Username); }));
+            try
+            {
+                var message = string.Format("{0} left the channel", e.Username);
+                LogChat("#" + e.Channel, message);
+                Configuration.UserList.Remove(e.Username);
+                //Dispatcher?.BeginInvoke(new Action(() => { lstViewers.Items.Remove(e.Username); }));
+            }
+            catch (Exception ex)
+            {
+                var error = string.Format("ERROR {0} {1}", ex.Message, ex);
+                Logger.WriteLog(Logger.ErrorLog, error, LogLevel.ERROR);
+            }
         }
 
         private void Client_OnUserJoined(object sender, OnUserJoinedArgs e)
         {
-            var message = string.Format("{0} joined the channel", e.Username);
-            LogChat("#" + e.Channel, message);
+            try
+            {
+                var message = string.Format("{0} joined the channel", e.Username);
+                LogChat("#" + e.Channel, message);
 
-            var userPrefs = DatabaseFunctions.GetUserPrefs(Configuration, e.Username);
-            if (userPrefs != null)
-                Configuration.UserList.Add(userPrefs);
-            
-            var add = true;
-            foreach (var itm in lstViewers.Items)
-                if ((string)itm == e.Username.ToLower())
-                    add = false;
-            if (add)
-                Dispatcher?.BeginInvoke(new Action(() => { lstViewers.Items.Add(e.Username); }));
+                var userPrefs = DatabaseFunctions.GetUserPrefs(Configuration, e.Username);
+                if (userPrefs != null)
+                    Configuration.UserList.Add(userPrefs);
+
+                /*var add = true;
+                foreach (var itm in lstViewers.Items)
+                    if ((string)itm == e.Username.ToLower())
+                        add = false;
+                if (add)
+                {
+                    //Dispatcher?.BeginInvoke(new Action(() => { lstViewers.Items.Add(e.Username); }));
+                }*/
+            } catch (Exception ex)
+            {
+                var error = string.Format("ERROR {0} {1}", ex.Message, ex);
+                Logger.WriteLog(Logger.ErrorLog, error, LogLevel.ERROR);
+            }
         }
 
         private void Client_OnMessageSent(object sender, OnMessageSentArgs e)
@@ -223,19 +240,35 @@ namespace InternetClawMachine
 
         private void Client_OnConnected(object sender, OnConnectedArgs e)
         {
-            Configuration.UserList.Clear();
-            AddDebugText("Connected: " + e.AutoJoinChannel);
-            _reconnectWaitDelay = _reconnectWaitDelayInitial;
-            StopChatConnectionWatchDog();
+            try
+            { 
+                Configuration.UserList.Clear();
+                AddDebugText("Connected: " + e.AutoJoinChannel);
+                _reconnectWaitDelay = _reconnectWaitDelayInitial;
+                StopChatConnectionWatchDog();
+            }
+            catch (Exception ex)
+            {
+                var error = string.Format("ERROR {0} {1}", ex.Message, ex);
+                Logger.WriteLog(Logger.ErrorLog, error, LogLevel.ERROR);
+            }
         }
 
 
         private void Client_OnJoinedChannel(object sender, OnJoinedChannelArgs e)
         {
-            var message = string.Format("{0} joined the channel", e.BotUsername);
-            
-            LogChat("#" + e.Channel, message);
-            StartRunningAnnounceMessage();
+            try
+            {
+                var message = string.Format("{0} joined the channel", e.BotUsername);
+
+                LogChat("#" + e.Channel, message);
+                StartRunningAnnounceMessage();
+            }
+            catch (Exception ex)
+            {
+                var error = string.Format("ERROR {0} {1}", ex.Message, ex);
+                Logger.WriteLog(Logger.ErrorLog, error, LogLevel.ERROR);
+            }
         }
 
         private void Client_OnWhisperReceived(object sender, OnWhisperReceivedArgs e)
@@ -1110,7 +1143,7 @@ namespace InternetClawMachine
 
                 Configuration.UserList.Add(userPrefs);
 
-                Dispatcher?.BeginInvoke(new Action(() => { lstViewers.Items.Add(e.ChatMessage.Username.ToLower()); }));
+                //Dispatcher?.BeginInvoke(new Action(() => { lstViewers.Items.Add(e.ChatMessage.Username.ToLower()); }));
             }
 
             if (e.ChatMessage.Message.StartsWith(Configuration.CommandPrefix) ||
@@ -1824,7 +1857,7 @@ namespace InternetClawMachine
 
         private void btnStartChaos_Click(object sender, RoutedEventArgs e)
         {
-            Configuration.SessionGuid = Guid.NewGuid();
+            
             var gameMode = ((GameModeSelections) cmbGameModes.SelectedItem).GameMode;
 
             switch (gameMode)
@@ -2169,7 +2202,7 @@ namespace InternetClawMachine
         {
             if (Game != null)
             {
-                Configuration.SessionGuid = Guid.NewGuid();
+                
                 EndGame();
                 StartGame(null);
             }
@@ -2663,11 +2696,11 @@ namespace InternetClawMachine
 
         private void CmbThemes_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            var thing = ObsConnection.GetSourceFilters("OverylayBackground-Scene1-1");
-            Console.WriteLine(thing.ToString());
+            
             if (Game is ClawGame)
             {
                 ((ClawGame)Game).ChangeWireTheme((WireTheme)cmbThemes.SelectedItem);
+                Configuration.ClawSettings.ActiveWireTheme = (WireTheme)cmbThemes.SelectedItem;
             }
         }
     }

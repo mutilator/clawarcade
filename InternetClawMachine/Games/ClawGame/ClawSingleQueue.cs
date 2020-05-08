@@ -75,18 +75,28 @@ namespace InternetClawMachine.Games.ClawGame
             switch (translateCommand.FinalWord)
             {
                 case "play":
+                    var userPrefs = Configuration.UserList.GetUser(username);
+
                     //TODO - Fix this so it doesnt rely on event name
                     if (Configuration.EventMode.DisableBounty && Bounty == null && Configuration.EventMode.DisplayName == "Bounty")
                     {
-                        ChatClient.SendMessage(Configuration.Channel, Translator.GetTranslation("responseEventPlay", Configuration.UserList.GetUserLocalization(username)));
+                        ChatClient.SendMessage(Configuration.Channel, Translator.GetTranslation("responseEventPlay", userPrefs.Localization));
                         return;
                     }
+
+                    if (Configuration.EventMode.TeamRequired && userPrefs.EventTeamId <= 0)
+                    {
+                        ChatClient.SendMessage(Configuration.Channel, Translator.GetTranslation("responseEventPlayChooseTeam", userPrefs.Localization));
+                        return;
+                    }
+
+
                     if (PlayerQueue.Contains(username))
                     {
                         if (PlayerQueue.CurrentPlayer.ToLower() == username.ToLower())
-                            ChatClient.SendMessage(Configuration.Channel, Translator.GetTranslation("gameClawCommandPlayInQueue1", Configuration.UserList.GetUserLocalization(username)));
+                            ChatClient.SendMessage(Configuration.Channel, Translator.GetTranslation("gameClawCommandPlayInQueue1", userPrefs.Localization));
                         else
-                            ChatClient.SendMessage(Configuration.Channel, Translator.GetTranslation("gameClawCommandPlayInQueue2", Configuration.UserList.GetUserLocalization(username)));
+                            ChatClient.SendMessage(Configuration.Channel, Translator.GetTranslation("gameClawCommandPlayInQueue2", userPrefs.Localization));
                         return;
                     }
 
@@ -162,11 +172,11 @@ namespace InternetClawMachine.Games.ClawGame
 
                 if (msg == "f" || msg == "b" || msg == "r" || msg == "l" || msg == "d")
                 {
-                    ChatClient.SendMessage(Configuration.Channel, Configuration.QueueNoPlayersText);
+                    ChatClient.SendMessage(Configuration.Channel, string.Format(Translator.GetTranslation("gameClawResponseNoQueue", Configuration.UserList.GetUserLocalization(username)), Configuration.CommandPrefix));
                 }
                 else if (matches.Count > 0 && matches.Count * 2 == msg.Length && matches.Count < 10)
                 {
-                    ChatClient.SendMessage(Configuration.Channel, Configuration.QueueNoPlayersText);
+                    ChatClient.SendMessage(Configuration.Channel, string.Format(Translator.GetTranslation("gameClawResponseNoQueue", Configuration.UserList.GetUserLocalization(username)), Configuration.CommandPrefix));
                 }
             }
             //all we need to do is verify the only person controlling it is the one who voted for it
@@ -308,7 +318,7 @@ namespace InternetClawMachine.Games.ClawGame
                     CurrentDroppingPlayer.Username = PlayerQueue.CurrentPlayer;
                     CurrentDroppingPlayer.GameLoop = GameLoopCounterValue;
                     cmd = ClawDirection.DOWN;
-                    var usr = username;
+                    var usr = Configuration.UserList.GetUser(username);
 
                     var user = SessionWinTracker.FirstOrDefault(u => u.Username == username);
                     if (user != null)
@@ -319,14 +329,24 @@ namespace InternetClawMachine.Games.ClawGame
                         SessionWinTracker.Add(user);
                     }
 
+                    var teamid = usr.TeamId;
+                    if (Configuration.EventMode.TeamRequired)
+                        teamid = usr.EventTeamId;
+
+                    var team = Teams.FirstOrDefault(t => t.Id == teamid);
+                    if (team != null)
+                    {
+                        team.Drops++;
+                    }
+
                     user.Drops++;
 
                     RefreshWinList();
                     try
                     {
-                        if (!WinnersList.Contains(usr)) //add name to drop list
+                        if (!WinnersList.Contains(username)) //add name to drop list
                         {
-                            WinnersList.Add(usr);
+                            WinnersList.Add(username);
                         }
                     }
                     catch (Exception ex)

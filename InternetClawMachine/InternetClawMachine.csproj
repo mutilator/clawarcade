@@ -229,6 +229,7 @@
     <Compile Include="Chat\MixerChatAPI.cs" />
     <Compile Include="DatabaseFunctions.cs" />
     <Compile Include="EpochToDate.cs" />
+    <Compile Include="Games\GameHelpers\GameTeam.cs" />
     <Compile Include="Settings\EventModeArgs.cs" />
     <Compile Include="Settings\EventModeSettings.cs" />
     <Compile Include="Games\ClawGame\PlayWinClipEventArgs.cs" />

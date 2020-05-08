@@ -84,7 +84,7 @@
             <Button Content="Left" HorizontalAlignment="Left" Margin="508,59,0,0" VerticalAlignment="Top" Width="76" x:Name="btnLeft" PreviewMouseDown="btnLeft_MouseDown" PreviewMouseUp="btnLeft_MouseUp" />
             <Button Content="Right" HorizontalAlignment="Left" Margin="689,59,0,0" VerticalAlignment="Top" Width="74" x:Name="btnRight" PreviewMouseDown="btnRight_MouseDown" PreviewMouseUp="btnRight_MouseUp" />
             <Button Content="Drop" HorizontalAlignment="Left" Margin="606,59,0,0" VerticalAlignment="Top" Width="64" x:Name="btnDrop" PreviewMouseDown="btnDrop_MouseDown" PreviewMouseUp="btnDrop_MouseUp" />
-            <ListBox HorizontalAlignment="Left" Height="186" Margin="371,43,0,0" VerticalAlignment="Top" Width="125" x:Name="lstViewers" Background="Black" Foreground="#FF408080" BorderBrush="Red" BorderThickness="0" />
+            <ListBox HorizontalAlignment="Left" Height="186" Margin="371,43,0,0" VerticalAlignment="Top" Width="125" x:Name="lstViewers" Background="Black" Foreground="#FF408080" BorderBrush="Red" BorderThickness="0" ItemsSource="{Binding UserList}" DisplayMemberPath="Username"/>
             <Label Content="Viewers" HorizontalAlignment="Left" Margin="371,14,0,0" VerticalAlignment="Top" />
             <Button Content="Reconnect" HorizontalAlignment="Left" Margin="371,312,0,0" VerticalAlignment="Top" Width="125" x:Name="btnReconnect" Click="btnReconnect_Click" />
             <Button Content="Pause" HorizontalAlignment="Left" Margin="134,297,0,0" VerticalAlignment="Top" Width="75" x:Name="btnPause" Click="btnPause_Click" />

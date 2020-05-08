@@ -60,7 +60,7 @@ namespace InternetClawMachine.Games.ClawGame
                 case "down":
                 case "drop":
                     cmd = ClawDirection.DOWN;
-                    var usr = username;
+                    var usr = Configuration.UserList.GetUser(username);
 
                     var user = SessionWinTracker.FirstOrDefault(u => u.Username == username);
                     if (user != null)
@@ -71,14 +71,24 @@ namespace InternetClawMachine.Games.ClawGame
                         SessionWinTracker.Add(user);
                     }
 
+                    var teamid = usr.TeamId;
+                    if (Configuration.EventMode.TeamRequired)
+                        teamid = usr.EventTeamId;
+
+                    var team = Teams.FirstOrDefault(t => t.Id == teamid);
+                    if (team != null)
+                    {
+                        team.Drops++;
+                    }
+
                     user.Drops++;
 
                     RefreshWinList();
                     try
                     {
-                        if (!WinnersList.Contains(usr)) //add name to drop list
+                        if (!WinnersList.Contains(username)) //add name to drop list
                         {
-                            WinnersList.Add(usr);
+                            WinnersList.Add(username);
                         }
                     }
                     catch (Exception ex)

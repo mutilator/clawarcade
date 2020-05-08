@@ -106,13 +106,18 @@ namespace InternetClawMachine.Games.ClawGame
             Task.Run(async delegate ()
             {
                 ObsConnection.SetSourceRender("BrowserSounds", false, "VideosScene");
-                await Task.Delay(1000);
+                await Task.Delay(3000);
                 ObsConnection.SetSourceRender("BrowserSounds", true, "VideosScene");
             });
         }
 
         private void Configuration_EventModeChanged(object sender, EventModeArgs e)
         {
+            //create new session
+            Configuration.SessionGuid = Guid.NewGuid();
+            DatabaseFunctions.WriteDbSessionRecord(Configuration, Configuration.SessionGuid.ToString(), (int)Configuration.EventMode.EventMode, Configuration.EventMode.DisplayName);
+
+
             InitializeEventSettings(e.Event);
         }
 
@@ -126,6 +131,28 @@ namespace InternetClawMachine.Games.ClawGame
                     ((ClawController)MachineControl).SendCommandAsync("shome " + (int)Configuration.EventMode.ClawHomeLocation);
                 }
                 catch { }
+                try
+                {
+                    ((ClawController)MachineControl).SendCommandAsync("mode " + (int)Configuration.EventMode.ClawMode);
+                }
+                catch { }
+            }
+
+            //set the greenscreen override
+            Configuration.ClawSettings.GreenScreenOverrideOff = eventConfig.GreenScreenOverrideOff;
+            if (Configuration.ClawSettings.GreenScreenOverrideOff)
+            {
+                DisableGreenScreen();
+            }
+
+
+            //Load all teams
+            if (eventConfig.EventMode == EventMode.NORMAL)
+            {
+                Teams = DatabaseFunctions.GetTeams(Configuration);
+            } else
+            {
+                Teams = DatabaseFunctions.GetTeams(Configuration, Configuration.SessionGuid.ToString());
             }
 
             //Lights
@@ -595,8 +622,21 @@ namespace InternetClawMachine.Games.ClawGame
                 winner = null;
             }
 
+            
+
             if (!string.IsNullOrEmpty(winner))
             {
+                var usr = Configuration.UserList.GetUser(winner);
+                var teamid = usr.TeamId;
+                if (Configuration.EventMode.TeamRequired)
+                    teamid = usr.EventTeamId;
+
+                var team = Teams.FirstOrDefault(t => t.Id == teamid);
+                if (team != null)
+                {
+                    team.Wins++;
+                }
+
                 //see if they're in the tracker yeta
                 var user = SessionWinTracker.FirstOrDefault(u => u.Username == winner);
                 if (user != null)
@@ -622,15 +662,15 @@ namespace InternetClawMachine.Games.ClawGame
                     DatabaseFunctions.AddStreamBuxBalance(Configuration, user.Username, StreamBuxTypes.WIN, Configuration.GetStreamBuxCost(StreamBuxTypes.WIN));
 
                     if (objPlush.BonusBux > 0)
-                        DatabaseFunctions.AddStreamBuxBalance(Configuration, user.Username, StreamBuxTypes.WIN, objPlush.BonusBux);
+                        DatabaseFunctions.AddStreamBuxBalance(Configuration, usr.Username, StreamBuxTypes.WIN, objPlush.BonusBux);
 
-                    WriteDbWinRecord(user.Username, objPlush.PlushId, Configuration.SessionGuid.ToString());
+                    DatabaseFunctions.WriteDbWinRecord(Configuration, usr, objPlush.PlushId, Configuration.SessionGuid.ToString());
                 } else
                 {
                     saying = string.Format(Translator.GetTranslation("gameClawGrabSomething", Configuration.UserList.GetUserLocalization(winner)), winner);
-                    DatabaseFunctions.AddStreamBuxBalance(Configuration, user.Username, StreamBuxTypes.WIN, Configuration.GetStreamBuxCost(StreamBuxTypes.WIN));
+                    DatabaseFunctions.AddStreamBuxBalance(Configuration, usr.Username, StreamBuxTypes.WIN, Configuration.GetStreamBuxCost(StreamBuxTypes.WIN));
 
-                    WriteDbWinRecord(user.Username, -1, Configuration.SessionGuid.ToString());
+                    DatabaseFunctions.WriteDbWinRecord(Configuration, usr, -1, Configuration.SessionGuid.ToString());
                 }
                 
                 //increment their wins
@@ -701,14 +741,29 @@ namespace InternetClawMachine.Games.ClawGame
                 File.WriteAllText(Configuration.FileDrops, dropString);
 
                 //TODO - Can this be a text field too?
-                var winners = SessionWinTracker.OrderByDescending(u => u.Wins).ThenByDescending(u => u.Drops).ToList();
-                var output = "Session Leaderboard:\r\n";
-                for (var i = 0; i < winners.Count; i++)
+                if (Configuration.EventMode.TeamRequired)
                 {
-                    output += string.Format("{0} - {1} wins, {2} drops\r\n", winners[i].Username, winners[i].Wins, winners[i].Drops);
+                    var winners = Teams.OrderByDescending(u => u.Wins).ThenByDescending(u => u.Drops).ToList();
+                    var output = "Teams:\r\n";
+                    for (var i = 0; i < winners.Count; i++)
+                    {
+                        output += string.Format("{0} - \t\t{1} ships sunk, {2} bombardments\r\n", winners[i].Name, winners[i].Wins, winners[i].Drops);
+                    }
+                    output += "\r\n\r\n\r\n\r\n\r\n";
+                    File.WriteAllText(Configuration.FileLeaderboard, output);
+                
                 }
-                output += "\r\n\r\n\r\n\r\n\r\n";
-                File.WriteAllText(Configuration.FileLeaderboard, output);
+                else
+                {
+                    var winners = SessionWinTracker.OrderByDescending(u => u.Wins).ThenByDescending(u => u.Drops).ToList();
+                    var output = "Session Leaderboard:\r\n";
+                    for (var i = 0; i < winners.Count; i++)
+                    {
+                        output += string.Format("{0} - {1} wins, {2} drops\r\n", winners[i].Username, winners[i].Wins, winners[i].Drops);
+                    }
+                    output += "\r\n\r\n\r\n\r\n\r\n";
+                    File.WriteAllText(Configuration.FileLeaderboard, output);
+                }
             }
             catch (Exception ex)
             {
@@ -847,7 +902,7 @@ namespace InternetClawMachine.Games.ClawGame
 
             try
             {
-
+                //TODO use a handler for this rather than a switch, allow commands to be their own classes
 
                 switch (translateCommand.FinalWord)
                 {
@@ -960,7 +1015,76 @@ namespace InternetClawMachine.Games.ClawGame
                             }
                         }
                         break;
-                    //TODO - move to each games class
+                    case "join": //join a team
+
+                        //no team chosen
+                        if (!chatMessage.Contains(" "))
+                        {
+                            ChatClient.SendMessage(Configuration.Channel, string.Format(Translator.GetTranslation("gameClawCommandTeamsInvalid", Configuration.UserList.GetUserLocalization(username)), Teams.Count));
+                            return;
+                        }
+
+                        var teamName = chatMessage.Substring(chatMessage.IndexOf(" ")).Trim();
+                        //no team chosen
+                        if (teamName.Length == 0)
+                        {
+                            ChatClient.SendMessage(Configuration.Channel, string.Format(Translator.GetTranslation("gameClawCommandTeamsInvalid", Configuration.UserList.GetUserLocalization(username)), Teams.Count));
+                            return;
+                        }
+
+                        var team = Teams.FirstOrDefault(t => t.Name.ToLower() == teamName);
+
+                        //no team found
+                        if (team == null)
+                        {
+                            ChatClient.SendMessage(Configuration.Channel, string.Format(Translator.GetTranslation("gameClawCommandTeamsInvalid", Configuration.UserList.GetUserLocalization(username))));
+                            return;
+                        }
+
+                        //during normal play you can join any team
+                        if (Configuration.EventMode.EventMode == EventMode.NORMAL)
+                        {
+                            userPrefs.TeamId = team.Id;
+                        }
+                        else if (Configuration.EventMode.EventMode == EventMode.SPECIAL) //during event play you have to pick a team and stick to it
+                        {
+                            //cannot join a new team
+                            if (userPrefs.EventTeamId > 0)
+                            {
+                                ChatClient.SendMessage(Configuration.Channel, string.Format(Translator.GetTranslation("gameClawCommandTeamsExisting", Configuration.UserList.GetUserLocalization(username))));
+                                return;
+                            }
+                            userPrefs.EventTeamId = team.Id;
+                        }
+
+                        DatabaseFunctions.WriteUserPrefs(Configuration, userPrefs);
+
+                        ChatClient.SendMessage(Configuration.Channel, string.Format(Translator.GetTranslation("gameClawCommandTeamsJoined", Configuration.UserList.GetUserLocalization(username)), teamName));
+
+                        break;
+                    case "team": //get team stats
+
+                        break;
+                    case "teams":
+                        if (!Configuration.AdminUsers.Contains(username))
+                            return;
+
+                        var teams = chatMessage.Substring(chatMessage.IndexOf(" ")).Split(',');
+                        foreach (var t in teams)
+                        {
+                            DatabaseFunctions.CreateTeam(Configuration, t.Trim(), Configuration.SessionGuid.ToString());
+                        }
+                        Teams = DatabaseFunctions.GetTeams(Configuration, Configuration.SessionGuid.ToString());
+
+                        //clear users
+                        foreach(var user in Configuration.UserList)
+                        {
+                            user.EventTeamId = 0;
+                        }
+
+                        ChatClient.SendMessage(Configuration.Channel, string.Format(Translator.GetTranslation("gameClawCommandTeamsAdded", Configuration.UserList.GetUserLocalization(username)), Teams.Count));
+                        break;
+
                     case "play": //probably let them handle their own play is better
                                  //auto update their localization if they use a command in another language
                         if (commandText != translateCommand.FinalWord || (userPrefs.Localization == null || !userPrefs.Localization.Equals(translateCommand.SourceLocalization)))
@@ -2241,20 +2365,24 @@ namespace InternetClawMachine.Games.ClawGame
             //if no user prefs, then we just load defaults here, generally this is the end of a users turn so we set back to defaults
             if (userPrefs == null && Configuration.EventMode.EventMode == EventMode.NORMAL)
             {
+                try
+                {
+                    //if the background override was set check if we need to revert it
+                    if (Configuration.ClawSettings.ObsGreenScreenActive.TimeActivated > 0 && Helpers.GetEpoch() - Configuration.ClawSettings.ObsGreenScreenActive.TimeActivated >= 86400)
+                        Configuration.ClawSettings.ObsGreenScreenActive = Configuration.ClawSettings.ObsGreenScreenDefault;
 
-                //if the background override was set check if we need to revert it
-                if (Configuration.ClawSettings.ObsGreenScreenActive.TimeActivated > 0 && Helpers.GetEpoch() - Configuration.ClawSettings.ObsGreenScreenActive.TimeActivated >= 86400)
-                    Configuration.ClawSettings.ObsGreenScreenActive = Configuration.ClawSettings.ObsGreenScreenDefault;
+                    foreach (var bg in Configuration.ClawSettings.ObsGreenScreenOptions)
+                        foreach (var scene in bg.Scenes)
+                            ObsConnection.SetSourceRender(scene, bg.Name == Configuration.ClawSettings.ObsGreenScreenActive.Name);
 
-                foreach (var bg in Configuration.ClawSettings.ObsGreenScreenOptions)
-                    foreach (var scene in bg.Scenes)
-                        ObsConnection.SetSourceRender(scene, bg.Name == Configuration.ClawSettings.ObsGreenScreenActive.Name);
 
-                
-                var theme = Configuration.ClawSettings.WireThemes.Find(t => t.Name.ToLower() == "default");
+                    var theme = Configuration.ClawSettings.WireThemes.Find(t => t.Name.ToLower() == "default");
 
-                ChangeWireTheme(theme);
-                
+                    ChangeWireTheme(theme);
+                } catch
+                {
+
+                }
 
                 return;
             } else if (userPrefs == null)
@@ -2727,37 +2855,5 @@ namespace InternetClawMachine.Games.ClawGame
             });
         }
 
-        internal void WriteDbWinRecord(string name, int prize)
-        {
-            WriteDbWinRecord(name, prize, Configuration.SessionGuid.ToString());
-        }
-
-        internal void WriteDbWinRecord(string name, int prize, string guid)
-        {
-            if (!Configuration.RecordStats)
-                return;
-
-            lock (Configuration.RecordsDatabase)
-            {
-                try
-                {
-                    Configuration.RecordsDatabase.Open();
-                    var sql = "INSERT INTO wins (datetime, name, PlushID, guid) VALUES (" + Helpers.GetEpoch() + ", '" + name + "', " + prize + ", '" + guid + "')";
-                    var command = new SQLiteCommand(sql, Configuration.RecordsDatabase);
-                    command.ExecuteNonQuery();
-                }
-                catch (Exception ex)
-                {
-                    var error = string.Format("ERROR {0} {1}", ex.Message, ex);
-                    Logger.WriteLog(Logger.ErrorLog, error);
-
-                    Configuration.LoadDatebase();
-                }
-                finally
-                {
-                    Configuration.RecordsDatabase.Close();
-                }
-            }
-        }
     }
 }

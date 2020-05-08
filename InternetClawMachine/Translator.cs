@@ -101,10 +101,10 @@ namespace InternetClawMachine
     class Localization
     {
         [JsonProperty("localization")]
-        public string Name;
+        public string Name { set; get; }
 
         [JsonProperty("dictionary")]
-        public Dictionary<string, string> Dictionary;
+        public Dictionary<string, string> Dictionary { set; get; }
 
     }
 
