@@ -180,6 +180,7 @@ namespace InternetClawMachine
                 var message = string.Format("{0} left the channel", e.Username);
                 LogChat("#" + e.Channel, message);
                 Configuration.UserList.Remove(e.Username);
+
                 //Dispatcher?.BeginInvoke(new Action(() => { lstViewers.Items.Remove(e.Username); }));
             }
             catch (Exception ex)
@@ -198,16 +199,18 @@ namespace InternetClawMachine
 
                 var userPrefs = DatabaseFunctions.GetUserPrefs(Configuration, e.Username);
                 if (userPrefs != null)
-                    Configuration.UserList.Add(userPrefs);
-
-                /*var add = true;
-                foreach (var itm in lstViewers.Items)
-                    if ((string)itm == e.Username.ToLower())
-                        add = false;
-                if (add)
                 {
-                    //Dispatcher?.BeginInvoke(new Action(() => { lstViewers.Items.Add(e.Username); }));
-                }*/
+                    Configuration.UserList.Add(userPrefs);
+                    //Dispatcher?.BeginInvoke(new Action(() => { if (!lstViewers.Items.Contains(userPrefs.Username)) { lstViewers.Items.Add(userPrefs.Username); } }));
+                }
+                    /*var add = true;
+                    foreach (var itm in lstViewers.Items)
+                        if ((string)itm == e.Username.ToLower())
+                            add = false;
+                    if (add)
+                    {
+                        //
+                    }*/
             } catch (Exception ex)
             {
                 var error = string.Format("ERROR {0} {1}", ex.Message, ex);
@@ -241,8 +244,9 @@ namespace InternetClawMachine
         private void Client_OnConnected(object sender, OnConnectedArgs e)
         {
             try
-            { 
-                Configuration.UserList.Clear();
+            {
+                Dispatcher?.BeginInvoke(new Action(() => { Configuration.UserList.Clear(); }));
+                
                 AddDebugText("Connected: " + e.AutoJoinChannel);
                 _reconnectWaitDelay = _reconnectWaitDelayInitial;
                 StopChatConnectionWatchDog();
@@ -579,7 +583,8 @@ namespace InternetClawMachine
                                 Configuration.GetStreamBuxCost(StreamBuxTypes.SCARE) * -1,
                                 Configuration.GetStreamBuxCost(StreamBuxTypes.SCENE) * -1,
                                 Configuration.GetStreamBuxCost(StreamBuxTypes.BELT) * -1,
-                                Configuration.GetStreamBuxCost(StreamBuxTypes.RENAME) * -1));
+                                Configuration.GetStreamBuxCost(StreamBuxTypes.RENAME) * -1,
+                                Configuration.GetStreamBuxCost(StreamBuxTypes.NEWBOUNTY) * -1));
                     }
 
                     /*
@@ -689,176 +694,9 @@ namespace InternetClawMachine
                                 Configuration.UserList.GetUserLocalization(username)), user, clawBux));
                     break;
 
-                case "mystats":
-                case "stats":
-                    lock (Configuration.RecordsDatabase)
-                    {
-                        //TODO abstract all this custom database stuff
-                        try
-                        {
-                            user = username;
-                            if (commandText.ToLower() == "stats")
-                            {
-                                param = chatMessage.Split(' ');
-                                if (param.Length == 2)
-                                {
-                                    user = param[1].ToLower();
-                                }
-                            }
+                
 
-                            Configuration.RecordsDatabase.Open();
-                            var sql = "SELECT count(*) FROM wins WHERE name = @username";
-                            var command = new SQLiteCommand(sql, Configuration.RecordsDatabase);
-                            command.Parameters.Add(new SQLiteParameter("@username", user));
-                            var wins = command.ExecuteScalar().ToString();
-
-                            sql = "select count(*) FROM (select distinct guid FROM movement WHERE name = @username)";
-                            command = new SQLiteCommand(sql, Configuration.RecordsDatabase);
-                            command.Parameters.Add(new SQLiteParameter("@username", user));
-                            var sessions = command.ExecuteScalar().ToString();
-
-                            sql = "select count(*) FROM movement WHERE name = @username AND direction <> 'NA'";
-                            command = new SQLiteCommand(sql, Configuration.RecordsDatabase);
-                            command.Parameters.Add(new SQLiteParameter("@username", user));
-                            var moves = command.ExecuteScalar().ToString();
-
-                            var i = 0;
-                            var outputTop = "";
-
-                            sql =
-                                "select p.name, count(*) FROM wins w INNER JOIN plushie p ON w.PlushID = p.ID WHERE w.name = @username GROUP BY w.plushID ORDER BY count(*) DESC";
-                            command = new SQLiteCommand(sql, Configuration.RecordsDatabase);
-                            command.Parameters.Add(new SQLiteParameter("@username", user));
-                            using (var topPlushies = command.ExecuteReader())
-                            {
-                                while (topPlushies.Read())
-                                {
-                                    i++;
-                                    outputTop += topPlushies.GetValue(0) + " - " + topPlushies.GetValue(1) + "\r\n";
-                                    if (i >= 3)
-                                        break;
-                                }
-                            }
-
-                            Configuration.RecordsDatabase.Close();
-
-                            clawBux = DatabaseFunctions.GetStreamBuxBalance(Configuration, user);
-                            Client.SendMessage(Configuration.Channel,
-                                string.Format(
-                                    Translator.GetTranslation("responseCommandStats1",
-                                        Configuration.UserList.GetUserLocalization(username)), user, wins, sessions,
-                                    moves, clawBux));
-                            Client.SendMessage(Configuration.Channel,
-                                string.Format(
-                                    Translator.GetTranslation("responseCommandStats2",
-                                        Configuration.UserList.GetUserLocalization(username)), i));
-                            Client.SendMessage(Configuration.Channel, string.Format("{0}", outputTop));
-                        }
-                        catch (Exception ex)
-                        {
-                            var error = string.Format("ERROR {0} {1}", ex.Message, ex);
-                            Logger.WriteLog(Logger.ErrorLog, error);
-                            Configuration.LoadDatebase();
-                        }
-                    }
-
-                    break;
-
-                case "leaders":
-                    //auto update their localization if they use a command in another language
-                    if (commandText != translateCommand.FinalWord ||
-                        (userPrefs.Localization == null ||
-                         !userPrefs.Localization.Equals(translateCommand.SourceLocalization)))
-                    {
-                        if (userPrefs.Localization == null ||
-                            !userPrefs.Localization.Equals(translateCommand.SourceLocalization))
-                        {
-                            userPrefs.Localization = translateCommand.SourceLocalization;
-                            DatabaseFunctions.WriteUserPrefs(Configuration, userPrefs);
-                        }
-                    }
-
-                    lock (Configuration.RecordsDatabase)
-                    {
-                        try
-                        {
-                            Configuration.RecordsDatabase.Open();
-
-                            var i = 0;
-                            var outNumWins = 0;
-                            var outputWins = new List<string>();
-
-                            //week
-                            var desc = Translator.GetTranslation("responseCommandLeadersWeek",
-                                Configuration.UserList.GetUserLocalization(username));
-                            string timestart = (Helpers.GetEpoch() - (int) DateTime.UtcNow
-                                                    .Subtract(DateTime.Now.StartOfWeek(DayOfWeek.Monday)).TotalSeconds)
-                                .ToString();
-
-                            var leadersql =
-                                "SELECT name, count(*) FROM wins WHERE datetime >= @timestart GROUP BY name ORDER BY count(*) DESC";
-                            param = chatMessage.Split(' ');
-
-                            if (param.Length == 2)
-                            {
-                                switch (param[1])
-                                {
-                                    case "all":
-                                        desc = Translator.GetTranslation("responseCommandLeadersAll",
-                                            Configuration.UserList.GetUserLocalization(username));
-                                        timestart = "0"; //first record in db, wow this is so bad..
-                                        break;
-
-                                    case "month":
-                                        desc = Translator.GetTranslation("responseCommandLeadersMonth",
-                                            Configuration.UserList.GetUserLocalization(username));
-                                        timestart = (Helpers.GetEpoch() - (int) DateTime.UtcNow
-                                                         .Subtract(new DateTime(DateTime.Today.Year,
-                                                             DateTime.Today.Month, 1)).TotalSeconds).ToString();
-                                        break;
-
-                                    case "day":
-                                        desc = Translator.GetTranslation("responseCommandLeadersToday",
-                                            Configuration.UserList.GetUserLocalization(username));
-                                        timestart = (Helpers.GetEpoch() - (int) DateTime.UtcNow
-                                                         .Subtract(new DateTime(DateTime.Today.Year,
-                                                             DateTime.Today.Month, DateTime.Today.Day, 0, 0, 0))
-                                                         .TotalSeconds).ToString();
-                                        break;
-                                }
-                            }
-
-                            var command = new SQLiteCommand(leadersql, Configuration.RecordsDatabase);
-                            command.Parameters.Add(new SQLiteParameter("@timestart", timestart));
-                            using (var leaderWins = command.ExecuteReader())
-                            {
-                                while (leaderWins.Read())
-                                {
-                                    i++;
-                                    outputWins.Add(leaderWins.GetValue(0) + " - " + leaderWins.GetValue(1));
-                                    if (i >= 4)
-                                        break;
-                                }
-
-                                outNumWins = i;
-                            }
-
-                            Configuration.RecordsDatabase.Close();
-
-                            Client.SendMessage(Configuration.Channel, string.Format(desc, outNumWins));
-                            foreach (var win in outputWins)
-                                Client.SendMessage(Configuration.Channel, win);
-                        }
-                        catch (Exception ex)
-                        {
-                            var error = string.Format("ERROR {0} {1}", ex.Message, ex);
-                            Logger.WriteLog(Logger.ErrorLog, error);
-
-                            Configuration.LoadDatebase();
-                        }
-                    }
-
-                    break;
+                
             }
         }
 
@@ -904,9 +742,17 @@ namespace InternetClawMachine
 
             Configuration.UserList = new UserList();
 
+
             //StartGame(null);
 
             DataContext = Configuration;
+            lstViewers.Items.SortDescriptions.Add(
+
+    new System.ComponentModel.SortDescription("Content",
+
+       System.ComponentModel.ListSortDirection.Ascending));
+
+
             //messing with other streaming services
             if (Configuration.UsingMixer)
             {
@@ -1137,63 +983,76 @@ namespace InternetClawMachine
             //hackidy hack hack
             //the join notification doesn't appear as soon as a person joins so we add them to the user list when we see them talk
 
-            if (!Configuration.UserList.Contains(username))
-            {
-                var userPrefs = DatabaseFunctions.GetUserPrefs(Configuration, username);
+            try { 
+                if (!Configuration.UserList.Contains(username))
+                {
+                    var userPrefs = DatabaseFunctions.GetUserPrefs(Configuration, username);
+                    Configuration.UserList.Add(userPrefs);
+                    /*
+                    Dispatcher?.BeginInvoke(new Action(() => {
+                        if (!lstViewers.Items.Contains(userPrefs.Username)) {
+                            lstViewers.Items.Add(userPrefs.Username);
+                        }
+                    }));
+                    */
+                }
 
-                Configuration.UserList.Add(userPrefs);
+                var message = string.Format("<{0}> {1}", username, e.ChatMessage.Message);
+                AddDebugText(message);
 
-                //Dispatcher?.BeginInvoke(new Action(() => { lstViewers.Items.Add(e.ChatMessage.Username.ToLower()); }));
+                if (e.ChatMessage.Message.StartsWith(Configuration.CommandPrefix) ||
+                    !string.IsNullOrEmpty(e.ChatMessage.CustomRewardId))
+                {
+                    HandleChatCommand(e.ChatMessage.Channel, username, e.ChatMessage.Message, e.ChatMessage.IsSubscriber,
+                        e.ChatMessage.CustomRewardId);
+                    return;
+                }
+
+
+
+            
+
+                LogChat("#" + e.ChatMessage.Channel, message);
+                RunCurrentGameMode(username, e.ChatMessage.Message, e.ChatMessage.Channel, e.ChatMessage.IsSubscriber);
+
+                //do some bits notifications
+                if (e.ChatMessage.Bits > 0)
+                {
+                    HandleBitsMessage(e);
+                }
+
+
+                if (e.ChatMessage.Message.ToLower().Contains(Translator.GetTranslation("actionWordRigged",
+                    Configuration.UserList.GetUserLocalization(username))))
+                {
+                    Client.SendMessage(Configuration.Channel,
+                        Translator.GetTranslation("responseRigged", Configuration.UserList.GetUserLocalization(username)));
+                }
+                else if (e.ChatMessage.Message.ToLower().Trim().Equals(Translator.GetTranslation("actionWordDoh",
+                    Configuration.UserList.GetUserLocalization(username))))
+                {
+                    PlayDoh();
+                }
+                else if (e.ChatMessage.Message.ToLower().Trim().Equals(Translator.GetTranslation("actionWordOops",
+                             Configuration.UserList.GetUserLocalization(username))) ||
+                         e.ChatMessage.Message.ToLower().Trim().Equals(Translator.GetTranslation("actionWordNooo",
+                             Configuration.UserList.GetUserLocalization(username))) ||
+                         e.ChatMessage.Message.ToLower().Trim().Equals(Translator.GetTranslation("actionWordNoooo",
+                             Configuration.UserList.GetUserLocalization(username))) ||
+                         e.ChatMessage.Message.ToLower().Trim().Equals(Translator.GetTranslation("actionWordNooooo",
+                             Configuration.UserList.GetUserLocalization(username))) ||
+                         e.ChatMessage.Message.ToLower().Trim().Equals(Translator.GetTranslation("actionWordNoooooo",
+                             Configuration.UserList.GetUserLocalization(username))) ||
+                         e.ChatMessage.Message.ToLower().Trim().Contains(Translator.GetTranslation("actionWordBibleThump",
+                             Configuration.UserList.GetUserLocalization(username))))
+                {
+                    PlaySadTrombone();
+                }
             }
-
-            if (e.ChatMessage.Message.StartsWith(Configuration.CommandPrefix) ||
-                !string.IsNullOrEmpty(e.ChatMessage.CustomRewardId))
+            catch (Exception ex)
             {
-                HandleChatCommand(e.ChatMessage.Channel, username, e.ChatMessage.Message, e.ChatMessage.IsSubscriber,
-                    e.ChatMessage.CustomRewardId);
-                return;
-            }
-
-
-
-            var message = string.Format("<{0}> {1}", username, e.ChatMessage.Message);
-            AddDebugText(message);
-
-            LogChat("#" + e.ChatMessage.Channel, message);
-            RunCurrentGameMode(username, e.ChatMessage.Message, e.ChatMessage.Channel, e.ChatMessage.IsSubscriber);
-
-            //do some bits notifications
-            if (e.ChatMessage.Bits > 0)
-            {
-                HandleBitsMessage(e);
-            }
-
-
-            if (e.ChatMessage.Message.ToLower().Contains(Translator.GetTranslation("actionWordRigged",
-                Configuration.UserList.GetUserLocalization(username))))
-            {
-                Client.SendMessage(Configuration.Channel,
-                    Translator.GetTranslation("responseRigged", Configuration.UserList.GetUserLocalization(username)));
-            }
-            else if (e.ChatMessage.Message.ToLower().Trim().Equals(Translator.GetTranslation("actionWordDoh",
-                Configuration.UserList.GetUserLocalization(username))))
-            {
-                PlayDoh();
-            }
-            else if (e.ChatMessage.Message.ToLower().Trim().Equals(Translator.GetTranslation("actionWordOops",
-                         Configuration.UserList.GetUserLocalization(username))) ||
-                     e.ChatMessage.Message.ToLower().Trim().Equals(Translator.GetTranslation("actionWordNooo",
-                         Configuration.UserList.GetUserLocalization(username))) ||
-                     e.ChatMessage.Message.ToLower().Trim().Equals(Translator.GetTranslation("actionWordNoooo",
-                         Configuration.UserList.GetUserLocalization(username))) ||
-                     e.ChatMessage.Message.ToLower().Trim().Equals(Translator.GetTranslation("actionWordNooooo",
-                         Configuration.UserList.GetUserLocalization(username))) ||
-                     e.ChatMessage.Message.ToLower().Trim().Equals(Translator.GetTranslation("actionWordNoooooo",
-                         Configuration.UserList.GetUserLocalization(username))) ||
-                     e.ChatMessage.Message.ToLower().Trim().Contains(Translator.GetTranslation("actionWordBibleThump",
-                         Configuration.UserList.GetUserLocalization(username))))
-            {
-                PlaySadTrombone();
+                var error = string.Format("ERROR {0} {1}", ex.Message, ex);
+                Logger.WriteLog(Logger.ErrorLog, error);
             }
         }
 

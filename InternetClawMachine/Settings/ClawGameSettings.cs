@@ -207,6 +207,8 @@ namespace InternetClawMachine.Settings
         public WireTheme ActiveWireTheme { set; get; }
 
         public List<OBSSceneFilters> WireFrameList { set; get; }
+        public List<ReticleOption> ReticleOptions { get; set; }
+        public ReticleOption ActiveReticle { get; set; }
 
         public event PropertyChangedEventHandler PropertyChanged;
 

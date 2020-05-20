@@ -166,6 +166,9 @@ namespace InternetClawMachine.Games.ClawGame
             if (eventConfig.WireTheme != null)
                 ChangeWireTheme(eventConfig.WireTheme);
 
+            if (eventConfig.Reticle != null)
+                ChangeReticle(eventConfig.Reticle);
+
             //grab current scene to make sure we skin all scenes
             var currentscene = ObsConnection.GetCurrentScene().Name;
 
@@ -868,11 +871,11 @@ namespace InternetClawMachine.Games.ClawGame
 
             //if a reward id change command text to reflect the scene
             if (customRewardId == "5214ca8d-12de-4510-9a63-8c05afaa4718")
-                chatMessage = Configuration.CommandPrefix + "scene 1";
+                chatMessage = Configuration.CommandPrefix + "scene " + chatMessage;
             else if (customRewardId == "834af606-e51b-4cba-b855-6ddf20d48215")
-                chatMessage = Configuration.CommandPrefix + "scene 3";
+                chatMessage = Configuration.CommandPrefix + "chrtcl " + chatMessage;
             else if (customRewardId == "fa9570b9-7d7a-481d-b8bf-3c500ac68af5")
-                chatMessage = Configuration.CommandPrefix + "scene 2";
+                chatMessage = Configuration.CommandPrefix + "redeem newbounty";
             else if (customRewardId == "8d916ecf-e8fe-4732-9b55-147c59adc3d8")
                 chatMessage = Configuration.CommandPrefix + "chmygsbg " + chatMessage;
             else if (customRewardId == "162a508c-6603-46dd-96b4-cbd837c80454")
@@ -907,6 +910,7 @@ namespace InternetClawMachine.Games.ClawGame
                 switch (translateCommand.FinalWord)
                 {
                     case "theme":
+
                         if (customRewardId == "e73b59d1-d716-4348-9faf-00daaf0b4d92")
                         {
                             var cbwargs = chatMessage.Split(' ');
@@ -927,6 +931,32 @@ namespace InternetClawMachine.Games.ClawGame
                                     DatabaseFunctions.WriteUserPrefs(Configuration, userPrefs);
                                     if (PlayerQueue.CurrentPlayer.ToLower() == username.ToLower())
                                         ChangeWireTheme(opt);
+                                    break;
+                                }
+                            }
+                        }
+                        break;
+                    case "chrtcl":
+                        if (customRewardId == "834af606-e51b-4cba-b855-6ddf20d48215")
+                        {
+                            var cbwargs = chatMessage.Split(' ');
+                            if (cbwargs.Length != 2)
+                            {
+                                return;
+                            }
+
+                            var reticleSelected = cbwargs[1].ToLower();
+
+                            //todo do this better
+
+                            foreach (var opt in Configuration.ClawSettings.ReticleOptions)
+                            {
+                                if (opt.RedemptionName.ToLower() == reticleSelected)
+                                {
+                                    userPrefs.ReticleName = opt.RedemptionName;
+                                    DatabaseFunctions.WriteUserPrefs(Configuration, userPrefs);
+                                    if (PlayerQueue.CurrentPlayer.ToLower() == username.ToLower())
+                                        ChangeReticle(opt);
                                     break;
                                 }
                             }
@@ -1025,6 +1055,7 @@ namespace InternetClawMachine.Games.ClawGame
                         }
 
                         var teamName = chatMessage.Substring(chatMessage.IndexOf(" ")).Trim();
+
                         //no team chosen
                         if (teamName.Length == 0)
                         {
@@ -1032,13 +1063,31 @@ namespace InternetClawMachine.Games.ClawGame
                             return;
                         }
 
-                        var team = Teams.FirstOrDefault(t => t.Name.ToLower() == teamName);
+                        var team = Teams.FirstOrDefault(t => t.Name.ToLower() == teamName.ToLower());
 
                         //no team found
                         if (team == null)
                         {
-                            ChatClient.SendMessage(Configuration.Channel, string.Format(Translator.GetTranslation("gameClawCommandTeamsInvalid", Configuration.UserList.GetUserLocalization(username))));
-                            return;
+                            //if a team is required it means you can't create a team
+                            if (Configuration.EventMode.TeamRequired)
+                            {
+                                ChatClient.SendMessage(Configuration.Channel, string.Format(Translator.GetTranslation("gameClawCommandTeamsInvalid", Configuration.UserList.GetUserLocalization(username))));
+                                return;
+                            }
+
+                            //create the team
+                            DatabaseFunctions.CreateTeam(Configuration, teamName.Trim(), Configuration.SessionGuid.ToString());
+                        
+                            //reload all teams
+                            Teams = DatabaseFunctions.GetTeams(Configuration);
+
+                            //load the team
+                            team = Teams.FirstOrDefault(t => t.Name.ToLower() == teamName.ToLower());
+                            if (team == null)
+                            {
+                                ChatClient.SendMessage(Configuration.Channel, string.Format(Translator.GetTranslation("gameClawCommandTeamsCreateError", Configuration.UserList.GetUserLocalization(username))));
+                                return;
+                            }
                         }
 
                         //during normal play you can join any team
@@ -1064,6 +1113,91 @@ namespace InternetClawMachine.Games.ClawGame
                         break;
                     case "team": //get team stats
 
+                        //specific team stats
+                        if (chatMessage.IndexOf(" ") > 0)
+                        {
+                            var outputWins = new List<string>();
+                            var totalWins = 0;
+                            var tn = chatMessage.Substring(chatMessage.IndexOf(" ")).Trim();
+
+                            lock (Configuration.RecordsDatabase)
+                            {
+                                try { 
+                                    Configuration.RecordsDatabase.Open();
+                                    var sql = "SELECT u.username, count(*) FROM teams t INNER JOIN user_prefs u ON t.id = u.teamid INNER JOIN wins w ON w.name = u.username AND w.teamid = t.id WHERE t.name = @name GROUP BY w.name ORDER BY count(*), w.name";
+                                    var command = new SQLiteCommand(sql, Configuration.RecordsDatabase);
+                                    command.Parameters.Add(new SQLiteParameter("@name", tn));
+                                    using (var singleTeam = command.ExecuteReader())
+                                    {
+                                        while (singleTeam.Read())
+                                        {
+                                            if (outputWins.Count < 3)
+                                                outputWins.Add(string.Format(Translator.GetTranslation("gameClawResponseTeamUserList", Configuration.UserList.GetUserLocalization(username)), singleTeam.GetValue(0), singleTeam.GetValue(1)));
+
+                                            totalWins += int.Parse(singleTeam.GetValue(1).ToString());
+                                        }
+
+                                    }
+                                }
+                                finally
+                                {
+                                    Configuration.RecordsDatabase.Close();
+                                }
+                            }
+                            if (outputWins.Count == 0)
+                            {
+                                var outputMessage = string.Format(Translator.GetTranslation("gameClawResponseTeamStatsNoWins", Configuration.UserList.GetUserLocalization(username)), tn);
+                                ChatClient.SendMessage(Configuration.Channel, outputMessage);
+                            } else {
+                                var outputMessage = string.Format(Translator.GetTranslation("gameClawResponseTeamStats", Configuration.UserList.GetUserLocalization(username)), tn, totalWins, outputWins.Count);
+                                ChatClient.SendMessage(Configuration.Channel, outputMessage);
+                                foreach (var winner in outputWins)
+                                    ChatClient.SendMessage(Configuration.Channel, winner);
+                            }
+                        } else
+                        {
+                            var outputWins = new List<string>();
+                            lock (Configuration.RecordsDatabase)
+                            {
+
+                                try { 
+                                    Configuration.RecordsDatabase.Open();
+                                
+                                    var sql = "SELECT t.name, count(*) FROM teams t INNER JOIN wins w ON w.teamid = t.id GROUP BY w.teamid ORDER BY count(*), t.name";
+                                    var command = new SQLiteCommand(sql, Configuration.RecordsDatabase);
+                                    using (var singleTeam = command.ExecuteReader())
+                                    {
+                                        while (singleTeam.Read())
+                                        {
+                                            if (outputWins.Count < 3)
+                                                outputWins.Add(string.Format(Translator.GetTranslation("gameClawResponseTeamTeamList", Configuration.UserList.GetUserLocalization(username)), singleTeam.GetValue(0), singleTeam.GetValue(1)));
+                                            else
+                                                break;
+                                        }
+
+                                    }
+                                }
+                                finally
+                                {
+                                    Configuration.RecordsDatabase.Close();
+                                }
+                            }
+
+                            if (outputWins.Count == 0)
+                            {
+                                var outputMessage = string.Format(Translator.GetTranslation("gameClawResponseTeamStatsNoWinsAll", Configuration.UserList.GetUserLocalization(username)));
+                                ChatClient.SendMessage(Configuration.Channel, outputMessage);
+                            }
+                            else
+                            {
+                                var outputMessage = string.Format(Translator.GetTranslation("gameClawResponseTeamStatsAll", Configuration.UserList.GetUserLocalization(username)), outputWins.Count);
+                                ChatClient.SendMessage(Configuration.Channel, outputMessage);
+                                foreach (var winner in outputWins)
+                                    ChatClient.SendMessage(Configuration.Channel, winner);
+                            }
+                                
+                                
+                        }
                         break;
                     case "teams":
                         if (!Configuration.AdminUsers.Contains(username))
@@ -1117,7 +1251,175 @@ namespace InternetClawMachine.Games.ClawGame
                         if (isSubscriber)
                             ShowHelpSub(username);
                         break;
+                    case "leaders":
+                        //auto update their localization if they use a command in another language
+                        if (commandText != translateCommand.FinalWord ||
+                            (userPrefs.Localization == null ||
+                             !userPrefs.Localization.Equals(translateCommand.SourceLocalization)))
+                        {
+                            if (userPrefs.Localization == null ||
+                                !userPrefs.Localization.Equals(translateCommand.SourceLocalization))
+                            {
+                                userPrefs.Localization = translateCommand.SourceLocalization;
+                                DatabaseFunctions.WriteUserPrefs(Configuration, userPrefs);
+                            }
+                        }
 
+                        lock (Configuration.RecordsDatabase)
+                        {
+                            try
+                            {
+                                Configuration.RecordsDatabase.Open();
+
+                                var i = 0;
+                                var outNumWins = 0;
+                                var outputWins = new List<string>();
+
+                                //week
+                                var desc = Translator.GetTranslation("responseCommandLeadersWeek",
+                                    Configuration.UserList.GetUserLocalization(username));
+                                string timestart = (Helpers.GetEpoch() - (int)DateTime.UtcNow
+                                                        .Subtract(DateTime.Now.StartOfWeek(DayOfWeek.Monday)).TotalSeconds)
+                                    .ToString();
+
+                                var leadersql =
+                                    "SELECT name, count(*) FROM wins WHERE datetime >= @timestart GROUP BY name ORDER BY count(*) DESC";
+                                param = chatMessage.Split(' ');
+
+                                if (param.Length == 2)
+                                {
+                                    switch (param[1])
+                                    {
+                                        case "all":
+                                            desc = Translator.GetTranslation("responseCommandLeadersAll",
+                                                Configuration.UserList.GetUserLocalization(username));
+                                            timestart = "0"; //first record in db, wow this is so bad..
+                                            break;
+
+                                        case "month":
+                                            desc = Translator.GetTranslation("responseCommandLeadersMonth",
+                                                Configuration.UserList.GetUserLocalization(username));
+                                            timestart = (Helpers.GetEpoch() - (int)DateTime.UtcNow
+                                                             .Subtract(new DateTime(DateTime.Today.Year,
+                                                                 DateTime.Today.Month, 1)).TotalSeconds).ToString();
+                                            break;
+
+                                        case "day":
+                                            desc = Translator.GetTranslation("responseCommandLeadersToday",
+                                                Configuration.UserList.GetUserLocalization(username));
+                                            timestart = (Helpers.GetEpoch() - (int)DateTime.UtcNow
+                                                             .Subtract(new DateTime(DateTime.Today.Year,
+                                                                 DateTime.Today.Month, DateTime.Today.Day, 0, 0, 0))
+                                                             .TotalSeconds).ToString();
+                                            break;
+                                    }
+                                }
+
+                                var command = new SQLiteCommand(leadersql, Configuration.RecordsDatabase);
+                                command.Parameters.Add(new SQLiteParameter("@timestart", timestart));
+                                using (var leaderWins = command.ExecuteReader())
+                                {
+                                    while (leaderWins.Read())
+                                    {
+                                        i++;
+                                        outputWins.Add(string.Format("@{0} - {1}", leaderWins.GetValue(0), leaderWins.GetValue(1)));
+                                        if (i >= 4)
+                                            break;
+                                    }
+
+                                    outNumWins = i;
+                                }
+
+                                Configuration.RecordsDatabase.Close();
+
+                                ChatClient.SendMessage(Configuration.Channel, string.Format(desc, outNumWins));
+                                foreach (var win in outputWins)
+                                    ChatClient.SendMessage(Configuration.Channel, win);
+                            }
+                            catch (Exception ex)
+                            {
+                                var error = string.Format("ERROR {0} {1}", ex.Message, ex);
+                                Logger.WriteLog(Logger.ErrorLog, error);
+
+                                Configuration.LoadDatebase();
+                            }
+                        }
+
+                        break;
+                    case "mystats":
+                    case "stats":
+                        lock (Configuration.RecordsDatabase)
+                        {
+                            //TODO abstract all this custom database stuff
+                            try
+                            {
+                                
+                                if (commandText.ToLower() == "stats")
+                                {
+                                    param = chatMessage.Split(' ');
+                                    if (param.Length == 2)
+                                    {
+                                        username = param[1].ToLower();
+                                    }
+                                }
+
+                                Configuration.RecordsDatabase.Open();
+                                var sql = "SELECT count(*) FROM wins WHERE name = @username";
+                                var command = new SQLiteCommand(sql, Configuration.RecordsDatabase);
+                                command.Parameters.Add(new SQLiteParameter("@username", username));
+                                var wins = command.ExecuteScalar().ToString();
+
+                                sql = "select count(*) FROM (select distinct guid FROM movement WHERE name = @username)";
+                                command = new SQLiteCommand(sql, Configuration.RecordsDatabase);
+                                command.Parameters.Add(new SQLiteParameter("@username", username));
+                                var sessions = command.ExecuteScalar().ToString();
+
+                                sql = "select count(*) FROM movement WHERE name = @username AND direction <> 'NA'";
+                                command = new SQLiteCommand(sql, Configuration.RecordsDatabase);
+                                command.Parameters.Add(new SQLiteParameter("@username", username));
+                                var moves = command.ExecuteScalar().ToString();
+
+                                var i = 0;
+                                var outputTop = "";
+
+                                sql =
+                                    "select p.name, count(*) FROM wins w INNER JOIN plushie p ON w.PlushID = p.ID WHERE w.name = @username GROUP BY w.plushID ORDER BY count(*) DESC";
+                                command = new SQLiteCommand(sql, Configuration.RecordsDatabase);
+                                command.Parameters.Add(new SQLiteParameter("@username", username));
+                                using (var topPlushies = command.ExecuteReader())
+                                {
+                                    while (topPlushies.Read())
+                                    {
+                                        i++;
+                                        outputTop += string.Format("{0} - {1}\r\n", topPlushies.GetValue(0), topPlushies.GetValue(1));
+                                        if (i >= 3)
+                                            break;
+                                    }
+                                }
+
+                                Configuration.RecordsDatabase.Close();
+
+                                var clawBux = DatabaseFunctions.GetStreamBuxBalance(Configuration, username);
+                                ChatClient.SendMessage(Configuration.Channel,
+                                    string.Format(
+                                        Translator.GetTranslation("responseCommandStats1",
+                                            Configuration.UserList.GetUserLocalization(username)), username, wins, sessions,
+                                        moves, clawBux));
+                                ChatClient.SendMessage(Configuration.Channel,
+                                    string.Format(
+                                        Translator.GetTranslation("responseCommandStats2",
+                                            Configuration.UserList.GetUserLocalization(username)), i));
+                                ChatClient.SendMessage(Configuration.Channel, string.Format("{0}", outputTop));
+                            }
+                            catch (Exception ex)
+                            {
+                                var error = string.Format("ERROR {0} {1}", ex.Message, ex);
+                                Logger.WriteLog(Logger.ErrorLog, error);
+                                Configuration.LoadDatebase();
+                            }
+                        }
+
+                        break;
                     case "miss":
                     case "lies":
                         if (chatMessage.IndexOf(" ") < 0)
@@ -1421,8 +1723,10 @@ namespace InternetClawMachine.Games.ClawGame
                             }
                         }
                         break;
-
+                    
                     case "bounty":
+                        
+
                         //auto update their localization if they use a command in another language
                         if (commandText != translateCommand.FinalWord)
                         {
@@ -1464,7 +1768,7 @@ namespace InternetClawMachine.Games.ClawGame
                             else if (param.Length >= 3)
                             {
                                 if (int.TryParse(param[1], out amount))
-                                    plush = chatMessage.Replace(Configuration.CommandPrefix + "bounty " + amount + " ", "");
+                                    plush = chatMessage.Replace(Configuration.CommandPrefix + translateCommand.FinalWord + " " + amount + " ", "");
                                 else
                                     ChatClient.SendMessage(Configuration.Channel, string.Format(Translator.GetTranslation("gameClawCommandBountyHelp", Configuration.UserList.GetUserLocalization(username)), Configuration.CommandPrefix));
                             }
@@ -1605,6 +1909,30 @@ namespace InternetClawMachine.Games.ClawGame
 
                         switch (cmd.FinalWord)
                         {
+                            case "newbounty":
+                                var amt = Configuration.ClawSettings.AutoBountyAmount;
+                                if (Bounty != null)
+                                    amt = Bounty.Amount;
+
+                                if (customRewardId != "fa9570b9-7d7a-481d-b8bf-3c500ac68af5")
+                                {
+                                    if (DatabaseFunctions.GetStreamBuxBalance(Configuration, username) + Configuration.GetStreamBuxCost(StreamBuxTypes.NEWBOUNTY) > 0)
+                                    {
+
+                                        //deduct it from their balance
+                                        DatabaseFunctions.AddStreamBuxBalance(Configuration, username, StreamBuxTypes.NEWBOUNTY, Configuration.GetStreamBuxCost(StreamBuxTypes.NEWBOUNTY));
+
+                                        ChatClient.SendWhisper(username, string.Format(Translator.GetTranslation("gameClawCommandBuxBal", Configuration.UserList.GetUserLocalization(username)), DatabaseFunctions.GetStreamBuxBalance(Configuration, username)));
+                                    }
+                                    else //if they didnt redeem it for points and they don't have enough of a balance
+                                    {
+                                        return;
+                                    }
+                                }
+
+                                CreateRandomBounty(amt, false);
+
+                                break;
                             case "scene":
 
                                 if (args.Length == 3)
@@ -1727,6 +2055,43 @@ namespace InternetClawMachine.Games.ClawGame
             }
         }
 
+        private void ChangeReticle(ReticleOption opt)
+        {
+
+
+            try
+            {
+                if (opt.RedemptionName == Configuration.ClawSettings.ActiveReticle.RedemptionName)
+                {
+                    return;
+                }
+
+
+
+                //grab filters, if they exist don't bother sending more commands
+                var currentScene = ObsConnection.GetCurrentScene();
+                var sources = Configuration.ClawSettings.ReticleOptions;
+                foreach (var source in sources)
+                {
+                    try
+                    {
+                        ObsConnection.SetSourceRender(source.ClipName, (source.ClipName == opt.ClipName));
+                    }
+                    catch (Exception x)
+                    {
+                        var error = string.Format("ERROR {0} {1}", x.Message, x);
+                        Logger.WriteLog(Logger.ErrorLog, error);
+                    }
+                }
+
+                Configuration.ClawSettings.ActiveReticle = opt;
+            }
+            catch (Exception x)
+            {
+                var error = string.Format("ERROR {0} {1}", x.Message, x);
+                Logger.WriteLog(Logger.ErrorLog, error);
+            }
+        }
 
         private void RunStrobe(UserPrefs prefs)
         {
@@ -1773,13 +2138,14 @@ namespace InternetClawMachine.Games.ClawGame
                     MachineControl.Strobe(red, green, blue, strobeCount, strobeDelay);
 
                     //if the strobe is shorter than 2 seconds we need to turn the lights on sooner
-                    if (duration < 2000)
+                    var timeLimit = 100;
+                    if (duration < timeLimit)
                     {
                         await Task.Delay(duration);
                         if (turnemon)
                             MachineControl.LightSwitch(true);
 
-                        await Task.Delay(2000 - duration);
+                        await Task.Delay(timeLimit - duration);
                         DisableGreenScreen(); //disable greenscreen
 
                         await Task.Delay(duration);
@@ -1788,17 +2154,17 @@ namespace InternetClawMachine.Games.ClawGame
                     else
                     {
                         //wait 2 seconds for camera sync
-                        await Task.Delay(2000);
+                        await Task.Delay(timeLimit);
                         DisableGreenScreen(); //disable greenscreen
 
                         //wait the duration of the strobe
-                        await Task.Delay(duration - 2000);
+                        await Task.Delay(duration - timeLimit);
                         //if the lights were off turnemon
                         if (turnemon)
                             MachineControl.LightSwitch(true);
 
                         //wait the duration of the strobe
-                        await Task.Delay(2000);
+                        await Task.Delay(timeLimit);
                         EnableGreenScreen(); //enable the screen
                     }
                 }
@@ -2377,8 +2743,10 @@ namespace InternetClawMachine.Games.ClawGame
 
 
                     var theme = Configuration.ClawSettings.WireThemes.Find(t => t.Name.ToLower() == "default");
+                    var rtcl = Configuration.ClawSettings.ReticleOptions.Find(t => t.RedemptionName.ToLower() == "default");
 
                     ChangeWireTheme(theme);
+                    ChangeReticle(rtcl);
                 } catch
                 {
 
@@ -2502,6 +2870,20 @@ namespace InternetClawMachine.Games.ClawGame
                     var error = string.Format("ERROR {0} {1}", ex.Message, ex);
                     Logger.WriteLog(Logger.ErrorLog, error);
                 }
+            }
+
+            //handelr for reticle
+            if (!string.IsNullOrEmpty(userPrefs.ReticleName))
+            {
+                var rtcl = Configuration.ClawSettings.ReticleOptions.Find(t => t.RedemptionName.ToLower() == userPrefs.ReticleName.ToLower());
+
+                ChangeReticle(rtcl);
+            }
+            else
+            {
+                var rtcl = Configuration.ClawSettings.ReticleOptions.Find(t => t.RedemptionName.ToLower() == "default");
+
+                ChangeReticle(rtcl);
             }
 
             //handler for wire theme
@@ -2713,30 +3095,7 @@ namespace InternetClawMachine.Games.ClawGame
 
                                 if (Configuration.ClawSettings.AutoBountyMode)
                                 {
-                                    var newPlush = GetRandomPlush();
-                                    if (newPlush != null)
-                                    {
-                                        //async task to start new bounty after 14 seconds
-                                        Task.Run(async delegate()
-                                        {
-                                            await Task.Delay(14000);
-                                            RunBountyAnimation(newPlush);
-                                            //deduct it from their balance
-                                            Bounty = new GameHelpers.Bounty
-                                            {
-                                                Name = newPlush.Name,
-                                                Amount = Configuration.ClawSettings.AutoBountyAmount
-                                            };
-
-                                            var idx = _rnd.Next(Configuration.ClawSettings.BountySayings.Count);
-                                            var saying = Configuration.ClawSettings.BountySayings[idx];
-                                            var bountyMessage = Translator.GetTranslation(saying, Configuration.UserList.GetUserLocalization(winner)).Replace("<<plush>>", Bounty.Name).Replace("<<bux>>", Bounty.Amount.ToString());
-
-
-                                            Thread.Sleep(100);
-                                            ChatClient.SendMessage(Configuration.Channel, bountyMessage);
-                                        });
-                                    }
+                                    CreateRandomBounty(Configuration.ClawSettings.AutoBountyAmount, true);
                                 }
                             }
 
@@ -2834,6 +3193,36 @@ namespace InternetClawMachine.Games.ClawGame
             {
                 var error = string.Format("ERROR {0} {1}", ex.Message, ex);
                 Logger.WriteLog(Logger.ErrorLog, error);
+            }
+        }
+
+        private void CreateRandomBounty(int amount, bool withDelay = true)
+        {
+            var newPlush = GetRandomPlush();
+            if (newPlush != null)
+            {
+                //async task to start new bounty after 14 seconds
+                Task.Run(async delegate ()
+                {
+                    if (withDelay)
+                        await Task.Delay(14000);
+
+                    RunBountyAnimation(newPlush);
+                    //deduct it from their balance
+                    Bounty = new GameHelpers.Bounty
+                    {
+                        Name = newPlush.Name,
+                        Amount = amount
+                    };
+
+                    var idx = _rnd.Next(Configuration.ClawSettings.BountySayings.Count);
+                    var saying = Configuration.ClawSettings.BountySayings[idx];
+                    var bountyMessage = Translator.GetTranslation(saying, Configuration.UserList.GetUserLocalization(PlayerQueue.CurrentPlayer)).Replace("<<plush>>", Bounty.Name).Replace("<<bux>>", Bounty.Amount.ToString());
+
+
+                    await Task.Delay(100);
+                    ChatClient.SendMessage(Configuration.Channel, bountyMessage);
+                });
             }
         }
 

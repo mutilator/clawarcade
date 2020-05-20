@@ -11,5 +11,6 @@
         BELT,
         BOUNTY,
         RENAME,
+        NEWBOUNTY,
     }
 }

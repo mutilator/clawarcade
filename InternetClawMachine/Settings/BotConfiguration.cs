@@ -255,16 +255,12 @@ namespace InternetClawMachine.Settings
                     RecordsDatabase = new SQLiteConnection("Data Source=" + FileRecordsDatabase + "; Version=3;");
                     RecordsDatabase.Open();
 
-                    var sql = "CREATE TABLE wins (datetime int, name VARCHAR(40), prize VARCHAR(40), guid VARCHAR(40))";
-                    var command = new SQLiteCommand(sql, RecordsDatabase);
-                    command.ExecuteNonQuery();
+                    if (!File.Exists("createDB.sql"))
+                        throw new Exception("Unable to create new database. createDB.sql not found.");
+                    
+                    var data = File.ReadAllText("createDB.sql");
 
-                    sql = "CREATE TABLE movement (datetime int, name VARCHAR(40), direction VARCHAR(40), guid VARCHAR(40))";
-                    command = new SQLiteCommand(sql, RecordsDatabase);
-                    command.ExecuteNonQuery();
-
-                    sql = "CREATE TABLE sessions (datetime int, guid VARCHAR(40))";
-                    command = new SQLiteCommand(sql, RecordsDatabase);
+                    var command = new SQLiteCommand(data, RecordsDatabase);
                     command.ExecuteNonQuery();
 
                     RecordsDatabase.Close();

@@ -285,6 +285,7 @@
     <Compile Include="Settings\GoodGameSettings.cs" />
     <Compile Include="Settings\MixerSettings.cs" />
     <Compile Include="Settings\OBSSettings.cs" />
+    <Compile Include="Settings\ReticleOption.cs" />
     <Compile Include="Settings\TwitchSettings.cs" />
     <Compile Include="Settings\UserList.cs" />
     <Compile Include="Settings\VoteSettings.cs" />

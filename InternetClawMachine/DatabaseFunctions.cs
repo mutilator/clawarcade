@@ -155,7 +155,7 @@ namespace InternetClawMachine
                 configuration.RecordsDatabase.Open();
                 try
                 {
-                    var sql = "SELECT lights_on, scene, custom_win_clip, strobe_settings, localization, blacklightmode, greenscreen, wiretheme, teamid FROM user_prefs WHERE lower(username) = @username";
+                    var sql = "SELECT lights_on, scene, custom_win_clip, strobe_settings, localization, blacklightmode, greenscreen, wiretheme, teamid, reticlename FROM user_prefs WHERE lower(username) = @username";
 
                     var command = new SQLiteCommand(sql, configuration.RecordsDatabase);
                     command.Parameters.Add(new SQLiteParameter("@username", prefs.Username));
@@ -164,6 +164,7 @@ namespace InternetClawMachine
                         while (users.Read())
                         {
                             var tid = users.GetValue(8).ToString();
+
                             prefs.LightsOn = users.GetValue(0).ToString() == "1";
                             prefs.Scene = users.GetValue(1).ToString();
                             prefs.WinClipName = users.GetValue(2).ToString();
@@ -172,7 +173,8 @@ namespace InternetClawMachine
                             prefs.BlackLightsOn = users.GetValue(5).ToString() == "1";
                             prefs.GreenScreen = users.GetValue(6).ToString();
                             prefs.WireTheme = users.GetValue(7).ToString();
-                            
+                            prefs.ReticleName = users.GetValue(9).ToString();
+
                             prefs.TeamId = !string.IsNullOrEmpty(tid)?int.Parse(tid):-1;
                             prefs.EventTeamId = -1;
 
@@ -204,12 +206,12 @@ namespace InternetClawMachine
                     if (prefs.FromDatabase)
                     {
                         sql =
-                            "UPDATE user_prefs SET localization = @localization, lights_on = @lightsOn, scene = @scene, strobe_settings = @strobe, blacklightmode = @blacklightmode, greenscreen = @greenscreen, custom_win_clip = @winclip, wiretheme = @wiretheme, teamid = @team_id, eventteamid = @event_team_id WHERE lower(username) = @username";
+                            "UPDATE user_prefs SET localization = @localization, lights_on = @lightsOn, scene = @scene, strobe_settings = @strobe, blacklightmode = @blacklightmode, greenscreen = @greenscreen, custom_win_clip = @winclip, wiretheme = @wiretheme, teamid = @team_id, eventteamid = @event_team_id, reticlename = @reticlename WHERE lower(username) = @username";
                     }
                     else
                     {
                         sql =
-                            "INSERT INTO user_prefs (username, localization, lights_on, scene, strobe_settings, blacklightmode, greenscreen, custom_win_clip, wiretheme, teamid, eventteamid) VALUES (@username, @localization, @lightsOn, @scene,@strobe, @blacklightmode, @greenscreen, @winclip, @wiretheme, @team_id, @event_team_id)";
+                            "INSERT INTO user_prefs (username, localization, lights_on, scene, strobe_settings, blacklightmode, greenscreen, custom_win_clip, wiretheme, teamid, eventteamid, reticlename) VALUES (@username, @localization, @lightsOn, @scene,@strobe, @blacklightmode, @greenscreen, @winclip, @wiretheme, @team_id, @event_team_id, @reticlename)";
                     }
 
                     var command = configuration.RecordsDatabase.CreateCommand();
@@ -226,6 +228,7 @@ namespace InternetClawMachine
                     command.Parameters.Add(new SQLiteParameter("@winclip", prefs.WinClipName));
                     command.Parameters.Add(new SQLiteParameter("@team_id", prefs.TeamId));
                     command.Parameters.Add(new SQLiteParameter("@event_team_id", prefs.EventTeamId));
+                    command.Parameters.Add(new SQLiteParameter("@reticlename", prefs.ReticleName));
                     prefs.FromDatabase = true; //it's written to db now
                     command.ExecuteNonQuery();
                 }
@@ -501,9 +504,9 @@ namespace InternetClawMachine
                     command.Parameters.Add(new SQLiteParameter("@guid", guid));
 
                     if (configuration.EventMode.TeamRequired)
-                        command.Parameters.Add(new SQLiteParameter("@teamid", user.TeamId));
-                    else
                         command.Parameters.Add(new SQLiteParameter("@teamid", user.EventTeamId));
+                    else
+                        command.Parameters.Add(new SQLiteParameter("@teamid", user.TeamId));
                     command.ExecuteNonQuery();
                     
                 }

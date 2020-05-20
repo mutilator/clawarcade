@@ -21,6 +21,7 @@ namespace InternetClawMachine
         public string WireTheme { get; internal set; }
         public int TeamId { get; internal set; }
         public int EventTeamId { get; internal set; }
+        public string ReticleName { get; internal set; }
 
         public UserPrefs()
         {

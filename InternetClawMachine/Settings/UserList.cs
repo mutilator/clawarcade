@@ -14,6 +14,7 @@ namespace InternetClawMachine.Settings
     public class UserList : ObservableCollection<UserPrefs>, INotifyPropertyChanged, INotifyCollectionChanged
     {
         private SynchronizationContext _synchronizationContext = SynchronizationContext.Current;
+        private bool _isUpdating = false;
         
         public UserList()
         {
@@ -37,6 +38,9 @@ namespace InternetClawMachine.Settings
 
         protected override void OnCollectionChanged(NotifyCollectionChangedEventArgs e)
         {
+            if (_isUpdating)
+                return;
+
             if (SynchronizationContext.Current == _synchronizationContext)
             {
                 // Execute the CollectionChanged event on the current thread
@@ -56,6 +60,9 @@ namespace InternetClawMachine.Settings
         }
         protected override void OnPropertyChanged(PropertyChangedEventArgs e)
         {
+            if (_isUpdating)
+                return;
+
             if (SynchronizationContext.Current == _synchronizationContext)
             {
                 // Execute the PropertyChanged event on the current thread
@@ -93,8 +100,11 @@ namespace InternetClawMachine.Settings
         {
             if (!Contains(userPrefs.Username))
             {
+                _isUpdating = true;
                 base.Add(userPrefs);
                 this.Sort();
+                _isUpdating = false;
+                OnCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Reset));
             }
         }
 

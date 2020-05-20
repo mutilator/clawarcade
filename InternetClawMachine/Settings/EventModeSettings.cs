@@ -130,5 +130,9 @@ namespace InternetClawMachine.Settings
         /// Whether we force greenscreen off
         /// </summary>
         public bool GreenScreenOverrideOff { set; get; }
+        /// <summary>
+        /// Retcile to use
+        /// </summary>
+        public ReticleOption Reticle { get; set; }
     }
 }
