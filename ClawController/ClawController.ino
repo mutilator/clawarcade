@@ -387,9 +387,10 @@ void handleJoystick()
         else if (_gameMode == GAMEMODE_TARGET && _isClawClosed)
         {
             openClaw();
-            delay(500);
+            delay(1000);
             if (_doWiggle)
                     wiggleClaw();
+            delay(1000);
             returnToWinChute();
         }
         return;
@@ -561,7 +562,22 @@ void checkLimits()
 
 void checkStates()
 {
-
+    switch (_currentState)
+    {
+        case  STATE_CHECK_RUNCHUTE_LEFT:
+            if (!isLimitUp())
+            {
+                stopMotorLeft();
+                changeState(STATE_CHECK_DROP_RECOIL);
+            }
+        case STATE_CHECK_RUNCHUTE_RIGHT:
+            if (!isLimitUp())
+            {
+                stopMotorRight();
+                changeState(STATE_CHECK_DROP_RECOIL);
+            }
+            break;
+    }
 
     //Now check the current state and perform an action
     switch (_currentState)
@@ -652,12 +668,27 @@ void checkStates()
                 unsigned long diffTime = millis() - _timestampRunCenter;
 
                 bool isWidthReached = false; //for left/right movement
-                if (diffTime > _runToCenterDurationWidth)
+                switch (_gameMode)
                 {
-                    debugLine("width centered");
-                    stopMotorRight();
-                    stopMotorLeft();
-                    isWidthReached = true;
+                    case GAMEMODE_CLAW:
+                
+                        if (diffTime > _runToCenterDurationWidth)
+                        {
+                            debugLine("width centered");
+                            stopMotorRight();
+                            stopMotorLeft();
+                            isWidthReached = true;
+                        }
+                        break;
+                    case GAMEMODE_TARGET:
+                        if (diffTime > _runToCenterDurationWidth + 250)
+                        {
+                            debugLine("width centered");
+                            stopMotorRight();
+                            stopMotorLeft();
+                            isWidthReached = true;
+                        }
+                        break;
                 }
 
                 if (diffTime > _runToCenterDurationDepth)
@@ -897,7 +928,7 @@ void dropClawProcedure()
                 return;
             case STATE_CHECK_DROP_RECOIL:
                 sendEvent(EVENT_RECOILED_CLAW);
-                changeState(STATE_RUNNING);
+                returnCenterFromChute();
                 return;
             case STATE_RUNNING:
                 changeState(STATE_CHECK_DROP_TENSION);
@@ -945,7 +976,10 @@ void returnToWinChute()
         else if (_gameMode == GAMEMODE_TARGET)
         {
             stopMotorUp(); //stop recoil
-            changeState(STATE_RUNNING);
+            //grab some more stuff
+            _clawRemoteMoveDurationDrop = 0;
+            _clawRemoteMoveStartTimeDrop = millis();
+            dropClawProcedure();
         }
 
         return;
@@ -1507,10 +1541,10 @@ void handleTelnetCommand(EthernetClient &client)
         switch (_gameMode)
         {
             case GAMEMODE_TARGET:
-                returnToWinChute();
+                returnToWinChute(); //runs to chute and stop
                 break;
             default:
-                returnCenterFromChute();
+                returnToWinChute(); //runs to chute and stop
                 break;
         }
         sprintf(outputData, "mode set %i", _gameMode);
@@ -1643,10 +1677,12 @@ void moveFromRemote(byte direction, int duration)
             else if (_gameMode == GAMEMODE_TARGET && _isClawClosed)
             {
                 openClaw();
-                delay(500);
+                delay(1000);
+
                 if (_doWiggle)
                     wiggleClaw();
 
+                delay(1000);
                 returnToWinChute();
             }
             break;

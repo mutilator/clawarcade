@@ -325,7 +325,7 @@ namespace InternetClawMachine.Games.ClawGame
         {
             base.Init();
 
-            _failsafeCurrentResets++;
+            _failsafeCurrentResets=0;
             SessionDrops = 0;
             SessionWinTracker.Clear();
             File.WriteAllText(Configuration.FileDrops, "");
@@ -814,6 +814,7 @@ namespace InternetClawMachine.Games.ClawGame
         /// <param name="e"></param>
         private void MachineControl_OnReturnedHome(object sender, EventArgs e)
         {
+            _failsafeCurrentResets = 0;
             Logger.WriteLog(Logger.DebugLog, string.Format("RETURN HOME: Current player {0} in game loop {1}", PlayerQueue.CurrentPlayer, GameLoopCounterValue), Logger.LogLevel.DEBUG);
             SessionDrops++;
             RefreshWinList();
@@ -1124,9 +1125,9 @@ namespace InternetClawMachine.Games.ClawGame
                             {
                                 try { 
                                     Configuration.RecordsDatabase.Open();
-                                    var sql = "SELECT u.username, count(*) FROM teams t INNER JOIN user_prefs u ON t.id = u.teamid INNER JOIN wins w ON w.name = u.username AND w.teamid = t.id WHERE t.name = @name GROUP BY w.name ORDER BY count(*), w.name";
+                                    var sql = "SELECT u.username, count(*) FROM teams t INNER JOIN user_prefs u ON t.id = u.teamid INNER JOIN wins w ON w.name = u.username AND w.teamid = t.id WHERE lower(t.name) = @name GROUP BY w.name ORDER BY count(*), w.name";
                                     var command = new SQLiteCommand(sql, Configuration.RecordsDatabase);
-                                    command.Parameters.Add(new SQLiteParameter("@name", tn));
+                                    command.Parameters.Add(new SQLiteParameter("@name", tn.ToLower()));
                                     using (var singleTeam = command.ExecuteReader())
                                     {
                                         while (singleTeam.Read())
@@ -3062,9 +3063,12 @@ namespace InternetClawMachine.Games.ClawGame
 
                             var prefs = Configuration.UserList.GetUser(winner);
 
+                            //strobe stuff
                             if (!Configuration.EventMode.DisableStrobe)
                                 RunStrobe(prefs);
 
+                            //wait 1 second to do further things so the lights are shut off
+                            Thread.Sleep(1000);
                             //a lot of the animations are timed and setup in code because I don't want to make a whole animation class
                             //bounty mode
                             if (existing != null && Bounty != null && Bounty.Name.ToLower() == existing.Name.ToLower())
