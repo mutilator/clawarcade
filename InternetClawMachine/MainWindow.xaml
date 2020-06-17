@@ -128,15 +128,16 @@
                         <Slider x:Name="sldrvotesNeededForVotingMode_Copy" HorizontalAlignment="Left" Margin="10,290,0,0" VerticalAlignment="Top" Width="113" Maximum="30" Minimum="1" SmallChange="1" Value="{Binding VoteSettings.VoteDuration, Mode=TwoWay}" IsSnapToTickEnabled="True" />
                         <Label Content="VoteDuration" HorizontalAlignment="Left" Margin="10,264,0,0" VerticalAlignment="Top" RenderTransformOrigin="-0.026,-0.077" />
                         <Label x:Name="lblvotesNeededForVotingMode_Copy" HorizontalAlignment="Left" Margin="169,264,0,0" VerticalAlignment="Top" RenderTransformOrigin="0.368,-0.308" Content="{Binding Value, ElementName=sldrvotesNeededForVotingMode_Copy}" />
-                        <Button x:Name="btnDoh" Content="Doh" HorizontalAlignment="Left" VerticalAlignment="Top" Width="92" Margin="477,10,0,0" Click="BtnDoh_Click" />
-                        <Button x:Name="btnTrombone" Content="Sad Trombone" HorizontalAlignment="Left" VerticalAlignment="Top" Width="92" Margin="477,47,0,0" Click="BtnTrombone_Click" />
-                        <Button x:Name="btnScare" Content="Scare" HorizontalAlignment="Left" VerticalAlignment="Top" Width="92" Margin="477,84,0,0" Click="BtnScare_Click" />
+                        <Button x:Name="btnDoh" Content="Doh" HorizontalAlignment="Left" VerticalAlignment="Top" Width="162" Margin="477,10,0,0" Click="BtnDoh_Click" />
+                        <Button x:Name="btnTrombone" Content="Sad Trombone" HorizontalAlignment="Left" VerticalAlignment="Top" Width="162" Margin="477,47,0,0" Click="BtnTrombone_Click" />
+                        <Button x:Name="btnScare" Content="Scare" HorizontalAlignment="Left" VerticalAlignment="Top" Width="162" Margin="477,84,0,0" Click="BtnScare_Click" />
                         <Label Content="Email From" HorizontalAlignment="Left" Margin="224,175,0,0" VerticalAlignment="Top" />
                         <TextBox HorizontalAlignment="Left" Height="23" Margin="328,178,0,0" TextWrapping="NoWrap"  Text="{Binding MailFrom}" VerticalAlignment="Top" Width="120" />
                         <Label Content="Email To" HorizontalAlignment="Left" Margin="224,206,0,0" VerticalAlignment="Top" />
                         <TextBox HorizontalAlignment="Left" Height="23" Margin="328,209,0,0" TextWrapping="NoWrap" Text="{Binding EmailAddress}" VerticalAlignment="Top" Width="120" />
                         <ComboBox x:Name="cmbLogLevel" HorizontalAlignment="Left" VerticalAlignment="Top" Width="120" Margin="328,241,0,0" SelectionChanged="CmbLogLevel_SelectionChanged" DisplayMemberPath="Name"/>
                         <Label Content="Log Level" HorizontalAlignment="Left" Margin="224,241,0,0" VerticalAlignment="Top" />
+                        <Button x:Name="btnReloadTranslations" Content="Reload Translations" HorizontalAlignment="Left" VerticalAlignment="Top" Width="162" Margin="477,124,0,0" Click="BtnReloadTranslations_Click"/>
                     </Grid>
                 </TabItem>
                 <TabItem Header="Plushes" Padding="20,2">

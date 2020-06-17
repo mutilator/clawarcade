@@ -12,6 +12,7 @@
         SINGLEQUICKQUEUE,
         WATERGUNQUEUE,
         DRAWING,
-        GOLF
+        GOLF,
+        REALTIMETEAM
     }
 }

@@ -57,10 +57,10 @@ namespace InternetClawMachine
 
     public partial class MainWindow : Window
     {
-        
+
 
         #region Fields
-
+        private string _localizationPath = "localization.json";
         /// <summary>
         /// Timer to check if claw cam is responding
         /// </summary>
@@ -710,7 +710,7 @@ namespace InternetClawMachine
             LoadConfiguration();
 
             InitializeComponent();
-            Translator.Init("localization.json");
+            Translator.Init(_localizationPath);
 
             Logger.Init(Configuration.FolderLogs, Configuration.ErrorLogPrefix, Configuration.MachineLogPrefix,
                 "_DEBUG");
@@ -2561,6 +2561,11 @@ namespace InternetClawMachine
                 ((ClawGame)Game).ChangeWireTheme((WireTheme)cmbThemes.SelectedItem);
                 Configuration.ClawSettings.ActiveWireTheme = (WireTheme)cmbThemes.SelectedItem;
             }
+        }
+
+        private void BtnReloadTranslations_Click(object sender, RoutedEventArgs e)
+        {
+            Translator.Init(_localizationPath);
         }
     }
 

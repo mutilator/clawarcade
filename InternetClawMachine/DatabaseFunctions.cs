@@ -155,7 +155,7 @@ namespace InternetClawMachine
                 configuration.RecordsDatabase.Open();
                 try
                 {
-                    var sql = "SELECT lights_on, scene, custom_win_clip, strobe_settings, localization, blacklightmode, greenscreen, wiretheme, teamid, reticlename FROM user_prefs WHERE lower(username) = @username";
+                    var sql = "SELECT lights_on, scene, custom_win_clip, strobe_settings, localization, blacklightmode, greenscreen, wiretheme, teamid, reticlename, t.name FROM user_prefs LEFT JOIN teams t ON teamid = t.id WHERE lower(username) = @username";
 
                     var command = new SQLiteCommand(sql, configuration.RecordsDatabase);
                     command.Parameters.Add(new SQLiteParameter("@username", prefs.Username));
@@ -176,6 +176,7 @@ namespace InternetClawMachine
                             prefs.ReticleName = users.GetValue(9).ToString();
 
                             prefs.TeamId = !string.IsNullOrEmpty(tid)?int.Parse(tid):-1;
+                            prefs.TeamName = users.GetValue(10).ToString();
                             prefs.EventTeamId = -1;
 
                             prefs.FromDatabase = true;

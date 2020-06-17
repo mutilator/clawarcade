@@ -13,6 +13,7 @@ namespace InternetClawMachine.Games.ClawGame
         public ClawChaos(IChatApi client, BotConfiguration configuration, OBSWebsocket obs) : base(client, configuration, obs)
         {
             GameMode = GameModeType.REALTIME;
+            StartMessage = string.Format(Translator.GetTranslation("gameClawChaosStartGame", Translator.DefaultLanguage), Configuration.CommandPrefix);
         }
 
         public override void EndGame()
@@ -120,7 +121,7 @@ namespace InternetClawMachine.Games.ClawGame
         {
             GameModeTimer.Reset();
             GameModeTimer.Start();
-            ChatClient.SendMessage(Configuration.Channel, string.Format(Translator.GetTranslation("gameClawChaosStartGame", Configuration.UserList.GetUserLocalization(username)), Configuration.CommandPrefix));
+            ChatClient.SendMessage(Configuration.Channel, StartMessage);
             //RunCommandQueue();
             StartRound(username);
         }

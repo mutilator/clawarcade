@@ -170,52 +170,55 @@ namespace InternetClawMachine.Games.ClawGame
                 ChangeReticle(eventConfig.Reticle);
 
             //grab current scene to make sure we skin all scenes
-            var currentscene = ObsConnection.GetCurrentScene().Name;
-
-            //TODO - pull this from config
-            var scenes = new string[] { "Claw 1", "Claw 2", "Claw 3" };
-
-            //skin all scenes
-            for (var i = 0; i < scenes.Length; i++)
+            if (ObsConnection.IsConnected)
             {
-                ObsConnection.SetCurrentScene(scenes[i]);
+                var currentscene = ObsConnection.GetCurrentScene().Name;
+
+                //TODO - pull this from config
+                var scenes = new string[] { "Claw 1", "Claw 2", "Claw 3" };
+
+                //skin all scenes
+                for (var i = 0; i < scenes.Length; i++)
+                {
+                    ObsConnection.SetCurrentScene(scenes[i]);
 
 
 
-                //Fix greenscreen
-                foreach (var bg in Configuration.ClawSettings.ObsGreenScreenOptions)
-                    foreach (var scene in bg.Scenes)
+                    //Fix greenscreen
+                    foreach (var bg in Configuration.ClawSettings.ObsGreenScreenOptions)
+                        foreach (var scene in bg.Scenes)
+                        {
+                            try
+                            {
+                                ObsConnection.SetSourceRender(scene, ((eventConfig.GreenScreen != null && bg.Name == eventConfig.GreenScreen.Name) || (eventConfig.GreenScreen == null && Configuration.ClawSettings.ObsGreenScreenDefault.Name == bg.Name)));
+                            }
+                            catch (Exception ex) //skip over scenes that error out, log errors
+                            {
+                                var error = string.Format("ERROR {0} {1}", ex.Message, ex);
+                                Logger.WriteLog(Logger.ErrorLog, error);
+
+                            }
+                        }
+
+                    //update background
+                    foreach (var bg in Configuration.ClawSettings.ObsBackgroundOptions)
                     {
                         try
                         {
-                            ObsConnection.SetSourceRender(scene, ((eventConfig.GreenScreen != null && bg.Name == eventConfig.GreenScreen.Name) || (eventConfig.GreenScreen == null && Configuration.ClawSettings.ObsGreenScreenDefault.Name == bg.Name)));
+                            //if bg defined and is in the list, set it, otherwise if no bg defined set default
+                            ObsConnection.SetSourceRender(bg.SourceName, ((eventConfig.BackgroundScenes != null && eventConfig.BackgroundScenes.Any(s => s.SourceName == bg.SourceName)) || ((eventConfig.BackgroundScenes == null || eventConfig.BackgroundScenes.Count == 0) && Configuration.ClawSettings.ObsBackgroundDefault.SourceName == bg.SourceName)), bg.SceneName);
                         }
                         catch (Exception ex) //skip over scenes that error out, log errors
                         {
                             var error = string.Format("ERROR {0} {1}", ex.Message, ex);
                             Logger.WriteLog(Logger.ErrorLog, error);
-
                         }
                     }
-
-                //update background
-                foreach (var bg in Configuration.ClawSettings.ObsBackgroundOptions)
-                {
-                    try
-                    {
-                        //if bg defined and is in the list, set it, otherwise if no bg defined set default
-                        ObsConnection.SetSourceRender(bg.SourceName, ((eventConfig.BackgroundScenes != null && eventConfig.BackgroundScenes.Any(s => s.SourceName == bg.SourceName)) || ((eventConfig.BackgroundScenes == null || eventConfig.BackgroundScenes.Count == 0) && Configuration.ClawSettings.ObsBackgroundDefault.SourceName == bg.SourceName)), bg.SceneName);
-                    }
-                    catch (Exception ex) //skip over scenes that error out, log errors
-                    {
-                        var error = string.Format("ERROR {0} {1}", ex.Message, ex);
-                        Logger.WriteLog(Logger.ErrorLog, error);
-                    }
                 }
-            }
 
-            //reset current scene
-            ObsConnection.SetCurrentScene(currentscene);
+                //reset current scene
+                ObsConnection.SetCurrentScene(currentscene);
+            }
         }
 
         private void ClawGame_OnClawRecoiled(object sender, EventArgs e)
@@ -1095,6 +1098,7 @@ namespace InternetClawMachine.Games.ClawGame
                         if (Configuration.EventMode.EventMode == EventMode.NORMAL)
                         {
                             userPrefs.TeamId = team.Id;
+                            userPrefs.TeamName = team.Name;
                         }
                         else if (Configuration.EventMode.EventMode == EventMode.SPECIAL) //during event play you have to pick a team and stick to it
                         {
@@ -1105,6 +1109,7 @@ namespace InternetClawMachine.Games.ClawGame
                                 return;
                             }
                             userPrefs.EventTeamId = team.Id;
+                            userPrefs.EventTeamName = team.Name;
                         }
 
                         DatabaseFunctions.WriteUserPrefs(Configuration, userPrefs);
@@ -1164,7 +1169,7 @@ namespace InternetClawMachine.Games.ClawGame
                                 try { 
                                     Configuration.RecordsDatabase.Open();
                                 
-                                    var sql = "SELECT t.name, count(*) FROM teams t INNER JOIN wins w ON w.teamid = t.id GROUP BY w.teamid ORDER BY count(*), t.name";
+                                    var sql = "SELECT t.name, count(*) FROM teams t INNER JOIN wins w ON w.teamid = t.id GROUP BY w.teamid ORDER BY count(*) desc, t.name";
                                     var command = new SQLiteCommand(sql, Configuration.RecordsDatabase);
                                     using (var singleTeam = command.ExecuteReader())
                                     {
