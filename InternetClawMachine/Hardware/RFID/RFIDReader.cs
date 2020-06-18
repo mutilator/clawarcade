@@ -62,6 +62,9 @@ namespace InternetClawMachine.Hardware.RFID
 
         public static void Disconnect()
         {
+            if (!IsConnected)
+                return;
+
             StopListening();
             Dis.ResetReader(_deviceNo);
             Dis.DeviceDisconnect();
@@ -81,7 +84,7 @@ namespace InternetClawMachine.Hardware.RFID
         {
             if (_isListening)
             {
-                // Dis.StopInv(_deviceNo);
+                 Dis.StopInv(_deviceNo);
                 _isListening = false;
             }
         }

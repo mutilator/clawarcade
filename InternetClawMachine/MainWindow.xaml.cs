@@ -290,33 +290,21 @@ namespace InternetClawMachine
                 {
                     if (e.WhisperMessage.Message.StartsWith(Configuration.CommandPrefix +
                                                             Translator.GetTranslation("gameClawModeChaos",
-                                                                Translator.GetTranslation("responseCommandRefill",
-                                                                    Configuration.UserList
-                                                                        .GetUserLocalization(username)))))
+                                                                 Configuration.UserList.GetUserLocalization(username))))
                     {
                         StartGameModeRealTime();
                     }
                     else if (e.WhisperMessage.Message.StartsWith(
                         Configuration.CommandPrefix + Translator.GetTranslation("gameClawModeQueue",
-                            Translator.GetTranslation("responseCommandRefill",
-                                Configuration.UserList.GetUserLocalization(username)))))
+                                Configuration.UserList.GetUserLocalization(username))))
                     {
-                        var user = e.WhisperMessage.Message.Replace(
-                            Configuration.CommandPrefix + Translator.GetTranslation("gameClawModeQueue",
-                                Translator.GetTranslation("responseCommandRefill",
-                                    Configuration.UserList.GetUserLocalization(username))) + " ", "");
-                        StartGameModeSingleQueue(user);
+                        StartGameModeSingleQueue(null);
                     }
                     else if (e.WhisperMessage.Message.StartsWith(
                         Configuration.CommandPrefix + Translator.GetTranslation("gameClawModeQuick",
-                            Translator.GetTranslation("responseCommandRefill",
-                                Configuration.UserList.GetUserLocalization(username)))))
+                             Configuration.UserList.GetUserLocalization(username))))
                     {
-                        var user = e.WhisperMessage.Message.Replace(
-                            Configuration.CommandPrefix + Translator.GetTranslation("gameClawModeQuick",
-                                Translator.GetTranslation("responseCommandRefill",
-                                    Configuration.UserList.GetUserLocalization(username))) + " ", "");
-                        StartGameModeSingleQuickQueue(user);
+                        StartGameModeSingleQuickQueue(null);
                     }
                 }
 
@@ -719,10 +707,12 @@ namespace InternetClawMachine
                 {GameMode = GameModeType.SINGLEQUICKQUEUE, Name = "QuickQueue"});
             cmbGameModes.Items.Add(new GameModeSelections() {GameMode = GameModeType.SINGLEQUEUE, Name = "Queue"});
             //cmbGameModes.Items.Add(new GameModeSelections() { GameMode = GameModeType.WATERGUNQUEUE, Name = "WaterGunQueue" });
+            cmbGameModes.Items.Add(new GameModeSelections() { GameMode = GameModeType.REALTIMETEAM, Name = "Team Chaos" });
             cmbGameModes.Items.Add(new GameModeSelections() {GameMode = GameModeType.REALTIME, Name = "Chaos"});
             cmbGameModes.Items.Add(new GameModeSelections() {GameMode = GameModeType.VOTING, Name = "Vote"});
             cmbGameModes.Items.Add(new GameModeSelections() {GameMode = GameModeType.DRAWING, Name = "Drawing"});
             cmbGameModes.Items.Add(new GameModeSelections() {GameMode = GameModeType.GOLF, Name = "Golf"});
+
 
             cmbGameModes.SelectedIndex = 0;
 
@@ -1194,6 +1184,9 @@ namespace InternetClawMachine
                     case GameModeType.REALTIME:
                         StartGameModeRealTime();
                         break;
+                    case GameModeType.REALTIMETEAM:
+                        StartGameModeTeamChaos(null);
+                        break;
 
                     case GameModeType.SINGLEQUICKQUEUE:
                         var rand = new Random((int) DateTime.Now.Ticks);
@@ -1301,6 +1294,20 @@ namespace InternetClawMachine
 
             StartGame(username);
         }
+        private void StartGameModeTeamChaos(string username)
+        {
+
+            //if a game mode exists, end it
+            if (Game != null)
+            {
+                EndGame();
+            }
+
+            Configuration.EventMode = Configuration.ClawSettings.EventModes.Find(m => m.DisplayName == "Team Chaos");
+            Game = new ClawTeamChaos(Client, Configuration, ObsConnection);
+
+            StartGame(username);
+        }
 
         private void RFIDReader_NewTagFound(EpcData epcData)
         {
@@ -1403,6 +1410,10 @@ namespace InternetClawMachine
         /// </summary>
         private void EndGame()
         {
+            if (Game.GameMode == GameModeType.REALTIMETEAM)
+            {
+                Configuration.EventMode = Configuration.ClawSettings.EventModes.Find(m => m.DisplayName == "Normal");
+            }
             Game.EndGame();
 
             Game.GameEnded -= MainWindow_GameModeEnded;
@@ -1736,7 +1747,9 @@ namespace InternetClawMachine
                 case GameModeType.WATERGUNQUEUE:
                     StartGameModeWaterGunQueue(null);
                     break;
-
+                case GameModeType.REALTIMETEAM:
+                    StartGameModeTeamChaos(null);
+                    break;
                 case GameModeType.PLANNED:
 
                     break;
@@ -1857,6 +1870,8 @@ namespace InternetClawMachine
 
         private void btnRFIDConnect_Click(object sender, RoutedEventArgs e)
         {
+            RfidReader.Disconnect();
+            RfidReader.Connect(Configuration.ClawSettings.RfidReaderIpAddress, Configuration.ClawSettings.RfidReaderPort, (byte)Configuration.ClawSettings.RfidAntennaPower);
         }
 
         private void btnOBSConnect_Click(object sender, RoutedEventArgs e)

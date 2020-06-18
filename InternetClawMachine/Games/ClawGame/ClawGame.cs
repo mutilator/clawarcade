@@ -376,7 +376,6 @@ namespace InternetClawMachine.Games.ClawGame
                 {
                     RfidReader.Connect(Configuration.ClawSettings.RfidReaderIpAddress, Configuration.ClawSettings.RfidReaderPort, (byte)Configuration.ClawSettings.RfidAntennaPower);
                     RfidReader.NewTagFound += RFIDReader_NewTagFound;
-                    RfidReader.SetAntPower(Configuration.ClawSettings.RfidAntennaPower);
                     RfidReader.StartListening();
                 }
             }
@@ -633,6 +632,7 @@ namespace InternetClawMachine.Games.ClawGame
             if (!string.IsNullOrEmpty(winner))
             {
                 var usr = Configuration.UserList.GetUser(winner);
+                var winnerName = winner;
                 var teamid = usr.TeamId;
                 if (Configuration.EventMode.TeamRequired)
                     teamid = usr.EventTeamId;
@@ -641,6 +641,8 @@ namespace InternetClawMachine.Games.ClawGame
                 if (team != null)
                 {
                     team.Wins++;
+                    if (this.GameMode == GameModeType.REALTIMETEAM)
+                        winnerName = team.Name;
                 }
 
                 //see if they're in the tracker yeta
@@ -653,18 +655,18 @@ namespace InternetClawMachine.Games.ClawGame
                 //if an RF scan but also custom text enter here
                 if (objPlush != null && !string.IsNullOrEmpty(Configuration.EventMode.CustomWinTextResource))
                 {
-                    saying = string.Format(Translator.GetTranslation(Configuration.EventMode.CustomWinTextResource, Configuration.UserList.GetUserLocalization(winner)), winner, objPlush.Name, objPlush.BonusBux);
+                    saying = string.Format(Translator.GetTranslation(Configuration.EventMode.CustomWinTextResource, Configuration.UserList.GetUserLocalization(winner)), winnerName, objPlush.Name, objPlush.BonusBux);
                     DatabaseFunctions.AddStreamBuxBalance(Configuration, user.Username, StreamBuxTypes.WIN, objPlush.BonusBux);
                 }
                 //otherwise if just a custon win, mainly for events, use this
                 else if (!string.IsNullOrEmpty(Configuration.EventMode.CustomWinTextResource))
                 {
-                    saying = string.Format(Translator.GetTranslation(Configuration.EventMode.CustomWinTextResource, Configuration.UserList.GetUserLocalization(winner)), winner, Configuration.EventMode.WinMultiplier);
+                    saying = string.Format(Translator.GetTranslation(Configuration.EventMode.CustomWinTextResource, Configuration.UserList.GetUserLocalization(winner)), winnerName, Configuration.EventMode.WinMultiplier);
                     DatabaseFunctions.AddStreamBuxBalance(Configuration, user.Username, StreamBuxTypes.WIN, Configuration.GetStreamBuxCost(StreamBuxTypes.WIN) * Configuration.EventMode.WinMultiplier);
                 }
                 else if (objPlush != null)
                 {
-                    saying = string.Format(Translator.GetTranslation("gameClawGrabPlush", Configuration.UserList.GetUserLocalization(winner)), winner, objPlush.Name);
+                    saying = string.Format(Translator.GetTranslation("gameClawGrabPlush", Configuration.UserList.GetUserLocalization(winner)), winnerName, objPlush.Name);
                     DatabaseFunctions.AddStreamBuxBalance(Configuration, user.Username, StreamBuxTypes.WIN, Configuration.GetStreamBuxCost(StreamBuxTypes.WIN));
 
                     if (objPlush.BonusBux > 0)
@@ -673,7 +675,7 @@ namespace InternetClawMachine.Games.ClawGame
                     DatabaseFunctions.WriteDbWinRecord(Configuration, usr, objPlush.PlushId, Configuration.SessionGuid.ToString());
                 } else
                 {
-                    saying = string.Format(Translator.GetTranslation("gameClawGrabSomething", Configuration.UserList.GetUserLocalization(winner)), winner);
+                    saying = string.Format(Translator.GetTranslation("gameClawGrabSomething", Configuration.UserList.GetUserLocalization(winner)), winnerName);
                     DatabaseFunctions.AddStreamBuxBalance(Configuration, usr.Username, StreamBuxTypes.WIN, Configuration.GetStreamBuxCost(StreamBuxTypes.WIN));
 
                     DatabaseFunctions.WriteDbWinRecord(Configuration, usr, -1, Configuration.SessionGuid.ToString());
@@ -753,7 +755,7 @@ namespace InternetClawMachine.Games.ClawGame
                     var output = "Teams:\r\n";
                     for (var i = 0; i < winners.Count; i++)
                     {
-                        output += string.Format("{0} - \t\t{1} ships sunk, {2} bombardments\r\n", winners[i].Name, winners[i].Wins, winners[i].Drops);
+                        output += string.Format("{0} - \t\t{1} wins, {2} drops\r\n", winners[i].Name, winners[i].Wins, winners[i].Drops);
                     }
                     output += "\r\n\r\n\r\n\r\n\r\n";
                     File.WriteAllText(Configuration.FileLeaderboard, output);

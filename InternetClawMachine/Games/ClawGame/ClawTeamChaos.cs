@@ -22,7 +22,7 @@ namespace InternetClawMachine.Games.ClawGame
             CurrentDroppingPlayer = new DroppingPlayer();
             MachineControl.OnReturnedHome += MachineControl_OnReturnedHome;
             ((ClawController)MachineControl).OnClawRecoiled += ClawSingleQueue_OnClawRecoiled;
-            StartMessage = string.Format(Translator.GetTranslation("gameClawTeamChaosQueueStartGame", Translator.DefaultLanguage), Configuration.CommandPrefix);
+            StartMessage = string.Format(Translator.GetTranslation("gameClawTeamChaosStartGame", Translator.DefaultLanguage), Configuration.CommandPrefix);
         }
 
         private void ClawSingleQueue_OnClawRecoiled(object sender, EventArgs e)
@@ -163,7 +163,7 @@ namespace InternetClawMachine.Games.ClawGame
 
             //check if the person controlling is on the active team
             var activeTeam = PlayerQueue.CurrentPlayer.ToLower();
-            var personsTeam = userPrefs.TeamName;
+            var personsTeam = userPrefs.EventTeamName.ToLower();
 
             if (personsTeam != activeTeam)
                 return;

@@ -30,6 +30,8 @@ namespace InternetClawMachine
             LightsOn = true;
             Scene = "";
             CustomStrobe = "";
+            EventTeamName = "";
+            TeamName = "";
         }
 
         override public string ToString()
