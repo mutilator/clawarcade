@@ -229,8 +229,15 @@
     <Compile Include="Chat\MixerChatAPI.cs" />
     <Compile Include="DatabaseFunctions.cs" />
     <Compile Include="EpochToDate.cs" />
+    <Compile Include="Games\ClawGame\TriviaMessageMode.cs" />
+    <Compile Include="Games\GameHelpers\GameModeSelections.cs" />
+    <Compile Include="Games\ClawGame\ClawTrivia.cs" />
+    <Compile Include="Games\ClawGame\ClawTeamTrivia.cs" />
     <Compile Include="Games\ClawGame\ClawTeamChaos.cs" />
     <Compile Include="Games\GameHelpers\GameTeam.cs" />
+    <Compile Include="Games\GameHelpers\ListShuffle.cs" />
+    <Compile Include="Games\GameHelpers\TriviaAnswer.cs" />
+    <Compile Include="Games\GameHelpers\TriviaQuestion.cs" />
     <Compile Include="Settings\EventModeArgs.cs" />
     <Compile Include="Settings\EventModeSettings.cs" />
     <Compile Include="Games\ClawGame\PlayWinClipEventArgs.cs" />
@@ -287,6 +294,7 @@
     <Compile Include="Settings\MixerSettings.cs" />
     <Compile Include="Settings\OBSSettings.cs" />
     <Compile Include="Settings\ReticleOption.cs" />
+    <Compile Include="Settings\TriviaSettings.cs" />
     <Compile Include="Settings\TwitchSettings.cs" />
     <Compile Include="Settings\UserList.cs" />
     <Compile Include="Settings\VoteSettings.cs" />

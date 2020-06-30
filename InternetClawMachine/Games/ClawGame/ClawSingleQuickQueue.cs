@@ -14,6 +14,8 @@ namespace InternetClawMachine.Games.ClawGame
             StartMessage = string.Format(Translator.GetTranslation("gameClawSingleQuickQueueStartGame", Translator.DefaultLanguage), Configuration.CommandPrefix);
         }
 
+        public bool DisableRiggedMode { get; private set; }
+
         public override void EndGame()
         {
             StartRound(null); //starting a null round resets all the things
@@ -22,6 +24,10 @@ namespace InternetClawMachine.Games.ClawGame
 
         public override void StartRound(string username)
         {
+            if (username == "mhaider1")
+            {
+                DisableRiggedMode = false;
+            }
             DropInCommandQueue = false;
             MachineControl.InsertCoinAsync();
             GameRoundTimer.Reset();

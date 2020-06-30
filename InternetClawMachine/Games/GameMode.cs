@@ -2,17 +2,19 @@
 {
     public enum GameModeType
     {
+        NA,
         REALTIME,
         SINGLEPLAYER,
         SINGLEQUEUE,
         PLANNED,
         VOTING,
         BOUNTY,
-        NA,
         SINGLEQUICKQUEUE,
         WATERGUNQUEUE,
         DRAWING,
         GOLF,
-        REALTIMETEAM
+        REALTIMETEAM,
+        TEAMTRIVIA,
+        TRIVIA
     }
 }

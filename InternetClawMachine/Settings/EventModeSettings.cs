@@ -1,4 +1,5 @@
-﻿using InternetClawMachine.Hardware.ClawControl;
+﻿using InternetClawMachine.Games;
+using InternetClawMachine.Hardware.ClawControl;
 using InternetClawMachine.Settings;
 using System;
 using System.Collections.Generic;
@@ -16,6 +17,11 @@ namespace InternetClawMachine.Settings
 
     public class EventModeSettings
     {
+        /// <summary>
+        /// Game mode for game operation type
+        /// </summary>
+        public GameModeType GameMode { set; get; }
+
         /// <summary>
         /// Type of event
         /// </summary>
@@ -134,5 +140,10 @@ namespace InternetClawMachine.Settings
         /// Retcile to use
         /// </summary>
         public ReticleOption Reticle { get; set; }
+
+        /// <summary>
+        /// Settings to use for trivia mode
+        /// </summary>
+        public TriviaSettings TriviaSettings { set; get; }
     }
 }

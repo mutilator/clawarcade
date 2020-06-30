@@ -708,6 +708,8 @@ namespace InternetClawMachine
             cmbGameModes.Items.Add(new GameModeSelections() {GameMode = GameModeType.SINGLEQUEUE, Name = "Queue"});
             //cmbGameModes.Items.Add(new GameModeSelections() { GameMode = GameModeType.WATERGUNQUEUE, Name = "WaterGunQueue" });
             cmbGameModes.Items.Add(new GameModeSelections() { GameMode = GameModeType.REALTIMETEAM, Name = "Team Chaos" });
+            cmbGameModes.Items.Add(new GameModeSelections() { GameMode = GameModeType.TEAMTRIVIA, Name = "Team Trivia" });
+            cmbGameModes.Items.Add(new GameModeSelections() { GameMode = GameModeType.TRIVIA, Name = "Trivia" });
             cmbGameModes.Items.Add(new GameModeSelections() {GameMode = GameModeType.REALTIME, Name = "Chaos"});
             cmbGameModes.Items.Add(new GameModeSelections() {GameMode = GameModeType.VOTING, Name = "Vote"});
             cmbGameModes.Items.Add(new GameModeSelections() {GameMode = GameModeType.DRAWING, Name = "Drawing"});
@@ -1309,6 +1311,36 @@ namespace InternetClawMachine
             StartGame(username);
         }
 
+        private void StartGameModeTrivia(string username)
+        {
+
+            //if a game mode exists, end it
+            if (Game != null)
+            {
+                EndGame();
+            }
+
+            Configuration.EventMode = Configuration.ClawSettings.EventModes.Find(m => m.DisplayName == "Trivia");
+            Game = new ClawTrivia(Client, Configuration, ObsConnection);
+
+            StartGame(username);
+        }
+
+        private void StartGameModeTeamTrivia(string username)
+        {
+
+            //if a game mode exists, end it
+            if (Game != null)
+            {
+                EndGame();
+            }
+
+            Configuration.EventMode = Configuration.ClawSettings.EventModes.Find(m => m.DisplayName == "Team Trivia");
+            Game = new ClawTeamTrivia(Client, Configuration, ObsConnection);
+
+            StartGame(username);
+        }
+
         private void RFIDReader_NewTagFound(EpcData epcData)
         {
             Dispatcher?.BeginInvoke(new Action(() =>
@@ -1410,7 +1442,8 @@ namespace InternetClawMachine
         /// </summary>
         private void EndGame()
         {
-            if (Game.GameMode == GameModeType.REALTIMETEAM)
+            //if the game is in a specialy mode that requires an event configuration and a game type then reset to normal event mode
+            if (Game.GameMode == GameModeType.REALTIMETEAM || Game.GameMode == GameModeType.TRIVIA || Game.GameMode == GameModeType.TEAMTRIVIA)
             {
                 Configuration.EventMode = Configuration.ClawSettings.EventModes.Find(m => m.DisplayName == "Normal");
             }
@@ -1730,6 +1763,15 @@ namespace InternetClawMachine
             
             var gameMode = ((GameModeSelections) cmbGameModes.SelectedItem).GameMode;
 
+            if (cmbEventMode.SelectedItem != null)
+            {
+                Configuration.EventMode = (EventModeSettings)cmbEventMode.SelectedItem;
+                if (Configuration.EventMode.GameMode != GameModeType.NA)
+                {
+                    gameMode = Configuration.EventMode.GameMode;
+                }
+            }
+
             switch (gameMode)
             {
                 case GameModeType.REALTIME:
@@ -1750,8 +1792,11 @@ namespace InternetClawMachine
                 case GameModeType.REALTIMETEAM:
                     StartGameModeTeamChaos(null);
                     break;
-                case GameModeType.PLANNED:
-
+                case GameModeType.TRIVIA:
+                    StartGameModeTrivia(null);
+                    break;
+                case GameModeType.TEAMTRIVIA:
+                    StartGameModeTeamTrivia(null);
                     break;
 
                 case GameModeType.VOTING:
@@ -2588,12 +2633,5 @@ namespace InternetClawMachine
     {
         public string Name { set; get; }
         public LogLevel Level { set; get; }
-    }
-
-
-    public class GameModeSelections
-    {
-        public string Name { set; get; }
-        public GameModeType GameMode { set; get; }
     }
 }
