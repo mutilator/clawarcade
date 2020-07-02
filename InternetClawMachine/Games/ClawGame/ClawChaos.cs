@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using InternetClawMachine.Chat;
 using InternetClawMachine.Settings;
 
-namespace InternetClawMachine.Games.ClawGame
+namespace InternetClawMachine.Games.GameHelpers
 {
     internal class ClawChaos : ClawGame
     {

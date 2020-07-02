@@ -1,4 +1,4 @@
-﻿namespace InternetClawMachine.Games.ClawGame
+﻿namespace InternetClawMachine.Games.GameHelpers
 {
     public enum ClawCommandGroup
     {

@@ -12,14 +12,14 @@ using Newtonsoft.Json;
 using System.IO;
 using System.Collections.Generic;
 
-namespace InternetClawMachine.Games.ClawGame
+namespace InternetClawMachine.Games.GameHelpers
 {
     internal class ClawTrivia : ClawGame
     {
         internal TriviaMessageMode TriviaMessageMode { set; get; }
         internal DroppingPlayer CurrentDroppingPlayer { set; get; }
         internal List<TriviaQuestion> TriviaQuestions { set; get; }
-        public TriviaQuestion CurrentQuestion { get; private set; }
+        public TriviaQuestion CurrentQuestion { get; set; }
 
         public ClawTrivia(IChatApi client, BotConfiguration configuration, OBSWebsocket obs) : base(client, configuration, obs)
         {
@@ -118,56 +118,63 @@ namespace InternetClawMachine.Games.ClawGame
             var msg = message.ToLower();
 
             //answering questions....
-            if (TriviaMessageMode == TriviaMessageMode.ANSWERING)
+            switch (TriviaMessageMode)
             {
-                if (CurrentQuestion.CorrectAnswer.Equals(msg))
-                {
-
-                    CurrentQuestion.CorrectAnswerer = username;
-                    TriviaMessageMode = TriviaMessageMode.CLAW;
-
-                    //var userObect = Configuration.UserList.GetUser(username);
-                    PlayerQueue.AddSinglePlayer(username);
-
-                    //Someone got the answer
-                    StartRound(username);
-                }
-            }
-
-
-            //someone answered
-            else if (TriviaMessageMode == TriviaMessageMode.CLAW)
-            {
-                if (PlayerQueue.CurrentPlayer == null)
-                    return;
-
-                if (username.ToLower() != PlayerQueue.CurrentPlayer.ToLower())
-                    return;
-
-                CurrentPlayerHasPlayed = true;
-
-                //check if it's a single command or stringed commands
-                if (msg.Trim().Length <= 1)
-                {
-                    //ignore multiple drops
-                    if (message.ToLower().Equals("d") && DropInCommandQueue)
+                case TriviaMessageMode.ANSWERING:
+                    if (CurrentQuestion == null)
                         return;
 
-                    if (message.ToLower().Equals("d"))
-                        DropInCommandQueue = true;
+                    if (CurrentQuestion.CorrectAnswer.Equals(msg))
+                    {
 
-                    //if not run all directional commands
-                    HandleSingleCommand(username, message);
-                    return;
-                }
+                        CurrentQuestion.CorrectAnswerer = username;
+                        TriviaMessageMode = TriviaMessageMode.CLAW;
+
+                        //var userObect = Configuration.UserList.GetUser(username);
+                        PlayerQueue.AddSinglePlayer(username);
+
+                        //Someone got the answer
+                        StartRound(username);
+                    }
+                    break;
+                case TriviaMessageMode.CLAW:
+                    HandleClawCommand(username, msg);
+                    break;
+                case TriviaMessageMode.TEAMSETUP:
+                    //maybe remind people to join a team?
+                    break;
             }
+            
 
-            /* 
-                * 
-                * DON'T SUPPORT THESE FOR NOW
-                * 
-                * 
-                * 
+
+
+
+        }
+
+        private void HandleClawCommand(string username, string msg)
+        {
+            if (PlayerQueue.CurrentPlayer == null)
+                return;
+
+            if (username.ToLower() != PlayerQueue.CurrentPlayer.ToLower())
+                return;
+
+            CurrentPlayerHasPlayed = true;
+
+            //check if it's a single command or stringed commands
+            if (msg.Trim().Length <= 1)
+            {
+                //ignore multiple drops
+                if (msg.Equals("d") && DropInCommandQueue)
+                    return;
+
+                if (msg.Equals("d"))
+                    DropInCommandQueue = true;
+
+                //if not run all directional commands
+                HandleSingleCommand(username, msg);
+                return;
+            }
             //check if it's a stringed command, all commands have to be valid
             var regex = "((([fbrld]{1}|(fs)|(bs)|(rs)|(ls)){1})([ ]{1}))+?";
             msg += " "; //add a space to the end for the regex
@@ -205,9 +212,6 @@ namespace InternetClawMachine.Games.ClawGame
                         break;
                 }
             }
-            */
-            
-            
         }
 
         internal void HandleSingleCommand(string username, string message)
@@ -324,12 +328,17 @@ namespace InternetClawMachine.Games.ClawGame
             ChatClient.SendMessage(Configuration.Channel, Translator.GetTranslation("gameClawTriviaHelp3", Configuration.UserList.GetUserLocalization(username)));
         }
 
-        public override void StartGame(string username)
+        public override void Init()
         {
+            base.Init();
             if (Configuration.EventMode.TriviaSettings == null)
                 return; //TODO - add some notification that the game start failed, it should be obvious though because nothing will happen
 
             LoadQuestions(Configuration.EventMode.TriviaSettings.QuestionsFile);
+        }
+
+        public override void StartGame(string username)
+        {
 
             MachineControl.SetClawPower(50);
             MachineControl.InsertCoinAsync();
@@ -346,7 +355,7 @@ namespace InternetClawMachine.Games.ClawGame
             //StartRound(PlayerQueue.GetNextPlayer());
         }
 
-        internal void StartNewTriviaRound()
+        public void StartNewTriviaRound()
         {
             TriviaMessageMode = TriviaMessageMode.ANSWERING;
             Task.Run(async delegate ()
@@ -372,6 +381,9 @@ namespace InternetClawMachine.Games.ClawGame
         internal TriviaQuestion GetRandomQuestion()
         {
             var questionsAvailable = TriviaQuestions.FindAll(q => string.IsNullOrEmpty(q.CorrectAnswerer));
+            if (questionsAvailable.Count == 0)
+                return null;
+
             int k = ThreadSafeRandom.ThisThreadsRandom.Next(questionsAvailable.Count);
             return questionsAvailable[k];
         }

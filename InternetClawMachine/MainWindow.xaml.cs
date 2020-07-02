@@ -1,6 +1,6 @@
 ﻿using InternetClawMachine.Chat;
 using InternetClawMachine.Games;
-using InternetClawMachine.Games.ClawGame;
+using InternetClawMachine.Games.GameHelpers;
 using InternetClawMachine.Games.GantryGame;
 using InternetClawMachine.Games.OtherGame;
 using InternetClawMachine.Hardware;

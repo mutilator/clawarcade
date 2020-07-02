@@ -19,7 +19,7 @@ using System.Windows;
 using InternetClawMachine.Chat;
 using InternetClawMachine.Games.OtherGame;
 
-namespace InternetClawMachine.Games.ClawGame
+namespace InternetClawMachine.Games.GameHelpers
 {
     internal class ClawGame : Game
     {
@@ -56,6 +56,7 @@ namespace InternetClawMachine.Games.ClawGame
         /// Thrown when we send a drop event, this probably shouldn't be part of the game class
         /// </summary>
         public event EventHandler<EventArgs> ClawDropping;
+        public event EventHandler<TeamJoinedArgs> OnTeamJoined;
 
 
         public ClawGame(IChatApi client, BotConfiguration configuration, OBSWebsocket obs) : base(client, configuration, obs)
@@ -1114,12 +1115,20 @@ namespace InternetClawMachine.Games.ClawGame
                             userPrefs.EventTeamName = team.Name;
                         }
 
+                        
+                        //save it first
                         DatabaseFunctions.WriteUserPrefs(Configuration, userPrefs);
 
+                        
+                        //tell chat
                         ChatClient.SendMessage(Configuration.Channel, string.Format(Translator.GetTranslation("gameClawCommandTeamsJoined", Configuration.UserList.GetUserLocalization(username)), teamName));
 
+                        //let everyone know
+                        OnTeamJoined?.Invoke(this, new TeamJoinedArgs(userPrefs.Username, userPrefs.TeamName);
+
                         break;
-                    case "team": //get team stats
+                    case "team":
+                    case "teams": //get team stats
 
                         //specific team stats
                         if (chatMessage.IndexOf(" ") > 0)
@@ -1207,7 +1216,7 @@ namespace InternetClawMachine.Games.ClawGame
                                 
                         }
                         break;
-                    case "teams":
+                    case "createteams":
                         if (!Configuration.AdminUsers.Contains(username))
                             return;
 

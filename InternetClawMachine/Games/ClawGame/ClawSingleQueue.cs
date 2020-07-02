@@ -9,7 +9,7 @@ using InternetClawMachine.Chat;
 using InternetClawMachine.Settings;
 using InternetClawMachine.Hardware.ClawControl;
 
-namespace InternetClawMachine.Games.ClawGame
+namespace InternetClawMachine.Games.GameHelpers
 {
     internal class ClawSingleQueue : ClawGame
     {

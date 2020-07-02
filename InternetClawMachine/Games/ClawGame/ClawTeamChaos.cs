@@ -9,7 +9,7 @@ using InternetClawMachine.Hardware.ClawControl;
 using System.Threading;
 using System.Text.RegularExpressions;
 
-namespace InternetClawMachine.Games.ClawGame
+namespace InternetClawMachine.Games.GameHelpers
 {
     internal class ClawTeamChaos : ClawGame
     {

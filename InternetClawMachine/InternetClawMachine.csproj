@@ -229,7 +229,8 @@
     <Compile Include="Chat\MixerChatAPI.cs" />
     <Compile Include="DatabaseFunctions.cs" />
     <Compile Include="EpochToDate.cs" />
-    <Compile Include="Games\ClawGame\TriviaMessageMode.cs" />
+    <Compile Include="Games\ClawGame\TeamJoinedArgs.cs" />
+    <Compile Include="Games\GameHelpers\TriviaMessageMode.cs" />
     <Compile Include="Games\GameHelpers\GameModeSelections.cs" />
     <Compile Include="Games\ClawGame\ClawTrivia.cs" />
     <Compile Include="Games\ClawGame\ClawTeamTrivia.cs" />
@@ -240,7 +241,7 @@
     <Compile Include="Games\GameHelpers\TriviaQuestion.cs" />
     <Compile Include="Settings\EventModeArgs.cs" />
     <Compile Include="Settings\EventModeSettings.cs" />
-    <Compile Include="Games\ClawGame\PlayWinClipEventArgs.cs" />
+    <Compile Include="Games\GameHelpers\PlayWinClipEventArgs.cs" />
     <Compile Include="Games\GameHelpers\Bounty.cs" />
     <Compile Include="Hardware\ClawControl\ClawController.cs" />
     <Compile Include="Hardware\ClawControl\ClawEvents.cs" />

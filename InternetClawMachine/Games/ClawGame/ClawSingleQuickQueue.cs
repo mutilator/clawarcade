@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 using InternetClawMachine.Chat;
 using InternetClawMachine.Settings;
 
-namespace InternetClawMachine.Games.ClawGame
+namespace InternetClawMachine.Games.GameHelpers
 {
     internal class ClawSingleQuickQueue : ClawSingleQueue
     {
@@ -14,8 +14,6 @@ namespace InternetClawMachine.Games.ClawGame
             StartMessage = string.Format(Translator.GetTranslation("gameClawSingleQuickQueueStartGame", Translator.DefaultLanguage), Configuration.CommandPrefix);
         }
 
-        public bool DisableRiggedMode { get; private set; }
-
         public override void EndGame()
         {
             StartRound(null); //starting a null round resets all the things
@@ -24,10 +22,6 @@ namespace InternetClawMachine.Games.ClawGame
 
         public override void StartRound(string username)
         {
-            if (username == "mhaider1")
-            {
-                DisableRiggedMode = false;
-            }
             DropInCommandQueue = false;
             MachineControl.InsertCoinAsync();
             GameRoundTimer.Reset();

@@ -5,7 +5,7 @@ using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 using InternetClawMachine.Chat;
-using InternetClawMachine.Games.ClawGame;
+using InternetClawMachine.Games.GameHelpers;
 using InternetClawMachine.Games.GameHelpers;
 using InternetClawMachine.Games.OtherGame;
 using InternetClawMachine.Settings;

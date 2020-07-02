@@ -18,6 +18,9 @@ namespace InternetClawMachine.Settings
         /// </summary>
         public int QuestionWaitDelay { set; get; }
 
-
+        /// <summary>
+        /// Predefined list of teams for this game mode
+        /// </summary>
+        public string[] Teams { set; get; }
     }
 }
