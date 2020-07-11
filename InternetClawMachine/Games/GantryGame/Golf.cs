@@ -7,7 +7,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using InternetClawMachine.Chat;
 using InternetClawMachine.Games.GameHelpers;
-using InternetClawMachine.Games.GameHelpers;
 using InternetClawMachine.Games.GantryGame.GolfHelpers;
 using InternetClawMachine.Hardware.Gantry;
 using InternetClawMachine.Settings;

@@ -333,6 +333,9 @@ namespace InternetClawMachine
                             Configuration.UserList.GetUserLocalization(e.Subscriber.DisplayName)),
                         e.Subscriber.DisplayName, Configuration.CommandPrefix));
 
+
+
+
             var message = string.Format("NEW SUBSCRIBER {0}", e.Subscriber.DisplayName);
             LogChat("#" + e.Subscriber.RoomId, message);
         }
@@ -1006,7 +1009,7 @@ namespace InternetClawMachine
 
                 LogChat("#" + e.ChatMessage.Channel, message);
                 RunCurrentGameMode(username, e.ChatMessage.Message, e.ChatMessage.Channel, e.ChatMessage.IsSubscriber);
-
+                
                 //do some bits notifications
                 if (e.ChatMessage.Bits > 0)
                 {
@@ -1189,7 +1192,12 @@ namespace InternetClawMachine
                     case GameModeType.REALTIMETEAM:
                         StartGameModeTeamChaos(null);
                         break;
-
+                    case GameModeType.TRIVIA:
+                        StartGameModeTrivia(null);
+                        break;
+                    case GameModeType.TEAMTRIVIA:
+                        StartGameModeTeamTrivia(null);
+                        break;
                     case GameModeType.SINGLEQUICKQUEUE:
                         var rand = new Random((int) DateTime.Now.Ticks);
                         var user = Game.Votes[rand.Next(Game.Votes.Count)].Username;

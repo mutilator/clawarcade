@@ -88,6 +88,12 @@ namespace InternetClawMachine.Games.GameHelpers
             {
                 MachineControl = new U421Module();
             }
+
+            if (client is TwitchChatApi)
+            {
+                ((TwitchChatApi)client).OnNewSubscriber += ClawGame_OnNewSubscriber;
+                ((TwitchChatApi)client).OnReSubscriber += ClawGame_OnReSubscriber;
+            }
             MachineControl.OnBreakSensorTripped += MachineControl_OnBreakSensorTripped;
             MachineControl.OnResetButtonPressed += MachineControl_ResetButtonPressed;
             MachineControl.OnClawDropping += MachineControl_ClawDropping;
@@ -112,6 +118,20 @@ namespace InternetClawMachine.Games.GameHelpers
             });
         }
 
+        private void ClawGame_OnReSubscriber(object sender, TwitchLib.Client.Events.OnReSubscriberArgs e)
+        {
+            PoliceStrobe();
+            ((ClawController)MachineControl).SendCommandAsync("wt 200");
+            ((ClawController)MachineControl).SendCommandAsync("clap");
+        }
+
+        private void ClawGame_OnNewSubscriber(object sender, TwitchLib.Client.Events.OnNewSubscriberArgs e)
+        {
+            PoliceStrobe();
+            ((ClawController)MachineControl).SendCommandAsync("wt 200");
+            ((ClawController)MachineControl).SendCommandAsync("clap");
+        }
+
         private void Configuration_EventModeChanged(object sender, EventModeArgs e)
         {
             //create new session
@@ -122,7 +142,7 @@ namespace InternetClawMachine.Games.GameHelpers
             InitializeEventSettings(e.Event);
         }
 
-        private void InitializeEventSettings(EventModeSettings eventConfig)
+        public void InitializeEventSettings(EventModeSettings eventConfig)
         {
             //home location
             if (Configuration.ClawSettings.UseNewClawController)
@@ -166,6 +186,12 @@ namespace InternetClawMachine.Games.GameHelpers
 
             if (eventConfig.WireTheme != null)
                 ChangeWireTheme(eventConfig.WireTheme);
+            else
+            {
+                var theme = Configuration.ClawSettings.WireThemes.Find(t => t.Name.ToLower() == "default");
+
+                ChangeWireTheme(theme, true);
+            }
 
             if (eventConfig.Reticle != null)
                 ChangeReticle(eventConfig.Reticle);
@@ -173,6 +199,8 @@ namespace InternetClawMachine.Games.GameHelpers
             //grab current scene to make sure we skin all scenes
             if (ObsConnection.IsConnected)
             {
+                
+
                 var currentscene = ObsConnection.GetCurrentScene().Name;
 
                 //TODO - pull this from config
@@ -182,8 +210,6 @@ namespace InternetClawMachine.Games.GameHelpers
                 for (var i = 0; i < scenes.Length; i++)
                 {
                     ObsConnection.SetCurrentScene(scenes[i]);
-
-
 
                     //Fix greenscreen
                     foreach (var bg in Configuration.ClawSettings.ObsGreenScreenOptions)
@@ -739,6 +765,11 @@ namespace InternetClawMachine.Games.GameHelpers
             MachineControl.OnClawDropping -= MachineControl_ClawDropping;
             MachineControl.OnReturnedHome -= MachineControl_OnReturnedHome;
             Configuration.EventModeChanged -= Configuration_EventModeChanged;
+            if (ChatClient is TwitchChatApi)
+            {
+                ((TwitchChatApi)ChatClient).OnNewSubscriber -= ClawGame_OnNewSubscriber;
+                ((TwitchChatApi)ChatClient).OnReSubscriber -= ClawGame_OnReSubscriber;
+            }
         }
 
         internal void RefreshWinList()
@@ -1124,7 +1155,7 @@ namespace InternetClawMachine.Games.GameHelpers
                         ChatClient.SendMessage(Configuration.Channel, string.Format(Translator.GetTranslation("gameClawCommandTeamsJoined", Configuration.UserList.GetUserLocalization(username)), teamName));
 
                         //let everyone know
-                        OnTeamJoined?.Invoke(this, new TeamJoinedArgs(userPrefs.Username, userPrefs.TeamName);
+                        OnTeamJoined?.Invoke(this, new TeamJoinedArgs(userPrefs.Username, userPrefs.TeamName));
 
                         break;
                     case "team":
@@ -1933,7 +1964,7 @@ namespace InternetClawMachine.Games.GameHelpers
 
                                 if (customRewardId != "fa9570b9-7d7a-481d-b8bf-3c500ac68af5")
                                 {
-                                    if (DatabaseFunctions.GetStreamBuxBalance(Configuration, username) + Configuration.GetStreamBuxCost(StreamBuxTypes.NEWBOUNTY) > 0)
+                                    if (DatabaseFunctions.GetStreamBuxBalance(Configuration, username) + Configuration.GetStreamBuxCost(StreamBuxTypes.NEWBOUNTY) >= 0)
                                     {
 
                                         //deduct it from their balance
@@ -1956,7 +1987,7 @@ namespace InternetClawMachine.Games.GameHelpers
                                 {
                                     if (PlayerQueue.CurrentPlayer == username)
                                     {
-                                        if (DatabaseFunctions.GetStreamBuxBalance(Configuration, username) + Configuration.GetStreamBuxCost(StreamBuxTypes.SCENE) > 0)
+                                        if (DatabaseFunctions.GetStreamBuxBalance(Configuration, username) + Configuration.GetStreamBuxCost(StreamBuxTypes.SCENE) >= 0)
                                         {
                                             if (int.TryParse(args[2], out newScene))
                                             {
@@ -1983,7 +2014,7 @@ namespace InternetClawMachine.Games.GameHelpers
                                 }
                                 else
                                 {
-                                    if (DatabaseFunctions.GetStreamBuxBalance(Configuration, username) + Configuration.GetStreamBuxCost(StreamBuxTypes.BELT) > 0)
+                                    if (DatabaseFunctions.GetStreamBuxBalance(Configuration, username) + Configuration.GetStreamBuxCost(StreamBuxTypes.BELT) >= 0)
                                     {
                                         DatabaseFunctions.AddStreamBuxBalance(Configuration, username, StreamBuxTypes.BELT, Configuration.GetStreamBuxCost(StreamBuxTypes.BELT));
                                         RunBelt(args[2]);
@@ -1999,7 +2030,7 @@ namespace InternetClawMachine.Games.GameHelpers
 
                             case "rename":
 
-                                if (DatabaseFunctions.GetStreamBuxBalance(Configuration, username) + Configuration.GetStreamBuxCost(StreamBuxTypes.RENAME) > 0)
+                                if (DatabaseFunctions.GetStreamBuxBalance(Configuration, username) + Configuration.GetStreamBuxCost(StreamBuxTypes.RENAME) >= 0)
                                 {
                                     if (!chatMessage.Contains("rename "))
                                     {
@@ -2206,13 +2237,13 @@ namespace InternetClawMachine.Games.GameHelpers
 
         }
 
-        public void ChangeWireTheme(WireTheme theme)
+        public void ChangeWireTheme(WireTheme theme, bool force = false)
         {
 
 
             try
             {
-                if (theme.Name == Configuration.ClawSettings.ActiveWireTheme.Name)
+                if (theme.Name == Configuration.ClawSettings.ActiveWireTheme.Name && !force)
                 {
                    return;
                 }

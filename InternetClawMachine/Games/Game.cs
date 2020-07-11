@@ -6,7 +6,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using InternetClawMachine.Chat;
 using InternetClawMachine.Games.GameHelpers;
-using InternetClawMachine.Games.GameHelpers;
 using InternetClawMachine.Games.OtherGame;
 using InternetClawMachine.Settings;
 using OBSWebsocketDotNet;
@@ -303,7 +302,7 @@ namespace InternetClawMachine.Games
                     {
                         case "scare":
                             //runs scare with random delay
-                            if (DatabaseFunctions.GetStreamBuxBalance(Configuration, username) + Configuration.GetStreamBuxCost(StreamBuxTypes.SCARE) > 0)
+                            if (DatabaseFunctions.GetStreamBuxBalance(Configuration, username) + Configuration.GetStreamBuxCost(StreamBuxTypes.SCARE) >= 0)
                             {
                                 DatabaseFunctions.AddStreamBuxBalance(Configuration, username, StreamBuxTypes.SCARE, Configuration.GetStreamBuxCost(StreamBuxTypes.SCARE));
                                 RunScare(true);

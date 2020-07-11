@@ -12,28 +12,45 @@ namespace InternetClawMachine.Games.GameHelpers
         /// The question to ask
         /// </summary>
         public string Question { set; get; }
+
         /// <summary>
         /// List of all possible answers for those questions that display the answers
         /// </summary>
         public List<TriviaAnswer> Answers { set; get; }
+
         /// <summary>
         /// Who correctly answered this question?
         /// </summary>
-        public string CorrectAnswerer { set; get; }
+        public string AnsweredBy { set; get; }
+
         /// <summary>
         /// Display all answers to the question after the question
         /// </summary>
-        public string ShowAnswers { set; get; }
+        public bool ShowAnswers { set; get; }
+        public string CorrectAnswer
+        {
+            get
+            {
+                foreach (var a in Answers)
+                {
+                    if (a.IsCorrectAnswer)
+                        return a.Text;
+                }
+                return "";
+            }
+        }
 
         /// <summary>
         /// Returns the correct answer from the answer list
         /// </summary>
-        public TriviaAnswer CorrectAnswer
+        public bool IsCorrectAnswer(string answer)
         {
-            get
+            foreach(var a in Answers)
             {
-                return Answers.Find(a => a.IsCorrectAnswer);
+                if (a.IsCorrectAnswer && a.Equals(answer))
+                    return true;
             }
+            return false;
         }
 
         /// <summary>

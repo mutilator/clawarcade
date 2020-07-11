@@ -4,6 +4,8 @@
     {
         ANSWERING,
         CLAW,
-        TEAMSETUP
+        TEAMSETUP,
+        TEAMNAMING,
+        TRIVIASETUP
     }
 }
