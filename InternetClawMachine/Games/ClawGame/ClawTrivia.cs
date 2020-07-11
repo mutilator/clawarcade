@@ -23,7 +23,9 @@ namespace InternetClawMachine.Games.GameHelpers
         public TriviaQuestion CurrentQuestion { get; set; }
         public int QuestionsAsked { get; set; }
         public Task HintPromise { get; private set; }
-        public CancellationTokenSource HintCancelToken { get; private set; }
+        public CancellationTokenSource HintCancelToken { get; set; }
+        public CancellationTokenSource IsTriviaAliveCancelToken { get; set; }
+        
         public string AnswerHint { get; private set; }
         public int QuestionCount { set; get; }
         internal Dictionary<int, int> _questionAmountVotes = new Dictionary<int, int>();
@@ -83,6 +85,16 @@ namespace InternetClawMachine.Games.GameHelpers
 
         public override void EndGame()
         {
+            if (ObsConnection.IsConnected)
+                ObsConnection.SetSourceRender("TriviaOverlay", true, null);
+
+            if (HintCancelToken != null && !HintCancelToken.IsCancellationRequested)
+                HintCancelToken.Cancel();
+
+            if (IsTriviaAliveCancelToken != null && IsTriviaAliveCancelToken.IsCancellationRequested)
+                IsTriviaAliveCancelToken.Cancel();
+
+            GameLoopCounterValue = -1;
             MachineControl.OnReturnedHome -= MachineControl_OnReturnedHome;
             ((ClawController)MachineControl).OnClawRecoiled -= ClawSingleQueue_OnClawRecoiled;
             base.EndGame();
@@ -135,6 +147,9 @@ namespace InternetClawMachine.Games.GameHelpers
                     {
                         if (HintCancelToken != null)
                             HintCancelToken.Cancel();
+
+                        if (ObsConnection.IsConnected)
+                            ObsConnection.SetSourceRender("TriviaOverlay", false, null);
 
                         var data = new JObject();
                         data.Add("name", Configuration.EventMode.TriviaSettings.OBSCorrectAnswer.SourceName);
@@ -393,8 +408,10 @@ namespace InternetClawMachine.Games.GameHelpers
                 PlayerQueue.AddSinglePlayer(username);
 
             QuestionsAsked = 0;
+            CurrentQuestion = null;
+            QuestionCount = 0;
             //This will be called when the machine completes a reset cycle to start the game
-            
+
             StartNewTriviaRound();
             //StartRound(PlayerQueue.GetNextPlayer());
         }
@@ -419,10 +436,11 @@ namespace InternetClawMachine.Games.GameHelpers
                         var firstWait = Configuration.EventMode.TriviaSettings.QuestionWaitDelay * 1000;
 
                         await Task.Delay(firstWait);
+                        
                     }
 
                     CurrentQuestion = GetRandomQuestion();
-                    if (CurrentQuestion == null)
+                    if (CurrentQuestion == null || QuestionsAsked >= QuestionCount)
                     {
                         EndTrivia();
                     }
@@ -433,8 +451,16 @@ namespace InternetClawMachine.Games.GameHelpers
                         if (CurrentQuestion.ShowAnswers)
                             answers = CurrentQuestion.getAnswersAsCSV();
 
-                        ChatClient.SendMessage(Configuration.Channel, string.Format(Translator.GetTranslation("gameClawTriviaStartTriviaRound", Translator.DefaultLanguage), CurrentQuestion.Question, answers));
+                        var question = string.Format(Translator.GetTranslation("gameClawTriviaStartTriviaRound", Translator.DefaultLanguage), CurrentQuestion.Question, answers);
+                        ChatClient.SendMessage(Configuration.Channel, question);
 
+                        if (ObsConnection.IsConnected)
+                        {
+                            var s = ObsConnection.GetTextGDIPlusProperties("TriviaQuestion");
+                            s.Text = question;
+                            ObsConnection.SetTextGDIPlusProperties(s);
+                            ObsConnection.SetSourceRender("TriviaOverlay", true, null);
+                        }
 
                         AnswerHint = Regex.Replace(CurrentQuestion.CorrectAnswer, "[a-zA-Z0-9]", "-");
                         HintCancelToken = new CancellationTokenSource();
@@ -521,7 +547,8 @@ namespace InternetClawMachine.Games.GameHelpers
                 //spit out stats for the team
                 ChatClient.SendMessage(Configuration.Channel, string.Format(Translator.GetTranslation("gameClawTriviaWinFinal", Translator.DefaultLanguage), user.Username, user.Wins, correctAnswers));
             }
-            EndGame();
+            
+            StartGame(null);
         }
 
         internal TriviaQuestion GetRandomQuestion()

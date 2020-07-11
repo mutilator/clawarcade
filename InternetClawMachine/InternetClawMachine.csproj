@@ -112,7 +112,7 @@
     </Reference>
     <Reference Include="obs-websocket-dotnet, Version=4.2.0.3, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>bin\Release\obs-websocket-dotnet.dll</HintPath>
+      <HintPath>C:\Users\mutilator\Documents\GitHub\obs-websocket-dotnet-fork\obs-websocket-dotnet\bin\Release\obs-websocket-dotnet.dll</HintPath>
     </Reference>
     <Reference Include="Serilog, Version=2.0.0.0, Culture=neutral, PublicKeyToken=24c2f752a8e58a10, processorArchitecture=MSIL">
       <HintPath>..\packages\Serilog.2.8.1-dev-01054\lib\net46\Serilog.dll</HintPath>

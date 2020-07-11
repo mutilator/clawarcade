@@ -145,7 +145,7 @@ namespace InternetClawMachine.Games.GameHelpers
                 //spit out stats for the team
                 ChatClient.SendMessage(Configuration.Channel, string.Format(Translator.GetTranslation("gameClawTriviaTeamWinFinal", Translator.DefaultLanguage), t.Name, t.Wins, correctAnswers));
             }
-            EndGame();
+            StartGame(null);
         }
 
 
@@ -253,7 +253,7 @@ namespace InternetClawMachine.Games.GameHelpers
 
                     if (CurrentQuestion == null || QuestionsAsked >= QuestionCount)
                     {
-                        EndGame();
+                        EndTrivia();
                     }
                     else
                     {
@@ -264,7 +264,13 @@ namespace InternetClawMachine.Games.GameHelpers
 
                         QuestionsAsked++;
 
-                        ChatClient.SendMessage(Configuration.Channel, string.Format(Translator.GetTranslation("gameClawTriviaTeamStartTriviaRound", Translator.DefaultLanguage), CurrentQuestion.Question, answers));
+                        var question = string.Format(Translator.GetTranslation("gameClawTriviaTeamStartTriviaRound", Translator.DefaultLanguage), CurrentQuestion.Question, answers);
+                        ChatClient.SendMessage(Configuration.Channel, question);
+
+                        var s = ObsConnection.GetTextGDIPlusProperties("TriviaQuestion");
+                        s.Text = question;
+                        ObsConnection.SetTextGDIPlusProperties(s);
+                        ObsConnection.SetSourceRender("TriviaOverlay", true, null);
                     }
                 });
             }
@@ -290,6 +296,9 @@ namespace InternetClawMachine.Games.GameHelpers
                     //If they answer correctly, let them grab plush
                     if (CurrentQuestion.IsCorrectAnswer(msg))
                     {
+
+                        ObsConnection.SetSourceRender("TriviaOverlay", true, null);
+
                         var data = new JObject();
                         data.Add("name", Configuration.EventMode.TriviaSettings.OBSCorrectAnswer.SourceName);
                         WsConnection.SendCommand(MediaWebSocketServer.CommandMedia, data);
