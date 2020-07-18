@@ -497,5 +497,10 @@ namespace InternetClawMachine.Hardware.ClawControl
         {
             throw new NotImplementedException();
         }
+
+        public void Flipper(FlipperDirection direction)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

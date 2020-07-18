@@ -86,7 +86,7 @@ namespace InternetClawMachine.Games.GameHelpers
         public override void EndGame()
         {
             if (ObsConnection.IsConnected)
-                ObsConnection.SetSourceRender("TriviaOverlay", true, null);
+                ObsConnection.SetSourceRender("TriviaOverlay", false, null);
 
             if (HintCancelToken != null && !HintCancelToken.IsCancellationRequested)
                 HintCancelToken.Cancel();

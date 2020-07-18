@@ -1266,7 +1266,8 @@ namespace InternetClawMachine.Games.GameHelpers
 
                         ChatClient.SendMessage(Configuration.Channel, string.Format(Translator.GetTranslation("gameClawCommandTeamsAdded", Configuration.UserList.GetUserLocalization(username)), Teams.Count));
                         break;
-
+                    
+                        
                     case "play": //probably let them handle their own play is better
                                  //auto update their localization if they use a command in another language
                         if (commandText != translateCommand.FinalWord || (userPrefs.Localization == null || !userPrefs.Localization.Equals(translateCommand.SourceLocalization)))
@@ -2751,7 +2752,7 @@ namespace InternetClawMachine.Games.GameHelpers
                     ObsConnection.SetSourceRender(Configuration.ObsScreenSourceNames.CameraConveyor.SourceName, true);
                     await Task.Delay(1000);
                     await MachineControl.RunConveyor(milliseconds);
-                    MachineControl.Flipper();
+                    MachineControl.Flipper(FlipperDirection.FLIPPER_FORWARD);
                     await MachineControl.RunConveyor(Configuration.ClawSettings.ConveyorRunDuringFlipper);
                     await Task.Delay(Configuration.ClawSettings.ConveyorWaitAfter);
                     ObsConnection.SetSourceRender(Configuration.ObsScreenSourceNames.CameraConveyor.SourceName, false);

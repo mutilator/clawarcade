@@ -524,6 +524,45 @@ namespace InternetClawMachine
 
             switch (translateCommand.FinalWord)
             {
+                case "gamemode":
+                    if (!Configuration.AdminUsers.Contains(username))
+                        break; ;
+
+                    var mode = chatMessage.Substring(chatMessage.IndexOf(" ")).Trim().ToLower();
+                    if (mode.Trim().Length == 0)
+                        break;
+
+                        
+                    switch (mode)
+                    {
+                        case "chaos":
+                                StartGameModeRealTime();
+                            break;
+                        case "team chaos":
+                                StartGameModeTeamChaos(null);
+                            break;
+                        case "trivia":
+                                StartGameModeTrivia(null);
+                            break;
+                        case "team trivia":
+                                StartGameModeTeamTrivia(null);
+                            break;
+                        case "quick":
+
+                            StartGameModeSingleQuickQueue(null);
+                            break;
+                        case "queue":
+                            StartGameModeSingleQueue(null);
+                            break;
+                        default:
+                            Client.SendMessage(Configuration.Channel,
+                               string.Format(Translator.GetTranslation("responseCommandGameModeNoParam",
+                                        Configuration.UserList.GetUserLocalization(username))));
+                            break;
+
+                    }
+
+                    break;
                 case "seen":
                     //auto update their localization if they use a command in another language
                     if (commandText != translateCommand.FinalWord ||
@@ -1178,6 +1217,7 @@ namespace InternetClawMachine
 
         private void HandleEndOfVote()
         {
+
             if (Game.Votes.Count > 0)
             {
                 var grouped = Game.Votes.GroupBy(ccmd => ccmd.GameMode); //group all queued commands by direction
@@ -1355,11 +1395,14 @@ namespace InternetClawMachine
             {
                 txtLastEPC.Text = epcData.Epc.Trim();
 
-                var existing =
-                    ((ClawGame) Game).PlushieTags.FirstOrDefault(itm => itm.EpcList.Contains(epcData.Epc.Trim()));
-                if (existing != null)
+                if (Game is ClawGame)
                 {
-                    txtPLushName.Text = existing.Name;
+                    var existing =
+                        ((ClawGame)Game).PlushieTags.FirstOrDefault(itm => itm.EpcList.Contains(epcData.Epc.Trim()));
+                    if (existing != null)
+                    {
+                        txtPLushName.Text = existing.Name;
+                    }
                 }
 
             }));
@@ -2090,7 +2133,7 @@ namespace InternetClawMachine
 
         private void btnFlipper_Click(object sender, RoutedEventArgs e)
         {
-            (Game as ClawGame)?.MachineControl.Flipper();
+            (Game as ClawGame)?.MachineControl.Flipper(FlipperDirection.FLIPPER_FORWARD);
         }
 
         private void BtnClawConnect_Click(object sender, RoutedEventArgs e)

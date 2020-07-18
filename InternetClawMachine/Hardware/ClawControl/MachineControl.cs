@@ -24,7 +24,7 @@ namespace InternetClawMachine.Hardware.ClawControl
 
         Task PressDrop();
 
-        void Flipper();
+        void Flipper(FlipperDirection direction);
 
         Task StopMove();
 

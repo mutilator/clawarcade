@@ -75,6 +75,14 @@ namespace InternetClawMachine.Hardware.ClawControl
 
         public event EventHandler OnClawTimeout;
 
+        public event EventHandler OnFlipperHitForward;
+
+        public event EventHandler OnFlipperHitHome;
+
+        public event ClawInfoEventArgs OnFlipperError;
+
+        public event EventHandler OnFlipperTimeout;
+
         public event ClawInfoEventArgs OnInfoMessage;
         
         public string IpAddress { set; get; }
@@ -427,6 +435,23 @@ namespace InternetClawMachine.Hardware.ClawControl
                         OnLimitHitDown?.Invoke(this, new EventArgs());
                         break;
 
+                    case ClawEvents.EVENT_FLIPPER_ERROR:
+                        var data = response.Substring(delims[0].Length, response.Length - delims[0].Length).Trim();
+                        OnFlipperError?.Invoke(this, data);
+                        break;
+
+                    case ClawEvents.EVENT_FLIPPER_FORWARD:
+                        OnFlipperHitForward?.Invoke(this, new EventArgs());
+                        break;
+
+                    case ClawEvents.EVENT_FLIPPER_HOME:
+                        OnFlipperHitHome?.Invoke(this, new EventArgs());
+                        
+                        break;
+                    case ClawEvents.EVENT_FAILSAFE_FLIPPER:
+                        OnFlipperTimeout?.Invoke(this, new EventArgs());
+
+                        break;
                     case ClawEvents.EVENT_FAILSAFE_LEFT:
                         OnMotorTimeoutLeft?.Invoke(this, new EventArgs());
                         break;
@@ -773,10 +798,10 @@ namespace InternetClawMachine.Hardware.ClawControl
             await Move(MovementDirection.STOP, 0);
         }
 
-        public void Flipper()
+        public void Flipper(FlipperDirection direction)
         {
             if (IsConnected)
-                SendCommandAsync("flip");
+                SendCommandAsync("flip " + (int)direction);
         }
 
         public void ToggleLaser(bool on)

@@ -18,6 +18,19 @@
         EVENT_LIMIT_UP = 204,
         EVENT_LIMIT_DOWN = 205,
 
+        /// <summary>
+        /// Flipper hit the forward limit
+        /// </summary>
+        EVENT_FLIPPER_FORWARD = 206,
+        /// <summary>
+        /// Flipper hit the backward limit
+        /// </summary>
+        EVENT_FLIPPER_HOME = 207,
+        /// <summary>
+        /// An error on the controller is preventing the flipper from moving
+        /// </summary>
+        EVENT_FLIPPER_ERROR = 208,
+
         EVENT_FAILSAFE_LEFT = 300,
         EVENT_FAILSAFE_RIGHT = 301,
         EVENT_FAILSAFE_FORWARD = 302,
@@ -25,10 +38,21 @@
         EVENT_FAILSAFE_UP = 304,
         EVENT_FAILSAFE_DOWN = 305,
         EVENT_FAILSAFE_CLAW = 306,
+        EVENT_FAILSAFE_FLIPPER = 307,
 
         /// <summary>
         /// Used for passing information responses
         /// </summary>
         EVENT_INFO = 900,
+    }
+
+    /// <summary>
+    /// Which direction do you want to move the flipper?
+    /// </summary>
+    public enum FlipperDirection
+    {
+        FLIPPER_STOPPED = 0,
+        FLIPPER_FORWARD = 1,
+        FLIPPER_BACKWARD = 2
     }
 }
