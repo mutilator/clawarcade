@@ -36,6 +36,11 @@ namespace InternetClawMachine.Games
         public Bounty Bounty { get; set; }
 
         /// <summary>
+        /// Whether the game has ended
+        /// </summary>
+        public bool HasEnded { set; get; } = false;
+
+        /// <summary>
         /// Thrown when the game ends
         /// </summary>
         public event EventHandler<EventArgs> GameEnded;
@@ -328,6 +333,10 @@ namespace InternetClawMachine.Games
 
         public virtual void EndGame()
         {
+            if (HasEnded)
+                return;
+
+            HasEnded = true;
             PlayerQueue.Clear();
 
             OnGameEnded(new EventArgs());

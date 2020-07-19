@@ -3,6 +3,7 @@ using System;
 using System.Threading.Tasks;
 using InternetClawMachine.Chat;
 using InternetClawMachine.Settings;
+using InternetClawMachine.Hardware.ClawControl;
 
 namespace InternetClawMachine.Games.GameHelpers
 {
@@ -11,13 +12,48 @@ namespace InternetClawMachine.Games.GameHelpers
         public ClawSingleQuickQueue(IChatApi client, BotConfiguration configuration, OBSWebsocket obs) : base(client, configuration, obs)
         {
             GameMode = GameModeType.SINGLEQUICKQUEUE;
+            
             StartMessage = string.Format(Translator.GetTranslation("gameClawSingleQuickQueueStartGame", Translator.DefaultLanguage), Configuration.CommandPrefix);
+        }
+
+        public override void Init()
+        {
+            base.Init();
+            
         }
 
         public override void EndGame()
         {
+            if (HasEnded)
+                return;
             StartRound(null); //starting a null round resets all the things
             base.EndGame();
+        }
+
+        public override void Destroy()
+        {
+            base.Destroy();
+        }
+        internal override void MachineControl_OnClawRecoiled(object sender, EventArgs e)
+        {
+            if (Configuration.EventMode.DisableReturnHome)
+            {
+                MachineControl_OnReturnedHome(sender, e);
+            }
+        }
+
+        internal override void MachineControl_OnReturnedHome(object sender, EventArgs e)
+        {
+            //we check to see if the return home event was fired by the person that's currently playing
+            //if it has we need to move to the next player, if not we've moved on already, perhaps bad design here
+            
+            if (PlayerQueue.CurrentPlayer != null && PlayerQueue.CurrentPlayer == CurrentDroppingPlayer.Username && GameLoopCounterValue == CurrentDroppingPlayer.GameLoop)
+            {
+                base.OnTurnEnded(new RoundEndedArgs() { Username = PlayerQueue.CurrentPlayer, GameMode = GameMode, GameLoopCounterValue = GameLoopCounterValue });
+                var nextPlayer = PlayerQueue.GetNextPlayer();
+                StartRound(nextPlayer);
+            }
+            
         }
 
         public override void StartRound(string username)

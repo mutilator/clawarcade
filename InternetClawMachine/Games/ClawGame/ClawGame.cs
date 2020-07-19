@@ -51,6 +51,7 @@ namespace InternetClawMachine.Games.GameHelpers
 
         //flag determines if a player played
         public bool CurrentPlayerHasPlayed { get; internal set; }
+        public CancellationTokenSource CurrentWinCancellationToken { get; private set; }
 
         /// <summary>
         /// Thrown when we send a drop event, this probably shouldn't be part of the game class
@@ -81,6 +82,9 @@ namespace InternetClawMachine.Games.GameHelpers
                 ((ClawController)MachineControl).OnMotorTimeoutUp += ClawGame_OnMotorTimeoutUp;
                 ((ClawController)MachineControl).OnClawTimeout += ClawGame_OnClawTimeout;
                 ((ClawController)MachineControl).OnClawRecoiled += ClawGame_OnClawRecoiled;
+                ((ClawController)MachineControl).OnFlipperHitForward += ClawGame_OnFlipperHitForward;
+                ((ClawController)MachineControl).OnFlipperHitHome += ClawGame_OnFlipperHitHome;
+                ((ClawController)MachineControl).OnFlipperTimeout += ClawGame_OnFlipperTimeout;
                 Configuration.ClawSettings.PropertyChanged += ClawSettings_PropertyChanged;
 
             }
@@ -115,6 +119,29 @@ namespace InternetClawMachine.Games.GameHelpers
                 ObsConnection.SetSourceRender("BrowserSounds", false, "VideosScene");
                 await Task.Delay(3000);
                 ObsConnection.SetSourceRender("BrowserSounds", true, "VideosScene");
+            });
+        }
+
+        private void ClawGame_OnFlipperTimeout(object sender, EventArgs e)
+        {
+            Emailer.SendEmail(Configuration.EmailAddress, "Flipper timeout, CHECK ASAP!!!", "Flipper Timeout");
+        }
+
+        private void ClawGame_OnFlipperHitHome(object sender, EventArgs e)
+        {
+            
+        }
+
+        private void ClawGame_OnFlipperHitForward(object sender, EventArgs e)
+        {
+            if (Configuration.ClawSettings.FlipperPosition == FlipperDirection.FLIPPER_FORWARD)
+                return;
+
+            Task.Run(async delegate ()
+            {
+                ((ClawController)MachineControl).RunConveyor(1000);
+                await Task.Delay(1200);
+                ((ClawController)MachineControl).Flipper(FlipperDirection.FLIPPER_BACKWARD);
             });
         }
 
@@ -557,12 +584,29 @@ namespace InternetClawMachine.Games.GameHelpers
 
         public override void EndGame()
         {
-            if (Configuration.ClawSettings.UseNewClawController)
+            if (HasEnded)
+                return;
+
+            if (MachineControl is ClawController)
             {
-                ((ClawController)MachineControl).OnPingSuccess += ClawGame_PingSuccess;
-                ((ClawController)MachineControl).OnPingTimeout += ClawGame_PingTimeout;
-                ((ClawController)MachineControl).OnDisconnected += ClawGame_Disconnected;
+                ((ClawController)MachineControl).OnPingSuccess -= ClawGame_PingSuccess;
+                ((ClawController)MachineControl).OnPingTimeout -= ClawGame_PingTimeout;
+                ((ClawController)MachineControl).OnDisconnected -= ClawGame_Disconnected;
+                ((ClawController)MachineControl).OnHitWinChute -= ClawGame_OnHitWinChute;
+                ((ClawController)MachineControl).OnInfoMessage -= ClawGame_OnInfoMessage;
+                ((ClawController)MachineControl).OnMotorTimeoutBackward -= ClawGame_OnMotorTimeoutBackward;
+                ((ClawController)MachineControl).OnMotorTimeoutDown -= ClawGame_OnMotorTimeoutDown;
+                ((ClawController)MachineControl).OnMotorTimeoutForward -= ClawGame_OnMotorTimeoutForward;
+                ((ClawController)MachineControl).OnMotorTimeoutLeft -= ClawGame_OnMotorTimeoutLeft;
+                ((ClawController)MachineControl).OnMotorTimeoutRight -= ClawGame_OnMotorTimeoutRight;
+                ((ClawController)MachineControl).OnMotorTimeoutUp -= ClawGame_OnMotorTimeoutUp;
+                ((ClawController)MachineControl).OnClawTimeout -= ClawGame_OnClawTimeout;
+                ((ClawController)MachineControl).OnClawRecoiled -= ClawGame_OnClawRecoiled;
+                ((ClawController)MachineControl).OnFlipperHitForward -= ClawGame_OnFlipperHitForward;
+                ((ClawController)MachineControl).OnFlipperHitHome -= ClawGame_OnFlipperHitHome;
+                ((ClawController)MachineControl).OnFlipperTimeout -= ClawGame_OnFlipperTimeout;
             }
+
             RfidReader.NewTagFound -= RFIDReader_NewTagFound;
             MachineControl.OnBreakSensorTripped -= MachineControl_OnBreakSensorTripped;
             MachineControl.OnResetButtonPressed -= MachineControl_ResetButtonPressed;
@@ -582,6 +626,10 @@ namespace InternetClawMachine.Games.GameHelpers
             if (Configuration.EventMode.DisableRFScan) return; //ignore scans
             if (InScanWindow)
             {
+                
+                if (CurrentWinCancellationToken != null && !CurrentWinCancellationToken.IsCancellationRequested)
+                    CurrentWinCancellationToken.Cancel();
+
                 TriggerWin(key);
             }
         }
@@ -756,14 +804,36 @@ namespace InternetClawMachine.Games.GameHelpers
         public override void Destroy()
         {
             base.Destroy();
-            if (WsConnection.IsListening)
+            if (WsConnection != null && WsConnection.IsListening)
                 WsConnection.Stop();
-            if (MachineControl.IsConnected)
-                MachineControl.Disconnect();
-            MachineControl.OnBreakSensorTripped -= MachineControl_OnBreakSensorTripped;
-            MachineControl.OnResetButtonPressed -= MachineControl_ResetButtonPressed;
-            MachineControl.OnClawDropping -= MachineControl_ClawDropping;
-            MachineControl.OnReturnedHome -= MachineControl_OnReturnedHome;
+            if (MachineControl != null)
+            {
+                if (MachineControl.IsConnected)
+                    MachineControl.Disconnect();
+                MachineControl.OnBreakSensorTripped -= MachineControl_OnBreakSensorTripped;
+                MachineControl.OnResetButtonPressed -= MachineControl_ResetButtonPressed;
+                MachineControl.OnClawDropping -= MachineControl_ClawDropping;
+                MachineControl.OnReturnedHome -= MachineControl_OnReturnedHome;
+                if (MachineControl is ClawController)
+                {
+                    ((ClawController)MachineControl).OnPingSuccess -= ClawGame_PingSuccess;
+                    ((ClawController)MachineControl).OnPingTimeout -= ClawGame_PingTimeout;
+                    ((ClawController)MachineControl).OnDisconnected -= ClawGame_Disconnected;
+                    ((ClawController)MachineControl).OnHitWinChute -= ClawGame_OnHitWinChute;
+                    ((ClawController)MachineControl).OnInfoMessage -= ClawGame_OnInfoMessage;
+                    ((ClawController)MachineControl).OnMotorTimeoutBackward -= ClawGame_OnMotorTimeoutBackward;
+                    ((ClawController)MachineControl).OnMotorTimeoutDown -= ClawGame_OnMotorTimeoutDown;
+                    ((ClawController)MachineControl).OnMotorTimeoutForward -= ClawGame_OnMotorTimeoutForward;
+                    ((ClawController)MachineControl).OnMotorTimeoutLeft -= ClawGame_OnMotorTimeoutLeft;
+                    ((ClawController)MachineControl).OnMotorTimeoutRight -= ClawGame_OnMotorTimeoutRight;
+                    ((ClawController)MachineControl).OnMotorTimeoutUp -= ClawGame_OnMotorTimeoutUp;
+                    ((ClawController)MachineControl).OnClawTimeout -= ClawGame_OnClawTimeout;
+                    ((ClawController)MachineControl).OnClawRecoiled -= ClawGame_OnClawRecoiled;
+                    ((ClawController)MachineControl).OnFlipperHitForward -= ClawGame_OnFlipperHitForward;
+                    ((ClawController)MachineControl).OnFlipperHitHome -= ClawGame_OnFlipperHitHome;
+                    ((ClawController)MachineControl).OnFlipperTimeout -= ClawGame_OnFlipperTimeout;
+                }
+            }
             Configuration.EventModeChanged -= Configuration_EventModeChanged;
             if (ChatClient is TwitchChatApi)
             {
@@ -881,25 +951,46 @@ namespace InternetClawMachine.Games.GameHelpers
 
         private void MachineControl_OnBreakSensorTripped(object sender, EventArgs e)
         {
-            //ignore repeated trips, code on the machine ignores for 1 second
-            if (GameModeTimer.ElapsedMilliseconds - _lastSensorTrip > Configuration.ClawSettings.BreakSensorWaitTime)
-            {
-                _lastSensorTrip = GameModeTimer.ElapsedMilliseconds;
-                //async task to run conveyor
-                if (!Configuration.EventMode.DisableBelt)
-                    RunBelt(Configuration.ClawSettings.ConveyorWaitFor);
-
-                if (Configuration.EventMode.IRTriggersWin)
-                    TriggerWin(null,null,true);
-                
-            }
-
-            
-
             var message = string.Format("Break sensor tripped");
             Logger.WriteLog(Logger.MachineLog, message);
             message = string.Format(GameModeTimer.ElapsedMilliseconds + " - " + _lastSensorTrip + " > 7000");
             Logger.WriteLog(Logger.MachineLog, message);
+
+            //ignore repeated trips, code on the machine ignores for 1 second
+            if (GameModeTimer.ElapsedMilliseconds - _lastSensorTrip < Configuration.ClawSettings.BreakSensorWaitTime)
+                return;
+
+            //record the sensor trip
+            _lastSensorTrip = GameModeTimer.ElapsedMilliseconds;
+
+            //async task to run conveyor
+            if (!Configuration.EventMode.DisableBelt)
+                RunBelt(Configuration.ClawSettings.ConveyorWaitFor);
+
+            if (Configuration.EventMode.IRTriggersWin)
+            {
+                var winCancellationToken = new CancellationTokenSource();
+
+                if (CurrentWinCancellationToken != null && !CurrentWinCancellationToken.IsCancellationRequested)
+                    CurrentWinCancellationToken.Cancel();
+
+                CurrentWinCancellationToken = winCancellationToken;
+
+
+                Task.Run(async delegate ()
+                {
+                    await Task.Delay(8000); //wait 8 seconds
+
+                    if (winCancellationToken.IsCancellationRequested)
+                        return;
+
+                    CurrentWinCancellationToken = null;
+                    TriggerWin(null, null, true);
+                        
+                }, winCancellationToken.Token);
+            }
+
+            
         }
 
         public override void HandleCommand(string channel, string username, string chatMessage, bool isSubscriber, string customRewardId)

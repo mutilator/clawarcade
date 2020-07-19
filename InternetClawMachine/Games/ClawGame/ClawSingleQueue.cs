@@ -20,11 +20,11 @@ namespace InternetClawMachine.Games.GameHelpers
             GameMode = GameModeType.SINGLEQUEUE;
             CurrentDroppingPlayer = new DroppingPlayer();
             MachineControl.OnReturnedHome += MachineControl_OnReturnedHome;
-            ((ClawController)MachineControl).OnClawRecoiled += ClawSingleQueue_OnClawRecoiled;
+            ((ClawController)MachineControl).OnClawRecoiled += MachineControl_OnClawRecoiled;
             StartMessage = string.Format(Translator.GetTranslation("gameClawSingleQueueStartGame", Translator.DefaultLanguage), Configuration.CommandPrefix);
         }
 
-        private void ClawSingleQueue_OnClawRecoiled(object sender, EventArgs e)
+        internal virtual void MachineControl_OnClawRecoiled(object sender, EventArgs e)
         {
             if (Configuration.EventMode.DisableReturnHome)
             {
@@ -32,28 +32,28 @@ namespace InternetClawMachine.Games.GameHelpers
             }
         }
 
-        private void MachineControl_OnReturnedHome(object sender, EventArgs e)
+        internal virtual void MachineControl_OnReturnedHome(object sender, EventArgs e)
         {
-            //we check to see if the return home event was fired by the person that's currently playing
-            //if it has we need to move to the next player, if not we've moved on already, perhaps bad design here
-            if (PlayerQueue.CurrentPlayer == CurrentDroppingPlayer.Username && GameLoopCounterValue == CurrentDroppingPlayer.GameLoop)
-            {
-                base.OnTurnEnded(new RoundEndedArgs() { Username = PlayerQueue.CurrentPlayer, GameMode = GameMode, GameLoopCounterValue = GameLoopCounterValue });
-                var nextPlayer = PlayerQueue.GetNextPlayer();
-                StartRound(nextPlayer);
-            }
+            DropInCommandQueue = false;
+            var msg = string.Format(Translator.GetTranslation("gameClawSingleQueueStartRoundShort", Configuration.UserList.GetUserLocalization(PlayerQueue.CurrentPlayer)), PlayerQueue.CurrentPlayer);
+            ChatClient.SendMessage(Configuration.Channel, msg);
         }
 
         public override void EndGame()
         {
-            MachineControl.OnReturnedHome -= MachineControl_OnReturnedHome;
+            if (HasEnded)
+                return;
+            if (MachineControl != null)
+                MachineControl.OnReturnedHome -= MachineControl_OnReturnedHome;
             base.EndGame();
         }
 
         public override void Destroy()
         {
+            if (MachineControl != null)
+                MachineControl.OnReturnedHome -= MachineControl_OnReturnedHome;
             base.Destroy();
-            MachineControl.OnReturnedHome -= MachineControl_OnReturnedHome;
+            
         }
 
         public override void HandleCommand(string channel, string username, string chatMessage, bool isSubscriber, string customRewardId)
@@ -442,6 +442,7 @@ namespace InternetClawMachine.Games.GameHelpers
 
                 if (!CurrentPlayerHasPlayed && PlayerQueue.Count > 1)
                 {
+                    //TODO - we should probably use a cancellation token for the task
                     if (PlayerQueue.CurrentPlayer.ToLower() == username.ToLower())
                     {
                         if (PlayerQueue.CurrentPlayer == username && GameLoopCounterValue == loopVal)
@@ -464,6 +465,7 @@ namespace InternetClawMachine.Games.GameHelpers
                     //check if we're dropping below and ignore the start next round function and exit cleanly
 
                     //if after the second delay something skipped them, jump out
+                    //TODO - we should probably use a cancellation token for the task
                     if (PlayerQueue.CurrentPlayer != args.Username || GameLoopCounterValue != args.GameLoopCounterValue)
                     {
                         return;

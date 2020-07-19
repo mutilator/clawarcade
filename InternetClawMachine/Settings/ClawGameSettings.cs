@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using InternetClawMachine.Hardware.ClawControl;
 
 namespace InternetClawMachine.Settings
 {
@@ -206,9 +207,25 @@ namespace InternetClawMachine.Settings
         /// </summary>
         public WireTheme ActiveWireTheme { set; get; }
 
+        /// <summary>
+        /// List of all wireframe colors available
+        /// </summary>
         public List<OBSSceneFilters> WireFrameList { set; get; }
+
+        /// <summary>
+        /// List of all reticles available
+        /// </summary>
         public List<ReticleOption> ReticleOptions { get; set; }
+
+        /// <summary>
+        /// What reticle was the last we told OBS to display?
+        /// </summary>
         public ReticleOption ActiveReticle { get; set; }
+
+        /// <summary>
+        /// What state do we want to leave the flipper in?
+        /// </summary>
+        public FlipperDirection FlipperPosition { get; set; }
 
         public event PropertyChangedEventHandler PropertyChanged;
 

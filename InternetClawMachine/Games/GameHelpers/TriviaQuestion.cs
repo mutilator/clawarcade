@@ -21,7 +21,7 @@ namespace InternetClawMachine.Games.GameHelpers
         /// <summary>
         /// Who correctly answered this question?
         /// </summary>
-        public string AnsweredBy { set; get; }
+        public string AnsweredBy { set; get; } = "";
 
         /// <summary>
         /// Display all answers to the question after the question

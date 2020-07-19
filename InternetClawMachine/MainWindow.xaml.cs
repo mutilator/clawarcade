@@ -1206,12 +1206,15 @@ namespace InternetClawMachine
         }
 
 
-        private void MainWindow_GameModeEnded(object sender, EventArgs e)
+        private void Game_GameModeEnded(object sender, EventArgs e)
         {
             //do some cleanup of other variables here?
             if (Game.GameMode == GameModeType.VOTING)
             {
                 HandleEndOfVote();
+            } else if ((Game.GameMode == GameModeType.TRIVIA) || (Game.GameMode == GameModeType.TEAMTRIVIA))
+            {
+                StartGameModeSingleQuickQueue(null);
             }
         }
 
@@ -1453,7 +1456,7 @@ namespace InternetClawMachine
         /// <param name="username"></param>
         private void StartGame(string username)
         {
-            Game.GameEnded += MainWindow_GameModeEnded;
+            Game.GameEnded += Game_GameModeEnded;
             Game.PhaseChanged += Game_PhaseChanged;
             Game.Init();
             Game.StartGame(username);
@@ -1498,9 +1501,10 @@ namespace InternetClawMachine
             {
                 Configuration.EventMode = Configuration.ClawSettings.EventModes.Find(m => m.DisplayName == "Normal");
             }
-            Game.EndGame();
+            if (!Game.HasEnded)
+                Game.EndGame();
 
-            Game.GameEnded -= MainWindow_GameModeEnded;
+            Game.GameEnded -= Game_GameModeEnded;
             Game.PhaseChanged -= Game_PhaseChanged;
             Game.Destroy();
         }

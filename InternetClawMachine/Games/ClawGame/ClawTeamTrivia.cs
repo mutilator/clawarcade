@@ -143,9 +143,13 @@ namespace InternetClawMachine.Games.GameHelpers
 
                 }
                 //spit out stats for the team
-                ChatClient.SendMessage(Configuration.Channel, string.Format(Translator.GetTranslation("gameClawTriviaTeamWinFinal", Translator.DefaultLanguage), t.Name, t.Wins, correctAnswers));
+                ChatClient.SendMessage(Configuration.Channel, string.Format(Translator.GetTranslation("gameClawTriviaTeamWinFinal", Translator.DefaultLanguage), t.Name, correctAnswers, t.Wins ));
             }
-            StartGame(null);
+            Task.Run(async delegate ()
+            {
+                await Task.Delay(15000);
+                EndGame();
+            });
         }
 
 
@@ -239,16 +243,6 @@ namespace InternetClawMachine.Games.GameHelpers
                 TriviaMessageMode = TriviaMessageMode.ANSWERING;
                 Task.Run(async delegate ()
                 {
-                //5 second timer to get ready
-                if (Configuration.EventMode.TriviaSettings.QuestionWaitDelay > 0)
-                    {
-                        ChatClient.SendMessage(Configuration.Channel, string.Format(Translator.GetTranslation("gameClawTriviaTeamPleaseWait", Translator.DefaultLanguage), Configuration.EventMode.TriviaSettings.QuestionWaitDelay));
-
-                        var firstWait = Configuration.EventMode.TriviaSettings.QuestionWaitDelay * 1000;
-
-                        await Task.Delay(firstWait);
-                    }
-
                     CurrentQuestion = GetRandomQuestion();
 
                     if (CurrentQuestion == null || QuestionsAsked >= QuestionCount)
@@ -257,6 +251,17 @@ namespace InternetClawMachine.Games.GameHelpers
                     }
                     else
                     {
+                        //5 second timer to get ready
+                        if (Configuration.EventMode.TriviaSettings.QuestionWaitDelay > 0)
+                        {
+                            ChatClient.SendMessage(Configuration.Channel, string.Format(Translator.GetTranslation("gameClawTriviaTeamPleaseWait", Translator.DefaultLanguage), Configuration.EventMode.TriviaSettings.QuestionWaitDelay));
+
+                            var firstWait = Configuration.EventMode.TriviaSettings.QuestionWaitDelay * 1000;
+
+                            await Task.Delay(firstWait);
+                        }
+
+                    
                         var answers = "";
 
                         if (CurrentQuestion.ShowAnswers)

@@ -26,6 +26,7 @@ namespace InternetClawMachine.Games.GameHelpers
         public CancellationTokenSource HintCancelToken { get; set; }
         public CancellationTokenSource IsTriviaAliveCancelToken { get; set; }
         
+        
         public string AnswerHint { get; private set; }
         public int QuestionCount { set; get; }
         internal Dictionary<int, int> _questionAmountVotes = new Dictionary<int, int>();
@@ -95,16 +96,25 @@ namespace InternetClawMachine.Games.GameHelpers
                 IsTriviaAliveCancelToken.Cancel();
 
             GameLoopCounterValue = -1;
-            MachineControl.OnReturnedHome -= MachineControl_OnReturnedHome;
-            ((ClawController)MachineControl).OnClawRecoiled -= ClawSingleQueue_OnClawRecoiled;
+            if (MachineControl != null)
+            {
+                MachineControl.OnReturnedHome -= MachineControl_OnReturnedHome;
+                if (MachineControl is ClawController)
+                    ((ClawController)MachineControl).OnClawRecoiled -= ClawSingleQueue_OnClawRecoiled;
+            }
             base.EndGame();
         }
 
         public override void Destroy()
         {
+            if (MachineControl != null)
+            {
+                MachineControl.OnReturnedHome -= MachineControl_OnReturnedHome;
+                if (MachineControl is ClawController)
+                    ((ClawController)MachineControl).OnClawRecoiled -= ClawSingleQueue_OnClawRecoiled;
+            }
             base.Destroy();
-            MachineControl.OnReturnedHome -= MachineControl_OnReturnedHome;
-            ((ClawController)MachineControl).OnClawRecoiled -= ClawSingleQueue_OnClawRecoiled;
+
         }
 
         public override void HandleCommand(string channel, string username, string chatMessage, bool isSubscriber, string customRewardId)
@@ -428,17 +438,6 @@ namespace InternetClawMachine.Games.GameHelpers
                 TriviaMessageMode = TriviaMessageMode.ANSWERING;
                 Task.Run(async delegate ()
                 {
-                //5 second timer to get ready
-                if (Configuration.EventMode.TriviaSettings.QuestionWaitDelay > 0)
-                    {
-                        ChatClient.SendMessage(Configuration.Channel, string.Format(Translator.GetTranslation("gameClawTriviaPleaseWait", Translator.DefaultLanguage), Configuration.EventMode.TriviaSettings.QuestionWaitDelay));
-
-                        var firstWait = Configuration.EventMode.TriviaSettings.QuestionWaitDelay * 1000;
-
-                        await Task.Delay(firstWait);
-                        
-                    }
-
                     CurrentQuestion = GetRandomQuestion();
                     if (CurrentQuestion == null || QuestionsAsked >= QuestionCount)
                     {
@@ -446,10 +445,24 @@ namespace InternetClawMachine.Games.GameHelpers
                     }
                     else
                     {
+                        //5 second timer to get ready
+                        if (Configuration.EventMode.TriviaSettings.QuestionWaitDelay > 0)
+                        {
+                            ChatClient.SendMessage(Configuration.Channel, string.Format(Translator.GetTranslation("gameClawTriviaPleaseWait", Translator.DefaultLanguage), Configuration.EventMode.TriviaSettings.QuestionWaitDelay));
+
+                            var firstWait = Configuration.EventMode.TriviaSettings.QuestionWaitDelay * 1000;
+
+                            await Task.Delay(firstWait);
+                        
+                        }
+
+                    
                         var answers = "";
 
                         if (CurrentQuestion.ShowAnswers)
                             answers = CurrentQuestion.getAnswersAsCSV();
+
+                        QuestionsAsked++;
 
                         var question = string.Format(Translator.GetTranslation("gameClawTriviaStartTriviaRound", Translator.DefaultLanguage), CurrentQuestion.Question, answers);
                         ChatClient.SendMessage(Configuration.Channel, question);
@@ -545,10 +558,14 @@ namespace InternetClawMachine.Games.GameHelpers
 
                 }
                 //spit out stats for the team
-                ChatClient.SendMessage(Configuration.Channel, string.Format(Translator.GetTranslation("gameClawTriviaWinFinal", Translator.DefaultLanguage), user.Username, user.Wins, correctAnswers));
+                ChatClient.SendMessage(Configuration.Channel, string.Format(Translator.GetTranslation("gameClawTriviaWinFinal", Translator.DefaultLanguage), user.Username, correctAnswers, user.Wins));
             }
-            
-            StartGame(null);
+
+            Task.Run(async delegate ()
+            {
+                await Task.Delay(15000);
+                EndGame();
+            });
         }
 
         internal TriviaQuestion GetRandomQuestion()
