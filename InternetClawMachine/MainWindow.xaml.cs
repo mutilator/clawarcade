@@ -2184,22 +2184,8 @@ namespace InternetClawMachine
 
         private void btnStrobe_Click_2(object sender, RoutedEventArgs e)
         {
-            Task.Run(async delegate()
-            {
-                var turnemon = false;
-                if (((ClawGame) Game).MachineControl.IsLit)
-                {
-                    ((ClawGame) Game).MachineControl.LightSwitch(false);
-                    turnemon = true;
-                }
-
-                ((ClawGame) Game).MachineControl.Strobe(Configuration.ClawSettings.StrobeRedChannel,
-                    Configuration.ClawSettings.StrobeBlueChannel, Configuration.ClawSettings.StrobeGreenChannel,
-                    Configuration.ClawSettings.StrobeCount, Configuration.ClawSettings.StrobeDelay);
-                await Task.Delay(Configuration.ClawSettings.StrobeCount * Configuration.ClawSettings.StrobeDelay * 2);
-                if (turnemon)
-                    ((ClawGame) Game).MachineControl.LightSwitch(true);
-            });
+            ((ClawGame)Game).RunStrobe(Configuration.ClawSettings.StrobeRedChannel, Configuration.ClawSettings.StrobeBlueChannel, Configuration.ClawSettings.StrobeGreenChannel, Configuration.ClawSettings.StrobeCount, Configuration.ClawSettings.StrobeDelay);
+            
         }
 
         private void Button_Click_3(object sender, RoutedEventArgs e)
@@ -2352,24 +2338,7 @@ namespace InternetClawMachine
 
         private void BtnDualStrobe_Click(object sender, RoutedEventArgs e)
         {
-            Task.Run(async delegate()
-            {
-                var turnemon = false;
-                if (((ClawGame) Game).MachineControl.IsLit)
-                {
-                    ((ClawGame) Game).MachineControl.LightSwitch(false);
-                    turnemon = true;
-                }
-
-                ((ClawGame) Game).MachineControl.DualStrobe(Configuration.ClawSettings.StrobeRedChannel,
-                    Configuration.ClawSettings.StrobeBlueChannel, Configuration.ClawSettings.StrobeGreenChannel,
-                    Configuration.ClawSettings.StrobeRedChannel2, Configuration.ClawSettings.StrobeBlueChannel2,
-                    Configuration.ClawSettings.StrobeGreenChannel2, Configuration.ClawSettings.StrobeCount,
-                    Configuration.ClawSettings.StrobeDelay);
-                await Task.Delay(Configuration.ClawSettings.StrobeCount * Configuration.ClawSettings.StrobeDelay * 4);
-                if (turnemon)
-                    ((ClawGame) Game).MachineControl.LightSwitch(true);
-            });
+            ((ClawGame)Game).PoliceStrobe();
         }
 
         private void BtnDoh_Click(object sender, RoutedEventArgs e)

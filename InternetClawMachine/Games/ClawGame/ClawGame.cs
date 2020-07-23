@@ -117,7 +117,7 @@ namespace InternetClawMachine.Games.GameHelpers
             Task.Run(async delegate ()
             {
                 ObsConnection.SetSourceRender("BrowserSounds", false, "VideosScene");
-                await Task.Delay(3000);
+                await Task.Delay(5000);
                 ObsConnection.SetSourceRender("BrowserSounds", true, "VideosScene");
             });
         }
@@ -624,12 +624,9 @@ namespace InternetClawMachine.Games.GameHelpers
             var key = epcData.Epc.Trim();
             Logger.WriteLog(Logger.DebugLog, key, Logger.LogLevel.TRACE);
             if (Configuration.EventMode.DisableRFScan) return; //ignore scans
+
             if (InScanWindow)
             {
-                
-                if (CurrentWinCancellationToken != null && !CurrentWinCancellationToken.IsCancellationRequested)
-                    CurrentWinCancellationToken.Cancel();
-
                 TriggerWin(key);
             }
         }
@@ -1507,16 +1504,26 @@ namespace InternetClawMachine.Games.GameHelpers
                                 var sql = "SELECT count(*) FROM wins WHERE name = @username";
                                 var command = new SQLiteCommand(sql, Configuration.RecordsDatabase);
                                 command.Parameters.Add(new SQLiteParameter("@username", username));
+
                                 var wins = command.ExecuteScalar().ToString();
 
                                 sql = "select count(*) FROM (select distinct guid FROM movement WHERE name = @username)";
                                 command = new SQLiteCommand(sql, Configuration.RecordsDatabase);
                                 command.Parameters.Add(new SQLiteParameter("@username", username));
+
                                 var sessions = command.ExecuteScalar().ToString();
+
+                                sql = "select count(*) FROM movement WHERE name = @username AND direction = 'DOWN'";
+                                command = new SQLiteCommand(sql, Configuration.RecordsDatabase);
+                                command.Parameters.Add(new SQLiteParameter("@username", username));
+
+                                var drops = int.Parse(command.ExecuteScalar().ToString());
+                                var cost = drops * 0.25;
 
                                 sql = "select count(*) FROM movement WHERE name = @username AND direction <> 'NA'";
                                 command = new SQLiteCommand(sql, Configuration.RecordsDatabase);
                                 command.Parameters.Add(new SQLiteParameter("@username", username));
+
                                 var moves = command.ExecuteScalar().ToString();
 
                                 var i = 0;
@@ -1538,13 +1545,13 @@ namespace InternetClawMachine.Games.GameHelpers
                                 }
 
                                 Configuration.RecordsDatabase.Close();
-
+                                
                                 var clawBux = DatabaseFunctions.GetStreamBuxBalance(Configuration, username);
                                 ChatClient.SendMessage(Configuration.Channel,
                                     string.Format(
                                         Translator.GetTranslation("responseCommandStats1",
                                             Configuration.UserList.GetUserLocalization(username)), username, wins, sessions,
-                                        moves, clawBux));
+                                        moves, clawBux, cost));
                                 ChatClient.SendMessage(Configuration.Channel,
                                     string.Format(
                                         Translator.GetTranslation("responseCommandStats2",
@@ -2233,87 +2240,89 @@ namespace InternetClawMachine.Games.GameHelpers
             }
         }
 
-        private void RunStrobe(UserPrefs prefs)
+        internal void RunStrobe(UserPrefs prefs)
+        {
+            var red = Configuration.ClawSettings.StrobeRedChannel;
+            var green = Configuration.ClawSettings.StrobeBlueChannel;
+            var blue = Configuration.ClawSettings.StrobeGreenChannel;
+            var strobeCount = Configuration.ClawSettings.StrobeCount;
+            var strobeDelay = Configuration.ClawSettings.StrobeDelay;
+
+            //if a user has their own settings, use those
+            if (prefs != null && prefs.CustomStrobe != null && prefs.CustomStrobe.Length > 0)
+            {
+                var channels = prefs.CustomStrobe.Split(':');
+                if (channels.Length > 2)
+                {
+                    red = int.Parse(channels[0]);
+                    green = int.Parse(channels[1]);
+                    blue = int.Parse(channels[2]);
+                }
+                if (channels.Length > 3)
+                    strobeCount = int.Parse(channels[3]);
+                if (channels.Length > 4)
+                    strobeDelay = int.Parse(channels[4].Trim());
+            }
+            RunStrobe(red, green, blue, strobeCount, strobeDelay);
+        }
+
+        internal async void RunStrobe(int red, int blue, int green, int strobeCount, int strobeDelay)
         {
             //STROBE CODE
-
-            Task.Run(async delegate ()
+            try
             {
-                try
+
+                var turnemon = false;
+                //see if the lights are on, if they are we turn em off, if not we leave it off and don't turn them back on after
+                if (MachineControl.IsLit)
                 {
-                    var turnemon = false;
-                    //see if the lights are on, if they are we turn em off, if not we leave it off and don't turn them back on after
-                    if (MachineControl.IsLit)
-                    {
-                        MachineControl.LightSwitch(false);
-                        turnemon = true;
-                    }
-
-                    var red = Configuration.ClawSettings.StrobeRedChannel;
-                    var green = Configuration.ClawSettings.StrobeBlueChannel;
-                    var blue = Configuration.ClawSettings.StrobeGreenChannel;
-                    var strobeCount = Configuration.ClawSettings.StrobeCount;
-                    var strobeDelay = Configuration.ClawSettings.StrobeDelay;
-
-                    //if a user has their own settings, use those
-                    if (prefs != null && prefs.CustomStrobe != null && prefs.CustomStrobe.Length > 0)
-                    {
-                        var channels = prefs.CustomStrobe.Split(':');
-                        if (channels.Length > 2)
-                        {
-                            red = int.Parse(channels[0]);
-                            green = int.Parse(channels[1]);
-                            blue = int.Parse(channels[2]);
-                        }
-                        if (channels.Length > 3)
-                            strobeCount = int.Parse(channels[3]);
-                        if (channels.Length > 4)
-                            strobeDelay = int.Parse(channels[4].Trim());
-                    }
-
-                    var duration = strobeCount * strobeDelay * 2;
-                    if (duration > Configuration.ClawSettings.StrobeMaxTime)
-                        duration = Configuration.ClawSettings.StrobeMaxTime;
-
-                    MachineControl.Strobe(red, green, blue, strobeCount, strobeDelay);
-
-                    //if the strobe is shorter than 2 seconds we need to turn the lights on sooner
-                    var timeLimit = 100;
-                    if (duration < timeLimit)
-                    {
-                        await Task.Delay(duration);
-                        if (turnemon)
-                            MachineControl.LightSwitch(true);
-
-                        await Task.Delay(timeLimit - duration);
-                        DisableGreenScreen(); //disable greenscreen
-
-                        await Task.Delay(duration);
-                        EnableGreenScreen();
-                    }
-                    else
-                    {
-                        //wait 2 seconds for camera sync
-                        await Task.Delay(timeLimit);
-                        DisableGreenScreen(); //disable greenscreen
-
-                        //wait the duration of the strobe
-                        await Task.Delay(duration - timeLimit);
-                        //if the lights were off turnemon
-                        if (turnemon)
-                            MachineControl.LightSwitch(true);
-
-                        //wait the duration of the strobe
-                        await Task.Delay(timeLimit);
-                        EnableGreenScreen(); //enable the screen
-                    }
+                    MachineControl.LightSwitch(false);
+                    turnemon = true;
                 }
-                catch (Exception ex)
+
+                var strobeDuration = strobeCount * strobeDelay * 2;
+                if (strobeDuration > Configuration.ClawSettings.StrobeMaxTime)
+                    strobeDuration = Configuration.ClawSettings.StrobeMaxTime;
+
+                MachineControl.Strobe(red, green, blue, strobeCount, strobeDelay);
+
+                //if the strobe is shorter than 1-2 second we need to turn the lights on sooner than the greenscreen gets turned off because of camera delay
+                //in the real world there is a ~1-2 second lag between the camera and OBS outputting video but the OBS source changes for greenscreen are immediate so we need to account for that
+                var cameraLagTime = Configuration.ClawSettings.CameraLagTime;
+                if (strobeDuration < cameraLagTime)
                 {
-                    var error = string.Format("ERROR {0} {1}", ex.Message, ex);
-                    Logger.WriteLog(Logger.ErrorLog, error);
+                    await Task.Delay(strobeDuration);
+                    if (turnemon)
+                        MachineControl.LightSwitch(true);
+
+                    await Task.Delay(cameraLagTime - strobeDuration);
+                    DisableGreenScreen(); //disable greenscreen
+
+                    await Task.Delay(strobeDuration);
+                    EnableGreenScreen();
                 }
-            });
+                else
+                {
+                    //wait for camera sync
+                    await Task.Delay(cameraLagTime);
+                    DisableGreenScreen(); //disable greenscreen
+
+                    //wait the duration of the strobe
+                    await Task.Delay(strobeDuration - cameraLagTime);
+                    //if the lights were off turnemon
+                    if (turnemon)
+                        MachineControl.LightSwitch(true);
+
+                    //wait for camera sync again to re-enable greenscreen
+                    await Task.Delay(cameraLagTime);
+                    EnableGreenScreen(); //enable the screen
+                }
+            }
+            catch (Exception ex)
+            {
+                var error = string.Format("ERROR {0} {1}", ex.Message, ex);
+                Logger.WriteLog(Logger.ErrorLog, error);
+            }
         }
 
         private void DisableGreenScreen()
@@ -3185,7 +3194,13 @@ namespace InternetClawMachine.Games.GameHelpers
                     if (existing != null || irscanwin)
                     {
                         if (existing != null)
+                        {
+                            //if we're scanning a plush
+                            if (!existing.WasGrabbed && CurrentWinCancellationToken != null && !CurrentWinCancellationToken.IsCancellationRequested)
+                                CurrentWinCancellationToken.Cancel();
+
                             File.AppendAllText(Configuration.FileScans, existing.Name);
+                        }
 
                         if ((existing != null && !existing.WasGrabbed) || irscanwin)
                         {
@@ -3208,6 +3223,7 @@ namespace InternetClawMachine.Games.GameHelpers
 
                             //wait 1 second to do further things so the lights are shut off
                             Thread.Sleep(1000);
+
                             //a lot of the animations are timed and setup in code because I don't want to make a whole animation class
                             //bounty mode
                             if (existing != null && Bounty != null && Bounty.Name.ToLower() == existing.Name.ToLower())
@@ -3249,7 +3265,8 @@ namespace InternetClawMachine.Games.GameHelpers
                                 // TODO - move this to a more dynamic action
                                 specialClip = true;
                                 RunScare();
-                            } else if (prefs != null && !string.IsNullOrEmpty(prefs.WinClipName) && (Configuration.EventMode.EventMode == EventMode.NORMAL || Configuration.EventMode.WinAnimation == null))
+                            }
+                            else if (prefs != null && !string.IsNullOrEmpty(prefs.WinClipName) && (Configuration.EventMode.EventMode == EventMode.NORMAL || Configuration.EventMode.WinAnimation == null))
                             {
 
                                 //OBSSceneSource src = new OBSSceneSource() { SourceName = prefs.WinClipName, Type = OBSSceneSourceType.IMAGE, Scene = "VideosScene" };
@@ -3369,22 +3386,63 @@ namespace InternetClawMachine.Games.GameHelpers
             }
         }
 
-        private void PoliceStrobe()
+        internal async void PoliceStrobe()
         {
-            Task.Run(async delegate ()
+            //STROBE CODE
+            try
             {
+
                 var turnemon = false;
+                //see if the lights are on, if they are we turn em off, if not we leave it off and don't turn them back on after
                 if (MachineControl.IsLit)
                 {
                     MachineControl.LightSwitch(false);
                     turnemon = true;
                 }
 
+                var strobeDuration = Configuration.ClawSettings.StrobeCount * Configuration.ClawSettings.StrobeDelay * 4;
+                if (strobeDuration > Configuration.ClawSettings.StrobeMaxTime)
+                    strobeDuration = Configuration.ClawSettings.StrobeMaxTime;
+
                 MachineControl.DualStrobe(255, 0, 0, 0, 255, 0, Configuration.ClawSettings.StrobeCount, Configuration.ClawSettings.StrobeDelay);
-                await Task.Delay(Configuration.ClawSettings.StrobeCount * Configuration.ClawSettings.StrobeDelay * 4);
-                if (turnemon)
-                    MachineControl.LightSwitch(true);
-            });
+
+                //if the strobe is shorter than 1-2 second we need to turn the lights on sooner than the greenscreen gets turned off because of camera delay
+                //in the real world there is a ~1-2 second lag between the camera and OBS outputting video but the OBS source changes for greenscreen are immediate so we need to account for that
+                var cameraLagTime = Configuration.ClawSettings.CameraLagTime;
+                if (strobeDuration < cameraLagTime)
+                {
+                    await Task.Delay(strobeDuration);
+                    if (turnemon)
+                        MachineControl.LightSwitch(true);
+
+                    await Task.Delay(cameraLagTime - strobeDuration);
+                    DisableGreenScreen(); //disable greenscreen
+
+                    await Task.Delay(strobeDuration);
+                    EnableGreenScreen();
+                }
+                else
+                {
+                    //wait for camera sync
+                    await Task.Delay(cameraLagTime);
+                    DisableGreenScreen(); //disable greenscreen
+
+                    //wait the duration of the strobe
+                    await Task.Delay(strobeDuration - cameraLagTime);
+                    //if the lights were off turnemon
+                    if (turnemon)
+                        MachineControl.LightSwitch(true);
+
+                    //wait for camera sync again to re-enable greenscreen
+                    await Task.Delay(cameraLagTime);
+                    EnableGreenScreen(); //enable the screen
+                }
+            }
+            catch (Exception ex)
+            {
+                var error = string.Format("ERROR {0} {1}", ex.Message, ex);
+                Logger.WriteLog(Logger.ErrorLog, error);
+            }
         }
 
     }

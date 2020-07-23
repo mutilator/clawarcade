@@ -533,14 +533,14 @@ namespace InternetClawMachine.Games.GameHelpers
         public virtual void EndTrivia()
         {
             //no qestions left, determine winner
-            var winners = SessionWinTracker.OrderByDescending(p => p.Wins).ToArray();
+            var winners = SessionWinTracker.OrderByDescending(p => p.Wins).ThenBy(p => p.Drops).ToArray();
 
             for (var i = 0; i < winners.Length; i++)
             {
                 var user = winners[i];
 
                 var correctAnswers = TriviaQuestions.FindAll(q => q.AnsweredBy.ToLower() == user.Username.ToLower()).Count;
-
+                var winnings = 1000;
                 //congratulate winning team
                 if (i == 0)
                 {
@@ -552,7 +552,7 @@ namespace InternetClawMachine.Games.GameHelpers
                     {
                         allPlayers += cma + u.Username;
                         cma = ", ";
-                        DatabaseFunctions.AddStreamBuxBalance(Configuration, u.Username, StreamBuxTypes.WIN, 1000);
+                        DatabaseFunctions.AddStreamBuxBalance(Configuration, u.Username, StreamBuxTypes.WIN, winnings);
                     }
                     ChatClient.SendMessage(Configuration.Channel, string.Format(Translator.GetTranslation("gameClawTriviaWinFinalWinner", Translator.DefaultLanguage), user.Username, allPlayers));
 

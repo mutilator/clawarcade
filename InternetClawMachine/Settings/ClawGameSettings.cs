@@ -227,6 +227,11 @@ namespace InternetClawMachine.Settings
         /// </summary>
         public FlipperDirection FlipperPosition { get; set; }
 
+        /// <summary>
+        /// How much lag is there between real-time and OBS capture? Mainly used for offsets like when performing a strobe
+        /// </summary>
+        public int CameraLagTime { get; set; }
+
         public event PropertyChangedEventHandler PropertyChanged;
 
         protected void OnPropertyChanged([System.Runtime.CompilerServices.CallerMemberName] string propertyName = "")

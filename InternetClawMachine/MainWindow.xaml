@@ -164,8 +164,10 @@
                         <Button x:Name="btnIRScanned" Content="IR Scan" HorizontalAlignment="Left" Margin="10,370,0,0" VerticalAlignment="Top" Width="88" Click="BtnIRScanned_Click"/>
                     </Grid>
                 </TabItem>
-                <TabItem Header="Queue" Padding="20,2">
-                    <Grid />
+                <TabItem Header="Game Controls" Padding="20,2">
+                    <Grid >
+                        <Button Content="Button" HorizontalAlignment="Left" VerticalAlignment="Top" Width="75" Margin="10,10,0,0"/>
+                    </Grid>
                 </TabItem>
                 <TabItem Header="Claw" Padding="20,2">
                     <Grid>
@@ -329,6 +331,9 @@
                             </TabItem>
                             <TabItem Header="Claw Controller" Margin="-1,0,-19,0">
                                 <Grid>
+                                    <Slider x:Name="sldrcameraLagTime" HorizontalAlignment="Left" VerticalAlignment="Top" Width="113" Maximum="5000" Minimum="1" SmallChange="50" LargeChange="50" Value="{Binding ClawSettings.CameraLagTime, Mode=TwoWay}" IsSnapToTickEnabled="True" TickFrequency="50" Margin="223,303,0,0" />
+                                    <Label Content="cameraLagTime" HorizontalAlignment="Left" VerticalAlignment="Top" RenderTransformOrigin="-0.026,-0.077" Margin="219,272,0,0" />
+                                    <Label x:Name="lblcameraLagTime" HorizontalAlignment="Left" VerticalAlignment="Top" RenderTransformOrigin="0.368,-0.308" Content="{Binding Value, ElementName=sldrcameraLagTime}" Margin="343,272,0,0" />
                                     <CheckBox x:Name="chkLightsOn" Content="Lights On" HorizontalAlignment="Left" Margin="219,89,0,0" VerticalAlignment="Top" Click="chkLightsOn_Click" IsChecked="True" />
                                     <CheckBox x:Name="chkNewController" Content="New Controller" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top" IsChecked="{Binding ClawSettings.UseNewClawController, Mode=TwoWay}" />
                                     <TextBox HorizontalAlignment="Left" Height="23" Margin="85,53,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="120" Text="{Binding ClawSettings.ClawControllerIpAddress, Mode=TwoWay}" />
@@ -417,6 +422,7 @@
                                     <Button x:Name="btnWaterBotConnect" Content="Wtr Connect" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top" Width="145" Click="btnWaterBotConnect_Click" />
                                 </Grid>
                             </TabItem>
+                            
                         </TabControl>
                     </Grid>
                 </TabItem>

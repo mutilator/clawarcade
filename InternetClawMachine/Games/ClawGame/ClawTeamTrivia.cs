@@ -108,7 +108,7 @@ namespace InternetClawMachine.Games.GameHelpers
         {
             
             //no qestions left, determine winner
-            var winners = Teams.OrderByDescending(t => t.Wins).ToArray();
+            var winners = Teams.OrderByDescending(t => t.Wins).ThenBy(t => t.Drops).ToArray();
 
             for (var i = 0; i < winners.Length; i++)
             {

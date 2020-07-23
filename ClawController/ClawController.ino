@@ -28,7 +28,6 @@ const int _PINLimitUp = 45;
 const int _PINLightsWhite = 2;
 
 const int _PINConveyorBelt = 3;
-const int _PINConveyorFlipper = 4;
 const int _PINConveyorSensor = 14;
 
 const int _PINGameReset = 15;
@@ -40,6 +39,9 @@ const int _PINStickMoveRight = 23;
 const int _PINStickMoveForward = 24;
 const int _PINStickMoveBackward = 25;
 const int _PINStickMoveDown = 26;
+
+const int _PINConveyorFlipperError = 17;
+//_PINConveyorFlipperSerial PORT 18 & 19 = Serial1
 
 
 //High/Low settings for what determines on and off state
@@ -79,12 +81,18 @@ const int EVENT_RECOILED_CLAW = 105; //finished recoil
 const int EVENT_RETURNED_HOME = 106; //over win chute
 const int EVENT_RETURNED_CENTER = 107; //back in center
 
+
+
 const int EVENT_LIMIT_LEFT = 200; //hit a limit
 const int EVENT_LIMIT_RIGHT = 201; //hit a limit
 const int EVENT_LIMIT_FORWARD = 202; //hit a limit
 const int EVENT_LIMIT_BACKWARD = 203; //hit a limit
 const int EVENT_LIMIT_UP = 204; //hit a limit
 const int EVENT_LIMIT_DOWN = 205; //hit a limit
+
+const int EVENT_FLIPPER_FORWARD = 206; //hit a limit
+const int EVENT_FLIPPER_HOME = 207; //hit a limit
+const int EVENT_FLIPPER_ERROR = 208; //hit a limit
 
 const int EVENT_FAILSAFE_LEFT = 300; //hit a FAILSAFE
 const int EVENT_FAILSAFE_RIGHT = 301; //hit a FAILSAFE
@@ -93,6 +101,8 @@ const int EVENT_FAILSAFE_BACKWARD = 303; //hit a FAILSAFE
 const int EVENT_FAILSAFE_UP = 304; //hit a FAILSAFE
 const int EVENT_FAILSAFE_DOWN = 305; //hit a FAILSAFE
 const int EVENT_FAILSAFE_CLAW = 306; //hit a FAILSAFE
+const int EVENT_FAILSAFE_FLIPPER = 307; //hit a FAILSAFE
+
 
 const int EVENT_INFO = 900; //Event to show when we want to pass info back
 
@@ -160,6 +170,7 @@ unsigned long _timestampMotorMoveLeft = 0; //motor movement failsafe stamp
 unsigned long _timestampMotorMoveRight = 0; //motor movement failsafe stamp
 unsigned long _timestampMotorMoveForward = 0; //motor movement failsafe stamp
 unsigned long _timestampMotorMoveBackward = 0; //motor movement failsafe stamp
+unsigned long _timestampMotorMoveFlipper = 0; //motor movement failsafe stamp
 unsigned long _timestampClawClosed = 0;
 unsigned long _timestampBeltRun = 0;
 
@@ -189,12 +200,10 @@ int _conveyorSensorTripped = HIGH; //used to determine if trip is on a high or l
 int _failsafeMotorLimit = 15000; //second limit for how long a motor can move before it should hit a limit
 int _failsafeClawOpened = 15000; //limit for how long the claw can be closed
 int _failsafeBeltLimit = 30000; //limit for running conveyor belt
+int _failsafeFlipperLimit = 4000; //limit for flipper in ONE direction
 int _failsafeMaxResets = 4; //maximum number of times we can hit a failsafe before giving up completely
 int _failsafeCurrentResets = 0; //how many times we've hit a failsave and not recovered
 
-//CONVEYOR BELT STUFF - network determines how long to run but everything else is internal with the process
-int _conveyorBeltRunTime = 0;
-int _conveyorFlipperRunTime = 3000;
 
 /*
 
@@ -210,6 +219,7 @@ int _clawRemoteMoveDurationRight = 0;
 int _clawRemoteMoveDurationDrop = 0;
 int _clawRemoteMoveDurationDown = 0;
 int _clawRemoteMoveDurationUp = 0;
+int _conveyorMoveDuration = 0;
 
 
 //When did the move begin
@@ -230,6 +240,24 @@ const byte CLAW_DROP = 5; //drop command, used as a one shot drop procedure
 const byte CLAW_RECOIL = 6; //recoil command, used as a one shot recoil
 const byte CLAW_UP = 7; //pull claw up, used for small movements
 const byte CLAW_DOWN = 8; //pull claw down, used for small movements
+
+const byte FLIPPER_STOPPED = 0;
+const byte FLIPPER_FORWARD = 1;
+const byte FLIPPER_BACKWARD = 2;
+
+//These are specifically for communication with the motor controller
+const byte FLIPPER_MOTOR_COMMAND_CLEAR_SAFE_START = 0x83;
+const byte FLIPPER_MOTOR_COMMAND_FORWARD = 0x85;
+const byte FLIPPER_MOTOR_COMMAND_REVERSE = 0x86;
+const byte FLIPPER_MOTOR_COMMAND_GET_VAR = 0xA1;
+const byte FLIPPER_MOTOR_COMMAND_STOP = 0xE0;
+
+
+//CONVEYOR BELT STUFF 
+int _conveyorBeltRunTime = 0;
+int _conveyorFlipperRunTime = 0; //how long to run the flipper in a direction before we call the stop command?
+byte _conveyorFlipperStatus = 0;
+int _flipperSpeed = 75;
 
 bool _hasQueuedCommand = false; //flag for speed if we have a command queued to go out
 char _queuedCommand[100]; //probly too big
@@ -289,10 +317,11 @@ void loop() {
     handleSerialCommands();
     checkConveyorSensor();
     checkBeltRuntime();
-    checkFlipperRuntime();
+    
     checkMovements();
     checkGameReset();
     handleJoystick();
+    handleFlipper();
 
     checkLimits();
     checkStates();
@@ -363,12 +392,12 @@ void initLights()
 void initConveyor()
 {
     pinMode(_PINConveyorBelt, OUTPUT);
-    pinMode(_PINConveyorFlipper, OUTPUT);
+    pinMode(_PINConveyorFlipperError, INPUT);
+    Serial1.begin(19200); //talk to motor controller
 
     pinMode(_PINConveyorSensor, INPUT_PULLUP);
 
     digitalWrite(_PINConveyorBelt, RELAYPINOFF); //relay
-    digitalWrite(_PINConveyorFlipper, LOW); //talk to digispark
 }
 
 void handleJoystick()
@@ -1119,18 +1148,114 @@ void checkMovements()
     }
 }
 
-void checkFlipperRuntime()
+
+// read a serial byte (returns -1 if nothing received after the timeout expires)
+int readByteFlipper()
 {
-    if (_timestampConveyorFlipperStart > 0 && millis() - _timestampConveyorFlipperStart >= _conveyorFlipperRunTime)
+  char c;
+  if(Serial1.readBytes(&c, 1) == 0){ return -1; }
+  return (byte)c;
+}
+
+// returns the specified variable as an unsigned integer.
+// if the requested variable is signed, the value returned by this function
+// should be typecast as an int.
+unsigned int getFlipperVariable(unsigned char variableID)
+{
+  Serial1.write(FLIPPER_MOTOR_COMMAND_GET_VAR);
+  Serial1.write(variableID);
+  return readByteFlipper() + 256 * readByteFlipper();
+}
+
+//Move the flipper 
+void moveFlipper(byte direction)
+{
+    _conveyorFlipperStatus = direction;
+    switch (direction)
     {
-        digitalWrite(_PINConveyorFlipper, LOW);
-        _timestampConveyorFlipperStart = 0;
+        case FLIPPER_FORWARD:
+            _timestampConveyorFlipperStart = millis();
+            Serial1.write(FLIPPER_MOTOR_COMMAND_CLEAR_SAFE_START);
+            Serial1.write(FLIPPER_MOTOR_COMMAND_FORWARD);
+            Serial1.write(0);
+            Serial1.write(_flipperSpeed);
+            break;
+        case FLIPPER_BACKWARD:
+            _timestampConveyorFlipperStart = millis();
+            Serial1.write(FLIPPER_MOTOR_COMMAND_CLEAR_SAFE_START);
+            Serial1.write(FLIPPER_MOTOR_COMMAND_REVERSE);
+            Serial1.write(0);
+            Serial1.write(_flipperSpeed);
+            break;
+        default:
+            _conveyorFlipperStatus = FLIPPER_STOPPED;
+            _timestampConveyorFlipperStart = 0;
+            Serial1.write(FLIPPER_MOTOR_COMMAND_CLEAR_SAFE_START);
+            Serial1.write(FLIPPER_MOTOR_COMMAND_STOP);
+            break;
     }
+    
+}
+
+void handleFlipper()
+{
+    char ERROR_VAR = 0;
+    char LIMIT_VAR = 3;
+    short BIT_SAFESTART = 1;
+    short BIT_FORWARD = 256;
+    short BIT_HOME = 128;
+
+    //check flipper state
+    
+    //if moving forward, check if _PINConveyorFlipperError
+        //verify by polling device
+        //if hit then send event flipper is forward
+    //if moving backward, check if _PINConveyorFlipperError
+        //verify by polling device
+        //if hit back then send event flipper is back
+    //if an error is seen but didnt hit a limit in the direction it was travelling, bug out
+    //otherwise check if we're trying to limit how long the flipper moved in any one direction
+    int errPin = digitalRead(_PINConveyorFlipperError);
+    if (_conveyorFlipperStatus == FLIPPER_FORWARD && errPin == HIGH)
+    {
+        int output = getFlipperVariable(LIMIT_VAR);
+        if (output & BIT_FORWARD == BIT_FORWARD)
+        {
+            moveFlipper(FLIPPER_STOPPED);
+            sendEvent(EVENT_FLIPPER_FORWARD);
+        }
+    }
+    else if (_conveyorFlipperStatus == FLIPPER_BACKWARD && errPin == HIGH)
+    {
+        int output = getFlipperVariable(LIMIT_VAR);
+        if (output & BIT_HOME == BIT_HOME)
+        {
+            moveFlipper(FLIPPER_STOPPED);
+            sendEvent(EVENT_FLIPPER_HOME);
+        }
+    } else if (_conveyorFlipperStatus != FLIPPER_STOPPED && errPin == HIGH)
+    {
+        int output = getFlipperVariable(LIMIT_VAR);
+        int output2 = getFlipperVariable(ERROR_VAR);
+        char outputData[4];
+        sprintf(outputData, "%i %i %i", _conveyorFlipperStatus, output, output2);
+        broadcastToClients(EVENT_FLIPPER_ERROR, outputData);
+        _conveyorFlipperStatus = FLIPPER_STOPPED;
+    } else {
+
+        if (_timestampConveyorFlipperStart > 0 && millis() - _timestampConveyorFlipperStart >= _failsafeFlipperLimit)
+        {
+            moveFlipper(FLIPPER_STOPPED);
+            sendEvent(EVENT_FAILSAFE_FLIPPER);
+        }
+
+    }
+
 }
 
 void checkBeltRuntime()
 {
-    if ((_timestampConveyorBeltStart > 0 && millis() - _timestampConveyorBeltStart >= _conveyorBeltRunTime) ||
+    if ((_timestampConveyorBeltStart > 0 && ((millis() - _timestampConveyorBeltStart >= _conveyorBeltRunTime) && (_conveyorBeltRunTime >= 0))) ||
         (millis() - _timestampConveyorBeltStart >= _failsafeBeltLimit))
     {
         digitalWrite(_PINConveyorBelt, RELAYPINOFF);
@@ -1467,11 +1592,19 @@ void handleTelnetCommand(EthernetClient &client)
         else
             openClaw();
 
-    } else if (strcmp(command,"flip") == 0) { //move flipper out and back
+    } else if (strcmp(command,"flip") == 0) { //move flipper a direction
 
         sendFormattedResponse(client, EVENT_INFO, sequence, "");
+        int val = atoi(argument);
+        moveFlipper(val);
+        
 
-        startFlipper();
+    } else if (strcmp(command,"sflip") == 0) { //move flipper out and back
+
+        sendFormattedResponse(client, EVENT_INFO, sequence, "");
+        int val = atoi(argument);
+        _flipperSpeed = val;
+        
 
     } else if (strcmp(command,"light") == 0) { //lights on or off
 
@@ -1631,23 +1764,14 @@ void sendFormattedResponse(EthernetClient &client, int event, char sequence[], c
  */
 void moveConveyorBelt(int runTime)
 {
-    if (runTime > 0)
+    if (runTime != 0)
     {
         digitalWrite(_PINConveyorBelt, RELAYPINON);
         _timestampConveyorBeltStart = millis();
         _conveyorBeltRunTime = runTime;
-    } else if (runTime < 0) { //TODO - Build failsafe limit so motor can't accidentally run forever
-        digitalWrite(_PINConveyorBelt, RELAYPINON);
     } else {
         digitalWrite(_PINConveyorBelt, RELAYPINOFF);
     }
-}
-
-void startFlipper()
-{
-    digitalWrite(_PINConveyorFlipper, HIGH);
-    _timestampConveyorFlipperStart = millis();
-    _conveyorFlipperRunTime = 3000;
 }
 
 /**

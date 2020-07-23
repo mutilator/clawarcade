@@ -28,6 +28,10 @@ namespace InternetClawMachine.Hardware.ClawControl
      */
     internal class ClawController : IMachineControl
     {
+        /// <summary>
+        /// Task token to cancel pings
+        /// </summary>
+        private CancellationTokenSource PingToken;
 
         public event EventHandler OnDisconnected;
 
@@ -251,8 +255,7 @@ namespace InternetClawMachine.Hardware.ClawControl
                 StartReader();
                 Thread.Sleep(200);
                 //kick off the first ping
-                _pingQueue.Clear();
-                Ping();
+                StartPing();
                 return true;
             }
             catch (Exception ex)
@@ -261,6 +264,11 @@ namespace InternetClawMachine.Hardware.ClawControl
                 Logger.WriteLog(Logger.ErrorLog, error);
             }
             return false;
+        }
+        public void StartPing()
+        {
+            _pingQueue.Clear();
+            Ping();
         }
 
         public void StartReader()
@@ -353,162 +361,171 @@ namespace InternetClawMachine.Hardware.ClawControl
 
         private void HandleMessage(string response)
         {
-            response = response.Trim();
-
-            
-
-
-            Logger.WriteLog(Logger.MachineLog, "RECEIVE: " + response, Logger.LogLevel.DEBUG);
-            
-            var delims = response.Split(' ');
-
-            if (delims.Length < 1 || response.Length == 0)
+            try
             {
-                //Console.WriteLine(response);
-            }
-            else
-            {
-                //split the first argument based on colon, this gives us the command response and the sequence number
-                var aryEventResp = delims[0].Split(':');
-                var eventResp = delims[0];
-                var sequence = 0;
-                if (aryEventResp.Length > 1) //make sure we have a response and sequence number
+                response = response.Trim();
+
+                Logger.WriteLog(Logger.MachineLog, "RECEIVE: " + response, Logger.LogLevel.DEBUG);
+
+                var delims = response.Split(' ');
+
+                if (delims.Length < 1 || response.Length == 0)
                 {
-                    eventResp = aryEventResp[0];
-                    sequence = int.Parse(aryEventResp[1]);
-                    if (sequence == _currentWaitSequenceNumberCommand) //if this sequence is a command we're waiting for then set that response
-                    {
-                        _currentWaitSequenceNumberCommand = -1;
-                        _lastCommandResponse = response;
-                    }
-
+                    //Console.WriteLine(response);
                 }
-                var resp = (ClawEvents)int.Parse(eventResp);
-                switch (resp)
+                else
                 {
-                    case ClawEvents.EVENT_BELT_SENSOR:
-                        OnBreakSensorTripped?.Invoke(this, new EventArgs());
-                        break;
-
-                    case ClawEvents.EVENT_RESETBUTTON:
-                        OnResetButtonPressed?.Invoke(this, new EventArgs());
-                        break;
-
-                    case ClawEvents.EVENT_PONG:
-                        
-                        for(int i = 0; i < _pingQueue.Count; i++)
+                    //split the first argument based on colon, this gives us the command response and the sequence number
+                    var aryEventResp = delims[0].Split(':');
+                    var eventResp = delims[0];
+                    var sequence = 0;
+                    if (aryEventResp.Length > 1) //make sure we have a response and sequence number
+                    {
+                        eventResp = aryEventResp[0];
+                        sequence = int.Parse(aryEventResp[1]);
+                        if (sequence == _currentWaitSequenceNumberCommand) //if this sequence is a command we're waiting for then set that response
                         {
-                            var ping = _pingQueue[i];
-                            if (ping.Sequence == sequence)
-                            {
-                                Latency = PingTimer.ElapsedMilliseconds - ping.StartTime;
-                                ping.Success = true;
-                                _pingQueue.RemoveAt(i);
-                                OnPingSuccess?.Invoke(this, new EventArgs());
-                                break;
-                            }
+                            _currentWaitSequenceNumberCommand = -1;
+                            _lastCommandResponse = response;
                         }
 
-                        break;
+                    }
+                    var resp = (ClawEvents)int.Parse(eventResp);
+                    switch (resp)
+                    {
+                        case ClawEvents.EVENT_BELT_SENSOR:
+                            OnBreakSensorTripped?.Invoke(this, new EventArgs());
+                            break;
 
-                    case ClawEvents.EVENT_LIMIT_LEFT:
-                        OnLimitHitLeft?.Invoke(this, new EventArgs());
-                        break;
+                        case ClawEvents.EVENT_RESETBUTTON:
+                            OnResetButtonPressed?.Invoke(this, new EventArgs());
+                            break;
 
-                    case ClawEvents.EVENT_LIMIT_RIGHT:
-                        OnLimitHitRight?.Invoke(this, new EventArgs());
-                        break;
+                        case ClawEvents.EVENT_PONG:
 
-                    case ClawEvents.EVENT_LIMIT_FORWARD:
-                        OnLimitHitForward?.Invoke(this, new EventArgs());
-                        break;
+                            for (int i = 0; i < _pingQueue.Count; i++)
+                            {
+                                var ping = _pingQueue[i];
+                                if (ping.Sequence == sequence)
+                                {
+                                    Latency = PingTimer.ElapsedMilliseconds - ping.StartTime;
+                                    ping.Success = true;
+                                    //cancel the task if running
+                                    ping.CancelToken.Cancel();
+                                    _pingQueue.RemoveAt(i);
+                                    
+                                    OnPingSuccess?.Invoke(this, new EventArgs());
+                                    break;
+                                }
+                            }
 
-                    case ClawEvents.EVENT_LIMIT_BACKWARD:
-                        OnLimitHitBackward?.Invoke(this, new EventArgs());
-                        break;
+                            break;
 
-                    case ClawEvents.EVENT_LIMIT_UP:
-                        OnLimitHitUp?.Invoke(this, new EventArgs());
-                        break;
+                        case ClawEvents.EVENT_LIMIT_LEFT:
+                            OnLimitHitLeft?.Invoke(this, new EventArgs());
+                            break;
 
-                    case ClawEvents.EVENT_LIMIT_DOWN:
-                        OnLimitHitDown?.Invoke(this, new EventArgs());
-                        break;
+                        case ClawEvents.EVENT_LIMIT_RIGHT:
+                            OnLimitHitRight?.Invoke(this, new EventArgs());
+                            break;
 
-                    case ClawEvents.EVENT_FLIPPER_ERROR:
-                        var data = response.Substring(delims[0].Length, response.Length - delims[0].Length).Trim();
-                        OnFlipperError?.Invoke(this, data);
-                        break;
+                        case ClawEvents.EVENT_LIMIT_FORWARD:
+                            OnLimitHitForward?.Invoke(this, new EventArgs());
+                            break;
 
-                    case ClawEvents.EVENT_FLIPPER_FORWARD:
-                        OnFlipperHitForward?.Invoke(this, new EventArgs());
-                        break;
+                        case ClawEvents.EVENT_LIMIT_BACKWARD:
+                            OnLimitHitBackward?.Invoke(this, new EventArgs());
+                            break;
 
-                    case ClawEvents.EVENT_FLIPPER_HOME:
-                        OnFlipperHitHome?.Invoke(this, new EventArgs());
-                        
-                        break;
-                    case ClawEvents.EVENT_FAILSAFE_FLIPPER:
-                        OnFlipperTimeout?.Invoke(this, new EventArgs());
+                        case ClawEvents.EVENT_LIMIT_UP:
+                            OnLimitHitUp?.Invoke(this, new EventArgs());
+                            break;
 
-                        break;
-                    case ClawEvents.EVENT_FAILSAFE_LEFT:
-                        OnMotorTimeoutLeft?.Invoke(this, new EventArgs());
-                        break;
+                        case ClawEvents.EVENT_LIMIT_DOWN:
+                            OnLimitHitDown?.Invoke(this, new EventArgs());
+                            break;
 
-                    case ClawEvents.EVENT_FAILSAFE_RIGHT:
-                        OnMotorTimeoutRight?.Invoke(this, new EventArgs());
-                        break;
+                        case ClawEvents.EVENT_FLIPPER_ERROR:
+                            var data = response.Substring(delims[0].Length, response.Length - delims[0].Length).Trim();
+                            OnFlipperError?.Invoke(this, data);
+                            break;
 
-                    case ClawEvents.EVENT_FAILSAFE_FORWARD:
-                        OnMotorTimeoutForward?.Invoke(this, new EventArgs());
-                        break;
+                        case ClawEvents.EVENT_FLIPPER_FORWARD:
+                            OnFlipperHitForward?.Invoke(this, new EventArgs());
+                            break;
 
-                    case ClawEvents.EVENT_FAILSAFE_BACKWARD:
-                        OnMotorTimeoutBackward?.Invoke(this, new EventArgs());
-                        break;
+                        case ClawEvents.EVENT_FLIPPER_HOME:
+                            OnFlipperHitHome?.Invoke(this, new EventArgs());
 
-                    case ClawEvents.EVENT_FAILSAFE_UP:
-                        OnMotorTimeoutUp?.Invoke(this, new EventArgs());
-                        break;
+                            break;
+                        case ClawEvents.EVENT_FAILSAFE_FLIPPER:
+                            OnFlipperTimeout?.Invoke(this, new EventArgs());
 
-                    case ClawEvents.EVENT_FAILSAFE_DOWN:
-                        OnMotorTimeoutDown?.Invoke(this, new EventArgs());
-                        break;
+                            break;
+                        case ClawEvents.EVENT_FAILSAFE_LEFT:
+                            OnMotorTimeoutLeft?.Invoke(this, new EventArgs());
+                            break;
 
-                    case ClawEvents.EVENT_FAILSAFE_CLAW:
-                        OnClawTimeout?.Invoke(this, new EventArgs());
-                        break;
+                        case ClawEvents.EVENT_FAILSAFE_RIGHT:
+                            OnMotorTimeoutRight?.Invoke(this, new EventArgs());
+                            break;
 
-                    case ClawEvents.EVENT_DROPPING_CLAW:
-                        OnClawDropping?.Invoke(this, new EventArgs());
-                        break;
+                        case ClawEvents.EVENT_FAILSAFE_FORWARD:
+                            OnMotorTimeoutForward?.Invoke(this, new EventArgs());
+                            break;
 
-                    case ClawEvents.EVENT_RECOILED_CLAW:
-                        OnClawRecoiled?.Invoke(this, new EventArgs());
-                        break;
+                        case ClawEvents.EVENT_FAILSAFE_BACKWARD:
+                            OnMotorTimeoutBackward?.Invoke(this, new EventArgs());
+                            break;
 
-                    case ClawEvents.EVENT_RETURNED_HOME: //home in the case of the machine is the win chute
-                        OnHitWinChute?.Invoke(this, new EventArgs());
-                        break;
+                        case ClawEvents.EVENT_FAILSAFE_UP:
+                            OnMotorTimeoutUp?.Invoke(this, new EventArgs());
+                            break;
 
-                    case ClawEvents.EVENT_RETURNED_CENTER: //Home in the case of the bot is the center
-                        IsClawPlayActive = false;
-                        OnReturnedHome?.Invoke(this, new EventArgs());
-                        break;
+                        case ClawEvents.EVENT_FAILSAFE_DOWN:
+                            OnMotorTimeoutDown?.Invoke(this, new EventArgs());
+                            break;
 
-                    case ClawEvents.EVENT_DROPPED_CLAW:
-                        OnClawDropped?.Invoke(this, new EventArgs());
-                        break;
+                        case ClawEvents.EVENT_FAILSAFE_CLAW:
+                            OnClawTimeout?.Invoke(this, new EventArgs());
+                            break;
 
-                    case ClawEvents.EVENT_INFO:
-                        OnInfoMessage?.Invoke(this, response.Substring(delims[0].Length, response.Length - delims[0].Length).Trim());
-                        break;
+                        case ClawEvents.EVENT_DROPPING_CLAW:
+                            OnClawDropping?.Invoke(this, new EventArgs());
+                            break;
+
+                        case ClawEvents.EVENT_RECOILED_CLAW:
+                            OnClawRecoiled?.Invoke(this, new EventArgs());
+                            break;
+
+                        case ClawEvents.EVENT_RETURNED_HOME: //home in the case of the machine is the win chute
+                            OnHitWinChute?.Invoke(this, new EventArgs());
+                            break;
+
+                        case ClawEvents.EVENT_RETURNED_CENTER: //Home in the case of the bot is the center
+                            IsClawPlayActive = false;
+                            OnReturnedHome?.Invoke(this, new EventArgs());
+                            break;
+
+                        case ClawEvents.EVENT_DROPPED_CLAW:
+                            OnClawDropped?.Invoke(this, new EventArgs());
+                            break;
+
+                        case ClawEvents.EVENT_INFO:
+                            OnInfoMessage?.Invoke(this, response.Substring(delims[0].Length, response.Length - delims[0].Length).Trim());
+                            break;
+                    }
                 }
             }
+            catch (Exception ex)
+            {
+                var error = string.Format("ERROR {0} {1}", ex.Message, ex);
+                Logger.WriteLog(Logger.ErrorLog, error);
+            }
+            
         }
 
-        private void Ping()
+        private async void Ping()
         {
             //only restart the timer if there are no outstanding pings
             if (_pingQueue.Count == 0)
@@ -519,13 +536,24 @@ namespace InternetClawMachine.Hardware.ClawControl
 
             var ms = PingTimer.ElapsedMilliseconds;
             int sequence = SendCommandAsync("ping " + ms);
-            var ping = new ClawPing() { Success = false, Sequence = sequence, StartTime = ms };
+            var ping = new ClawPing() { Success = false, Sequence = sequence, StartTime = ms, CancelToken = new CancellationTokenSource() };
             _pingQueue.Add(ping);
 
             //kick off an async validating ping
-            Task.Run(async delegate
+            await Task.Run(async delegate
             {
                 await Task.Delay(_maximumPingTime); //simply wait some second to check for the last ping
+                if (ping.CancelToken.IsCancellationRequested)
+                {
+                    if (ping.Success)
+                    {
+                        //start a ping in 10 seconds?
+                        await Task.Delay(10000);
+                        Ping();
+                    }
+                    _pingQueue.Remove(ping);
+                    return;
+                }
 
                 Latency = PingTimer.ElapsedMilliseconds - _maximumPingTime;
                 if (!_workSocket.Connected)
@@ -558,13 +586,13 @@ namespace InternetClawMachine.Hardware.ClawControl
                         OnDisconnected?.Invoke(this, new EventArgs());
                     }
                 }
-                else
+                else //this ping was a success
                 {
                     //start a ping in 10 seconds?
                     await Task.Delay(10000);
                     Ping();
                 }
-            });
+            }, ping.CancelToken.Token);
         }
 
         public void Disconnect()
@@ -822,9 +850,22 @@ namespace InternetClawMachine.Hardware.ClawControl
 
     class ClawPing
     {
+        /// <summary>
+        /// Sequence number sent for this ping
+        /// </summary>
         public int Sequence { set; get; }
+        /// <summary>
+        /// Whether it was successful
+        /// </summary>
         public bool Success { set; get; }
+        /// <summary>
+        /// When did this ping start?
+        /// </summary>
         public long StartTime { get; internal set; }
+        /// <summary>
+        /// Cancellation token for the Task
+        /// </summary>
+        public CancellationTokenSource CancelToken { get; internal set; }
     }
 
     public enum ClawHomeLocation {
