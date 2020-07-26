@@ -527,72 +527,83 @@ namespace InternetClawMachine.Hardware.ClawControl
 
         private async void Ping()
         {
-            //only restart the timer if there are no outstanding pings
-            if (_pingQueue.Count == 0)
+            try
             {
-                PingTimer.Reset();
-                PingTimer.Start();
-            }
 
-            var ms = PingTimer.ElapsedMilliseconds;
-            int sequence = SendCommandAsync("ping " + ms);
-            var ping = new ClawPing() { Success = false, Sequence = sequence, StartTime = ms, CancelToken = new CancellationTokenSource() };
-            _pingQueue.Add(ping);
-
-            //kick off an async validating ping
-            await Task.Run(async delegate
-            {
-                await Task.Delay(_maximumPingTime); //simply wait some second to check for the last ping
-                if (ping.CancelToken.IsCancellationRequested)
+                //only restart the timer if there are no outstanding pings
+                if (_pingQueue.Count == 0)
                 {
-                    if (ping.Success)
+                    PingTimer.Reset();
+                    PingTimer.Start();
+                }
+
+                var ms = PingTimer.ElapsedMilliseconds;
+                int sequence = SendCommandAsync("ping " + ms);
+                var ping = new ClawPing() { Success = false, Sequence = sequence, StartTime = ms, CancelToken = new CancellationTokenSource() };
+                _pingQueue.Add(ping);
+
+                //kick off an async validating ping
+                await Task.Run(async delegate
+                {
+                    await Task.Delay(_maximumPingTime); //simply wait some second to check for the last ping
+                if (ping.CancelToken.IsCancellationRequested)
                     {
+                        if (ping.Success)
+                        {
                         //start a ping in 10 seconds?
                         await Task.Delay(10000);
-                        Ping();
+                            Ping();
+                        }
+                        _pingQueue.Remove(ping);
+                        return;
                     }
-                    _pingQueue.Remove(ping);
-                    return;
-                }
 
-                Latency = PingTimer.ElapsedMilliseconds - _maximumPingTime;
-                if (!_workSocket.Connected)
-                {
-                    _pingQueue.Clear();
+                    Latency = PingTimer.ElapsedMilliseconds - _maximumPingTime;
+                    if (!_workSocket.Connected)
+                    {
+                        _pingQueue.Clear();
                     //don't do anything if we disconnected afterward
                 }
-                else if (!ping.Success) //no response, TIMEOUT!
+                    else if (!ping.Success) //no response, TIMEOUT!
                 {
                     //first, check if any pings AFTER this have succeeded, maybe this got delayed for some reason
                     var hasOtherSuccess = false;
-                    foreach (var p in _pingQueue)
-                    {
-                        if (p.Sequence > ping.Sequence && p.Success)
-                            hasOtherSuccess = true;
-                    }
+                        foreach (var p in _pingQueue)
+                        {
+                            if (p.Sequence > ping.Sequence && p.Success)
+                                hasOtherSuccess = true;
+                        }
 
-                    if (hasOtherSuccess) 
-                    {
+                        if (hasOtherSuccess)
+                        {
                         //if another successful ping was after this one we just remove it and continue on
                         //also don't spawn a new ping because the subsequent ping will do taht
                         _pingQueue.Remove(ping);
-                    }
-                    else //yea we really timed out
+                        }
+                        else //yea we really timed out
                     {
-                        _pingQueue.Clear();
-                        Logger.WriteLog(Logger.MachineLog, "Ping timeout: " + Latency);
-                        _workSocket.Disconnect(false);
-                        OnPingTimeout?.Invoke(this, new EventArgs());
-                        OnDisconnected?.Invoke(this, new EventArgs());
+                            _pingQueue.Clear();
+                            Logger.WriteLog(Logger.MachineLog, "Ping timeout: " + Latency);
+                            _workSocket.Disconnect(false);
+                            OnPingTimeout?.Invoke(this, new EventArgs());
+                            OnDisconnected?.Invoke(this, new EventArgs());
+                        }
                     }
-                }
-                else //this ping was a success
+                    else //this ping was a success
                 {
                     //start a ping in 10 seconds?
                     await Task.Delay(10000);
-                    Ping();
-                }
-            }, ping.CancelToken.Token);
+                        Ping();
+                    }
+                }, ping.CancelToken.Token);
+            }
+            catch (Exception ex)
+            {
+                var error = string.Format("ERROR {0} {1}", ex.Message, ex);
+                Logger.WriteLog(Logger.ErrorLog, error);
+            }
+            
+
         }
 
         public void Disconnect()

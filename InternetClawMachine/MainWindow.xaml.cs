@@ -1356,7 +1356,7 @@ namespace InternetClawMachine
                 EndGame();
             }
 
-            Configuration.EventMode = Configuration.ClawSettings.EventModes.Find(m => m.DisplayName == "Team Chaos");
+            //Configuration.EventMode = Configuration.ClawSettings.EventModes.Find(m => m.DisplayName == "Team Chaos");
             Game = new ClawTeamChaos(Client, Configuration, ObsConnection);
 
             StartGame(username);
@@ -2162,8 +2162,8 @@ namespace InternetClawMachine
                 return;
             }
 
-            ((ClawGame) Game).TriggerWin(((PlushieObject) lstPlushes.SelectedItem).EpcList[0],
-                lstViewers.SelectedItem.ToString(), false);
+            ((ClawGame) Game).TriggerWin((PlushieObject)lstPlushes.SelectedItem,
+                lstViewers.SelectedItem.ToString(), false, 1);
             lstPlushes.Items.Refresh();
         }
 
@@ -2343,10 +2343,11 @@ namespace InternetClawMachine
 
         private void BtnDoh_Click(object sender, RoutedEventArgs e)
         {
-
+            
             var data = new JObject();
             data.Add("name", Configuration.ObsScreenSourceNames.SoundClipDoh.SourceName);
             Game.WsConnection.SendCommand(MediaWebSocketServer.CommandMedia, data);
+            
         }
 
         private void BtnTrombone_Click(object sender, RoutedEventArgs e)
@@ -2635,7 +2636,7 @@ namespace InternetClawMachine
                 return;
             }
 
-            ((ClawGame)Game).TriggerWin(null, null, true);
+            ((ClawGame)Game).TriggerWin(null, null, true, 1);
         }
 
         private void CmbThemes_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -2651,6 +2652,53 @@ namespace InternetClawMachine
         private void BtnReloadTranslations_Click(object sender, RoutedEventArgs e)
         {
             Translator.Init(_localizationPath);
+        }
+
+        private void BtnTeam1AddOne_Click(object sender, RoutedEventArgs e)
+        {
+            if (!(Game is ClawGame))
+                return;
+
+            var game = (ClawGame)Game;
+
+            var team = GetTeam(1);
+
+            //fake team
+            game.TriggerWin(null, null, true, 1);
+        }
+
+        private void BtnTeam1SubOne_Click(object sender, RoutedEventArgs e)
+        {
+            if (!(Game is ClawGame))
+                return;
+
+            var game = (ClawGame)Game;
+
+            //fake team
+            game.TriggerWin(null, null, true, -1);
+        }
+
+        private GameTeam GetTeam(int number)
+        {
+            if (!(Game is ClawGame))
+                return null;
+
+            var game = (ClawGame)Game;
+            if (game.Teams.Count < number)
+                return null;
+
+            return game.Teams[number - 1];
+        }
+
+        private void BtnTeam1AddFive_Click(object sender, RoutedEventArgs e)
+        {
+            if (!(Game is ClawGame))
+                return;
+
+            var game = (ClawGame)Game;
+
+            //fake team
+            game.TriggerWin(null, null, true, 5);
         }
     }
 

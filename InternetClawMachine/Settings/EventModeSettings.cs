@@ -53,6 +53,16 @@ namespace InternetClawMachine.Settings
         public string WinAnimation { set; get; }
 
         /// <summary>
+        /// Display this animation when there is a negative point added
+        /// </summary>
+        public string FailAnimation { set; get; }
+
+        /// <summary>
+        /// What state do we want to leave the flipper in?
+        /// </summary>
+        public FlipperDirection FlipperPosition { get; set; }
+
+        /// <summary>
         /// Disable the normal lighting
         /// </summary>
         public bool LightsOff { set; get; }
@@ -93,9 +103,14 @@ namespace InternetClawMachine.Settings
         public int WinMultiplier { get; set; }
 
         /// <summary>
-        /// Custom sayign when something is grabbed
+        /// Custom saying when something is grabbed
         /// </summary>
         public string CustomWinTextResource { get;  set; }
+
+        /// <summary>
+        /// Custom saying when something is grabbed incorrectly
+        /// </summary>
+        public string CustomFailTextResource { get; set; }
 
         /// <summary>
         /// Allow users custom scene settings to apply
@@ -111,6 +126,12 @@ namespace InternetClawMachine.Settings
         /// Allow users to override the greenscreen with their custom settings
         /// </summary>
         public bool AllowOverrideGreenscreen { set; get; }
+
+
+        /// <summary>
+        /// Allow users to override the win animation with their custom settings
+        /// </summary>
+        public bool AllowOverrideWinAnimation { get; set; }
 
         /// <summary>
         /// Where this event calls home
@@ -145,5 +166,6 @@ namespace InternetClawMachine.Settings
         /// Settings to use for trivia mode
         /// </summary>
         public TriviaSettings TriviaSettings { set; get; }
+        
     }
 }

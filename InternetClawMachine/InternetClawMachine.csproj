@@ -239,6 +239,7 @@
     <Compile Include="Games\GameHelpers\ListShuffle.cs" />
     <Compile Include="Games\GameHelpers\TriviaAnswer.cs" />
     <Compile Include="Games\GameHelpers\TriviaQuestion.cs" />
+    <Compile Include="Hardware\ClawControl\FlipperDirection.cs" />
     <Compile Include="Settings\EventModeArgs.cs" />
     <Compile Include="Settings\EventModeSettings.cs" />
     <Compile Include="Games\GameHelpers\PlayWinClipEventArgs.cs" />

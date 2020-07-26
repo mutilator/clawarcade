@@ -78,7 +78,9 @@ namespace InternetClawMachine.Games.GameHelpers
 
                 //Remove them from the queue because they can't play again until they answer a question correctly
                 PlayerQueue.RemoveSinglePlayer(PlayerQueue.CurrentPlayer);
-                
+                GameRoundTimer.Reset();
+                CommandQueue.Clear();
+
                 //Ask the next question
                 StartNewTriviaRound();
             }

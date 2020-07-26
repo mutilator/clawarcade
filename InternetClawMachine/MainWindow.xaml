@@ -10,7 +10,7 @@
         TextOptions.TextFormattingMode="Ideal"
         TextOptions.TextRenderingMode="Auto"
         Background="{DynamicResource MaterialDesignPaper}"
-        FontFamily="{DynamicResource MaterialDesignFont}">
+        FontFamily="{DynamicResource MaterialDesignFont}" Height="924">
     <Window.Resources>
         <l:EpochToDate x:Key="epochToDate" />
         <Style  TargetType="{x:Type ListBoxItem}">
@@ -70,35 +70,39 @@
         </DataTemplate>
     </Window.Resources>
 
-    <Grid Margin="0,0,0,2" Width="772" Height="852">
-        <Grid Margin="0,0,0,10">
-            <TextBox HorizontalAlignment="Left" Height="186" Margin="15,43,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="334" AllowDrop="False" x:Name="txtDump" ScrollViewer.CanContentScroll="True" VerticalScrollBarVisibility="Visible" FontFamily="Yu Gothic UI Semibold" Text="(Nickname) Test" FontSize="20" Background="Black" Foreground="#FF408080" />
-            <TextBox Height="23" Margin="15,234,0,0" TextWrapping="Wrap" VerticalAlignment="Top" AllowDrop="False" x:Name="txtInput" KeyUp="Input_KeyUp" HorizontalAlignment="Left" Width="334" Foreground="#FF408080" Background="Black">
+    <Grid Margin="0,0,0,-2" Width="797">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="89*"/>
+                <RowDefinition Height="124*"/>
+            </Grid.RowDefinitions>
+            <TextBox Margin="15,43,423,126" TextWrapping="Wrap" AllowDrop="False" x:Name="txtDump" ScrollViewer.CanContentScroll="True" VerticalScrollBarVisibility="Visible" FontFamily="Yu Gothic UI Semibold" Text="(Nickname) Test" FontSize="20" Background="Black" Foreground="#FF408080" />
+            <TextBox Margin="15,0,423,92" TextWrapping="Wrap" AllowDrop="False" x:Name="txtInput" KeyUp="Input_KeyUp" Foreground="#FF408080" Background="Black" Height="29" VerticalAlignment="Bottom">
                 <TextBox.InputBindings>
                     <KeyBinding Key="Enter" />
                     <KeyBinding Key="Return" />
                 </TextBox.InputBindings>
             </TextBox>
-            <Button Content="Forward" HorizontalAlignment="Left" Margin="586,22,0,0" VerticalAlignment="Top" Width="98" x:Name="btnFordward" PreviewMouseDown="btnFordward_MouseDown" PreviewMouseUp="btnFordward_MouseUp" />
-            <Button Content="Backward" HorizontalAlignment="Left" Margin="586,96,0,0" VerticalAlignment="Top" Width="98" x:Name="btnBackward" PreviewMouseDown="btnBackward_MouseDown" PreviewMouseUp="btnBackward_MouseUp" />
-            <Button Content="Left" HorizontalAlignment="Left" Margin="508,59,0,0" VerticalAlignment="Top" Width="76" x:Name="btnLeft" PreviewMouseDown="btnLeft_MouseDown" PreviewMouseUp="btnLeft_MouseUp" />
-            <Button Content="Right" HorizontalAlignment="Left" Margin="689,59,0,0" VerticalAlignment="Top" Width="74" x:Name="btnRight" PreviewMouseDown="btnRight_MouseDown" PreviewMouseUp="btnRight_MouseUp" />
-            <Button Content="Drop" HorizontalAlignment="Left" Margin="606,59,0,0" VerticalAlignment="Top" Width="64" x:Name="btnDrop" PreviewMouseDown="btnDrop_MouseDown" PreviewMouseUp="btnDrop_MouseUp" />
-            <ListBox HorizontalAlignment="Left" Height="186" Margin="371,43,0,0" VerticalAlignment="Top" Width="125" x:Name="lstViewers" Background="Black" Foreground="#FF408080" BorderBrush="Red" BorderThickness="0" ItemsSource="{Binding UserList}" DisplayMemberPath="Username"/>
+            <Button Content="Forward" HorizontalAlignment="Right" Margin="0,22,88,0" VerticalAlignment="Top" Width="98" x:Name="btnFordward" PreviewMouseDown="btnFordward_MouseDown" PreviewMouseUp="btnFordward_MouseUp" />
+            <Button Content="Backward" HorizontalAlignment="Right" Margin="0,96,88,0" VerticalAlignment="Top" Width="98" x:Name="btnBackward" PreviewMouseDown="btnBackward_MouseDown" PreviewMouseUp="btnBackward_MouseUp" />
+            <Button Content="Left" HorizontalAlignment="Right" Margin="0,59,188,0" VerticalAlignment="Top" Width="76" x:Name="btnLeft" PreviewMouseDown="btnLeft_MouseDown" PreviewMouseUp="btnLeft_MouseUp" />
+            <Button Content="Right" HorizontalAlignment="Right" Margin="0,59,9,0" VerticalAlignment="Top" Width="74" x:Name="btnRight" PreviewMouseDown="btnRight_MouseDown" PreviewMouseUp="btnRight_MouseUp" />
+            <Button Content="Drop" HorizontalAlignment="Right" Margin="0,59,102,0" VerticalAlignment="Top" Width="64" x:Name="btnDrop" PreviewMouseDown="btnDrop_MouseDown" PreviewMouseUp="btnDrop_MouseUp" />
+            <ListBox HorizontalAlignment="Right" Height="186" Margin="0,43,276,0" VerticalAlignment="Top" Width="125" x:Name="lstViewers" Background="Black" Foreground="#FF408080" BorderBrush="Red" BorderThickness="0" ItemsSource="{Binding UserList}" DisplayMemberPath="Username"/>
             <Label Content="Viewers" HorizontalAlignment="Left" Margin="371,14,0,0" VerticalAlignment="Top" />
-            <Button Content="Reconnect" HorizontalAlignment="Left" Margin="371,312,0,0" VerticalAlignment="Top" Width="125" x:Name="btnReconnect" Click="btnReconnect_Click" />
-            <Button Content="Pause" HorizontalAlignment="Left" Margin="134,297,0,0" VerticalAlignment="Top" Width="75" x:Name="btnPause" Click="btnPause_Click" />
-            <Button x:Name="btnStartChaos" Content="Start Game" HorizontalAlignment="Left" Margin="21,297,0,0" VerticalAlignment="Top" Width="108" Click="btnStartChaos_Click" />
-            <Button x:Name="btnCloseClaw" Content="Close Claw" HorizontalAlignment="Left" Margin="508,142,0,0" VerticalAlignment="Top" Width="109" MouseDown="BtnCloseClaw_MouseDown" PreviewMouseDown="BtnCloseClaw_PreviewMouseDown" PreviewMouseUp="BtnCloseClaw_PreviewMouseUp" />
-            <ComboBox x:Name="cmbGameModes" HorizontalAlignment="Left" Margin="20,264,0,0" VerticalAlignment="Top" Width="329" SelectedIndex="1" DisplayMemberPath="Name" />
+            <Button Content="Reconnect" HorizontalAlignment="Right" Margin="0,312,276,0" VerticalAlignment="Top" Width="125" x:Name="btnReconnect" Click="btnReconnect_Click" />
+            <Button Content="Pause" HorizontalAlignment="Left" Margin="134,0,0,12" VerticalAlignment="Bottom" Width="75" x:Name="btnPause" Click="btnPause_Click" />
+            <Button x:Name="btnStartChaos" Content="Start Game" HorizontalAlignment="Left" Margin="21,0,0,12" VerticalAlignment="Bottom" Width="108" Click="btnStartChaos_Click" />
+            <Button x:Name="btnCloseClaw" Content="Close Claw" HorizontalAlignment="Right" Margin="0,142,155,0" VerticalAlignment="Top" Width="109" MouseDown="BtnCloseClaw_MouseDown" PreviewMouseDown="BtnCloseClaw_PreviewMouseDown" PreviewMouseUp="BtnCloseClaw_PreviewMouseUp" />
+            <ComboBox x:Name="cmbGameModes" HorizontalAlignment="Left" Margin="20,0,0,49" VerticalAlignment="Bottom" Width="329" SelectedIndex="1" DisplayMemberPath="Name" />
             <Button x:Name="btnBeltOn" Content="Belt" HorizontalAlignment="Left" Margin="654,142,0,0" VerticalAlignment="Top" Width="109" PreviewMouseDown="btnBeltOn_PreviewMouseDown" PreviewMouseUp="btnBeltOn_PreviewMouseUp" />
-            <Button x:Name="btnChatConnect" Content="Chat Connect" HorizontalAlignment="Left" Margin="372,274,0,0" VerticalAlignment="Top" Width="124" Click="btnChatConnect_Click" />
-            <Button x:Name="btnOBSConnect" Content="OBS Connect" HorizontalAlignment="Left" Margin="224,297,0,0" VerticalAlignment="Top" Width="125" Click="btnOBSConnect_Click" />
-            <Button x:Name="btnUp" Content="Up" HorizontalAlignment="Left" Margin="508,183,0,0" VerticalAlignment="Top" Width="109" PreviewMouseDown="btnUp_PreviewMouseDown" PreviewMouseUp="btnUp_PreviewMouseUp" />
+            <Button x:Name="btnChatConnect" Content="Chat Connect" HorizontalAlignment="Right" Margin="0,274,276,0" VerticalAlignment="Top" Width="124" Click="btnChatConnect_Click" />
+            <Button x:Name="btnOBSConnect" Content="OBS Connect" HorizontalAlignment="Left" Margin="224,0,0,12" VerticalAlignment="Bottom" Width="125" Click="btnOBSConnect_Click" />
+            <Button x:Name="btnUp" Content="Up" HorizontalAlignment="Right" Margin="0,183,155,0" VerticalAlignment="Top" Width="109" PreviewMouseDown="btnUp_PreviewMouseDown" PreviewMouseUp="btnUp_PreviewMouseUp" />
 
             <ComboBox x:Name="cmbEventMode" HorizontalAlignment="Left" Margin="634,312,0,0" VerticalAlignment="Top" Width="120" SelectedIndex="0" SelectionChanged="cmbEventMode_SelectionChanged" ItemsSource="{Binding ClawSettings.EventModes}" DisplayMemberPath="DisplayName"/>
-            <Button x:Name="btnSaveConfig" Content="Save Configuration" HorizontalAlignment="Left" Margin="590,810,0,0" VerticalAlignment="Top" Width="162" Click="btnSaveConfig_Click" />
-            <TabControl HorizontalAlignment="Left" Height="447" Margin="15,358,0,0" VerticalAlignment="Top" Width="742">
+            <Button x:Name="btnSaveConfig" Content="Save Configuration" Margin="0,0,15,18" Click="btnSaveConfig_Click" Grid.Row="1" Height="32" VerticalAlignment="Bottom" HorizontalAlignment="Right" Width="162" />
+            <TabControl Margin="15,11,15,65" Grid.Row="1">
                 <TabItem Header="General" Padding="20,2">
                     <Grid>
                         <Slider x:Name="sldrdiscordAnnounceDelay" HorizontalAlignment="Left" Margin="10,36,0,0" VerticalAlignment="Top" Width="113" Maximum="14400000" Minimum="1" LargeChange="1000" SmallChange="1000" Value="{Binding RecurringAnnounceDelay, Mode=TwoWay}" IsSnapToTickEnabled="True" TickFrequency="1000" />
@@ -159,14 +163,17 @@
                         <Label Content="Last EPC Scan" HorizontalAlignment="Left" Height="28" Margin="189,333,0,0" VerticalAlignment="Top" Width="95" />
                         <TextBox x:Name="txtPLushName" Height="29" TextWrapping="Wrap" Text="" Margin="284,366,215,24" />
                         <Label Content="Plush Name" HorizontalAlignment="Left" Height="28" Margin="189,366,0,0" VerticalAlignment="Top" Width="95" />
-                        <Button x:Name="btnPlushAddNew" Content="Add" HorizontalAlignment="Left" Margin="538,333,0,0" VerticalAlignment="Top" Width="81" Click="BtnPlushAddNew_Click" />
-                        <Button x:Name="btnClearPlushScan" Content="Clear" HorizontalAlignment="Left" Margin="538,370,0,0" VerticalAlignment="Top" Width="81" Click="btnClearPlushScan_Click"/>
+                        <Button x:Name="btnPlushAddNew" Content="Add" HorizontalAlignment="Left" Margin="551,333,0,0" VerticalAlignment="Top" Width="81" Click="BtnPlushAddNew_Click" />
+                        <Button x:Name="btnClearPlushScan" Content="Clear" HorizontalAlignment="Left" Margin="551,370,0,0" VerticalAlignment="Top" Width="81" Click="btnClearPlushScan_Click"/>
                         <Button x:Name="btnIRScanned" Content="IR Scan" HorizontalAlignment="Left" Margin="10,370,0,0" VerticalAlignment="Top" Width="88" Click="BtnIRScanned_Click"/>
                     </Grid>
                 </TabItem>
                 <TabItem Header="Game Controls" Padding="20,2">
                     <Grid >
-                        <Button Content="Button" HorizontalAlignment="Left" VerticalAlignment="Top" Width="75" Margin="10,10,0,0"/>
+                        <Button x:Name="btnTeam1AddOne" Content="+1" HorizontalAlignment="Left" VerticalAlignment="Top" Width="51" Margin="10,41,0,0" Click="BtnTeam1AddOne_Click"/>
+                        <Label Content="Team 1" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="10,10,0,0"/>
+                        <Button x:Name="btnTeam1SubOne" Content="-1" HorizontalAlignment="Left" VerticalAlignment="Top" Width="51" Margin="10,78,0,0" Click="BtnTeam1SubOne_Click"/>
+                        <Button x:Name="btnTeam1AddFive" Content="+5" HorizontalAlignment="Left" VerticalAlignment="Top" Width="51" Margin="66,41,0,0" Click="BtnTeam1AddFive_Click" />
                     </Grid>
                 </TabItem>
                 <TabItem Header="Claw" Padding="20,2">
@@ -422,7 +429,7 @@
                                     <Button x:Name="btnWaterBotConnect" Content="Wtr Connect" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top" Width="145" Click="btnWaterBotConnect_Click" />
                                 </Grid>
                             </TabItem>
-                            
+
                         </TabControl>
                     </Grid>
                 </TabItem>
@@ -481,11 +488,11 @@
                 </TabItem>
             </TabControl>
             <Label Content="Event Mode" HorizontalAlignment="Left" Margin="629,281,0,0" VerticalAlignment="Top" />
-            <Button Content="Reload Configuration" HorizontalAlignment="Left" Margin="409,810,0,0" VerticalAlignment="Top" Width="176" Click="Button_Click" />
-            <Button x:Name="btnFlipper" Content="Flipper" HorizontalAlignment="Left" Margin="653,234,0,0" VerticalAlignment="Top" Width="109" Click="btnFlipper_Click" />
-            <Label Content="Reconnects" HorizontalAlignment="Left" Margin="373,234,0,0" VerticalAlignment="Top" />
-            <Label x:Name="lblReconects_Copy" Content="{Binding ChatReconnectAttempts}" HorizontalAlignment="Left" Margin="453,234,0,0" VerticalAlignment="Top" />
-            <Button Content="Down" HorizontalAlignment="Left" Margin="654,183,0,0" VerticalAlignment="Top" Width="109" x:Name="btnDown" PreviewMouseUp="BtnDown_PreviewMouseUp" PreviewMouseDown="BtnDown_PreviewMouseDown" />
+            <Button Content="Reload Configuration" Margin="0,0,188,18" Click="Button_Click" Grid.Row="1" HorizontalAlignment="Right" Width="176" Height="32" VerticalAlignment="Bottom" />
+            <Button x:Name="btnFlipper" Content="Flipper" Margin="0,234,10,0" VerticalAlignment="Top" Click="btnFlipper_Click" HorizontalAlignment="Right" Width="109" />
+            <Label Content="Reconnects" HorizontalAlignment="Right" Margin="0,234,325,0" VerticalAlignment="Top" />
+            <Label x:Name="lblReconects_Copy" Content="{Binding ChatReconnectAttempts}" Margin="0,242,310,0" VerticalAlignment="Top" RenderTransformOrigin="11.1,3.9" HorizontalAlignment="Right" Width="10" />
+            <Button Content="Down" HorizontalAlignment="Right" Margin="0,183,9,0" VerticalAlignment="Top" Width="109" x:Name="btnDown" PreviewMouseUp="BtnDown_PreviewMouseUp" PreviewMouseDown="BtnDown_PreviewMouseDown" />
         </Grid>
     </Grid>
 </Window>

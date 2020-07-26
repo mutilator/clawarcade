@@ -223,11 +223,6 @@ namespace InternetClawMachine.Settings
         public ReticleOption ActiveReticle { get; set; }
 
         /// <summary>
-        /// What state do we want to leave the flipper in?
-        /// </summary>
-        public FlipperDirection FlipperPosition { get; set; }
-
-        /// <summary>
         /// How much lag is there between real-time and OBS capture? Mainly used for offsets like when performing a strobe
         /// </summary>
         public int CameraLagTime { get; set; }

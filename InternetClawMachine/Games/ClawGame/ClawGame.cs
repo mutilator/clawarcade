@@ -129,19 +129,19 @@ namespace InternetClawMachine.Games.GameHelpers
 
         private void ClawGame_OnFlipperHitHome(object sender, EventArgs e)
         {
-            
+
         }
 
         private void ClawGame_OnFlipperHitForward(object sender, EventArgs e)
         {
-            if (Configuration.ClawSettings.FlipperPosition == FlipperDirection.FLIPPER_FORWARD)
+            if (Configuration.EventMode.FlipperPosition == FlipperDirection.FLIPPER_FORWARD)
                 return;
 
             Task.Run(async delegate ()
             {
-                ((ClawController)MachineControl).RunConveyor(1000);
-                await Task.Delay(1200);
-                ((ClawController)MachineControl).Flipper(FlipperDirection.FLIPPER_BACKWARD);
+                await ((ClawController)MachineControl).RunConveyor(1000);
+
+                ((ClawController)MachineControl).Flipper(FlipperDirection.FLIPPER_HOME);
             });
         }
 
@@ -226,7 +226,7 @@ namespace InternetClawMachine.Games.GameHelpers
             //grab current scene to make sure we skin all scenes
             if (ObsConnection.IsConnected)
             {
-                
+
 
                 var currentscene = ObsConnection.GetCurrentScene().Name;
 
@@ -248,7 +248,7 @@ namespace InternetClawMachine.Games.GameHelpers
                             }
                             catch (Exception ex) //skip over scenes that error out, log errors
                             {
-                                var error = string.Format("ERROR {0} {1}", ex.Message, ex);
+                                var error = string.Format("ERROR Source: {0} {1} {2}", scene, ex.Message, ex);
                                 Logger.WriteLog(Logger.ErrorLog, error);
 
                             }
@@ -264,7 +264,7 @@ namespace InternetClawMachine.Games.GameHelpers
                         }
                         catch (Exception ex) //skip over scenes that error out, log errors
                         {
-                            var error = string.Format("ERROR {0} {1}", ex.Message, ex);
+                            var error = string.Format("ERROR Source: {0} {1} {2}", bg.SourceName, ex.Message, ex);
                             Logger.WriteLog(Logger.ErrorLog, error);
                         }
                     }
@@ -286,7 +286,7 @@ namespace InternetClawMachine.Games.GameHelpers
         private void ClawGame_OnClawTimeout(object sender, EventArgs e)
         {
             Emailer.SendEmail(Configuration.EmailAddress, "Claw machine timeout closed", "Claw Timeout");
-            
+
         }
 
         private void ClawGame_OnMotorTimeoutUp(object sender, EventArgs e)
@@ -382,7 +382,7 @@ namespace InternetClawMachine.Games.GameHelpers
         {
             base.Init();
 
-            _failsafeCurrentResets=0;
+            _failsafeCurrentResets = 0;
             SessionDrops = 0;
             SessionWinTracker.Clear();
             File.WriteAllText(Configuration.FileDrops, "");
@@ -405,7 +405,7 @@ namespace InternetClawMachine.Games.GameHelpers
                         {
                             ((ClawController)MachineControl).SendCommandAsync("w off");
                         }
-                        
+
 
                         HandleBlackLightMode();
                     }
@@ -451,8 +451,8 @@ namespace InternetClawMachine.Games.GameHelpers
                 try
                 {
                     MachineControl.LightSwitch(false);
-                    ((ClawController) MachineControl).SendCommand("pm 16 1");
-                    ((ClawController) MachineControl).SendCommand("ps 16 1");
+                    ((ClawController)MachineControl).SendCommand("pm 16 1");
+                    ((ClawController)MachineControl).SendCommand("ps 16 1");
                 }
                 catch (Exception x)
                 {
@@ -463,7 +463,7 @@ namespace InternetClawMachine.Games.GameHelpers
                 AdjustOBSGreenScreenFilters();
 
                 //TODO - don't hardcode this
-                try { 
+                try {
                     ObsConnection.SetSourceRender("moon", true);
                     ObsConnection.SetSourceRender("moon2", true);
                 }
@@ -475,7 +475,7 @@ namespace InternetClawMachine.Games.GameHelpers
             }
             else
             {
-                try { 
+                try {
                     ((ClawController)MachineControl).SendCommand("ps 16 0");
                     MachineControl.LightSwitch(true);
                 }
@@ -485,7 +485,7 @@ namespace InternetClawMachine.Games.GameHelpers
                     Logger.WriteLog(Logger.ErrorLog, error);
                 }
 
-                
+
                 AdjustOBSGreenScreenFilters();
 
                 //TODO - don't hardcode this
@@ -621,13 +621,30 @@ namespace InternetClawMachine.Games.GameHelpers
 
         private void RFIDReader_NewTagFound(EpcData epcData)
         {
-            var key = epcData.Epc.Trim();
-            Logger.WriteLog(Logger.DebugLog, key, Logger.LogLevel.TRACE);
+            var epc = epcData.Epc.Trim();
+            Logger.WriteLog(Logger.DebugLog, epc, Logger.LogLevel.TRACE);
             if (Configuration.EventMode.DisableRFScan) return; //ignore scans
 
             if (InScanWindow)
             {
-                TriggerWin(key);
+                var scannedPlushObject = PlushieTags.FirstOrDefault(itm => itm.EpcList.Contains(epc));
+
+                //TODO - refactor all of this, it's a hodgepodge built overtime initially requiring only a plush scan
+                if (scannedPlushObject == null)
+                    return;
+
+                //if we're scanning a plush cancel an IR scan trigger
+                if (!scannedPlushObject.WasGrabbed && CurrentWinCancellationToken != null && !CurrentWinCancellationToken.IsCancellationRequested)
+                    CurrentWinCancellationToken.Cancel();
+
+                //if this hasn't been scanned yet
+                if (!scannedPlushObject.WasGrabbed)
+                {
+                    if (scannedPlushObject != null)
+                        scannedPlushObject.WasGrabbed = true;
+
+                    TriggerWin(scannedPlushObject);
+                }
             }
         }
 
@@ -675,11 +692,11 @@ namespace InternetClawMachine.Games.GameHelpers
             }
         }
 
-        private string RunWinScenario(PlushieObject objPlush, string forcedWinner)
+        private string GetCurrentWinner(string forcedWinner)
         {
-            var saying = "";
-            var rnd = new Random();
             var winner = "";
+            var rnd = new Random();
+
             if (forcedWinner != null)
             {
                 winner = forcedWinner;
@@ -691,83 +708,32 @@ namespace InternetClawMachine.Games.GameHelpers
             else if (WinnersList.Count > 0)
             {
                 winner = WinnersList[rnd.Next(WinnersList.Count - 1)];
-            } else if (PlayerQueue.CurrentPlayer != null) //there are no lists of winners use the current player
+            }
+            else if (PlayerQueue.CurrentPlayer != null) //there are no lists of winners use the current player
             {
                 winner = PlayerQueue.CurrentPlayer;
-            } else //
+            }
+            else //
             {
                 winner = null;
             }
+            return winner;
+        }
 
-            
+        /// <summary>
+        /// Sends text to chat for the winner, increments the win counter
+        /// </summary>
+        /// <param name="objPlush">Plush that was grabbed</param>
+        /// <param name="winner">name of winner, could be a team or a person</param>
+        /// <param name="pointsToAdd">How much do we add to their win total? Can be negative.</param>
+        
+        private void RunWinScenario(PlushieObject objPlush, string winner, int pointsToAdd)
+        {
+            var saying = "";
 
-            if (!string.IsNullOrEmpty(winner))
-            {
-                var usr = Configuration.UserList.GetUser(winner);
-                var winnerName = winner;
-                var teamid = usr.TeamId;
-                if (Configuration.EventMode.TeamRequired)
-                    teamid = usr.EventTeamId;
 
-                var team = Teams.FirstOrDefault(t => t.Id == teamid);
-                if (team != null)
-                {
-                    team.Wins++;
-                    if (this.GameMode == GameModeType.REALTIMETEAM)
-                        winnerName = team.Name;
-                }
-
-                //see if they're in the tracker yeta
-                var user = SessionWinTracker.FirstOrDefault(u => u.Username == winner);
-                if (user != null)
-                    user = SessionWinTracker.First(u => u.Username == winner);
-                else
-                    user = new SessionWinTracker() { Username = winner };
-
-                //if an RF scan but also custom text enter here
-                if (objPlush != null && !string.IsNullOrEmpty(Configuration.EventMode.CustomWinTextResource))
-                {
-                    saying = string.Format(Translator.GetTranslation(Configuration.EventMode.CustomWinTextResource, Configuration.UserList.GetUserLocalization(winner)), winnerName, objPlush.Name, objPlush.BonusBux);
-                    DatabaseFunctions.AddStreamBuxBalance(Configuration, user.Username, StreamBuxTypes.WIN, objPlush.BonusBux);
-                }
-                //otherwise if just a custon win, mainly for events, use this
-                else if (!string.IsNullOrEmpty(Configuration.EventMode.CustomWinTextResource))
-                {
-                    saying = string.Format(Translator.GetTranslation(Configuration.EventMode.CustomWinTextResource, Configuration.UserList.GetUserLocalization(winner)), winnerName, Configuration.EventMode.WinMultiplier);
-                    DatabaseFunctions.AddStreamBuxBalance(Configuration, user.Username, StreamBuxTypes.WIN, Configuration.GetStreamBuxCost(StreamBuxTypes.WIN) * Configuration.EventMode.WinMultiplier);
-                }
-                else if (objPlush != null)
-                {
-                    saying = string.Format(Translator.GetTranslation("gameClawGrabPlush", Configuration.UserList.GetUserLocalization(winner)), winnerName, objPlush.Name);
-                    DatabaseFunctions.AddStreamBuxBalance(Configuration, user.Username, StreamBuxTypes.WIN, Configuration.GetStreamBuxCost(StreamBuxTypes.WIN));
-
-                    if (objPlush.BonusBux > 0)
-                        DatabaseFunctions.AddStreamBuxBalance(Configuration, usr.Username, StreamBuxTypes.WIN, objPlush.BonusBux);
-
-                    DatabaseFunctions.WriteDbWinRecord(Configuration, usr, objPlush.PlushId, Configuration.SessionGuid.ToString());
-                } else
-                {
-                    saying = string.Format(Translator.GetTranslation("gameClawGrabSomething", Configuration.UserList.GetUserLocalization(winner)), winnerName);
-                    DatabaseFunctions.AddStreamBuxBalance(Configuration, usr.Username, StreamBuxTypes.WIN, Configuration.GetStreamBuxCost(StreamBuxTypes.WIN));
-
-                    DatabaseFunctions.WriteDbWinRecord(Configuration, usr, -1, Configuration.SessionGuid.ToString());
-                }
-                
-                //increment their wins
-                user.Wins++;
-
-                //increment the current goals wins
-                Configuration.DataExchanger.GoalPercentage += Configuration.GoalProgressIncrement;
-                Configuration.Save();
-
-                //reset how many drops it took to win
-                SessionDrops = 0; //set to 0 for display
-                RefreshWinList();
-                SessionDrops = -1; //but set to -1 because this will reset
-
-                Emailer.SendEmail(Configuration.EmailAddress, "Someone won a prize: " + saying, saying);
-            }
-            else
+            //do we have a winner?
+            if (string.IsNullOrEmpty(winner))
             {
                 if (objPlush != null)
                 {
@@ -776,21 +742,93 @@ namespace InternetClawMachine.Games.GameHelpers
                 }
             }
 
-            //start a thread to display the message
-            if (!string.IsNullOrEmpty(saying))
-            {
-                var childThread = new Thread(new ThreadStart(delegate ()
-                {
+            var usr = Configuration.UserList.GetUser(winner);
+            var winnerName = winner;
+            var teamid = usr.TeamId;
+            if (Configuration.EventMode.TeamRequired)
+                teamid = usr.EventTeamId;
 
-                    Thread.Sleep(Configuration.WinNotificationDelay);
-                    ChatClient.SendMessage(Configuration.Channel, saying);
-                    Logger.WriteLog(Logger.MachineLog, saying);
-                }));
-                childThread.Start();
+            var team = Teams.FirstOrDefault(t => t.Id == teamid);
+            if (team != null)
+            {
+                team.Wins += pointsToAdd;
+                if (this.GameMode == GameModeType.REALTIMETEAM)
+                    winnerName = team.Name;
             }
 
+            //see if they're in the tracker yeta
+            var user = SessionWinTracker.FirstOrDefault(u => u.Username == winner);
+            if (user != null)
+                user = SessionWinTracker.First(u => u.Username == winner);
+            else
+                user = new SessionWinTracker() { Username = winner };
 
-            return winner;
+            
+            if (pointsToAdd < 0) //if we're negative points, handle inside this so we don't skip to another text we don't want
+            {
+                if (!string.IsNullOrEmpty(Configuration.EventMode.CustomFailTextResource)) //if custom text exists we use it
+                {
+                    if (objPlush != null) //if they grabbed the wrong plush
+                    {
+                        saying = string.Format(Translator.GetTranslation(Configuration.EventMode.CustomFailTextResource, Configuration.UserList.GetUserLocalization(winner)), winnerName, objPlush.Name, objPlush.BonusBux);
+                    } else
+                    {
+                        saying =string.Format(Translator.GetTranslation(Configuration.EventMode.CustomFailTextResource, Configuration.UserList.GetUserLocalization(winner)), winnerName);
+                        
+                    }
+                }
+            }
+            else if (objPlush != null && !string.IsNullOrEmpty(Configuration.EventMode.CustomWinTextResource) && pointsToAdd > 0) //if an RF scan but also custom text enter here
+            {
+                saying = string.Format(Translator.GetTranslation(Configuration.EventMode.CustomWinTextResource, Configuration.UserList.GetUserLocalization(winner)), winnerName, objPlush.Name, objPlush.BonusBux);
+                DatabaseFunctions.AddStreamBuxBalance(Configuration, user.Username, StreamBuxTypes.WIN, objPlush.BonusBux);
+            }
+            //otherwise if just a custom win, mainly for events, use this
+            else if (!string.IsNullOrEmpty(Configuration.EventMode.CustomWinTextResource))
+            {
+                saying = string.Format(Translator.GetTranslation(Configuration.EventMode.CustomWinTextResource, Configuration.UserList.GetUserLocalization(winner)), winnerName, Configuration.EventMode.WinMultiplier);
+                DatabaseFunctions.AddStreamBuxBalance(Configuration, user.Username, StreamBuxTypes.WIN, Configuration.GetStreamBuxCost(StreamBuxTypes.WIN) * Configuration.EventMode.WinMultiplier);
+            }
+            else if (objPlush != null)
+            {
+                saying = string.Format(Translator.GetTranslation("gameClawGrabPlush", Configuration.UserList.GetUserLocalization(winner)), winnerName, objPlush.Name);
+                DatabaseFunctions.AddStreamBuxBalance(Configuration, user.Username, StreamBuxTypes.WIN, Configuration.GetStreamBuxCost(StreamBuxTypes.WIN));
+
+                if (objPlush.BonusBux > 0)
+                    DatabaseFunctions.AddStreamBuxBalance(Configuration, usr.Username, StreamBuxTypes.WIN, objPlush.BonusBux);
+
+                DatabaseFunctions.WriteDbWinRecord(Configuration, usr, objPlush.PlushId, Configuration.SessionGuid.ToString());
+            } else
+            {
+                saying = string.Format(Translator.GetTranslation("gameClawGrabSomething", Configuration.UserList.GetUserLocalization(winner)), winnerName);
+                DatabaseFunctions.AddStreamBuxBalance(Configuration, usr.Username, StreamBuxTypes.WIN, Configuration.GetStreamBuxCost(StreamBuxTypes.WIN));
+
+                DatabaseFunctions.WriteDbWinRecord(Configuration, usr, -1, Configuration.SessionGuid.ToString());
+            }
+
+            //increment their wins
+            user.Wins += pointsToAdd;
+
+            //increment the current goals wins
+            Configuration.DataExchanger.GoalPercentage += Configuration.GoalProgressIncrement;
+            Configuration.Save();
+
+            //reset how many drops it took to win
+            SessionDrops = 0; //set to 0 for display
+            RefreshWinList();
+
+
+            Emailer.SendEmail(Configuration.EmailAddress, "Someone won a prize: " + saying, saying);
+
+
+            //send message after a bit
+            Task.Run(async delegate ()
+            {
+                await Task.Delay(Configuration.WinNotificationDelay);
+                ChatClient.SendMessage(Configuration.Channel, saying);
+                Logger.WriteLog(Configuration.Channel, saying);
+            });
+
         }
 
         ~ClawGame()
@@ -854,11 +892,11 @@ namespace InternetClawMachine.Games.GameHelpers
                     var output = "Teams:\r\n";
                     for (var i = 0; i < winners.Count; i++)
                     {
-                        output += string.Format("{0} - \t\t{1} wins, {2} drops\r\n", winners[i].Name, winners[i].Wins, winners[i].Drops);
+                        output += string.Format("{0} - \t\t{1} points, {2} drops\r\n", winners[i].Name, winners[i].Wins, winners[i].Drops);
                     }
                     output += "\r\n\r\n\r\n\r\n\r\n";
                     File.WriteAllText(Configuration.FileLeaderboard, output);
-                
+
                 }
                 else
                 {
@@ -909,6 +947,7 @@ namespace InternetClawMachine.Games.GameHelpers
 
         private void MachineControl_ClawDropping(object sender, EventArgs e)
         {
+            SessionDrops++;
         }
 
         /// <summary>
@@ -920,7 +959,7 @@ namespace InternetClawMachine.Games.GameHelpers
         {
             _failsafeCurrentResets = 0;
             Logger.WriteLog(Logger.DebugLog, string.Format("RETURN HOME: Current player {0} in game loop {1}", PlayerQueue.CurrentPlayer, GameLoopCounterValue), Logger.LogLevel.DEBUG);
-            SessionDrops++;
+
             RefreshWinList();
 
             MachineControl.Init();
@@ -982,12 +1021,12 @@ namespace InternetClawMachine.Games.GameHelpers
                         return;
 
                     CurrentWinCancellationToken = null;
-                    TriggerWin(null, null, true);
-                        
+                    TriggerWin(null, null, true, 1);
+
                 }, winCancellationToken.Token);
             }
 
-            
+
         }
 
         public override void HandleCommand(string channel, string username, string chatMessage, bool isSubscriber, string customRewardId)
@@ -1106,6 +1145,9 @@ namespace InternetClawMachine.Games.GameHelpers
                                 {
                                     userPrefs.WinClipName = opt.ClipName;
                                     DatabaseFunctions.WriteUserPrefs(Configuration, userPrefs);
+                                    var data = new JObject();
+                                    data.Add("name", opt.ClipName);
+                                    WsConnection.SendCommand(MediaWebSocketServer.CommandMedia, data);
                                     break;
                                 }
                             }
@@ -1203,7 +1245,7 @@ namespace InternetClawMachine.Games.GameHelpers
 
                             //create the team
                             DatabaseFunctions.CreateTeam(Configuration, teamName.Trim(), Configuration.SessionGuid.ToString());
-                        
+
                             //reload all teams
                             Teams = DatabaseFunctions.GetTeams(Configuration);
 
@@ -1234,11 +1276,11 @@ namespace InternetClawMachine.Games.GameHelpers
                             userPrefs.EventTeamName = team.Name;
                         }
 
-                        
+
                         //save it first
                         DatabaseFunctions.WriteUserPrefs(Configuration, userPrefs);
 
-                        
+
                         //tell chat
                         ChatClient.SendMessage(Configuration.Channel, string.Format(Translator.GetTranslation("gameClawCommandTeamsJoined", Configuration.UserList.GetUserLocalization(username)), teamName));
 
@@ -1258,7 +1300,7 @@ namespace InternetClawMachine.Games.GameHelpers
 
                             lock (Configuration.RecordsDatabase)
                             {
-                                try { 
+                                try {
                                     Configuration.RecordsDatabase.Open();
                                     var sql = "SELECT u.username, count(*) FROM teams t INNER JOIN user_prefs u ON t.id = u.teamid INNER JOIN wins w ON w.name = u.username AND w.teamid = t.id WHERE lower(t.name) = @name GROUP BY w.name ORDER BY count(*), w.name";
                                     var command = new SQLiteCommand(sql, Configuration.RecordsDatabase);
@@ -1296,9 +1338,9 @@ namespace InternetClawMachine.Games.GameHelpers
                             lock (Configuration.RecordsDatabase)
                             {
 
-                                try { 
+                                try {
                                     Configuration.RecordsDatabase.Open();
-                                
+
                                     var sql = "SELECT t.name, count(*) FROM teams t INNER JOIN wins w ON w.teamid = t.id GROUP BY w.teamid ORDER BY count(*) desc, t.name";
                                     var command = new SQLiteCommand(sql, Configuration.RecordsDatabase);
                                     using (var singleTeam = command.ExecuteReader())
@@ -1331,8 +1373,8 @@ namespace InternetClawMachine.Games.GameHelpers
                                 foreach (var winner in outputWins)
                                     ChatClient.SendMessage(Configuration.Channel, winner);
                             }
-                                
-                                
+
+
                         }
                         break;
                     case "createteams":
@@ -1347,15 +1389,15 @@ namespace InternetClawMachine.Games.GameHelpers
                         Teams = DatabaseFunctions.GetTeams(Configuration, Configuration.SessionGuid.ToString());
 
                         //clear users
-                        foreach(var user in Configuration.UserList)
+                        foreach (var user in Configuration.UserList)
                         {
                             user.EventTeamId = 0;
                         }
 
                         ChatClient.SendMessage(Configuration.Channel, string.Format(Translator.GetTranslation("gameClawCommandTeamsAdded", Configuration.UserList.GetUserLocalization(username)), Teams.Count));
                         break;
-                    
-                        
+
+
                     case "play": //probably let them handle their own play is better
                                  //auto update their localization if they use a command in another language
                         if (commandText != translateCommand.FinalWord || (userPrefs.Localization == null || !userPrefs.Localization.Equals(translateCommand.SourceLocalization)))
@@ -1490,7 +1532,7 @@ namespace InternetClawMachine.Games.GameHelpers
                             //TODO abstract all this custom database stuff
                             try
                             {
-                                
+
                                 if (commandText.ToLower() == "stats")
                                 {
                                     param = chatMessage.Split(' ');
@@ -1518,7 +1560,7 @@ namespace InternetClawMachine.Games.GameHelpers
                                 command.Parameters.Add(new SQLiteParameter("@username", username));
 
                                 var drops = int.Parse(command.ExecuteScalar().ToString());
-                                var cost = drops * 0.25;
+                                var cost = Math.Round(drops * 0.25, 2);
 
                                 sql = "select count(*) FROM movement WHERE name = @username AND direction <> 'NA'";
                                 command = new SQLiteCommand(sql, Configuration.RecordsDatabase);
@@ -1545,7 +1587,7 @@ namespace InternetClawMachine.Games.GameHelpers
                                 }
 
                                 Configuration.RecordsDatabase.Close();
-                                
+
                                 var clawBux = DatabaseFunctions.GetStreamBuxBalance(Configuration, username);
                                 ChatClient.SendMessage(Configuration.Channel,
                                     string.Format(
@@ -1870,9 +1912,9 @@ namespace InternetClawMachine.Games.GameHelpers
                             }
                         }
                         break;
-                    
+
                     case "bounty":
-                        
+
 
                         //auto update their localization if they use a command in another language
                         if (commandText != translateCommand.FinalWord)
@@ -2013,7 +2055,7 @@ namespace InternetClawMachine.Games.GameHelpers
                         break;
 
                     case "belt":
-                        
+
                         if (Configuration.EventMode.DisableBelt)
                             break;
 
@@ -2346,10 +2388,10 @@ namespace InternetClawMachine.Games.GameHelpers
             {
                 if (theme.Name == Configuration.ClawSettings.ActiveWireTheme.Name && !force)
                 {
-                   return;
+                    return;
                 }
 
-                
+
 
                 //grab filters, if they exist don't bother sending more commands
                 var currentScene = ObsConnection.GetCurrentScene();
@@ -2359,7 +2401,7 @@ namespace InternetClawMachine.Games.GameHelpers
                     var filters = ObsConnection.GetSourceFilters(source.SourceName);
 
                     //remove existing filters
-                    foreach(var filter in filters)
+                    foreach (var filter in filters)
                     {
                         if (filter.Type == "color_filter")
                         {
@@ -2394,7 +2436,7 @@ namespace InternetClawMachine.Games.GameHelpers
                     return;
 
                 foreach (var filter in Configuration.ObsSettings.GreenScreenNormalSideCamera)
-                        ObsConnection.RemoveFilterFromSource(filter.SourceName, filter.FilterName);
+                    ObsConnection.RemoveFilterFromSource(filter.SourceName, filter.FilterName);
             }
             catch (Exception x)
             {
@@ -2908,7 +2950,7 @@ namespace InternetClawMachine.Games.GameHelpers
             }
 
 
-            
+
             //check blacklight mode, if they don't have it and it's currently enabled, disable it first
             //this removes the backgrounds and other things related to blacklight mode before switching scenes
             if (!userPrefs.BlackLightsOn && Configuration.ClawSettings.BlackLightMode)
@@ -3039,7 +3081,7 @@ namespace InternetClawMachine.Games.GameHelpers
             if (!string.IsNullOrEmpty(userPrefs.WireTheme))
             {
                 var theme = Configuration.ClawSettings.WireThemes.Find(t => t.Name.ToLower() == userPrefs.WireTheme.ToLower());
-                
+
                 ChangeWireTheme(theme);
             } else
             {
@@ -3065,7 +3107,7 @@ namespace InternetClawMachine.Games.GameHelpers
                     //prefs.LightsOn = MachineControl.IsLit;
                     DatabaseFunctions.WriteUserPrefs(Configuration, prefs);
                 }
-                
+
             }
         }
 
@@ -3163,9 +3205,9 @@ namespace InternetClawMachine.Games.GameHelpers
             }
         }
 
-        public void TriggerWin(string epc)
+        public void TriggerWin(PlushieObject scannedPlush)
         {
-            TriggerWin(epc, null, false);
+            TriggerWin(scannedPlush, null, false, 1);
         }
 
         /// <summary>
@@ -3173,181 +3215,135 @@ namespace InternetClawMachine.Games.GameHelpers
         /// </summary>
         /// <param name="epc">Tag to give win for</param>
         /// <param name="forcedWinner">person to declare the winner</param>
-        public void TriggerWin(string epc, string forcedWinner, bool irscanwin)
+        public void TriggerWin(PlushieObject scannedPlush, string forcedWinner, bool irscanwin, int pointsToAdd)
         {
-            /*
-                 var text = InputBox.Show("What is it?").Text;
-                 var newData = key + "," + text;
-                 var fileData = File.ReadAllText("tags.txt");
-                 File.WriteAllText("tags.txt", fileData + "\r\n" + newData);
-                 */
             try
             {
-                var date = DateTime.Now.ToString("dd-MM-yyyy");
-                var timestamp = DateTime.Now.ToString("HH:mm:ss.ff");
-                File.AppendAllText(Configuration.FileScans, string.Format("{0} {1} {2},", date, timestamp, epc));
-                var existing = PlushieTags.FirstOrDefault(itm => itm.EpcList.Contains(epc));
-
                 //TODO - refactor all of this, it's a hodgepodge built overtime initially requiring only a plush scan
-                if (existing != null || forcedWinner != null || irscanwin)
+                if (scannedPlush == null && forcedWinner == null && !irscanwin)
+                    return;
+
+
+
+                //get the winner taking into account win queues and forced winners
+                var winner = GetCurrentWinner(forcedWinner);
+                if (winner == null)
+                    return;
+
+                RunWinScenario(scannedPlush, winner, pointsToAdd);
+
+                var specialClip = false; //this is an override so confetti doesn't play
+
+                
+                var prefs = Configuration.UserList.GetUser(winner); ///load the user data
+
+                //strobe stuff
+                if (!Configuration.EventMode.DisableStrobe)
+                    RunStrobe(prefs);
+
+                //wait 1 second to do further things so the lights are shut off
+                Thread.Sleep(1000);
+
+                //a lot of the animations are timed and setup in code because I don't want to make a whole animation class
+                //bounty mode
+                if (RunBountyWin(scannedPlush, winner))
+                    return; //don't play anything else if a bounty played
+
+                //events override custom settings so parse that first
+                // TODO - move this to a more dynamic action
+                if (Configuration.EventMode.WinAnimation == "THEME-HalloweenScare" && WinnersList.Count > 0)
                 {
-                    if (existing != null || irscanwin)
+                    // TODO - move this to a more dynamic action
+                    specialClip = true;
+                    RunScare();
+                }
+                else if (Configuration.EventMode.AllowOverrideWinAnimation && prefs != null && !string.IsNullOrEmpty(prefs.WinClipName)) //if we have a custom user animation and didn't define one for the event, use it
+                {
+                    specialClip = true;
+                    var data = new JObject();
+                    data.Add("name", prefs.WinClipName); //name of clip to play
+                    data.Add("duration", 8000); //max 8 seconds for a win animation
+
+                    WsConnection.SendCommand(MediaWebSocketServer.CommandMedia, data);
+                    
+                }
+                else if (Configuration.EventMode.EventMode == EventMode.SPECIAL && ((Configuration.EventMode.WinAnimation != null && pointsToAdd > 0) || (Configuration.EventMode.FailAnimation != null && pointsToAdd < 0))) //if they didnt have a custom animation but an event is going on with a custom animation
+                {
+                    if (pointsToAdd > 0)
                     {
-                        if (existing != null)
-                        {
-                            //if we're scanning a plush
-                            if (!existing.WasGrabbed && CurrentWinCancellationToken != null && !CurrentWinCancellationToken.IsCancellationRequested)
-                                CurrentWinCancellationToken.Cancel();
-
-                            File.AppendAllText(Configuration.FileScans, existing.Name);
-                        }
-
-                        if ((existing != null && !existing.WasGrabbed) || irscanwin)
-                        {
-                            if (existing != null)
-                                existing.WasGrabbed = true;
-
-                            var winner = RunWinScenario(existing, forcedWinner);
-
-                            if (winner == null)
-                            {
-                                return;
-                            }
-                            var specialClip = false; //this is an override so confetti doesn't play
-
-                            var prefs = Configuration.UserList.GetUser(winner);
-
-                            //strobe stuff
-                            if (!Configuration.EventMode.DisableStrobe)
-                                RunStrobe(prefs);
-
-                            //wait 1 second to do further things so the lights are shut off
-                            Thread.Sleep(1000);
-
-                            //a lot of the animations are timed and setup in code because I don't want to make a whole animation class
-                            //bounty mode
-                            if (existing != null && Bounty != null && Bounty.Name.ToLower() == existing.Name.ToLower())
-                            {
-                                specialClip = true;
-                                if (winner != null)
-                                {
-                                    var msg = string.Format(
-                                        Translator.GetTranslation("gameClawResponseBountyWin", Configuration.UserList.GetUserLocalization(winner)),
-                                        winner, existing.Name, Bounty.Amount);
-                                    ChatClient.SendMessage(Configuration.Channel, msg);
-
-                                    //update obs
-                                    DatabaseFunctions.AddStreamBuxBalance(Configuration, winner, StreamBuxTypes.BOUNTY,
-                                        Bounty.Amount);
-                                }
-
-
-                                var data = new JObject();
-                                data.Add("text", Bounty.Name);
-                                data.Add("name", Configuration.ObsScreenSourceNames.BountyEndScreen.SourceName);
-                                //data.Add("duration", 14000);
-
-                                WsConnection.SendCommand(MediaWebSocketServer.CommandMedia, data);
-
-                                //reset to no bounty
-                                Bounty = null;
-
-                                if (Configuration.ClawSettings.AutoBountyMode)
-                                {
-                                    CreateRandomBounty(Configuration.ClawSettings.AutoBountyAmount, true);
-                                }
-                            }
-
-                            //events override custom settings so parse that first
-                            // TODO - move this to a more dynamic action
-                            if (Configuration.EventMode.WinAnimation == "THEME-HalloweenScare" && WinnersList.Count > 0)
-                            {
-                                // TODO - move this to a more dynamic action
-                                specialClip = true;
-                                RunScare();
-                            }
-                            else if (prefs != null && !string.IsNullOrEmpty(prefs.WinClipName) && (Configuration.EventMode.EventMode == EventMode.NORMAL || Configuration.EventMode.WinAnimation == null))
-                            {
-
-                                //OBSSceneSource src = new OBSSceneSource() { SourceName = prefs.WinClipName, Type = OBSSceneSourceType.IMAGE, Scene = "VideosScene" };
-                                //PlayClipAsync(src, 8000);
-                                var data = new JObject();
-                                data.Add("name", prefs.WinClipName);
-                                data.Add("duration", 8000);
-
-                                WsConnection.SendCommand(MediaWebSocketServer.CommandMedia, data);
-                                specialClip = true;
-                            } else if (Configuration.EventMode.EventMode != EventMode.NORMAL && Configuration.EventMode.WinAnimation != null)
-                            {
-                                specialClip = true;
-                                var data = new JObject();
-                                data.Add("name", Configuration.EventMode.WinAnimation);
-                                WsConnection.SendCommand(MediaWebSocketServer.CommandMedia, data);
-                            }
-                            else if (existing != null && existing.WinStream.Length > 0 && !specialClip)
-                            {
-                                
-
-                                if (existing.PlushId == 23) //sharky
-                                {
-                                    try
-                                    {
-                                        Configuration.RecordsDatabase.Open();
-                                        var sql = "SELECT count(*) FROM wins WHERE name = '" + winner +
-                                                  "' AND PlushID = 23";
-                                        var command = new SQLiteCommand(sql, Configuration.RecordsDatabase);
-                                        var wins = command.ExecuteScalar().ToString();
-                                        Configuration.RecordsDatabase.Close();
-
-                                        if (wins == "100") //check for 100th grab
-                                        {
-                                            specialClip = true;
-                                            var data = new JObject();
-                                            data.Add("name", existing.WinStream);
-                                            data.Add("duration", 38000);
-
-                                            WsConnection.SendCommand(MediaWebSocketServer.CommandMedia, data);
-                                        }
-                                    }
-                                    catch (Exception ex)
-                                    {
-                                        var error = string.Format("ERROR {0} {1}", ex.Message, ex);
-                                        Logger.WriteLog(Logger.ErrorLog, error);
-                                    }
-                                }
-
-                                if (!specialClip)
-                                {
-                                    
-                                    var data = new JObject();
-                                    
-
-                                    //if there are fields specified
-                                    if (existing.WinStream.Contains(";"))
-                                    {
-                                        specialClip = true;
-                                        var pieces = existing.WinStream.Split(';');
-                                        data.Add("name", pieces[0]);
-                                        data.Add("duration", int.Parse(pieces[2]));
-                                    } else
-                                    {
-                                        data.Add("name", existing.WinStream);
-                                    }
-
-                                    WsConnection.SendCommand(MediaWebSocketServer.CommandMedia, data);
-                                }
-                            }
-
-                            if (!specialClip) //default win notification
-                            {
-                                var data = new JObject();
-                                data.Add("name", Configuration.ObsScreenSourceNames.WinAnimationDefault.SourceName);
-                                WsConnection.SendCommand(MediaWebSocketServer.CommandMedia, data);
-                            }
-                        }
+                        specialClip = true;
+                        var data = new JObject();
+                        data.Add("name", Configuration.EventMode.WinAnimation);
+                        WsConnection.SendCommand(MediaWebSocketServer.CommandMedia, data);
+                    } else
+                    {
+                        specialClip = true;
+                        var data = new JObject();
+                        data.Add("name", Configuration.EventMode.FailAnimation);
+                        WsConnection.SendCommand(MediaWebSocketServer.CommandMedia, data);
                     }
                 }
-                File.AppendAllText(Configuration.FileScans, "\r\n");
+                else if (scannedPlush != null && scannedPlush.WinStream.Length > 0) //if there was no custom or event then check if the plush itself has a custom animation
+                {
+                    if (scannedPlush.PlushId == 23) //sharky has a special use case, every 100 grabs is the full shark dance
+                    {
+                        try
+                        {
+                            Configuration.RecordsDatabase.Open();
+                            var sql = "SELECT count(*) FROM wins WHERE name = '" + winner +
+                                        "' AND PlushID = 23";
+                            var command = new SQLiteCommand(sql, Configuration.RecordsDatabase);
+                            var wins = int.Parse(command.ExecuteScalar().ToString());
+                            Configuration.RecordsDatabase.Close();
+
+                            if (wins % 100 == 0) //check for X00th grab
+                            {
+                                specialClip = true;
+                                var data = new JObject();
+                                data.Add("name", scannedPlush.WinStream);
+                                data.Add("duration", 38000);
+
+                                WsConnection.SendCommand(MediaWebSocketServer.CommandMedia, data);
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            var error = string.Format("ERROR {0} {1}", ex.Message, ex);
+                            Logger.WriteLog(Logger.ErrorLog, error);
+                        }
+                    }
+
+                    if (!specialClip)
+                    {
+                        var data = new JObject();
+
+                        //if there are fields specified then parse it
+                        if (scannedPlush.WinStream.Contains(";"))
+                        {
+                            specialClip = true; //we set this here only because anything with fields is a full screen overlay and not just audio, this allows the confetti animation to still play overtop of the sound clips if not set to true in the ELSE below
+                            var pieces = scannedPlush.WinStream.Split(';');
+                            data.Add("name", pieces[0]);
+                            data.Add("duration", int.Parse(pieces[2]));
+                        }
+                        else //otherwise play the clip in its entirety
+                        {
+                            //not setting specialClip = true because this is a sound only event
+                            //TODO - better define this as a sound-only clip
+                            data.Add("name", scannedPlush.WinStream);
+                        }
+
+                        WsConnection.SendCommand(MediaWebSocketServer.CommandMedia, data);
+                    }
+                }
+
+                if (!specialClip) //default win notification if no other clip has played
+                {
+                    var data = new JObject();
+                    data.Add("name", Configuration.ObsScreenSourceNames.WinAnimationDefault.SourceName);
+                    WsConnection.SendCommand(MediaWebSocketServer.CommandMedia, data);
+                }
+
+
             }
             catch (Exception ex)
             {
@@ -3355,6 +3351,50 @@ namespace InternetClawMachine.Games.GameHelpers
                 Logger.WriteLog(Logger.ErrorLog, error);
             }
         }
+
+
+        /// <summary>
+        /// Run a bounty win if all checks pass
+        /// </summary>
+        /// <param name="scannedPlush">Plush just grabbed</param>
+        /// <returns>true if the bounty scenario played</returns>
+        private bool RunBountyWin(PlushieObject scannedPlush, string winner)
+        {
+            if (scannedPlush != null && Bounty != null && Bounty.Name.ToLower() == scannedPlush.Name.ToLower())
+            {
+                
+                if (winner != null)
+                {
+                    var msg = string.Format(
+                        Translator.GetTranslation("gameClawResponseBountyWin", Configuration.UserList.GetUserLocalization(winner)),
+                        winner, scannedPlush.Name, Bounty.Amount);
+                    ChatClient.SendMessage(Configuration.Channel, msg);
+
+                    //update obs
+                    DatabaseFunctions.AddStreamBuxBalance(Configuration, winner, StreamBuxTypes.BOUNTY,
+                        Bounty.Amount);
+                }
+
+
+                var data = new JObject();
+                data.Add("text", Bounty.Name);
+                data.Add("name", Configuration.ObsScreenSourceNames.BountyEndScreen.SourceName);
+                //data.Add("duration", 14000);
+
+                WsConnection.SendCommand(MediaWebSocketServer.CommandMedia, data);
+
+                //reset to no bounty
+                Bounty = null;
+
+                if (Configuration.ClawSettings.AutoBountyMode)
+                {
+                    CreateRandomBounty(Configuration.ClawSettings.AutoBountyAmount, true);
+                }
+                return true;
+            }
+            return false;
+        }
+
 
         private void CreateRandomBounty(int amount, bool withDelay = true)
         {
