@@ -108,7 +108,7 @@ namespace InternetClawMachine.Games.GameHelpers
         {
             
             //no qestions left, determine winner
-            var winners = Teams.OrderByDescending(t => t.Wins).ThenBy(t => t.Drops).ToArray();
+            var winners = Teams.OrderByDescending(t => t.Wins).ThenByDescending(t => t.Drops).ToArray();
 
             for (var i = 0; i < winners.Length; i++)
             {
@@ -269,7 +269,8 @@ namespace InternetClawMachine.Games.GameHelpers
 
                         QuestionsAsked++;
 
-                        var question = string.Format(Translator.GetTranslation("gameClawTriviaTeamStartTriviaRound", Translator.DefaultLanguage), CurrentQuestion.Question, answers);
+                        var question = "[" + QuestionsAsked + "/" + QuestionCount + "]" + string.Format(Translator.GetTranslation("gameClawTriviaTeamStartTriviaRound", Translator.DefaultLanguage), CurrentQuestion.Question, answers);
+
                         ChatClient.SendMessage(Configuration.Channel, question);
 
                         var s = ObsConnection.GetTextGDIPlusProperties("TriviaQuestion");

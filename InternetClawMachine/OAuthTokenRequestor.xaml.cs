@@ -22,7 +22,7 @@ namespace InternetClawMachine
                 //Create the destination URL
                 var destinationUrl = string.Format("https://api.twitch.tv/kraken/oauth2/authorize?client_id={0}&scope={1}&redirect_uri=http://localhost&response_type=token",
                    ClientId, //client_id
-                   "chat_login%20channel_read%20channel_feed_read%20channel_check_subscription%20user_blocks_edit%20user_blocks_read%20user_read%20user_subscriptions" //scope
+                   "chat_login%20channel_read%20channel_feed_read%20channel_check_subscription%20user_blocks_edit%20user_blocks_read%20user_read%20user_subscriptions%20clips:edit" //scope
                 );
                 webBrowser.Navigate(destinationUrl);
             };

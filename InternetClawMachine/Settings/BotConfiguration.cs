@@ -242,6 +242,11 @@ namespace InternetClawMachine.Settings
         /// </summary>
         public bool AutoReconnectChat { get; set; }
 
+        /// <summary>
+        /// Holds discord settings
+        /// </summary>
+        public DiscordSettings DiscordSettings { get; set; }
+
         #endregion Properties
 
         public void LoadDatebase()

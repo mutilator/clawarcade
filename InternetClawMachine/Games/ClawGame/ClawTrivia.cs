@@ -466,7 +466,7 @@ namespace InternetClawMachine.Games.GameHelpers
 
                         QuestionsAsked++;
 
-                        var question = string.Format(Translator.GetTranslation("gameClawTriviaStartTriviaRound", Translator.DefaultLanguage), CurrentQuestion.Question, answers);
+                        var question = string.Format("[" + QuestionsAsked + "/" + QuestionCount + "]" + Translator.GetTranslation("gameClawTriviaStartTriviaRound", Translator.DefaultLanguage), CurrentQuestion.Question, answers);
                         ChatClient.SendMessage(Configuration.Channel, question);
 
                         if (ObsConnection.IsConnected)
@@ -535,7 +535,7 @@ namespace InternetClawMachine.Games.GameHelpers
         public virtual void EndTrivia()
         {
             //no qestions left, determine winner
-            var winners = SessionWinTracker.OrderByDescending(p => p.Wins).ThenBy(p => p.Drops).ToArray();
+            var winners = SessionWinTracker.OrderByDescending(p => p.Wins).ThenByDescending(p => p.Drops).ToArray();
 
             for (var i = 0; i < winners.Length; i++)
             {

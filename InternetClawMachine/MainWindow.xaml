@@ -174,6 +174,7 @@
                         <Label Content="Team 1" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="10,10,0,0"/>
                         <Button x:Name="btnTeam1SubOne" Content="-1" HorizontalAlignment="Left" VerticalAlignment="Top" Width="51" Margin="10,78,0,0" Click="BtnTeam1SubOne_Click"/>
                         <Button x:Name="btnTeam1AddFive" Content="+5" HorizontalAlignment="Left" VerticalAlignment="Top" Width="51" Margin="66,41,0,0" Click="BtnTeam1AddFive_Click" />
+                        
                     </Grid>
                 </TabItem>
                 <TabItem Header="Claw" Padding="20,2">
@@ -438,6 +439,7 @@
                         <TabControl HorizontalAlignment="Left" Height="399" Margin="10,10,0,0" VerticalAlignment="Top" Width="716">
                             <TabItem Header="Twitch" Padding="20,2">
                                 <Grid>
+                                    <Button x:Name="btnTwitchClip" Content="Twitch Clip" HorizontalAlignment="Left" VerticalAlignment="Top" Width="138" Margin="243,13,0,0" Click="BtnTwitchClip_Click"/>
                                     <Label Content="Username" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top" />
                                     <TextBox HorizontalAlignment="Left" Height="23" Margin="98,13,0,0" TextWrapping="Wrap" Text="{Binding TwitchSettings.Username}" VerticalAlignment="Top" Width="120" />
                                     <Label Content="API Key" HorizontalAlignment="Left" Margin="10,96,0,0" VerticalAlignment="Top" />

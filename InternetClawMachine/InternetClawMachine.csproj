@@ -47,21 +47,6 @@
     <ApplicationIcon>clawhey_112_MUQ_icon.ico</ApplicationIcon>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="Discord.Net.Commands, Version=2.2.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\Discord.Net.Commands.2.2.0-dev-20191226.1\lib\net461\Discord.Net.Commands.dll</HintPath>
-    </Reference>
-    <Reference Include="Discord.Net.Core, Version=2.2.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\Discord.Net.Core.2.2.0-dev-20191226.1\lib\net461\Discord.Net.Core.dll</HintPath>
-    </Reference>
-    <Reference Include="Discord.Net.Rest, Version=2.2.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\Discord.Net.Rest.2.2.0-dev-20191226.1\lib\net461\Discord.Net.Rest.dll</HintPath>
-    </Reference>
-    <Reference Include="Discord.Net.Webhook, Version=2.2.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\Discord.Net.Webhook.2.2.0-dev-20191226.1\lib\netstandard2.0\Discord.Net.Webhook.dll</HintPath>
-    </Reference>
-    <Reference Include="Discord.Net.WebSocket, Version=2.2.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\Discord.Net.WebSocket.2.2.0-dev-20191226.1\lib\net461\Discord.Net.WebSocket.dll</HintPath>
-    </Reference>
     <Reference Include="EntityFramework, Version=6.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089, processorArchitecture=MSIL">
       <HintPath>..\packages\EntityFramework.6.2.0\lib\net45\EntityFramework.dll</HintPath>
     </Reference>
@@ -196,6 +181,27 @@
     <Reference Include="System.Xaml">
       <RequiredTargetFramework>4.0</RequiredTargetFramework>
     </Reference>
+    <Reference Include="TwitchLib.Api">
+      <HintPath>J:\github\TwitchLib.Api\TwitchLib.Api\bin\Release\netstandard2.0\TwitchLib.Api.dll</HintPath>
+    </Reference>
+    <Reference Include="TwitchLib.Api.Core">
+      <HintPath>J:\github\TwitchLib.Api\TwitchLib.Api\bin\Release\netstandard2.0\TwitchLib.Api.Core.dll</HintPath>
+    </Reference>
+    <Reference Include="TwitchLib.Api.Core.Enums">
+      <HintPath>J:\github\TwitchLib.Api\TwitchLib.Api\bin\Release\netstandard2.0\TwitchLib.Api.Core.Enums.dll</HintPath>
+    </Reference>
+    <Reference Include="TwitchLib.Api.Core.Interfaces">
+      <HintPath>J:\github\TwitchLib.Api\TwitchLib.Api\bin\Release\netstandard2.0\TwitchLib.Api.Core.Interfaces.dll</HintPath>
+    </Reference>
+    <Reference Include="TwitchLib.Api.Core.Models">
+      <HintPath>J:\github\TwitchLib.Api\TwitchLib.Api\bin\Release\netstandard2.0\TwitchLib.Api.Core.Models.dll</HintPath>
+    </Reference>
+    <Reference Include="TwitchLib.Api.Helix">
+      <HintPath>J:\github\TwitchLib.Api\TwitchLib.Api\bin\Release\netstandard2.0\TwitchLib.Api.Helix.dll</HintPath>
+    </Reference>
+    <Reference Include="TwitchLib.Api.Helix.Models">
+      <HintPath>J:\github\TwitchLib.Api\TwitchLib.Api\bin\Release\netstandard2.0\TwitchLib.Api.Helix.Models.dll</HintPath>
+    </Reference>
     <Reference Include="TwitchLib.Client">
       <HintPath>J:\github\TwitchLib.Client\TwitchLib.Client\bin\Release\netstandard2.0\TwitchLib.Client.dll</HintPath>
     </Reference>
@@ -240,6 +246,7 @@
     <Compile Include="Games\GameHelpers\TriviaAnswer.cs" />
     <Compile Include="Games\GameHelpers\TriviaQuestion.cs" />
     <Compile Include="Hardware\ClawControl\FlipperDirection.cs" />
+    <Compile Include="Settings\DiscordSettings.cs" />
     <Compile Include="Settings\EventModeArgs.cs" />
     <Compile Include="Settings\EventModeSettings.cs" />
     <Compile Include="Games\GameHelpers\PlayWinClipEventArgs.cs" />

@@ -14,7 +14,6 @@ using OBSWebsocketDotNet;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.Data.SQLite;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -25,9 +24,8 @@ using System.Threading.Tasks;
 using System.Timers;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
 using System.Windows.Input;
-using System.Windows.Threading;
+using TwitchLib.Api;
 using TwitchLib.Client.Events;
 using TwitchLib.Client.Models;
 using static InternetClawMachine.Logger;
@@ -2699,6 +2697,11 @@ namespace InternetClawMachine
 
             //fake team
             game.TriggerWin(null, null, true, 5);
+        }
+
+        private void BtnTwitchClip_Click(object sender, RoutedEventArgs e)
+        {
+            ((ClawGame)Game).CreateClip();
         }
     }
 

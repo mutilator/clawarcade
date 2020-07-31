@@ -18,6 +18,10 @@ using System.Threading.Tasks;
 using System.Windows;
 using InternetClawMachine.Chat;
 using InternetClawMachine.Games.OtherGame;
+using TwitchLib.Api;
+using System.Net.Http;
+using Newtonsoft.Json;
+using System.Text;
 
 namespace InternetClawMachine.Games.GameHelpers
 {
@@ -52,6 +56,7 @@ namespace InternetClawMachine.Games.GameHelpers
         //flag determines if a player played
         public bool CurrentPlayerHasPlayed { get; internal set; }
         public CancellationTokenSource CurrentWinCancellationToken { get; private set; }
+        public TwitchAPI API { get; private set; }
 
         /// <summary>
         /// Thrown when we send a drop event, this probably shouldn't be part of the game class
@@ -580,6 +585,26 @@ namespace InternetClawMachine.Games.GameHelpers
             _lastSensorTrip = 0;
             _lastBountyPlay = 0;
             base.StartGame(user);
+            Task.Run(async delegate
+            {
+
+                try
+                {
+                    //send to discord
+                    var client = new HttpClient();
+                    var url = new JObject();
+                    url.Add("content", string.Format("Game Mode Started:  {0}", GameMode.ToString()));
+
+                    var data = new StringContent(JsonConvert.SerializeObject(url), Encoding.UTF8, "application/json");
+                    var res = await client.PostAsync(Configuration.DiscordSettings.SpamWebhook, data);
+                }
+                catch (Exception ex)
+                {
+                    var error = string.Format("ERROR {0} {1}", ex.Message, ex);
+                    Logger.WriteLog(Logger.ErrorLog, error);
+                }
+            
+        });
         }
 
         public override void EndGame()
@@ -3230,6 +3255,15 @@ namespace InternetClawMachine.Games.GameHelpers
                 if (winner == null)
                     return;
 
+                if (scannedPlush == null)
+                {
+                    Task.Run(async delegate
+                    {
+                        await Task.Delay(4000);
+                        CreateClip();
+                    });
+                }
+
                 RunWinScenario(scannedPlush, winner, pointsToAdd);
 
                 var specialClip = false; //this is an override so confetti doesn't play
@@ -3352,6 +3386,43 @@ namespace InternetClawMachine.Games.GameHelpers
             }
         }
 
+        public async void CreateClip()
+        {
+            ///setup api
+            if (API == null)
+            {
+                API = new TwitchAPI();
+                API.Settings.ClientId = Configuration.TwitchSettings.ClientId;
+                API.Settings.AccessToken = Configuration.TwitchSettings.ApiKey;
+                if (string.IsNullOrWhiteSpace(Configuration.TwitchSettings.UserId))
+                {
+                    var userid = await API.Helix.Users.GetUsersAsync(null, new List<string> { Configuration.TwitchSettings.Channel });
+                    Configuration.TwitchSettings.UserId = userid.Users[0].Id;
+                }
+
+            }
+
+            
+            try
+            {
+                //clip on twitch
+                var result = await API.Helix.Clips.CreateClipAsync(Configuration.TwitchSettings.UserId);
+
+                //send to discord
+                var client = new HttpClient();
+                var url = new JObject();
+                url.Add("content", string.Format("A plush wasn't properly scanned. Here is the clip. {0}", result.CreatedClips[0].EditUrl));
+
+                var data = new StringContent(JsonConvert.SerializeObject(url), Encoding.UTF8, "application/json");
+                var res = await client.PostAsync(Configuration.DiscordSettings.SpamWebhook, data);
+            }
+            catch (Exception x)
+            {
+                var error = string.Format("ERROR {0} {1}", x.Message, x);
+                Logger.WriteLog(Logger.ErrorLog, error);
+            }
+        }
+
 
         /// <summary>
         /// Run a bounty win if all checks pass
@@ -3441,8 +3512,6 @@ namespace InternetClawMachine.Games.GameHelpers
                 }
 
                 var strobeDuration = Configuration.ClawSettings.StrobeCount * Configuration.ClawSettings.StrobeDelay * 4;
-                if (strobeDuration > Configuration.ClawSettings.StrobeMaxTime)
-                    strobeDuration = Configuration.ClawSettings.StrobeMaxTime;
 
                 MachineControl.DualStrobe(255, 0, 0, 0, 255, 0, Configuration.ClawSettings.StrobeCount, Configuration.ClawSettings.StrobeDelay);
 
