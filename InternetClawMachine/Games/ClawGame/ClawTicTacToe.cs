@@ -1,64 +1,105 @@
-﻿using InternetClawMachine.Chat;
-using InternetClawMachine.Hardware.ClawControl;
-using InternetClawMachine.Settings;
-using OBSWebsocketDotNet;
+﻿using OBSWebsocketDotNet;
 using System;
 using System.Threading.Tasks;
+using InternetClawMachine.Chat;
+using InternetClawMachine.Settings;
+using InternetClawMachine.Hardware.ClawControl;
 
 namespace InternetClawMachine.Games.GameHelpers
 {
-    internal class ClawSingleQuickQueue : ClawSingleQueue
+    internal class ClawTicTacToe : ClawSingleQueue
     {
-        public ClawSingleQuickQueue(IChatApi client, BotConfiguration configuration, OBSWebsocket obs) : base(client, configuration, obs)
+        public ClawTicTacToe(IChatApi client, BotConfiguration configuration, OBSWebsocket obs) : base(client, configuration, obs)
         {
-            GameMode = GameModeType.SINGLEQUICKQUEUE;
+            GameMode = GameModeType.TICTACTOE;
             
-            StartMessage = string.Format(Translator.GetTranslation("gameClawSingleQuickQueueStartGame", Translator.DefaultLanguage), Configuration.CommandPrefix);
-        }
-
-        public override void Destroy()
-        {
-            base.Destroy();
-        }
-
-        public override void EndGame()
-        {
-            if (HasEnded)
-                return;
-            StartRound(null); //starting a null round resets all the things
-            base.EndGame();
+            StartMessage = string.Format(Translator.GetTranslation("gameClawTicTacToeStartGame", Translator.DefaultLanguage), Configuration.CommandPrefix);
         }
 
         public override void Init()
         {
             base.Init();
-            
+            PlayerQueue.OnJoinedQueue += PlayerQueue_OnJoinedQueue;
+            ((ClawController)MachineControl).OnClawCentered += ClawTicTacToe_OnClawCentered;
+            ((ClawController)MachineControl).OnReturnedHome += ClawTicTacToe_OnReturnedHome;
         }
 
-        internal override void MachineControl_OnClawRecoiled(object sender, EventArgs e)
+        /// <summary>
+        /// Ends the game and declares a winner
+        /// </summary>
+        /// <param name="username">winner of the game</param>
+        public void EndTicTacToe(string username)
         {
-            if (Configuration.EventMode.DisableReturnHome)
-            {
-                MachineControl_OnClawCentered(sender, e);
-            }
+            TriggerWin(null, username, true, 500);
+            EndGame();
         }
 
-        internal override void MachineControl_OnClawCentered(object sender, EventArgs e)
+        private void ClawTicTacToe_OnReturnedHome(object sender, EventArgs e)
         {
             //we check to see if the return home event was fired by the person that's currently playing
             //if it has we need to move to the next player, if not we've moved on already, perhaps bad design here
-            
+
             if (PlayerQueue.CurrentPlayer != null && PlayerQueue.CurrentPlayer == CurrentDroppingPlayer.Username && GameLoopCounterValue == CurrentDroppingPlayer.GameLoop)
             {
                 base.OnTurnEnded(new RoundEndedArgs() { Username = PlayerQueue.CurrentPlayer, GameMode = GameMode, GameLoopCounterValue = GameLoopCounterValue });
                 var nextPlayer = PlayerQueue.GetNextPlayer();
                 StartRound(nextPlayer);
             }
+        }
+
+        private void ClawTicTacToe_OnClawCentered(object sender, EventArgs e)
+        {
+            //Get the current players position in the queue
+            if (PlayerQueue.Index == 0)
+            {
+                //if first player, set home to back left (second players home)
+                ((ClawController)MachineControl).SetHomeLocation(ClawHomeLocation.BACKLEFT);
+            }
+            else { //index = 1 hopefully
+                //if second player, set home to front left (first players home)
+                ((ClawController)MachineControl).SetHomeLocation(ClawHomeLocation.FRONTLEFT);
+            }
+                
+                
+        }
+
+        private void PlayerQueue_OnJoinedQueue(object sender, QueueUpdateArgs e)
+        {
+            //Check if 2 players are now in the queue
+            //if yes, run StartTicTacToe()
+            if (PlayerQueue.Count > 1)
+            {
+                StartTicTacToe();
+            }
+            //if no, wait for more players - do nothing
+        }
+
+        public override void StartGame(string username)
+        {
+            base.StartGame(username);
+            //to start the game we need to get 2 people in the queue
+            PlayerQueue.Clear();
+
+            //TODO change this time to a settable config option
+            ((ClawController)MachineControl).SetGameMode(ClawMode.TARGETING);
+            ((ClawController)MachineControl).SetFailsafe(FailsafeType.CLAWOPENED, 26000);
+        }
+
+        public void StartTicTacToe()
+        {
+            //initialize home location for player 1, front left
+            ((ClawController)MachineControl).SetHomeLocation(ClawHomeLocation.FRONTLEFT);
             
+            //disable more people from joining the queue
+
+            StartRound(PlayerQueue.CurrentPlayer);
+
         }
 
         public override void StartRound(string username)
         {
+            
+
             DropInCommandQueue = false;
             MachineControl.InsertCoinAsync();
             GameRoundTimer.Reset();
@@ -74,17 +115,20 @@ namespace InternetClawMachine.Games.GameHelpers
                 return;
             }
 
+            if (PlayerQueue.Count < 2)
+                return;
+
             GameRoundTimer.Start();
 
-            var msg = string.Format(Translator.GetTranslation("gameClawSingleQuickQueueStartRound", Configuration.UserList.GetUserLocalization(username)), PlayerQueue.CurrentPlayer, Configuration.ClawSettings.SinglePlayerQueueNoCommandDuration);
+            var msg = string.Format(Translator.GetTranslation("gameClawTicTacToeStartRound", Configuration.UserList.GetUserLocalization(username)), PlayerQueue.CurrentPlayer, Configuration.ClawSettings.SinglePlayerQueueNoCommandDuration);
             var hasPlayedPlayer = SessionWinTracker.Find(itm => itm.Username.ToLower() == PlayerQueue.CurrentPlayer.ToLower());
 
             if (hasPlayedPlayer != null && hasPlayedPlayer.Drops > 1)
-                msg = string.Format(Translator.GetTranslation("gameClawSingleQuickQueueStartRoundShort", Configuration.UserList.GetUserLocalization(username)), PlayerQueue.CurrentPlayer);
+                msg = string.Format(Translator.GetTranslation("gameClawTicTacToeStartRoundShort", Configuration.UserList.GetUserLocalization(username)), PlayerQueue.CurrentPlayer);
 
             ChatClient.SendMessage(Configuration.Channel, msg);
 
-            Task.Run(async delegate()
+            Task.Run(async delegate ()
             {
                 var sequence = DateTime.Now.Ticks;
                 Logger.WriteLog(Logger.DebugLog,
@@ -102,7 +146,7 @@ namespace InternetClawMachine.Games.GameHelpers
 
                 //we need a check if they changed game mode or something weird happened
                 var args = new RoundEndedArgs()
-                    {Username = username, GameLoopCounterValue = GameLoopCounterValue, GameMode = GameMode};
+                { Username = username, GameLoopCounterValue = GameLoopCounterValue, GameMode = GameMode };
 
                 await Task.Delay(firstWait);
 
@@ -159,5 +203,21 @@ namespace InternetClawMachine.Games.GameHelpers
 
             OnRoundStarted(new RoundStartedArgs() { Username = username, GameMode = GameMode });
         }
+
+        public override void EndGame()
+        {
+            if (HasEnded)
+                return;
+            StartRound(null); //starting a null round resets all the things
+            base.EndGame();
+        }
+
+        public override void Destroy()
+        {
+            
+            base.Destroy();
+        }
+
+        
     }
 }

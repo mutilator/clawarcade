@@ -218,6 +218,7 @@ namespace InternetClawMachine.Settings
             {
                 _eventMode = value;
                 EventModeChanged?.Invoke(this, new EventModeArgs() { Event = _eventMode });
+                OnPropertyChanged("EventMode");
             }
             get
             {
@@ -246,6 +247,11 @@ namespace InternetClawMachine.Settings
         /// Holds discord settings
         /// </summary>
         public DiscordSettings DiscordSettings { get; set; }
+
+        /// <summary>
+        /// Holds slack settings
+        /// </summary>
+        public SlackSettings SlackSettings { set; get; }
 
         #endregion Properties
 

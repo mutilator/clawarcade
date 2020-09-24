@@ -22,12 +22,12 @@ namespace InternetClawMachine.Games.GameHelpers
         internal List<TriviaQuestion> TriviaQuestions { set; get; }
         public TriviaQuestion CurrentQuestion { get; set; }
         public int QuestionsAsked { get; set; }
-        public Task HintPromise { get; private set; }
+        public Task HintPromise { get; set; }
         public CancellationTokenSource HintCancelToken { get; set; }
         public CancellationTokenSource IsTriviaAliveCancelToken { get; set; }
         
         
-        public string AnswerHint { get; private set; }
+        public string AnswerHint { get; set; }
         public int QuestionCount { set; get; }
         internal Dictionary<int, int> _questionAmountVotes = new Dictionary<int, int>();
 
@@ -35,7 +35,7 @@ namespace InternetClawMachine.Games.GameHelpers
         {
             GameMode = GameModeType.TRIVIA;
             CurrentDroppingPlayer = new DroppingPlayer();
-            MachineControl.OnReturnedHome += MachineControl_OnReturnedHome;
+            MachineControl.OnClawCentered += MachineControl_OnClawCentered;
             ((ClawController)MachineControl).OnClawRecoiled += ClawSingleQueue_OnClawRecoiled;
             StartMessage = string.Format(Translator.GetTranslation("gameClawTriviaStartGame", Translator.DefaultLanguage), Configuration.CommandPrefix);
         }
@@ -44,7 +44,7 @@ namespace InternetClawMachine.Games.GameHelpers
         {
             if (Configuration.EventMode.DisableReturnHome)
             {
-                MachineControl_OnReturnedHome(sender, e);
+                MachineControl_OnClawCentered(sender, e);
             }
         }
 
@@ -68,7 +68,7 @@ namespace InternetClawMachine.Games.GameHelpers
             return true;
         }
 
-        internal void MachineControl_OnReturnedHome(object sender, EventArgs e)
+        internal void MachineControl_OnClawCentered(object sender, EventArgs e)
         {
             //we check to see if the return home event was fired by the person that's currently playing
             //if it has we need to move to the next player, if not we've moved on already, perhaps bad design here
@@ -100,7 +100,7 @@ namespace InternetClawMachine.Games.GameHelpers
             GameLoopCounterValue = -1;
             if (MachineControl != null)
             {
-                MachineControl.OnReturnedHome -= MachineControl_OnReturnedHome;
+                MachineControl.OnClawCentered -= MachineControl_OnClawCentered;
                 if (MachineControl is ClawController)
                     ((ClawController)MachineControl).OnClawRecoiled -= ClawSingleQueue_OnClawRecoiled;
             }
@@ -111,7 +111,7 @@ namespace InternetClawMachine.Games.GameHelpers
         {
             if (MachineControl != null)
             {
-                MachineControl.OnReturnedHome -= MachineControl_OnReturnedHome;
+                MachineControl.OnClawCentered -= MachineControl_OnClawCentered;
                 if (MachineControl is ClawController)
                     ((ClawController)MachineControl).OnClawRecoiled -= ClawSingleQueue_OnClawRecoiled;
             }
@@ -135,12 +135,18 @@ namespace InternetClawMachine.Games.GameHelpers
             //split our args
             param = chatMessage.Split(' ');
 
-            /*
+            
             switch (translateCommand.FinalWord)
             {
-               //nothing for now....
+                case "skip":
+                    if (!Configuration.AdminUsers.Contains(username.ToLower()))
+                        break;
+
+                    NextQuestion();
+                    break;
             }
-            */
+           
+            
         }
 
         public override void HandleMessage(string username, string message)
@@ -440,70 +446,7 @@ namespace InternetClawMachine.Games.GameHelpers
                 TriviaMessageMode = TriviaMessageMode.ANSWERING;
                 Task.Run(async delegate ()
                 {
-                    CurrentQuestion = GetRandomQuestion();
-                    if (CurrentQuestion == null || QuestionsAsked >= QuestionCount)
-                    {
-                        EndTrivia();
-                    }
-                    else
-                    {
-                        //5 second timer to get ready
-                        if (Configuration.EventMode.TriviaSettings.QuestionWaitDelay > 0)
-                        {
-                            ChatClient.SendMessage(Configuration.Channel, string.Format(Translator.GetTranslation("gameClawTriviaPleaseWait", Translator.DefaultLanguage), Configuration.EventMode.TriviaSettings.QuestionWaitDelay));
-
-                            var firstWait = Configuration.EventMode.TriviaSettings.QuestionWaitDelay * 1000;
-
-                            await Task.Delay(firstWait);
-                        
-                        }
-
-                    
-                        var answers = "";
-
-                        if (CurrentQuestion.ShowAnswers)
-                            answers = CurrentQuestion.getAnswersAsCSV();
-
-                        QuestionsAsked++;
-
-                        var question = string.Format("[" + QuestionsAsked + "/" + QuestionCount + "]" + Translator.GetTranslation("gameClawTriviaStartTriviaRound", Translator.DefaultLanguage), CurrentQuestion.Question, answers);
-                        ChatClient.SendMessage(Configuration.Channel, question);
-
-                        if (ObsConnection.IsConnected)
-                        {
-                            var s = ObsConnection.GetTextGDIPlusProperties("TriviaQuestion");
-                            s.Text = question;
-                            ObsConnection.SetTextGDIPlusProperties(s);
-                            ObsConnection.SetSourceRender("TriviaOverlay", true, null);
-                        }
-
-                        AnswerHint = Regex.Replace(CurrentQuestion.CorrectAnswer, "[a-zA-Z0-9]", "-");
-                        HintCancelToken = new CancellationTokenSource();
-                        var ct = HintCancelToken.Token;
-                        Task.Run(async delegate ()
-                        {
-                            for (int i = 0; i < 10; i++)
-                            {
-                                // Were we already canceled?
-
-                                
-                                
-
-                                await Task.Delay(Configuration.EventMode.TriviaSettings.AnswerHintDelay);
-                                ct.ThrowIfCancellationRequested();
-                                UpdateAnswerHint();
-                                ChatClient.SendMessage(Configuration.Channel, AnswerHint);
-                                if (CurrentQuestion.CorrectAnswer == AnswerHint)
-                                    break;
-                            }
-
-
-                        }, ct);
-
-
-
-
-                    }
+                    NextQuestion();
 
 
 
@@ -511,7 +454,7 @@ namespace InternetClawMachine.Games.GameHelpers
             }
         }
 
-        private void UpdateAnswerHint()
+        public void UpdateAnswerHint()
         {
             var percentDone = (double)AnswerHint.Replace("-", "").Replace(" ", "").Length / (double)AnswerHint.Length;
             percentDone += 0.1;
@@ -700,6 +643,75 @@ namespace InternetClawMachine.Games.GameHelpers
                 StartNewTriviaRound();
 
             });
+
+        }
+
+        virtual async internal void NextQuestion()
+        {
+            CurrentQuestion = GetRandomQuestion();
+            if (CurrentQuestion == null || QuestionsAsked >= QuestionCount)
+            {
+                EndTrivia();
+            }
+            else
+            {
+
+
+
+                //5 second timer to get ready
+                if (Configuration.EventMode.TriviaSettings.QuestionWaitDelay > 0)
+                {
+                    ChatClient.SendMessage(Configuration.Channel, string.Format(Translator.GetTranslation("gameClawTriviaPleaseWait", Translator.DefaultLanguage), Configuration.EventMode.TriviaSettings.QuestionWaitDelay));
+
+                    var firstWait = Configuration.EventMode.TriviaSettings.QuestionWaitDelay * 1000;
+
+                    await Task.Delay(firstWait);
+
+                }
+
+
+                var answers = "";
+
+                if (CurrentQuestion.ShowAnswers)
+                    answers = CurrentQuestion.getAnswersAsCSV();
+
+                QuestionsAsked++;
+
+                var question = string.Format("[" + QuestionsAsked + "/" + QuestionCount + "] " + Translator.GetTranslation("gameClawTriviaStartTriviaRound", Translator.DefaultLanguage), CurrentQuestion.Question, answers);
+                ChatClient.SendMessage(Configuration.Channel, question);
+
+                if (ObsConnection.IsConnected)
+                {
+                    var s = ObsConnection.GetTextGDIPlusProperties("TriviaQuestion");
+                    s.Text = question;
+                    ObsConnection.SetTextGDIPlusProperties(s);
+                    ObsConnection.SetSourceRender("TriviaOverlay", true, null);
+                }
+
+                AnswerHint = Regex.Replace(CurrentQuestion.CorrectAnswer, "[a-zA-Z0-9]", "-");
+                HintCancelToken = new CancellationTokenSource();
+                var ct = HintCancelToken.Token;
+                Task.Run(async delegate ()
+                {
+                    for (int i = 0; i < 10; i++)
+                    {
+                    // Were we already canceled?
+
+
+
+
+                    await Task.Delay(Configuration.EventMode.TriviaSettings.AnswerHintDelay);
+                        ct.ThrowIfCancellationRequested();
+                        UpdateAnswerHint();
+                        ChatClient.SendMessage(Configuration.Channel, AnswerHint);
+                        if (CurrentQuestion.CorrectAnswer == AnswerHint)
+                            break;
+                    }
+
+
+                }, ct);
+
+            }
 
         }
     }

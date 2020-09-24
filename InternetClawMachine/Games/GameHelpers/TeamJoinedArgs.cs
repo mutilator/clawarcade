@@ -1,14 +1,14 @@
 ﻿namespace InternetClawMachine.Games.GameHelpers
 {
-    internal class TeamJoinedArgs
+    public class TeamJoinedArgs
     {
-        private string username;
-        private string teamName;
+        public string Username { set; get;  }
+        public string TeamName { set; get;  }
 
         public TeamJoinedArgs(string username, string teamName)
         {
-            this.username = username;
-            this.teamName = teamName;
+            this.Username = username;
+            this.TeamName = teamName;
         }
     }
 }

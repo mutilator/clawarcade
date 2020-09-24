@@ -123,6 +123,11 @@ namespace InternetClawMachine.Settings
         public int ConveyorRunDuringFlipper { set; get; }
 
         /// <summary>
+        /// How long to wait after conveyor stops but before the flipper runs
+        /// </summary>
+        public int ConveyorWaitBeforeFlipper { set; get; }
+
+        /// <summary>
         /// Time that needs to pass before a user can rename and before a plush can be renamed
         /// </summary>
         public int TimePassedForRename { set; get; } //30 days
@@ -226,6 +231,21 @@ namespace InternetClawMachine.Settings
         /// How much lag is there between real-time and OBS capture? Mainly used for offsets like when performing a strobe
         /// </summary>
         public int CameraLagTime { get; set; }
+
+        /// <summary>
+        /// Do we create a clip and post to discord when RFID doesnt scan
+        /// </summary>
+        public bool ClipMissedPlush { get; set; }
+
+        /// <summary>
+        /// Maximum time we let people run the conveyor
+        /// </summary>
+        public int BeltRuntimeMax { get; set; }
+
+        /// <summary>
+        /// Minimum time we let people run the conveyor
+        /// </summary>
+        public int BeltRuntimeMin { get; set; }
 
         public event PropertyChangedEventHandler PropertyChanged;
 

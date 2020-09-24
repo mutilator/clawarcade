@@ -198,7 +198,7 @@ namespace InternetClawMachine.Games
             {
                 _isEnding = true;
                 RunUpdateTimer = false;
-                PlayerQueue.ChangedPlayerQueue -= PlayerQueue_ChangedPlayerQueue;
+                PlayerQueue.OnChangedQueue -= PlayerQueue_ChangedPlayerQueue;
                 handler(this, e);
             }
         }
@@ -221,11 +221,11 @@ namespace InternetClawMachine.Games
         public virtual void Init()
         {
             
-            PlayerQueue.ChangedPlayerQueue += PlayerQueue_ChangedPlayerQueue;
+            PlayerQueue.OnChangedQueue += PlayerQueue_ChangedPlayerQueue;
             Configuration.StreamBuxCosts = DatabaseFunctions.LoadStreamBux(Configuration);
         }
 
-        private void PlayerQueue_ChangedPlayerQueue(object sender, EventArgs e)
+        private void PlayerQueue_ChangedPlayerQueue(object sender, QueueUpdateArgs e)
         {
             UpdateObsQueueDisplay();
         }

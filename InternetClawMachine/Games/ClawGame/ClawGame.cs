@@ -77,7 +77,7 @@ namespace InternetClawMachine.Games.GameHelpers
                 ((ClawController)MachineControl).OnPingSuccess += ClawGame_PingSuccess;
                 ((ClawController)MachineControl).OnPingTimeout += ClawGame_PingTimeout;
                 ((ClawController)MachineControl).OnDisconnected += ClawGame_Disconnected;
-                ((ClawController)MachineControl).OnHitWinChute += ClawGame_OnHitWinChute;
+                ((ClawController)MachineControl).OnReturnedHome += ClawGame_OnReturnedHome;
                 ((ClawController)MachineControl).OnInfoMessage += ClawGame_OnInfoMessage;
                 ((ClawController)MachineControl).OnMotorTimeoutBackward += ClawGame_OnMotorTimeoutBackward;
                 ((ClawController)MachineControl).OnMotorTimeoutDown += ClawGame_OnMotorTimeoutDown;
@@ -106,8 +106,11 @@ namespace InternetClawMachine.Games.GameHelpers
             MachineControl.OnBreakSensorTripped += MachineControl_OnBreakSensorTripped;
             MachineControl.OnResetButtonPressed += MachineControl_ResetButtonPressed;
             MachineControl.OnClawDropping += MachineControl_ClawDropping;
-            MachineControl.OnReturnedHome += MachineControl_OnReturnedHome;
+            MachineControl.OnClawCentered += MachineControl_OnClawCentered;
             configuration.EventModeChanged += Configuration_EventModeChanged;
+
+            OnTeamJoined += ClawGame_OnTeamJoined;
+
 
             PlayerQueue = new PlayerQueue();
             CommandQueue = new List<ClawCommand>();
@@ -127,9 +130,15 @@ namespace InternetClawMachine.Games.GameHelpers
             });
         }
 
+        private void ClawGame_OnTeamJoined(object sender, TeamJoinedArgs e)
+        {
+            
+        }
+
         private void ClawGame_OnFlipperTimeout(object sender, EventArgs e)
         {
-            Emailer.SendEmail(Configuration.EmailAddress, "Flipper timeout, CHECK ASAP!!!", "Flipper Timeout");
+            Notifier.SendEmail(Configuration.EmailAddress, "Flipper timeout, CHECK ASAP!!!", "Flipper Timeout");
+            Notifier.SendDiscordMessage(Configuration.DiscordSettings.SpamWebhook, "Flipper timeout, CHECK ASAP!!!");
         }
 
         private void ClawGame_OnFlipperHitHome(object sender, EventArgs e)
@@ -139,7 +148,7 @@ namespace InternetClawMachine.Games.GameHelpers
 
         private void ClawGame_OnFlipperHitForward(object sender, EventArgs e)
         {
-            if (Configuration.EventMode.FlipperPosition == FlipperDirection.FLIPPER_FORWARD)
+            if (Configuration.EventMode.FlipperPosition == FlipperDirection.FLIPPER_FORWARD || Configuration.EventMode.DisableFlipper)
                 return;
 
             Task.Run(async delegate ()
@@ -284,19 +293,21 @@ namespace InternetClawMachine.Games.GameHelpers
         {
             if (Configuration.EventMode.DisableReturnHome)
             {
-                MachineControl_OnReturnedHome(sender, e);
+                MachineControl_OnClawCentered(sender, e);
             }
         }
 
         private void ClawGame_OnClawTimeout(object sender, EventArgs e)
         {
-            Emailer.SendEmail(Configuration.EmailAddress, "Claw machine timeout closed", "Claw Timeout");
+            //Emailer.SendEmail(Configuration.EmailAddress, "Claw machine timeout closed", "Claw Timeout");
+            Notifier.SendDiscordMessage(Configuration.DiscordSettings.SpamWebhook, "Claw machine timeout closed");
 
         }
 
         private void ClawGame_OnMotorTimeoutUp(object sender, EventArgs e)
         {
-            Emailer.SendEmail(Configuration.EmailAddress, "Claw machine timeout recoiling", "Claw Timeout");
+            //Emailer.SendEmail(Configuration.EmailAddress, "Claw machine timeout recoiling", "Claw Timeout");
+            Notifier.SendDiscordMessage(Configuration.DiscordSettings.SpamWebhook, "Claw machine timeout recoiling");
             ResetMachine();
         }
 
@@ -313,37 +324,70 @@ namespace InternetClawMachine.Games.GameHelpers
                 });
             } else
             {
-                ChatClient.SendMessage(Configuration.Channel, "Machine has failed to reset the maximum number of times. Use !discord to contact the owner.");
+                try
+                {
+                    ChatClient.SendMessage(Configuration.Channel, "Machine has failed to reset the maximum number of times. Use !discord to contact the owner.");
+                }
+                catch { }
+                try
+                {
+                    ObsConnection.SetSourceRender(Configuration.ObsScreenSourceNames.Construction.SourceName, true,
+                        Configuration.ObsScreenSourceNames.Construction.SceneName);
+                }
+                catch
+                {
+                }
+                try
+                {
+
+                    Task.Run(async delegate
+                    {
+                    //send to discord
+                    var client = new HttpClient();
+                        var url = new JObject();
+                        url.Add("content", string.Format("Oh no I broke! Someone find my owner to fix me!"));
+
+                        var data = new StringContent(JsonConvert.SerializeObject(url), Encoding.UTF8, "application/json");
+                        var res = await client.PostAsync(Configuration.DiscordSettings.ChatWebhook, data);
+                    });
+                }
+                catch { }
             }
         }
 
         private void ClawGame_OnMotorTimeoutRight(object sender, EventArgs e)
         {
-            Emailer.SendEmail(Configuration.EmailAddress, "Claw machine timeout right", "Claw Timeout");
+            //Emailer.SendEmail(Configuration.EmailAddress, "Claw machine timeout right", "Claw Timeout");
+            Notifier.SendDiscordMessage(Configuration.DiscordSettings.SpamWebhook, "Claw machine timeout right");
             ResetMachine();
         }
 
         private void ClawGame_OnMotorTimeoutLeft(object sender, EventArgs e)
         {
-            Emailer.SendEmail(Configuration.EmailAddress, "Claw machine timeout left", "Claw Timeout");
+            //Emailer.SendEmail(Configuration.EmailAddress, "Claw machine timeout left", "Claw Timeout");
+            Notifier.SendDiscordMessage(Configuration.DiscordSettings.SpamWebhook, "Claw machine timeout left");
             ResetMachine();
         }
 
         private void ClawGame_OnMotorTimeoutForward(object sender, EventArgs e)
         {
-            Emailer.SendEmail(Configuration.EmailAddress, "Claw machine timeout forward", "Claw Timeout");
+            //Emailer.SendEmail(Configuration.EmailAddress, "Claw machine timeout forward", "Claw Timeout");
+            Notifier.SendDiscordMessage(Configuration.DiscordSettings.SpamWebhook, "Claw machine timeout forward");
             ResetMachine();
         }
 
         private void ClawGame_OnMotorTimeoutDown(object sender, EventArgs e)
         {
-            Emailer.SendEmail(Configuration.EmailAddress, "Claw machine timeout dropping", "Claw Timeout");
+            //Emailer.SendEmail(Configuration.EmailAddress, "Claw machine timeout dropping", "Claw Timeout");
+            Notifier.SendDiscordMessage(Configuration.DiscordSettings.SpamWebhook, "Claw machine timeout dropping");
             ResetMachine();
         }
 
         private void ClawGame_OnMotorTimeoutBackward(object sender, EventArgs e)
         {
-            Emailer.SendEmail(Configuration.EmailAddress, "Claw machine timeout back", "Claw Timeout");
+            
+            //Emailer.SendEmail(Configuration.EmailAddress, "Claw machine timeout back", "Claw Timeout");
+            Notifier.SendDiscordMessage(Configuration.DiscordSettings.SpamWebhook, "Claw machine timeout back");
             ResetMachine();
         }
 
@@ -445,6 +489,7 @@ namespace InternetClawMachine.Games.GameHelpers
                 Logger.WriteLog(Logger.ErrorLog, error);
             }
             LoadPlushFromDb();
+            
             InitializeEventSettings(Configuration.EventMode);
         }
 
@@ -585,27 +630,18 @@ namespace InternetClawMachine.Games.GameHelpers
             _lastSensorTrip = 0;
             _lastBountyPlay = 0;
             base.StartGame(user);
-            Task.Run(async delegate
+            Notifier.SendDiscordMessage(Configuration.DiscordSettings.SpamWebhook, string.Format("Game Mode Started:  {0}", GameMode.ToString()));
+            try
             {
-
-                try
-                {
-                    //send to discord
-                    var client = new HttpClient();
-                    var url = new JObject();
-                    url.Add("content", string.Format("Game Mode Started:  {0}", GameMode.ToString()));
-
-                    var data = new StringContent(JsonConvert.SerializeObject(url), Encoding.UTF8, "application/json");
-                    var res = await client.PostAsync(Configuration.DiscordSettings.SpamWebhook, data);
-                }
-                catch (Exception ex)
-                {
-                    var error = string.Format("ERROR {0} {1}", ex.Message, ex);
-                    Logger.WriteLog(Logger.ErrorLog, error);
-                }
-            
-        });
+                ObsConnection.SetSourceRender(Configuration.ObsScreenSourceNames.Construction.SourceName, false,
+                    Configuration.ObsScreenSourceNames.Construction.SceneName);
+            }
+            catch
+            {
+            }
         }
+
+        
 
         public override void EndGame()
         {
@@ -617,7 +653,7 @@ namespace InternetClawMachine.Games.GameHelpers
                 ((ClawController)MachineControl).OnPingSuccess -= ClawGame_PingSuccess;
                 ((ClawController)MachineControl).OnPingTimeout -= ClawGame_PingTimeout;
                 ((ClawController)MachineControl).OnDisconnected -= ClawGame_Disconnected;
-                ((ClawController)MachineControl).OnHitWinChute -= ClawGame_OnHitWinChute;
+                ((ClawController)MachineControl).OnReturnedHome -= ClawGame_OnReturnedHome;
                 ((ClawController)MachineControl).OnInfoMessage -= ClawGame_OnInfoMessage;
                 ((ClawController)MachineControl).OnMotorTimeoutBackward -= ClawGame_OnMotorTimeoutBackward;
                 ((ClawController)MachineControl).OnMotorTimeoutDown -= ClawGame_OnMotorTimeoutDown;
@@ -636,7 +672,7 @@ namespace InternetClawMachine.Games.GameHelpers
             MachineControl.OnBreakSensorTripped -= MachineControl_OnBreakSensorTripped;
             MachineControl.OnResetButtonPressed -= MachineControl_ResetButtonPressed;
             MachineControl.OnClawDropping -= MachineControl_ClawDropping;
-            MachineControl.OnReturnedHome -= MachineControl_OnReturnedHome;
+            MachineControl.OnClawCentered -= MachineControl_OnClawCentered;
             MachineControl.Disconnect();
             Configuration.PropertyChanged -= ClawSettings_PropertyChanged;
 
@@ -843,8 +879,8 @@ namespace InternetClawMachine.Games.GameHelpers
             RefreshWinList();
 
 
-            Emailer.SendEmail(Configuration.EmailAddress, "Someone won a prize: " + saying, saying);
-
+            Notifier.SendEmail(Configuration.EmailAddress, "Someone won a prize: " + saying, saying);
+            Notifier.SendDiscordMessage(Configuration.DiscordSettings.SpamWebhook, winner + " won a prize: " + saying);
 
             //send message after a bit
             Task.Run(async delegate ()
@@ -873,13 +909,13 @@ namespace InternetClawMachine.Games.GameHelpers
                 MachineControl.OnBreakSensorTripped -= MachineControl_OnBreakSensorTripped;
                 MachineControl.OnResetButtonPressed -= MachineControl_ResetButtonPressed;
                 MachineControl.OnClawDropping -= MachineControl_ClawDropping;
-                MachineControl.OnReturnedHome -= MachineControl_OnReturnedHome;
+                MachineControl.OnClawCentered -= MachineControl_OnClawCentered;
                 if (MachineControl is ClawController)
                 {
                     ((ClawController)MachineControl).OnPingSuccess -= ClawGame_PingSuccess;
                     ((ClawController)MachineControl).OnPingTimeout -= ClawGame_PingTimeout;
                     ((ClawController)MachineControl).OnDisconnected -= ClawGame_Disconnected;
-                    ((ClawController)MachineControl).OnHitWinChute -= ClawGame_OnHitWinChute;
+                    ((ClawController)MachineControl).OnReturnedHome -= ClawGame_OnReturnedHome;
                     ((ClawController)MachineControl).OnInfoMessage -= ClawGame_OnInfoMessage;
                     ((ClawController)MachineControl).OnMotorTimeoutBackward -= ClawGame_OnMotorTimeoutBackward;
                     ((ClawController)MachineControl).OnMotorTimeoutDown -= ClawGame_OnMotorTimeoutDown;
@@ -919,6 +955,20 @@ namespace InternetClawMachine.Games.GameHelpers
                     {
                         output += string.Format("{0} - \t\t{1} points, {2} drops\r\n", winners[i].Name, winners[i].Wins, winners[i].Drops);
                     }
+
+                    output += "\r\n\r\n";
+                    for (var i = 0; i < winners.Count; i++)
+                    {
+                        output += "\r\n\r\n";
+                        output += string.Format("{0}:\r\n", winners[i].Name);
+                        for (var j = 0; j < Configuration.UserList.Count; j++)
+                        {
+                            var u = Configuration.UserList[j];
+
+                            if (u.EventTeamName.ToLower() == winners[i].Name.ToLower())
+                                output += string.Format("{0}\r\n", u.Username);
+                        }
+                    }
                     output += "\r\n\r\n\r\n\r\n\r\n";
                     File.WriteAllText(Configuration.FileLeaderboard, output);
 
@@ -942,7 +992,7 @@ namespace InternetClawMachine.Games.GameHelpers
             }
         }
 
-        private void ClawGame_OnHitWinChute(object sender, EventArgs e)
+        private void ClawGame_OnReturnedHome(object sender, EventArgs e)
         {
             Logger.WriteLog(Logger.DebugLog, string.Format("WIN CHUTE: Current player {0} in game loop {1}", PlayerQueue.CurrentPlayer, GameLoopCounterValue), Logger.LogLevel.DEBUG);
             InScanWindow = true; //allows RFID reader to accept scans
@@ -980,7 +1030,7 @@ namespace InternetClawMachine.Games.GameHelpers
         /// </summary>
         /// <param name="sender"></param>
         /// <param name="e"></param>
-        private void MachineControl_OnReturnedHome(object sender, EventArgs e)
+        private void MachineControl_OnClawCentered(object sender, EventArgs e)
         {
             _failsafeCurrentResets = 0;
             Logger.WriteLog(Logger.DebugLog, string.Format("RETURN HOME: Current player {0} in game loop {1}", PlayerQueue.CurrentPlayer, GameLoopCounterValue), Logger.LogLevel.DEBUG);
@@ -1279,6 +1329,7 @@ namespace InternetClawMachine.Games.GameHelpers
                             if (team == null)
                             {
                                 ChatClient.SendMessage(Configuration.Channel, string.Format(Translator.GetTranslation("gameClawCommandTeamsCreateError", Configuration.UserList.GetUserLocalization(username))));
+                                
                                 return;
                             }
                         }
@@ -1299,6 +1350,7 @@ namespace InternetClawMachine.Games.GameHelpers
                             }
                             userPrefs.EventTeamId = team.Id;
                             userPrefs.EventTeamName = team.Name;
+
                         }
 
 
@@ -1310,7 +1362,7 @@ namespace InternetClawMachine.Games.GameHelpers
                         ChatClient.SendMessage(Configuration.Channel, string.Format(Translator.GetTranslation("gameClawCommandTeamsJoined", Configuration.UserList.GetUserLocalization(username)), teamName));
 
                         //let everyone know
-                        OnTeamJoined?.Invoke(this, new TeamJoinedArgs(userPrefs.Username, userPrefs.TeamName));
+                        OnTeamJoined?.Invoke(this, new TeamJoinedArgs(userPrefs.Username, teamName));
 
                         break;
                     case "team":
@@ -1410,7 +1462,7 @@ namespace InternetClawMachine.Games.GameHelpers
                         foreach (var t in teams)
                         {
                             DatabaseFunctions.CreateTeam(Configuration, t.Trim(), Configuration.SessionGuid.ToString());
-                        }
+                        } 
                         Teams = DatabaseFunctions.GetTeams(Configuration, Configuration.SessionGuid.ToString());
 
                         //clear users
@@ -2900,7 +2952,7 @@ namespace InternetClawMachine.Games.GameHelpers
             if (!int.TryParse(seconds, out var secs))
                 return;
 
-            if (secs > 15 || secs < 1)
+            if (secs > Configuration.ClawSettings.BeltRuntimeMax || secs < Configuration.ClawSettings.BeltRuntimeMin)
                 secs = 2;
 
             RunBelt(secs * 1000);
@@ -2917,9 +2969,11 @@ namespace InternetClawMachine.Games.GameHelpers
                         return;
 
                     ObsConnection.SetSourceRender(Configuration.ObsScreenSourceNames.CameraConveyor.SourceName, true);
-                    await Task.Delay(1000);
+                    await Task.Delay(Configuration.ClawSettings.CameraLagTime);
                     await MachineControl.RunConveyor(milliseconds);
-                    MachineControl.Flipper(FlipperDirection.FLIPPER_FORWARD);
+                    await Task.Delay(Configuration.ClawSettings.ConveyorWaitBeforeFlipper);
+                    if (!Configuration.EventMode.DisableFlipper)
+                        MachineControl.Flipper(FlipperDirection.FLIPPER_FORWARD);
                     await MachineControl.RunConveyor(Configuration.ClawSettings.ConveyorRunDuringFlipper);
                     await Task.Delay(Configuration.ClawSettings.ConveyorWaitAfter);
                     ObsConnection.SetSourceRender(Configuration.ObsScreenSourceNames.CameraConveyor.SourceName, false);
@@ -3103,13 +3157,16 @@ namespace InternetClawMachine.Games.GameHelpers
             }
 
             //handler for wire theme
-            if (!string.IsNullOrEmpty(userPrefs.WireTheme))
+            if (!string.IsNullOrEmpty(userPrefs.WireTheme) && Configuration.EventMode.AllowOverrideWireFrame)
             {
                 var theme = Configuration.ClawSettings.WireThemes.Find(t => t.Name.ToLower() == userPrefs.WireTheme.ToLower());
 
                 ChangeWireTheme(theme);
-            } else
+            }
+            else if (Configuration.EventMode.WireTheme != null)
             {
+                ChangeWireTheme(Configuration.EventMode.WireTheme);
+            } else { 
                 var theme = Configuration.ClawSettings.WireThemes.Find(t => t.Name.ToLower() == "default");
 
                 ChangeWireTheme(theme);
@@ -3255,7 +3312,7 @@ namespace InternetClawMachine.Games.GameHelpers
                 if (winner == null)
                     return;
 
-                if (scannedPlush == null)
+                if (scannedPlush == null && !Configuration.EventMode.DisableRFScan)
                 {
                     Task.Run(async delegate
                     {
@@ -3388,9 +3445,12 @@ namespace InternetClawMachine.Games.GameHelpers
 
         public async void CreateClip()
         {
+            if (!Configuration.ClawSettings.ClipMissedPlush)
+                return;
             ///setup api
             if (API == null)
             {
+
                 API = new TwitchAPI();
                 API.Settings.ClientId = Configuration.TwitchSettings.ClientId;
                 API.Settings.AccessToken = Configuration.TwitchSettings.ApiKey;

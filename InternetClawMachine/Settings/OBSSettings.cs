@@ -13,5 +13,6 @@ namespace InternetClawMachine.Settings
         public List<OBSSceneFilters> GreenScreenNormalSideCamera { get;  set; }
         public List<OBSSceneFilters> GreenScreenBlackLightFrontCamera { get; set; }
         public List<OBSSceneFilters> GreenScreenBlackLightSideCamera { get; set; }
+        public List<JObject> TVFilters { set; get; }
     }
 }

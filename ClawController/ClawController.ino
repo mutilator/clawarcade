@@ -1174,13 +1174,17 @@ void moveFlipper(byte direction)
     switch (direction)
     {
         case FLIPPER_FORWARD:
+            // TODO - do this smarter, need to check if the current limit event is the forward position so we don't have to bother starting the flipper
+            
             _timestampConveyorFlipperStart = millis();
+            //blindly clearing this error means we are no longer presenting a high error pin but we also may not be able to move because the controller won't let us
             Serial1.write(FLIPPER_MOTOR_COMMAND_CLEAR_SAFE_START);
             Serial1.write(FLIPPER_MOTOR_COMMAND_FORWARD);
             Serial1.write(0);
             Serial1.write(_flipperSpeed);
             break;
         case FLIPPER_BACKWARD:
+            // TODO - do this smarter, need to check if the current limit event is the home position so we don't have to bother starting the flipper
             _timestampConveyorFlipperStart = millis();
             Serial1.write(FLIPPER_MOTOR_COMMAND_CLEAR_SAFE_START);
             Serial1.write(FLIPPER_MOTOR_COMMAND_REVERSE);
@@ -1499,6 +1503,53 @@ void handleTelnetCommand(EthernetClient &client)
         int pin = atoi(argument);
         int mode = atoi(argument2);
         pinMode(pin, mode);
+    } else if (strcmp(command, "sfs") == 0) { //set failsafes
+        
+        int type = atoi(argument);
+        int value = atoi(argument2);
+
+        switch (type)
+        {
+            case 0:
+                _failsafeMotorLimit = value; //second limit for how long a motor can move before it should hit a limit
+                break;
+            case 1:
+                _failsafeClawOpened = value; //limit for how long the claw can be closed
+                break;
+            case 2:
+                _failsafeBeltLimit = value; //limit for running conveyor belt
+                break;
+            case 3:
+                _failsafeFlipperLimit = value; //limit for flipper in ONE direction
+                break;
+        }
+
+        sprintf(outputData, "%i %i", type, value);
+        sendFormattedResponse(client, EVENT_INFO, argument, outputData);
+
+    } else if (strcmp(command, "gfs") == 0) { //get failsafes
+        
+        int type = atoi(argument);
+        int value = 0;
+
+        switch (type)
+        {
+            case 0:
+                value = _failsafeMotorLimit; //second limit for how long a motor can move before it should hit a limit
+                break;
+            case 1:
+                value = _failsafeClawOpened; //limit for how long the claw can be closed
+                break;
+            case 2:
+                value = _failsafeBeltLimit; //limit for running conveyor belt
+                break;
+            case 3:
+                value = _failsafeFlipperLimit; //limit for flipper in ONE direction
+                break;
+        }
+
+        sprintf(outputData, "%i %i", type, value);
+        sendFormattedResponse(client, EVENT_INFO, argument, outputData);
 
     } else if (strcmp(command,"f") == 0) { //forward
 
@@ -1690,6 +1741,8 @@ void handleTelnetCommand(EthernetClient &client)
         sendFormattedResponse(client, EVENT_INFO, sequence, outputData);
 
     } else if (strcmp(command,"rhome") == 0) { //run to home location
+    
+        returnToWinChute(); //runs to chute and stop
         sendFormattedResponse(client, EVENT_INFO, sequence, "");
 
     } else if (strcmp(command,"center") == 0) { //custom center
@@ -1801,12 +1854,12 @@ void moveFromRemote(byte direction, int duration)
             else if (_gameMode == GAMEMODE_TARGET && _isClawClosed)
             {
                 openClaw();
-                delay(1000);
+                delay(500);
 
                 if (_doWiggle)
                     wiggleClaw();
 
-                delay(1000);
+                delay(500);
                 returnToWinChute();
             }
             break;

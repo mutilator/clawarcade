@@ -38,7 +38,7 @@ namespace InternetClawMachine.Hardware.ClawControl
 
         public event EventHandler OnBreakSensorTripped;
 
-        public event EventHandler OnReturnedHome;
+        public event EventHandler OnClawCentered;
 
         public event EventHandler OnClawDropping;
 
@@ -269,7 +269,7 @@ namespace InternetClawMachine.Hardware.ClawControl
         {
             //spawn a separate thread to throw the claw return home event
             OnClawDropping?.Invoke(this, new EventArgs());
-            ExecuteReturnHomeEvent();
+            ExecuteClawCenteredEvent();
             await Move(MovementDirection.DROP, 800);
             await Task.Delay(200); //if you hold drop it will cause the machine to lock up, wait 1000ms
             await Move(MovementDirection.DROP, 800);
@@ -280,13 +280,13 @@ namespace InternetClawMachine.Hardware.ClawControl
             await Task.Delay(200); //if you hold drop it will cause the machine to lock up, wait 1000ms
         }
 
-        public void ExecuteReturnHomeEvent()
+        public void ExecuteClawCenteredEvent()
         {
             //async task reset the claw
             Task.Run(async delegate ()
             {
                 await Task.Delay(ReturnHomeTime);
-                OnReturnedHome?.Invoke(null, new EventArgs());
+                OnClawCentered?.Invoke(null, new EventArgs());
             });
         }
 

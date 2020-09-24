@@ -118,6 +118,11 @@ namespace InternetClawMachine.Settings
         public bool AllowOverrideScene { set; get; }
 
         /// <summary>
+        /// Allow users to override the wireframe
+        /// </summary>
+        public bool AllowOverrideWireFrame { set; get; }
+
+        /// <summary>
         /// Allow users to override lights settings, both lighting and blacklights
         /// </summary>
         public bool AllowOverrideLights { set; get; }
@@ -149,6 +154,11 @@ namespace InternetClawMachine.Settings
         public bool DisableStrobe { get;  set; }
 
         /// <summary>
+        /// Disable using the flipper
+        /// </summary>
+        public bool DisableFlipper { set; get; }
+
+        /// <summary>
         /// Do we require a player to have a team defined?
         /// </summary>
         public bool TeamRequired { get; set; }
@@ -167,5 +177,9 @@ namespace InternetClawMachine.Settings
         /// </summary>
         public TriviaSettings TriviaSettings { set; get; }
         
+        /// <summary>
+        /// How large should we let the queue get?
+        /// </summary>
+        public int QueueSizeMax { set; get; }
     }
 }

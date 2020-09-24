@@ -655,8 +655,9 @@ namespace InternetClawMachine
                         Configuration.ClawSettings.LastRefillWait)
                     {
                         _lastRefillRequest = SessionTimer.ElapsedMilliseconds;
-                        Emailer.SendEmail(Configuration.EmailAddress, "Claw needs a refill - " + username,
+                        Notifier.SendEmail(Configuration.EmailAddress, "Claw needs a refill - " + username,
                             "REFILL PLZ");
+                        Notifier.SendDiscordMessage(Configuration.DiscordSettings.SpamWebhook, username + " says machine needs a refill");
                         Client.SendMessage(Configuration.Channel,
                             Translator.GetTranslation("responseCommandRefill",
                                 Configuration.UserList.GetUserLocalization(username)));
@@ -766,8 +767,8 @@ namespace InternetClawMachine
             cmbLogLevel.SelectedIndex = 0;
 
             //init our emailer
-            Emailer.MailFrom = Configuration.MailFrom;
-            Emailer.MailServer = Configuration.MailServer;
+            Notifier.MailFrom = Configuration.MailFrom;
+            Notifier.MailServer = Configuration.MailServer;
 
             ObsConnection = new OBSWebsocket();
             ObsConnection.Connected += OBSConnection_Connected;
@@ -2117,7 +2118,9 @@ namespace InternetClawMachine
             if (cmbEventMode.SelectedItem != null)
             {
                 Configuration.EventMode = (EventModeSettings)cmbEventMode.SelectedItem;
-
+                //hackity hack hack
+                DataContext = null;
+                DataContext = Configuration;
             }
         }
 
@@ -2702,6 +2705,131 @@ namespace InternetClawMachine
         private void BtnTwitchClip_Click(object sender, RoutedEventArgs e)
         {
             ((ClawGame)Game).CreateClip();
+        }
+
+        private void BtnRefreshQueueList_Click(object sender, RoutedEventArgs e)
+        {
+            if (Game is ClawGame)
+            {
+                refreshQueueList();
+            }
+        }
+
+        private void refreshQueueList()
+        {
+            lstPlayerQueue.Items.Clear();
+            foreach (var p in ((ClawGame)Game).PlayerQueue.Players)
+            {
+                lstPlayerQueue.Items.Add(p);
+            }
+        }
+
+        private void BtnRemoveFromQueue_Click(object sender, RoutedEventArgs e)
+        {
+            if (Game is ClawGame)
+            {
+                if (lstPlayerQueue.SelectedItem == null)
+                    return;
+
+                var username = lstPlayerQueue.SelectedItem.ToString();
+                
+                if (Game.PlayerQueue.CurrentPlayer.ToLower() != username.ToLower())
+                {
+                    Game.PlayerQueue.RemoveSinglePlayer(username.ToLower()); //remove them from the queue if it's not their turn
+                }
+                else //otherwise they're doing it during their turn and we need to gift it to someone else
+                {
+                    var idx = Game.PlayerQueue.Index + 1;
+                    if (Game.PlayerQueue.Count <= idx)
+                        idx = 0;
+                    var newPlayer = Game.PlayerQueue.Count == 1 ? null : Game.PlayerQueue.Players[idx];
+                    if (Game is ClawSingleQueue)
+                        ((ClawSingleQueue)Game).GiftTurn(username.ToLower(), newPlayer);
+                }
+                refreshQueueList();
+            }
+        }
+
+        private void Button_Click_2(object sender, RoutedEventArgs e)
+        {
+            var activeSource = ObsConnection.GetCurrentScene().Name;
+            Console.WriteLine(JsonConvert.SerializeObject(ObsConnection.GetSourceFilters("Claw 2")));
+
+            var test = "{\"name\":\"Blur\",\"type\":\"obs-stream-effects-filter-blur\",\"settings\":{\"Commit\":\"ee225959\",\"Version\":34359934976}}";
+            var obj = new JObject();
+            obj.Add("Commit", "ee225959");
+            obj.Add("Version", "34359934976");
+            ObsConnection.AddFilterToSource(activeSource, "Blur", "obs-stream-effects-filter-blur", obj);
+
+
+        }
+
+        private void BtnTvEnable_Click(object sender, RoutedEventArgs e)
+        {
+            var activeSource = ObsConnection.GetCurrentScene().Name;
+
+            foreach (var o in Configuration.ObsSettings.TVFilters)
+            {
+                try
+                {
+                    ObsConnection.AddFilterToSource(activeSource, o.GetValue("name").ToString(), o.GetValue("type").ToString(), (JObject)o.GetValue("settings"));
+                }
+                catch
+                {
+
+                }
+            }
+        }
+
+        private void BtnTvDisable_Click(object sender, RoutedEventArgs e)
+        {
+            var activeSource = ObsConnection.GetCurrentScene().Name;
+            foreach (var o in Configuration.ObsSettings.TVFilters)
+            {
+                try
+                {
+                    ObsConnection.RemoveFilterFromSource(activeSource, o.GetValue("name").ToString());
+                }
+                catch
+                {
+
+                }
+            }
+        }
+
+        private void BtnNextTriviaQuestion_Click(object sender, RoutedEventArgs e)
+        {
+            if (Game is ClawTrivia)
+            {
+                ((ClawTrivia)Game).NextQuestion();
+            }
+        }
+
+        private void BtnWinnerPlayer1_Click(object sender, RoutedEventArgs e)
+        {
+            if (!(Game is ClawTicTacToe))
+                return;
+            var player = ((ClawGame)Game).PlayerQueue.GetPlayerQueue()[0];
+            ((ClawTicTacToe)Game).EndTicTacToe(player);
+        }
+
+        private void BtnWinnerPlayer2_Click(object sender, RoutedEventArgs e)
+        {
+            if (!(Game is ClawTicTacToe))
+                return;
+            var player = ((ClawGame)Game).PlayerQueue.GetPlayerQueue()[1];
+            ((ClawTicTacToe)Game).EndTicTacToe(player);
+        }
+
+        private void BtnAddToQueue_Click(object sender, RoutedEventArgs e)
+        {
+
+            var res = InputBox.Show("Player Name");
+            if (res.ReturnCode == System.Windows.Forms.DialogResult.OK)
+            {
+                ((ClawGame)Game).PlayerQueue.AddSinglePlayer(res.Text);
+                refreshQueueList();
+            }
         }
     }
 

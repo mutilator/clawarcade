@@ -49,7 +49,17 @@ namespace InternetClawMachine.Games.GameHelpers
         /// <summary>
         /// Fired when the player queue is updated
         /// </summary>
-        public event EventHandler ChangedPlayerQueue;
+        public event EventHandler<QueueUpdateArgs> OnChangedQueue;
+
+        /// <summary>
+        /// Fired when a new person joins the queue
+        /// </summary>
+        public event EventHandler<QueueUpdateArgs> OnJoinedQueue;
+
+        /// <summary>
+        /// Fired when someone leaves the queue
+        /// </summary>
+        public event EventHandler<QueueUpdateArgs> OnLeftQueue;
 
         #endregion Events
 
@@ -70,7 +80,8 @@ namespace InternetClawMachine.Games.GameHelpers
             if (!Players.Contains(username))
             {
                 Players.Add(username);
-                ChangedPlayerQueue?.Invoke(this, new EventArgs());
+                OnChangedQueue?.Invoke(this, new QueueUpdateArgs(QueueUpdateType.JOINED, username));
+                OnJoinedQueue?.Invoke(this, new QueueUpdateArgs(QueueUpdateType.JOINED, username));
                 //let's do some validation of index here...
                 //can't have a higher index than player count
                 if (Players.Count <= Index || Index < 0)
@@ -86,7 +97,8 @@ namespace InternetClawMachine.Games.GameHelpers
             {
                 //TODO - validation
                 Players.Insert(index, username);
-                ChangedPlayerQueue?.Invoke(this, new EventArgs());
+                OnChangedQueue?.Invoke(this, new QueueUpdateArgs(QueueUpdateType.JOINED, username));
+                OnJoinedQueue?.Invoke(this, new QueueUpdateArgs(QueueUpdateType.JOINED, username));
             }
 
             return Players.IndexOf(username);
@@ -151,7 +163,8 @@ namespace InternetClawMachine.Games.GameHelpers
                     Index = 0;
 
                 Players.Remove(username);
-                ChangedPlayerQueue?.Invoke(this, new EventArgs());
+                OnChangedQueue?.Invoke(this, new QueueUpdateArgs(QueueUpdateType.LEFT, username));
+                OnLeftQueue?.Invoke(this, new QueueUpdateArgs(QueueUpdateType.LEFT, username));
             }
         }
 
@@ -183,7 +196,7 @@ namespace InternetClawMachine.Games.GameHelpers
         internal void Clear()
         {
             Players.Clear();
-            ChangedPlayerQueue?.Invoke(this, new EventArgs());
+            OnChangedQueue?.Invoke(this, new QueueUpdateArgs(QueueUpdateType.CLEARED, ""));
         }
 
         /// <summary>
@@ -196,5 +209,24 @@ namespace InternetClawMachine.Games.GameHelpers
         }
 
         #endregion Methods
+    }
+
+    public enum QueueUpdateType
+    {
+        JOINED,
+        LEFT,
+        CLEARED
+    }
+
+    public class QueueUpdateArgs
+    {
+        public QueueUpdateArgs(QueueUpdateType action, string username)
+        {
+            Username = username;
+            Action = action;
+        }
+
+        public string Username { get; private set; }
+        public QueueUpdateType Action { get; private set; }
     }
 }

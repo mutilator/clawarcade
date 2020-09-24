@@ -39,9 +39,9 @@ namespace InternetClawMachine.Hardware.ClawControl
 
         public event EventHandler OnPingSuccess;
 
-        public event EventHandler OnHitWinChute;
-
         public event EventHandler OnReturnedHome;
+
+        public event EventHandler OnClawCentered;
 
         public event EventHandler OnClawDropping;
 
@@ -103,6 +103,7 @@ namespace InternetClawMachine.Hardware.ClawControl
         private const int _maximumPingTime = 5000; //ping timeout threshold in ms
         private Stopwatch PingTimer { get; } = new Stopwatch();
         private List<ClawPing> _pingQueue = new List<ClawPing>();
+        private FlipperDirection _lastFlipperDirection;
 
         public bool IsClawPlayActive { get; set; }
 
@@ -459,6 +460,10 @@ namespace InternetClawMachine.Hardware.ClawControl
 
                             break;
                         case ClawEvents.EVENT_FAILSAFE_FLIPPER:
+                            //if the flipper times out moving forward, move it back againp
+                            if (_lastFlipperDirection == FlipperDirection.FLIPPER_FORWARD)
+                                Flipper(FlipperDirection.FLIPPER_HOME);
+
                             OnFlipperTimeout?.Invoke(this, new EventArgs());
 
                             break;
@@ -499,12 +504,12 @@ namespace InternetClawMachine.Hardware.ClawControl
                             break;
 
                         case ClawEvents.EVENT_RETURNED_HOME: //home in the case of the machine is the win chute
-                            OnHitWinChute?.Invoke(this, new EventArgs());
+                            OnReturnedHome?.Invoke(this, new EventArgs());
                             break;
 
                         case ClawEvents.EVENT_RETURNED_CENTER: //Home in the case of the bot is the center
                             IsClawPlayActive = false;
-                            OnReturnedHome?.Invoke(this, new EventArgs());
+                            OnClawCentered?.Invoke(this, new EventArgs());
                             break;
 
                         case ClawEvents.EVENT_DROPPED_CLAW:
@@ -832,6 +837,70 @@ namespace InternetClawMachine.Hardware.ClawControl
             SendCommandAsync(str);
         }
 
+        /// <summary>
+        /// Sets the game mode of the machine
+        /// </summary>
+        /// <param name="mode">Game mode to set</param>
+        public void SetGameMode(ClawMode mode)
+        {
+            if (!IsConnected)
+                return;
+            var str = string.Format("mode {0}", (int)mode);
+            SendCommandAsync(str);
+        }
+
+        /// <summary>
+        /// Return to the home location set in the controller
+        /// </summary>
+        public void ReturnHome()
+        {
+            if (!IsConnected)
+                return;
+            var str = "rhome";
+            SendCommandAsync(str);
+        }
+
+        /// <summary>
+        /// Sets the home location of the claw, the location the claw returns to when dropping plush
+        /// </summary>
+        /// <param name="home">Home location</param>
+        public void SetHomeLocation(ClawHomeLocation home)
+        {
+            if (!IsConnected)
+                return;
+            var str = string.Format("shome {0}", (int)home);
+            SendCommandAsync(str);
+        }
+
+        /// <summary>
+        /// Set a failsafe timeout for the claw controller
+        /// </summary>
+        /// <param name="type">Type of failsafe to set</param>
+        /// <param name="time">Time in ms for failsafe</param>
+        public void SetFailsafe(FailsafeType type, int time)
+        {
+            if (!IsConnected)
+                return;
+            var str = string.Format("sfs {0} {1}", (int)type, time);
+            SendCommandAsync(str);
+        }
+
+        /// <summary>
+        /// Get the value for a specific failsafe from the claw controller
+        /// </summary>
+        /// <param name="type">Type of failsafe to get</param>
+        /// <returns></returns>
+        public int GetFailsafe(FailsafeType type)
+        {
+            if (!IsConnected)
+                throw new Exception("Controller not connected");
+
+            var str = string.Format("gfs {0}", (int)type);
+            var res = SendCommand(str);
+            return int.Parse(res);
+        }
+
+
         public async Task StopMove()
         {
             await Move(MovementDirection.STOP, 0);
@@ -841,6 +910,8 @@ namespace InternetClawMachine.Hardware.ClawControl
         {
             if (IsConnected)
                 SendCommandAsync("flip " + (int)direction);
+
+            _lastFlipperDirection = direction;
         }
 
         public void ToggleLaser(bool on)
@@ -889,5 +960,13 @@ namespace InternetClawMachine.Hardware.ClawControl
     {
         NORMAL,
         TARGETING
+    }
+
+    public enum FailsafeType
+    {
+        MOTORLIMIT, //second limit for how long a motor can move before it should hit a limit
+        CLAWOPENED,//limit for how long the claw can be closed
+        BELTLIMIT, //limit for running conveyor belt
+        FLIPPERLIMIT //limit for flipper in ONE direction
     }
 }

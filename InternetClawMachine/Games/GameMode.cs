@@ -15,6 +15,8 @@
         GOLF,
         REALTIMETEAM,
         TEAMTRIVIA,
-        TRIVIA
+        TRIVIA,
+        MARBLES,
+        TICTACTOE
     }
 }

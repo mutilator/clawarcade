@@ -19,7 +19,7 @@ namespace InternetClawMachine.Games.GameHelpers
         {
             GameMode = GameModeType.SINGLEQUEUE;
             CurrentDroppingPlayer = new DroppingPlayer();
-            MachineControl.OnReturnedHome += MachineControl_OnReturnedHome;
+            MachineControl.OnClawCentered += MachineControl_OnClawCentered;
             ((ClawController)MachineControl).OnClawRecoiled += MachineControl_OnClawRecoiled;
             StartMessage = string.Format(Translator.GetTranslation("gameClawSingleQueueStartGame", Translator.DefaultLanguage), Configuration.CommandPrefix);
         }
@@ -28,11 +28,11 @@ namespace InternetClawMachine.Games.GameHelpers
         {
             if (Configuration.EventMode.DisableReturnHome)
             {
-                MachineControl_OnReturnedHome(sender, e);
+                MachineControl_OnClawCentered(sender, e);
             }
         }
 
-        internal virtual void MachineControl_OnReturnedHome(object sender, EventArgs e)
+        internal virtual void MachineControl_OnClawCentered(object sender, EventArgs e)
         {
             DropInCommandQueue = false;
             var msg = string.Format(Translator.GetTranslation("gameClawSingleQueueStartRoundShort", Configuration.UserList.GetUserLocalization(PlayerQueue.CurrentPlayer)), PlayerQueue.CurrentPlayer);
@@ -44,14 +44,14 @@ namespace InternetClawMachine.Games.GameHelpers
             if (HasEnded)
                 return;
             if (MachineControl != null)
-                MachineControl.OnReturnedHome -= MachineControl_OnReturnedHome;
+                MachineControl.OnClawCentered -= MachineControl_OnClawCentered;
             base.EndGame();
         }
 
         public override void Destroy()
         {
             if (MachineControl != null)
-                MachineControl.OnReturnedHome -= MachineControl_OnReturnedHome;
+                MachineControl.OnClawCentered -= MachineControl_OnClawCentered;
             base.Destroy();
             
         }
@@ -108,6 +108,12 @@ namespace InternetClawMachine.Games.GameHelpers
                         var rargs = new RoundEndedArgs() { Username = username, GameLoopCounterValue = GameLoopCounterValue, GameMode = GameMode };
                         base.OnTurnEnded(rargs);
                         PlayerQueue.RemoveSinglePlayer(PlayerQueue.CurrentPlayer);
+                    }
+
+                    if (Configuration.EventMode.QueueSizeMax > 0 && PlayerQueue.Count >= Configuration.EventMode.QueueSizeMax)
+                    {
+                        ChatClient.SendMessage(Configuration.Channel, string.Format(Translator.GetTranslation("gameClawCommandPlayQueueFull", userPrefs.Localization), Configuration.EventMode.QueueSizeMax));
+                        return;
                     }
 
                     //rather than having something constantly checking for the next player the end time of the current player is used to move to the next
@@ -248,7 +254,7 @@ namespace InternetClawMachine.Games.GameHelpers
             }
         }
 
-        private void GiftTurn(string currentPlayer, string newPlayer)
+        public void GiftTurn(string currentPlayer, string newPlayer)
         {
             if (newPlayer == null)
             {

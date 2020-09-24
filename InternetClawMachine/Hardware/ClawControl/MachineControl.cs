@@ -42,7 +42,7 @@ namespace InternetClawMachine.Hardware.ClawControl
 
         void InsertCoinAsync();
 
-        event EventHandler OnReturnedHome;
+        event EventHandler OnClawCentered;
 
         event EventHandler OnClawDropping;
 

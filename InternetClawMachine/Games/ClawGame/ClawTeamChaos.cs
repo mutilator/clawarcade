@@ -20,7 +20,7 @@ namespace InternetClawMachine.Games.GameHelpers
         {
             GameMode = GameModeType.REALTIMETEAM;
             CurrentDroppingPlayer = new DroppingPlayer();
-            MachineControl.OnReturnedHome += MachineControl_OnReturnedHome;
+            MachineControl.OnClawCentered += MachineControl_OnClawCentered;
             ((ClawController)MachineControl).OnClawRecoiled += ClawSingleQueue_OnClawRecoiled;
             StartMessage = string.Format(Translator.GetTranslation("gameClawTeamChaosStartGame", Translator.DefaultLanguage), Configuration.CommandPrefix);
         }
@@ -29,12 +29,12 @@ namespace InternetClawMachine.Games.GameHelpers
         {
             if (Configuration.EventMode.DisableReturnHome)
             {
-                MachineControl_OnReturnedHome(sender, e);
+                MachineControl_OnClawCentered(sender, e);
             }
         }
 
 
-        private void MachineControl_OnReturnedHome(object sender, EventArgs e)
+        private void MachineControl_OnClawCentered(object sender, EventArgs e)
         {
             //we check to see if the return home event was fired by the person that's currently playing
             //if it has we need to move to the next player, if not we've moved on already, perhaps bad design here
@@ -48,14 +48,14 @@ namespace InternetClawMachine.Games.GameHelpers
 
         public override void EndGame()
         {
-            MachineControl.OnReturnedHome -= MachineControl_OnReturnedHome;
+            MachineControl.OnClawCentered -= MachineControl_OnClawCentered;
             base.EndGame();
         }
 
         public override void Destroy()
         {
             base.Destroy();
-            MachineControl.OnReturnedHome -= MachineControl_OnReturnedHome;
+            MachineControl.OnClawCentered -= MachineControl_OnClawCentered;
         }
 
         public override void HandleCommand(string channel, string username, string chatMessage, bool isSubscriber, string customRewardId)

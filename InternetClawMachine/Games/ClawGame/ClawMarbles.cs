@@ -1,24 +1,25 @@
-﻿using InternetClawMachine.Chat;
-using InternetClawMachine.Hardware.ClawControl;
-using InternetClawMachine.Settings;
-using OBSWebsocketDotNet;
+﻿using OBSWebsocketDotNet;
 using System;
 using System.Threading.Tasks;
+using InternetClawMachine.Chat;
+using InternetClawMachine.Settings;
+using InternetClawMachine.Hardware.ClawControl;
 
 namespace InternetClawMachine.Games.GameHelpers
 {
-    internal class ClawSingleQuickQueue : ClawSingleQueue
+    internal class ClawMarbles : ClawSingleQueue
     {
-        public ClawSingleQuickQueue(IChatApi client, BotConfiguration configuration, OBSWebsocket obs) : base(client, configuration, obs)
+        public ClawMarbles(IChatApi client, BotConfiguration configuration, OBSWebsocket obs) : base(client, configuration, obs)
         {
-            GameMode = GameModeType.SINGLEQUICKQUEUE;
+            GameMode = GameModeType.MARBLES;
             
-            StartMessage = string.Format(Translator.GetTranslation("gameClawSingleQuickQueueStartGame", Translator.DefaultLanguage), Configuration.CommandPrefix);
+            StartMessage = string.Format(Translator.GetTranslation("gameClawMarblesStartGame", Translator.DefaultLanguage), Configuration.CommandPrefix);
         }
 
-        public override void Destroy()
+        public override void Init()
         {
-            base.Destroy();
+            base.Init();
+            
         }
 
         public override void EndGame()
@@ -29,12 +30,10 @@ namespace InternetClawMachine.Games.GameHelpers
             base.EndGame();
         }
 
-        public override void Init()
+        public override void Destroy()
         {
-            base.Init();
-            
+            base.Destroy();
         }
-
         internal override void MachineControl_OnClawRecoiled(object sender, EventArgs e)
         {
             if (Configuration.EventMode.DisableReturnHome)
