@@ -5,14 +5,14 @@ using OBSWebsocketDotNet;
 using System;
 using System.Threading.Tasks;
 
-namespace InternetClawMachine.Games.GameHelpers
+namespace InternetClawMachine.Games.ClawGame
 {
     internal class ClawSingleQuickQueue : ClawSingleQueue
     {
         public ClawSingleQuickQueue(IChatApi client, BotConfiguration configuration, OBSWebsocket obs) : base(client, configuration, obs)
         {
             GameMode = GameModeType.SINGLEQUICKQUEUE;
-            
+
             StartMessage = string.Format(Translator.GetTranslation("gameClawSingleQuickQueueStartGame", Translator.DefaultLanguage), Configuration.CommandPrefix);
         }
 
@@ -32,7 +32,7 @@ namespace InternetClawMachine.Games.GameHelpers
         public override void Init()
         {
             base.Init();
-            
+            ((ClawController)MachineControl).OnReturnedHome += ClawSingleQuickQueue_OnReturnedHome;
         }
 
         internal override void MachineControl_OnClawRecoiled(object sender, EventArgs e)
@@ -47,14 +47,31 @@ namespace InternetClawMachine.Games.GameHelpers
         {
             //we check to see if the return home event was fired by the person that's currently playing
             //if it has we need to move to the next player, if not we've moved on already, perhaps bad design here
-            
-            if (PlayerQueue.CurrentPlayer != null && PlayerQueue.CurrentPlayer == CurrentDroppingPlayer.Username && GameLoopCounterValue == CurrentDroppingPlayer.GameLoop)
+            DropInCommandQueue = false;
+            Configuration.OverrideChat = false;
+            if (PlayerQueue.CurrentPlayer != null && PlayerQueue.CurrentPlayer == CurrentDroppingPlayer.Username && GameLoopCounterValue == CurrentDroppingPlayer.GameLoop
+            && Configuration.EventMode.ClawMode == ClawMode.NORMAL)
             {
                 base.OnTurnEnded(new RoundEndedArgs() { Username = PlayerQueue.CurrentPlayer, GameMode = GameMode, GameLoopCounterValue = GameLoopCounterValue });
                 var nextPlayer = PlayerQueue.GetNextPlayer();
                 StartRound(nextPlayer);
             }
-            
+        }
+
+        private void ClawSingleQuickQueue_OnReturnedHome(object sender, EventArgs e)
+        {
+            //we check to see if the return home event was fired by the person that's currently playing
+            //if it has we need to move to the next player, if not we've moved on already, perhaps bad design here
+
+            if (PlayerQueue.CurrentPlayer != null && PlayerQueue.CurrentPlayer == CurrentDroppingPlayer.Username && GameLoopCounterValue == CurrentDroppingPlayer.GameLoop
+            && Configuration.EventMode.ClawMode == ClawMode.TARGETING)
+            {
+                DropInCommandQueue = false;
+                Configuration.OverrideChat = false;
+                base.OnTurnEnded(new RoundEndedArgs() { Username = PlayerQueue.CurrentPlayer, GameMode = GameMode, GameLoopCounterValue = GameLoopCounterValue });
+                var nextPlayer = PlayerQueue.GetNextPlayer();
+                StartRound(nextPlayer);
+            }
         }
 
         public override void StartRound(string username)
@@ -84,7 +101,7 @@ namespace InternetClawMachine.Games.GameHelpers
 
             ChatClient.SendMessage(Configuration.Channel, msg);
 
-            Task.Run(async delegate()
+            Task.Run(async delegate ()
             {
                 var sequence = DateTime.Now.Ticks;
                 Logger.WriteLog(Logger.DebugLog,
@@ -102,11 +119,9 @@ namespace InternetClawMachine.Games.GameHelpers
 
                 //we need a check if they changed game mode or something weird happened
                 var args = new RoundEndedArgs()
-                    {Username = username, GameLoopCounterValue = GameLoopCounterValue, GameMode = GameMode};
+                { Username = username, GameLoopCounterValue = GameLoopCounterValue, GameMode = GameMode };
 
                 await Task.Delay(firstWait);
-
-
 
                 //if after the first delay something skipped them, jump out
                 if (PlayerQueue.CurrentPlayer != args.Username || GameLoopCounterValue != args.GameLoopCounterValue)
@@ -114,7 +129,6 @@ namespace InternetClawMachine.Games.GameHelpers
                     Logger.WriteLog(Logger.DebugLog, string.Format("STARTROUND: [{0}] Exit after first wait for {1} in game loop {2}, current player {3} game loop {4}", sequence, args.Username, args.GameLoopCounterValue, PlayerQueue.CurrentPlayer, GameLoopCounterValue), Logger.LogLevel.DEBUG);
                     return;
                 }
-
 
                 if (!CurrentPlayerHasPlayed && PlayerQueue.Count > 1)
                 {

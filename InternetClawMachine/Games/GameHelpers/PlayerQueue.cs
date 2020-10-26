@@ -5,45 +5,6 @@ namespace InternetClawMachine.Games.GameHelpers
 {
     public class PlayerQueue
     {
-        /// <summary>
-        /// List of all current players playing in this mode
-        /// </summary>
-        public List<string> Players { get; set; }
-
-        /// <summary>
-        /// Where are we in the player list
-        /// </summary>
-        public int Index { set; get; }
-
-        /// <summary>
-        /// How many players are in the queue
-        /// </summary>
-        public int Count => Players.Count;
-
-        /// <summary>
-        /// Returns the current player in the queue
-        /// </summary>
-        public string CurrentPlayer
-        {
-            get
-            {
-                lock (Players)
-                {
-                    if (Players.Count > 0 && Index == -1)
-                        Index = 0;
-                    if (Players.Count > 0 && Index < Players.Count)
-                        return Players[Index];
-
-                    return null;
-                }
-            }
-        }
-
-        public PlayerQueue()
-        {
-            Players = new List<string>();
-        }
-
         #region Events
 
         /// <summary>
@@ -65,11 +26,6 @@ namespace InternetClawMachine.Games.GameHelpers
 
         #region Methods
 
-        internal bool Contains(string user)
-        {
-            return Players.Contains(user);
-        }
-
         /// <summary>
         /// Add player to the player queue
         /// </summary>
@@ -77,11 +33,16 @@ namespace InternetClawMachine.Games.GameHelpers
         /// <returns>index of the player in the queue</returns>
         internal int AddSinglePlayer(string username)
         {
+            if (MaxQueueSize > 0 && Players.Count >= MaxQueueSize)
+            {
+                throw new PlayerQueueSizeExceeded("Queue is full");
+            }
+
             if (!Players.Contains(username))
             {
                 Players.Add(username);
-                OnChangedQueue?.Invoke(this, new QueueUpdateArgs(QueueUpdateType.JOINED, username));
-                OnJoinedQueue?.Invoke(this, new QueueUpdateArgs(QueueUpdateType.JOINED, username));
+                OnChangedQueue?.Invoke(this, new QueueUpdateArgs(QueueUpdateType.JOINED, username, Players.IndexOf(username)));
+                OnJoinedQueue?.Invoke(this, new QueueUpdateArgs(QueueUpdateType.JOINED, username, Players.IndexOf(username)));
                 //let's do some validation of index here...
                 //can't have a higher index than player count
                 if (Players.Count <= Index || Index < 0)
@@ -93,15 +54,80 @@ namespace InternetClawMachine.Games.GameHelpers
 
         internal int AddSinglePlayer(string username, int index)
         {
+            if (MaxQueueSize > 0 && Players.Count >= MaxQueueSize)
+            {
+                throw new PlayerQueueSizeExceeded("Queue is full");
+            }
             if (!Players.Contains(username))
             {
                 //TODO - validation
                 Players.Insert(index, username);
-                OnChangedQueue?.Invoke(this, new QueueUpdateArgs(QueueUpdateType.JOINED, username));
-                OnJoinedQueue?.Invoke(this, new QueueUpdateArgs(QueueUpdateType.JOINED, username));
+                OnChangedQueue?.Invoke(this, new QueueUpdateArgs(QueueUpdateType.JOINED, username, Players.IndexOf(username)));
+                OnJoinedQueue?.Invoke(this, new QueueUpdateArgs(QueueUpdateType.JOINED, username, Players.IndexOf(username)));
             }
 
             return Players.IndexOf(username);
+        }
+
+        /// <summary>
+        /// Removes all users from the player queue
+        /// </summary>
+        internal void Clear()
+        {
+            Players.Clear();
+            OnChangedQueue?.Invoke(this, new QueueUpdateArgs(QueueUpdateType.CLEARED, "", -1));
+        }
+
+        internal bool Contains(string user)
+        {
+            return Players.Contains(user);
+        }
+
+        /// <summary>
+        /// Increments the PlayerQueueIndex and returns the next player in the queue
+        /// </summary>
+        /// <returns></returns>
+        internal string GetNextPlayer()
+        {
+            Index++;
+            if (Players.Count <= Index)
+            {
+                Index = 0;
+                if (Players.Count == 0)
+                    return null;
+            }
+
+            return Players[Index];
+        }
+
+        /// <summary>
+        /// Return a copied list of all players in the queue
+        /// </summary>
+        /// <returns></returns>
+        internal string[] GetPlayerQueue()
+        {
+            return Players.ToArray();
+        }
+
+        /// <summary>
+        /// Removes player from the player queue
+        /// </summary>
+        /// <param name="username"></param>
+        internal void RemoveSinglePlayer(string username)
+        {
+            if (Players.Contains(username))
+            {
+                //if the player removed comes at or before the current index, decrease by 1
+                if (Players.IndexOf(username) <= Index)
+                    Index--;
+
+                if (Index < 0)
+                    Index = 0;
+
+                Players.Remove(username);
+                OnChangedQueue?.Invoke(this, new QueueUpdateArgs(QueueUpdateType.LEFT, username, -1));
+                OnLeftQueue?.Invoke(this, new QueueUpdateArgs(QueueUpdateType.LEFT, username, -1));
+            }
         }
 
         /// <summary>
@@ -147,68 +173,70 @@ namespace InternetClawMachine.Games.GameHelpers
             }
         }
 
-        /// <summary>
-        /// Removes player from the player queue
-        /// </summary>
-        /// <param name="username"></param>
-        internal void RemoveSinglePlayer(string username)
-        {
-            if (Players.Contains(username))
-            {
-                //if the player removed comes at or before the current index, decrease by 1
-                if (Players.IndexOf(username) <= Index)
-                    Index--;
-
-                if (Index < 0)
-                    Index = 0;
-
-                Players.Remove(username);
-                OnChangedQueue?.Invoke(this, new QueueUpdateArgs(QueueUpdateType.LEFT, username));
-                OnLeftQueue?.Invoke(this, new QueueUpdateArgs(QueueUpdateType.LEFT, username));
-            }
-        }
-
         internal void SelectPlayer(string username)
         {
             Index = Players.IndexOf(username);
         }
 
-        /// <summary>
-        /// Increments the PlayerQueueIndex and returns the next player in the queue
-        /// </summary>
-        /// <returns></returns>
-        internal string GetNextPlayer()
-        {
-            Index++;
-            if (Players.Count <= Index)
-            {
-                Index = 0;
-                if (Players.Count == 0)
-                    return null;
-            }
-
-            return Players[Index];
-        }
-
-        /// <summary>
-        /// Removes all users from the player queue
-        /// </summary>
-        internal void Clear()
-        {
-            Players.Clear();
-            OnChangedQueue?.Invoke(this, new QueueUpdateArgs(QueueUpdateType.CLEARED, ""));
-        }
-
-        /// <summary>
-        /// Return a copied list of all players in the queue
-        /// </summary>
-        /// <returns></returns>
-        internal string[] GetPlayerQueue()
-        {
-            return Players.ToArray();
-        }
-
         #endregion Methods
+
+        public PlayerQueue(int queueSizeMax)
+        {
+            Players = new List<string>();
+            MaxQueueSize = queueSizeMax;
+        }
+
+        /// <summary>
+        /// How many players are in the queue
+        /// </summary>
+        public int Count => Players.Count;
+
+        /// <summary>
+        /// Returns the current player in the queue
+        /// </summary>
+        public string CurrentPlayer
+        {
+            get
+            {
+                lock (Players)
+                {
+                    if (Players.Count > 0 && Index == -1)
+                        Index = 0;
+                    if (Players.Count > 0 && Index < Players.Count)
+                        return Players[Index];
+
+                    return null;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Where are we in the player list
+        /// </summary>
+        public int Index { set; get; }
+
+        /// <summary>
+        /// List of all current players playing in this mode
+        /// </summary>
+        public List<string> Players { get; set; }
+
+        public int MaxQueueSize { get; private set; }
+    }
+
+    public class QueueUpdateArgs
+    {
+        public QueueUpdateArgs(QueueUpdateType action, string username, int index)
+        {
+            Username = username;
+            Action = action;
+            Index = index;
+        }
+
+        public QueueUpdateType Action { get; private set; }
+
+        public string Username { get; private set; }
+
+        public int Index { get; private set; }
     }
 
     public enum QueueUpdateType
@@ -216,17 +244,5 @@ namespace InternetClawMachine.Games.GameHelpers
         JOINED,
         LEFT,
         CLEARED
-    }
-
-    public class QueueUpdateArgs
-    {
-        public QueueUpdateArgs(QueueUpdateType action, string username)
-        {
-            Username = username;
-            Action = action;
-        }
-
-        public string Username { get; private set; }
-        public QueueUpdateType Action { get; private set; }
     }
 }

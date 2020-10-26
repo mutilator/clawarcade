@@ -1,69 +1,81 @@
-﻿using InternetClawMachine.Games.GameHelpers;
+﻿using InternetClawMachine.Chat;
+using InternetClawMachine.Games.GameHelpers;
 using InternetClawMachine.Hardware.ClawControl;
 using InternetClawMachine.Hardware.RFID;
 using InternetClawMachine.Settings;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using OBSWebsocketDotNet;
 using System;
-using System.CodeDom;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.Data;
 using System.Data.SQLite;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Net.Http;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
-using InternetClawMachine.Chat;
-using InternetClawMachine.Games.OtherGame;
 using TwitchLib.Api;
-using System.Net.Http;
-using Newtonsoft.Json;
-using System.Text;
 
-namespace InternetClawMachine.Games.GameHelpers
+namespace InternetClawMachine.Games.ClawGame
 {
     internal class ClawGame : Game
     {
+        #region Fields
+
+        private int _failsafeCurrentResets;
+        private int _failsafeMaxResets = 4; //TODO - move this to config
+        private int _lastBountyPlay;
+        private long _lastSensorTrip;
+        private int _reconnectCounter = 0;
+        private Random _rnd = new Random();
+
+        #endregion Fields
+
+        #region Properties
+
+        public TwitchAPI Api { get; private set; }
+
+        //flag determines if a player played
+        public bool CurrentPlayerHasPlayed { get; internal set; }
+
+        public CancellationTokenSource CurrentWinCancellationToken { get; private set; }
+
         /// <summary>
         /// The time the claw was dropped
         /// </summary>
         public long DropTime { set; get; }
-
-        public List<PlushieObject> PlushieTags { set; get; } = new List<PlushieObject>();
-        private int _lastBountyPlay;
-        private int _reconnectCounter = 0;
-
-        private Random _rnd = new Random();
-        private long _lastSensorTrip;
-        private int _failsafeCurrentResets;
-        private int _failsafeMaxResets = 4; //TODO - move this to config
-
-        /// <summary>
-        /// Number of drops since the last win
-        /// </summary>
-        public int SessionDrops { set; get; }
 
         /// <summary>
         /// Claw machine control interface
         /// </summary>
         public IMachineControl MachineControl { get; set; }
 
+        public List<PlushieObject> PlushieTags { set; get; } = new List<PlushieObject>();
+
+        /// <summary>
+        /// Number of drops since the last win
+        /// </summary>
+        public int SessionDrops { set; get; }
+
         public List<SessionWinTracker> SessionWinTracker { get; internal set; }
 
-        //flag determines if a player played
-        public bool CurrentPlayerHasPlayed { get; internal set; }
-        public CancellationTokenSource CurrentWinCancellationToken { get; private set; }
-        public TwitchAPI API { get; private set; }
+        #endregion Properties
+
+        #region Events
 
         /// <summary>
         /// Thrown when we send a drop event, this probably shouldn't be part of the game class
         /// </summary>
         public event EventHandler<EventArgs> ClawDropping;
+
         public event EventHandler<TeamJoinedArgs> OnTeamJoined;
 
+        #endregion Events
+
+        #region Constructors + Destructors
 
         public ClawGame(IChatApi client, BotConfiguration configuration, OBSWebsocket obs) : base(client, configuration, obs)
         {
@@ -91,7 +103,6 @@ namespace InternetClawMachine.Games.GameHelpers
                 ((ClawController)MachineControl).OnFlipperHitHome += ClawGame_OnFlipperHitHome;
                 ((ClawController)MachineControl).OnFlipperTimeout += ClawGame_OnFlipperTimeout;
                 Configuration.ClawSettings.PropertyChanged += ClawSettings_PropertyChanged;
-
             }
             else
             {
@@ -111,14 +122,6 @@ namespace InternetClawMachine.Games.GameHelpers
 
             OnTeamJoined += ClawGame_OnTeamJoined;
 
-
-            PlayerQueue = new PlayerQueue();
-            CommandQueue = new List<ClawCommand>();
-            CommandQueueTimer = new Stopwatch();
-            GameModeTimer = new Stopwatch();
-            GameRoundTimer = new Stopwatch();
-            Votes = new List<GameModeVote>();
-
             SessionWinTracker = new List<SessionWinTracker>();
 
             //refresh the browser scene source, needs done better...
@@ -130,771 +133,115 @@ namespace InternetClawMachine.Games.GameHelpers
             });
         }
 
-        private void ClawGame_OnTeamJoined(object sender, TeamJoinedArgs e)
-        {
-            
-        }
-
-        private void ClawGame_OnFlipperTimeout(object sender, EventArgs e)
-        {
-            Notifier.SendEmail(Configuration.EmailAddress, "Flipper timeout, CHECK ASAP!!!", "Flipper Timeout");
-            Notifier.SendDiscordMessage(Configuration.DiscordSettings.SpamWebhook, "Flipper timeout, CHECK ASAP!!!");
-        }
-
-        private void ClawGame_OnFlipperHitHome(object sender, EventArgs e)
-        {
-
-        }
-
-        private void ClawGame_OnFlipperHitForward(object sender, EventArgs e)
-        {
-            if (Configuration.EventMode.FlipperPosition == FlipperDirection.FLIPPER_FORWARD || Configuration.EventMode.DisableFlipper)
-                return;
-
-            Task.Run(async delegate ()
-            {
-                await ((ClawController)MachineControl).RunConveyor(1000);
-
-                ((ClawController)MachineControl).Flipper(FlipperDirection.FLIPPER_HOME);
-            });
-        }
-
-        private void ClawGame_OnReSubscriber(object sender, TwitchLib.Client.Events.OnReSubscriberArgs e)
-        {
-            PoliceStrobe();
-            ((ClawController)MachineControl).SendCommandAsync("wt 200");
-            ((ClawController)MachineControl).SendCommandAsync("clap");
-        }
-
-        private void ClawGame_OnNewSubscriber(object sender, TwitchLib.Client.Events.OnNewSubscriberArgs e)
-        {
-            PoliceStrobe();
-            ((ClawController)MachineControl).SendCommandAsync("wt 200");
-            ((ClawController)MachineControl).SendCommandAsync("clap");
-        }
-
-        private void Configuration_EventModeChanged(object sender, EventModeArgs e)
-        {
-            //create new session
-            Configuration.SessionGuid = Guid.NewGuid();
-            DatabaseFunctions.WriteDbSessionRecord(Configuration, Configuration.SessionGuid.ToString(), (int)Configuration.EventMode.EventMode, Configuration.EventMode.DisplayName);
-
-
-            InitializeEventSettings(e.Event);
-        }
-
-        public void InitializeEventSettings(EventModeSettings eventConfig)
-        {
-            //home location
-            if (Configuration.ClawSettings.UseNewClawController)
-            {
-                try
-                {
-                    ((ClawController)MachineControl).SendCommandAsync("shome " + (int)Configuration.EventMode.ClawHomeLocation);
-                }
-                catch { }
-                try
-                {
-                    ((ClawController)MachineControl).SendCommandAsync("mode " + (int)Configuration.EventMode.ClawMode);
-                }
-                catch { }
-            }
-
-            //set the greenscreen override
-            Configuration.ClawSettings.GreenScreenOverrideOff = eventConfig.GreenScreenOverrideOff;
-            if (Configuration.ClawSettings.GreenScreenOverrideOff)
-            {
-                DisableGreenScreen();
-            }
-
-
-            //Load all teams
-            if (eventConfig.EventMode == EventMode.NORMAL)
-            {
-                Teams = DatabaseFunctions.GetTeams(Configuration);
-            } else
-            {
-                Teams = DatabaseFunctions.GetTeams(Configuration, Configuration.SessionGuid.ToString());
-            }
-
-            //Lights
-            if (eventConfig.LightsOff && MachineControl.IsLit)
-                MachineControl.LightSwitch(false);
-
-            //Black lights
-            if (eventConfig.BlacklightsOn && !Configuration.ClawSettings.BlackLightMode)
-                Configuration.ClawSettings.BlackLightMode = true;
-
-            if (eventConfig.WireTheme != null)
-                ChangeWireTheme(eventConfig.WireTheme);
-            else
-            {
-                var theme = Configuration.ClawSettings.WireThemes.Find(t => t.Name.ToLower() == "default");
-
-                ChangeWireTheme(theme, true);
-            }
-
-            if (eventConfig.Reticle != null)
-                ChangeReticle(eventConfig.Reticle);
-
-            //grab current scene to make sure we skin all scenes
-            if (ObsConnection.IsConnected)
-            {
-
-
-                var currentscene = ObsConnection.GetCurrentScene().Name;
-
-                //TODO - pull this from config
-                var scenes = new string[] { "Claw 1", "Claw 2", "Claw 3" };
-
-                //skin all scenes
-                for (var i = 0; i < scenes.Length; i++)
-                {
-                    ObsConnection.SetCurrentScene(scenes[i]);
-
-                    //Fix greenscreen
-                    foreach (var bg in Configuration.ClawSettings.ObsGreenScreenOptions)
-                        foreach (var scene in bg.Scenes)
-                        {
-                            try
-                            {
-                                ObsConnection.SetSourceRender(scene, ((eventConfig.GreenScreen != null && bg.Name == eventConfig.GreenScreen.Name) || (eventConfig.GreenScreen == null && Configuration.ClawSettings.ObsGreenScreenDefault.Name == bg.Name)));
-                            }
-                            catch (Exception ex) //skip over scenes that error out, log errors
-                            {
-                                var error = string.Format("ERROR Source: {0} {1} {2}", scene, ex.Message, ex);
-                                Logger.WriteLog(Logger.ErrorLog, error);
-
-                            }
-                        }
-
-                    //update background
-                    foreach (var bg in Configuration.ClawSettings.ObsBackgroundOptions)
-                    {
-                        try
-                        {
-                            //if bg defined and is in the list, set it, otherwise if no bg defined set default
-                            ObsConnection.SetSourceRender(bg.SourceName, ((eventConfig.BackgroundScenes != null && eventConfig.BackgroundScenes.Any(s => s.SourceName == bg.SourceName)) || ((eventConfig.BackgroundScenes == null || eventConfig.BackgroundScenes.Count == 0) && Configuration.ClawSettings.ObsBackgroundDefault.SourceName == bg.SourceName)), bg.SceneName);
-                        }
-                        catch (Exception ex) //skip over scenes that error out, log errors
-                        {
-                            var error = string.Format("ERROR Source: {0} {1} {2}", bg.SourceName, ex.Message, ex);
-                            Logger.WriteLog(Logger.ErrorLog, error);
-                        }
-                    }
-                }
-
-                //reset current scene
-                ObsConnection.SetCurrentScene(currentscene);
-            }
-        }
-
-        private void ClawGame_OnClawRecoiled(object sender, EventArgs e)
-        {
-            if (Configuration.EventMode.DisableReturnHome)
-            {
-                MachineControl_OnClawCentered(sender, e);
-            }
-        }
-
-        private void ClawGame_OnClawTimeout(object sender, EventArgs e)
-        {
-            //Emailer.SendEmail(Configuration.EmailAddress, "Claw machine timeout closed", "Claw Timeout");
-            Notifier.SendDiscordMessage(Configuration.DiscordSettings.SpamWebhook, "Claw machine timeout closed");
-
-        }
-
-        private void ClawGame_OnMotorTimeoutUp(object sender, EventArgs e)
-        {
-            //Emailer.SendEmail(Configuration.EmailAddress, "Claw machine timeout recoiling", "Claw Timeout");
-            Notifier.SendDiscordMessage(Configuration.DiscordSettings.SpamWebhook, "Claw machine timeout recoiling");
-            ResetMachine();
-        }
-
-        private void ResetMachine()
-        {
-            if (_failsafeCurrentResets < _failsafeMaxResets)
-            {
-                _failsafeCurrentResets++;
-                Task.Run(async delegate
-                {
-                    await Task.Delay(10000);
-                    ((ClawController)MachineControl).SendCommand("state 0");
-                    ((ClawController)MachineControl).SendCommand("reset");
-                });
-            } else
-            {
-                try
-                {
-                    ChatClient.SendMessage(Configuration.Channel, "Machine has failed to reset the maximum number of times. Use !discord to contact the owner.");
-                }
-                catch { }
-                try
-                {
-                    ObsConnection.SetSourceRender(Configuration.ObsScreenSourceNames.Construction.SourceName, true,
-                        Configuration.ObsScreenSourceNames.Construction.SceneName);
-                }
-                catch
-                {
-                }
-                try
-                {
-
-                    Task.Run(async delegate
-                    {
-                    //send to discord
-                    var client = new HttpClient();
-                        var url = new JObject();
-                        url.Add("content", string.Format("Oh no I broke! Someone find my owner to fix me!"));
-
-                        var data = new StringContent(JsonConvert.SerializeObject(url), Encoding.UTF8, "application/json");
-                        var res = await client.PostAsync(Configuration.DiscordSettings.ChatWebhook, data);
-                    });
-                }
-                catch { }
-            }
-        }
-
-        private void ClawGame_OnMotorTimeoutRight(object sender, EventArgs e)
-        {
-            //Emailer.SendEmail(Configuration.EmailAddress, "Claw machine timeout right", "Claw Timeout");
-            Notifier.SendDiscordMessage(Configuration.DiscordSettings.SpamWebhook, "Claw machine timeout right");
-            ResetMachine();
-        }
-
-        private void ClawGame_OnMotorTimeoutLeft(object sender, EventArgs e)
-        {
-            //Emailer.SendEmail(Configuration.EmailAddress, "Claw machine timeout left", "Claw Timeout");
-            Notifier.SendDiscordMessage(Configuration.DiscordSettings.SpamWebhook, "Claw machine timeout left");
-            ResetMachine();
-        }
-
-        private void ClawGame_OnMotorTimeoutForward(object sender, EventArgs e)
-        {
-            //Emailer.SendEmail(Configuration.EmailAddress, "Claw machine timeout forward", "Claw Timeout");
-            Notifier.SendDiscordMessage(Configuration.DiscordSettings.SpamWebhook, "Claw machine timeout forward");
-            ResetMachine();
-        }
-
-        private void ClawGame_OnMotorTimeoutDown(object sender, EventArgs e)
-        {
-            //Emailer.SendEmail(Configuration.EmailAddress, "Claw machine timeout dropping", "Claw Timeout");
-            Notifier.SendDiscordMessage(Configuration.DiscordSettings.SpamWebhook, "Claw machine timeout dropping");
-            ResetMachine();
-        }
-
-        private void ClawGame_OnMotorTimeoutBackward(object sender, EventArgs e)
-        {
-            
-            //Emailer.SendEmail(Configuration.EmailAddress, "Claw machine timeout back", "Claw Timeout");
-            Notifier.SendDiscordMessage(Configuration.DiscordSettings.SpamWebhook, "Claw machine timeout back");
-            ResetMachine();
-        }
-
-        private void ClawGame_OnInfoMessage(IMachineControl controller, string message)
-        {
-            Logger.WriteLog(Logger.DebugLog, message, Logger.LogLevel.TRACE);
-        }
-
-        private void ClawSettings_PropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
-        {
-            if (e.PropertyName == "WiggleMode")
-            {
-                if (Configuration.ClawSettings.WiggleMode)
-                {
-                    ((ClawController)MachineControl).SendCommandAsync("w on");
-                }
-                else
-                {
-                    ((ClawController)MachineControl).SendCommandAsync("w off");
-                }
-            } else if (e.PropertyName == "BlackLightMode")
-            {
-                HandleBlackLightMode();
-            }
-        }
-
-        private void ReconnectClawController()
-        {
-            var connected = false;
-            while (_reconnectCounter < 10000 && !connected)
-            {
-                _reconnectCounter++;
-                Configuration.ReconnectAttempts++;
-                connected = ((ClawController)MachineControl).Connect(Configuration.ClawSettings.ClawControllerIpAddress, Configuration.ClawSettings.ClawControllerPort);
-                if (!connected)
-                    Thread.Sleep(20000);
-            }
-        }
-
-        public override void Init()
-        {
-            base.Init();
-
-            _failsafeCurrentResets = 0;
-            SessionDrops = 0;
-            SessionWinTracker.Clear();
-            File.WriteAllText(Configuration.FileDrops, "");
-            File.WriteAllText(Configuration.FileLeaderboard, "");
-
-
-
-            try
-            {
-                if (!MachineControl.IsConnected)
-                {
-                    if (Configuration.ClawSettings.UseNewClawController)
-                    {
-                        ((ClawController)MachineControl).Connect(Configuration.ClawSettings.ClawControllerIpAddress, Configuration.ClawSettings.ClawControllerPort);
-                        if (Configuration.ClawSettings.WiggleMode)
-                        {
-                            ((ClawController)MachineControl).SendCommandAsync("w on");
-                        }
-                        else
-                        {
-                            ((ClawController)MachineControl).SendCommandAsync("w off");
-                        }
-
-
-                        HandleBlackLightMode();
-                    }
-                    MachineControl.Init();
-
-                    Configuration.ReconnectAttempts++;
-                }
-            }
-            catch (Exception ex)
-            {
-                var error = string.Format("ERROR {0} {1}", ex.Message, ex);
-                Logger.WriteLog(Logger.ErrorLog, error);
-            }
-
-            try
-            {
-                if (RfidReader.IsConnected)
-                {
-                    RfidReader.NewTagFound += RFIDReader_NewTagFound;
-                }
-                else
-                {
-                    RfidReader.Connect(Configuration.ClawSettings.RfidReaderIpAddress, Configuration.ClawSettings.RfidReaderPort, (byte)Configuration.ClawSettings.RfidAntennaPower);
-                    RfidReader.NewTagFound += RFIDReader_NewTagFound;
-                    RfidReader.StartListening();
-                }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show("Unable to connect to RFID reader. " + ex.Message);
-                var error = string.Format("ERROR {0} {1}", ex.Message, ex);
-                Logger.WriteLog(Logger.ErrorLog, error);
-            }
-            LoadPlushFromDb();
-            
-            InitializeEventSettings(Configuration.EventMode);
-        }
-
-        private void HandleBlackLightMode()
-        {
-            //adjust settings on load for game
-            if (Configuration.ClawSettings.BlackLightMode)
-            {
-                try
-                {
-                    MachineControl.LightSwitch(false);
-                    ((ClawController)MachineControl).SendCommand("pm 16 1");
-                    ((ClawController)MachineControl).SendCommand("ps 16 1");
-                }
-                catch (Exception x)
-                {
-                    var error = string.Format("ERROR {0} {1}", x.Message, x);
-                    Logger.WriteLog(Logger.ErrorLog, error);
-                }
-
-                AdjustOBSGreenScreenFilters();
-
-                //TODO - don't hardcode this
-                try {
-                    ObsConnection.SetSourceRender("moon", true);
-                    ObsConnection.SetSourceRender("moon2", true);
-                }
-                catch (Exception x)
-                {
-                    var error = string.Format("ERROR {0} {1}", x.Message, x);
-                    Logger.WriteLog(Logger.ErrorLog, error);
-                }
-            }
-            else
-            {
-                try {
-                    ((ClawController)MachineControl).SendCommand("ps 16 0");
-                    MachineControl.LightSwitch(true);
-                }
-                catch (Exception x)
-                {
-                    var error = string.Format("ERROR {0} {1}", x.Message, x);
-                    Logger.WriteLog(Logger.ErrorLog, error);
-                }
-
-
-                AdjustOBSGreenScreenFilters();
-
-                //TODO - don't hardcode this
-                try
-                {
-                    ObsConnection.SetSourceRender("moon", false);
-                    ObsConnection.SetSourceRender("moon2", false);
-                }
-                catch (Exception x)
-                {
-                    var error = string.Format("ERROR {0} {1}", x.Message, x);
-                    Logger.WriteLog(Logger.ErrorLog, error);
-                }
-            }
-        }
-
-        private void AdjustOBSGreenScreenFilters()
-        {
-            //if black light mode on init make sure greenscreen filters are swapped
-            if (Configuration.ClawSettings.BlackLightMode)
-            {
-                DisableGreenScreenNormal();
-                EnableGreenScreen();
-            }
-            else
-            {
-                DisableGreenScreenBlackLight();
-                EnableGreenScreen();
-            }
-        }
-
-        private void LoadPlushFromDb()
-        {
-            lock (Configuration.RecordsDatabase)
-            {
-                try
-                {
-                    if (PlushieTags != null)
-                        PlushieTags.Clear();
-                    else
-                        PlushieTags = new List<PlushieObject>();
-
-                    Configuration.RecordsDatabase.Open();
-                    var sql = "SELECT p.Name, c.PlushID, c.EPC, p.ChangedBy, p.ChangeDate, p.WinStream, p.BountyStream, p.BonusBux FROM plushie p INNER JOIN plushie_codes c ON p.ID = c.PlushID WHERE p.Active = 1 ORDER BY p.name";
-                    var command = new SQLiteCommand(sql, Configuration.RecordsDatabase);
-                    using (var dbPlushies = command.ExecuteReader())
-                    {
-                        while (dbPlushies.Read())
-                        {
-                            var name = (string)dbPlushies.GetValue(0);
-                            var plushId = int.Parse(dbPlushies.GetValue(1).ToString());
-                            var epc = (string)dbPlushies.GetValue(2);
-                            var changedBy = dbPlushies.GetValue(3).ToString();
-                            var changeDate = 0;
-                            if (dbPlushies.GetValue(4).ToString().Length > 0)
-                                changeDate = int.Parse(dbPlushies.GetValue(4).ToString());
-
-                            var winStream = dbPlushies.GetValue(5).ToString();
-
-                            var bountyStream = dbPlushies.GetValue(6).ToString();
-
-                            var bonusBux = 0;
-
-                            if (dbPlushies.GetValue(7).ToString().Length > 0)
-                                bonusBux = int.Parse(dbPlushies.GetValue(7).ToString());
-
-                            var existing = PlushieTags.FirstOrDefault(itm => itm.PlushId == plushId);
-                            if (existing != null)
-                            {
-                                existing.EpcList.Add(epc);
-                            }
-                            else
-                            {
-                                var plush = new PlushieObject() { Name = name, PlushId = plushId, ChangedBy = changedBy, ChangeDate = changeDate, WinStream = winStream, BountyStream = bountyStream, FromDatabase = true, BonusBux = bonusBux };
-                                plush.EpcList = new List<string>() { epc };
-                                PlushieTags.Add(plush);
-                            }
-                        }
-                    }
-                    Configuration.RecordsDatabase.Close();
-                }
-                catch (Exception ex)
-                {
-                    var error = string.Format("ERROR {0} {1}", ex.Message, ex);
-                    Logger.WriteLog(Logger.ErrorLog, error);
-                }
-            }
-        }
-
-        public override void StartGame(string user)
-        {
-            _lastSensorTrip = 0;
-            _lastBountyPlay = 0;
-            base.StartGame(user);
-            Notifier.SendDiscordMessage(Configuration.DiscordSettings.SpamWebhook, string.Format("Game Mode Started:  {0}", GameMode.ToString()));
-            try
-            {
-                ObsConnection.SetSourceRender(Configuration.ObsScreenSourceNames.Construction.SourceName, false,
-                    Configuration.ObsScreenSourceNames.Construction.SceneName);
-            }
-            catch
-            {
-            }
-        }
-
-        
-
-        public override void EndGame()
-        {
-            if (HasEnded)
-                return;
-
-            if (MachineControl is ClawController)
-            {
-                ((ClawController)MachineControl).OnPingSuccess -= ClawGame_PingSuccess;
-                ((ClawController)MachineControl).OnPingTimeout -= ClawGame_PingTimeout;
-                ((ClawController)MachineControl).OnDisconnected -= ClawGame_Disconnected;
-                ((ClawController)MachineControl).OnReturnedHome -= ClawGame_OnReturnedHome;
-                ((ClawController)MachineControl).OnInfoMessage -= ClawGame_OnInfoMessage;
-                ((ClawController)MachineControl).OnMotorTimeoutBackward -= ClawGame_OnMotorTimeoutBackward;
-                ((ClawController)MachineControl).OnMotorTimeoutDown -= ClawGame_OnMotorTimeoutDown;
-                ((ClawController)MachineControl).OnMotorTimeoutForward -= ClawGame_OnMotorTimeoutForward;
-                ((ClawController)MachineControl).OnMotorTimeoutLeft -= ClawGame_OnMotorTimeoutLeft;
-                ((ClawController)MachineControl).OnMotorTimeoutRight -= ClawGame_OnMotorTimeoutRight;
-                ((ClawController)MachineControl).OnMotorTimeoutUp -= ClawGame_OnMotorTimeoutUp;
-                ((ClawController)MachineControl).OnClawTimeout -= ClawGame_OnClawTimeout;
-                ((ClawController)MachineControl).OnClawRecoiled -= ClawGame_OnClawRecoiled;
-                ((ClawController)MachineControl).OnFlipperHitForward -= ClawGame_OnFlipperHitForward;
-                ((ClawController)MachineControl).OnFlipperHitHome -= ClawGame_OnFlipperHitHome;
-                ((ClawController)MachineControl).OnFlipperTimeout -= ClawGame_OnFlipperTimeout;
-            }
-
-            RfidReader.NewTagFound -= RFIDReader_NewTagFound;
-            MachineControl.OnBreakSensorTripped -= MachineControl_OnBreakSensorTripped;
-            MachineControl.OnResetButtonPressed -= MachineControl_ResetButtonPressed;
-            MachineControl.OnClawDropping -= MachineControl_ClawDropping;
-            MachineControl.OnClawCentered -= MachineControl_OnClawCentered;
-            MachineControl.Disconnect();
-            Configuration.PropertyChanged -= ClawSettings_PropertyChanged;
-
-            base.EndGame();
-        }
-
-
-        private void RFIDReader_NewTagFound(EpcData epcData)
-        {
-            var epc = epcData.Epc.Trim();
-            Logger.WriteLog(Logger.DebugLog, epc, Logger.LogLevel.TRACE);
-            if (Configuration.EventMode.DisableRFScan) return; //ignore scans
-
-            if (InScanWindow)
-            {
-                var scannedPlushObject = PlushieTags.FirstOrDefault(itm => itm.EpcList.Contains(epc));
-
-                //TODO - refactor all of this, it's a hodgepodge built overtime initially requiring only a plush scan
-                if (scannedPlushObject == null)
-                    return;
-
-                //if we're scanning a plush cancel an IR scan trigger
-                if (!scannedPlushObject.WasGrabbed && CurrentWinCancellationToken != null && !CurrentWinCancellationToken.IsCancellationRequested)
-                    CurrentWinCancellationToken.Cancel();
-
-                //if this hasn't been scanned yet
-                if (!scannedPlushObject.WasGrabbed)
-                {
-                    if (scannedPlushObject != null)
-                        scannedPlushObject.WasGrabbed = true;
-
-                    TriggerWin(scannedPlushObject);
-                }
-            }
-        }
-
-        private PlushieObject GetRandomPlush()
-        {
-            var rnd = new Random();
-
-            var iterations = 10000; //how many times to find a new plush
-            for (var i = 0; i < iterations; i++)
-            {
-                var rndNumber = rnd.Next(PlushieTags.Count);
-                if (!PlushieTags[rndNumber].WasGrabbed)
-                    return PlushieTags[rndNumber];
-            }
-            return null;
-        }
-
-        /// <summary>
-        /// Play a clip in OBS for X seconds then hide it
-        /// </summary>
-        /// <param name="clipName">Name of the source in OBS</param>
-        /// <param name="ms">seconds to play the clip</param>
-        private async void PlayClipAsync(ObsSceneSource clipName, int ms)
-        {
-            if (ObsConnection.IsConnected)
-            {
-                try
-                {
-                    lock (ObsConnection)
-                    {
-                        ObsConnection.SetSourceRender(clipName.SourceName, false, clipName.SceneName);
-                        ObsConnection.SetSourceRender(clipName.SourceName, true, clipName.SceneName);
-                    }
-                    await Task.Delay(ms);
-                    lock (ObsConnection)
-                    {
-                        ObsConnection.SetSourceRender(clipName.SourceName, false, clipName.SceneName);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    var error = string.Format("ERROR {0} {1}", ex.Message, ex);
-                    Logger.WriteLog(Logger.ErrorLog, error);
-                }
-            }
-        }
-
-        private string GetCurrentWinner(string forcedWinner)
-        {
-            var winner = "";
-            var rnd = new Random();
-
-            if (forcedWinner != null)
-            {
-                winner = forcedWinner;
-            }
-            else if (SecondaryWinnersList.Count > 0)
-            {
-                winner = SecondaryWinnersList[rnd.Next(SecondaryWinnersList.Count - 1)];
-            }
-            else if (WinnersList.Count > 0)
-            {
-                winner = WinnersList[rnd.Next(WinnersList.Count - 1)];
-            }
-            else if (PlayerQueue.CurrentPlayer != null) //there are no lists of winners use the current player
-            {
-                winner = PlayerQueue.CurrentPlayer;
-            }
-            else //
-            {
-                winner = null;
-            }
-            return winner;
-        }
-
-        /// <summary>
-        /// Sends text to chat for the winner, increments the win counter
-        /// </summary>
-        /// <param name="objPlush">Plush that was grabbed</param>
-        /// <param name="winner">name of winner, could be a team or a person</param>
-        /// <param name="pointsToAdd">How much do we add to their win total? Can be negative.</param>
-        
-        private void RunWinScenario(PlushieObject objPlush, string winner, int pointsToAdd)
-        {
-            var saying = "";
-
-
-            //do we have a winner?
-            if (string.IsNullOrEmpty(winner))
-            {
-                if (objPlush != null)
-                {
-                    saying = string.Format("Oops the scanner just scanned {0} accidentally!", objPlush.Name);
-                    Logger.WriteLog(Logger.MachineLog, "ERROR: " + saying);
-                }
-            }
-
-            var usr = Configuration.UserList.GetUser(winner);
-            var winnerName = winner;
-            var teamid = usr.TeamId;
-            if (Configuration.EventMode.TeamRequired)
-                teamid = usr.EventTeamId;
-
-            var team = Teams.FirstOrDefault(t => t.Id == teamid);
-            if (team != null)
-            {
-                team.Wins += pointsToAdd;
-                if (this.GameMode == GameModeType.REALTIMETEAM)
-                    winnerName = team.Name;
-            }
-
-            //see if they're in the tracker yeta
-            var user = SessionWinTracker.FirstOrDefault(u => u.Username == winner);
-            if (user != null)
-                user = SessionWinTracker.First(u => u.Username == winner);
-            else
-                user = new SessionWinTracker() { Username = winner };
-
-            
-            if (pointsToAdd < 0) //if we're negative points, handle inside this so we don't skip to another text we don't want
-            {
-                if (!string.IsNullOrEmpty(Configuration.EventMode.CustomFailTextResource)) //if custom text exists we use it
-                {
-                    if (objPlush != null) //if they grabbed the wrong plush
-                    {
-                        saying = string.Format(Translator.GetTranslation(Configuration.EventMode.CustomFailTextResource, Configuration.UserList.GetUserLocalization(winner)), winnerName, objPlush.Name, objPlush.BonusBux);
-                    } else
-                    {
-                        saying =string.Format(Translator.GetTranslation(Configuration.EventMode.CustomFailTextResource, Configuration.UserList.GetUserLocalization(winner)), winnerName);
-                        
-                    }
-                }
-            }
-            else if (objPlush != null && !string.IsNullOrEmpty(Configuration.EventMode.CustomWinTextResource) && pointsToAdd > 0) //if an RF scan but also custom text enter here
-            {
-                saying = string.Format(Translator.GetTranslation(Configuration.EventMode.CustomWinTextResource, Configuration.UserList.GetUserLocalization(winner)), winnerName, objPlush.Name, objPlush.BonusBux);
-                DatabaseFunctions.AddStreamBuxBalance(Configuration, user.Username, StreamBuxTypes.WIN, objPlush.BonusBux);
-            }
-            //otherwise if just a custom win, mainly for events, use this
-            else if (!string.IsNullOrEmpty(Configuration.EventMode.CustomWinTextResource))
-            {
-                saying = string.Format(Translator.GetTranslation(Configuration.EventMode.CustomWinTextResource, Configuration.UserList.GetUserLocalization(winner)), winnerName, Configuration.EventMode.WinMultiplier);
-                DatabaseFunctions.AddStreamBuxBalance(Configuration, user.Username, StreamBuxTypes.WIN, Configuration.GetStreamBuxCost(StreamBuxTypes.WIN) * Configuration.EventMode.WinMultiplier);
-            }
-            else if (objPlush != null)
-            {
-                saying = string.Format(Translator.GetTranslation("gameClawGrabPlush", Configuration.UserList.GetUserLocalization(winner)), winnerName, objPlush.Name);
-                DatabaseFunctions.AddStreamBuxBalance(Configuration, user.Username, StreamBuxTypes.WIN, Configuration.GetStreamBuxCost(StreamBuxTypes.WIN));
-
-                if (objPlush.BonusBux > 0)
-                    DatabaseFunctions.AddStreamBuxBalance(Configuration, usr.Username, StreamBuxTypes.WIN, objPlush.BonusBux);
-
-                DatabaseFunctions.WriteDbWinRecord(Configuration, usr, objPlush.PlushId, Configuration.SessionGuid.ToString());
-            } else
-            {
-                saying = string.Format(Translator.GetTranslation("gameClawGrabSomething", Configuration.UserList.GetUserLocalization(winner)), winnerName);
-                DatabaseFunctions.AddStreamBuxBalance(Configuration, usr.Username, StreamBuxTypes.WIN, Configuration.GetStreamBuxCost(StreamBuxTypes.WIN));
-
-                DatabaseFunctions.WriteDbWinRecord(Configuration, usr, -1, Configuration.SessionGuid.ToString());
-            }
-
-            //increment their wins
-            user.Wins += pointsToAdd;
-
-            //increment the current goals wins
-            Configuration.DataExchanger.GoalPercentage += Configuration.GoalProgressIncrement;
-            Configuration.Save();
-
-            //reset how many drops it took to win
-            SessionDrops = 0; //set to 0 for display
-            RefreshWinList();
-
-
-            Notifier.SendEmail(Configuration.EmailAddress, "Someone won a prize: " + saying, saying);
-            Notifier.SendDiscordMessage(Configuration.DiscordSettings.SpamWebhook, winner + " won a prize: " + saying);
-
-            //send message after a bit
-            Task.Run(async delegate ()
-            {
-                await Task.Delay(Configuration.WinNotificationDelay);
-                ChatClient.SendMessage(Configuration.Channel, saying);
-                Logger.WriteLog(Configuration.Channel, saying);
-            });
-
-        }
-
         ~ClawGame()
         {
             Destroy();
+        }
+
+        #endregion Constructors + Destructors
+
+        #region Methods
+
+        /// <summary>
+        /// Change to a specific claw machine scene
+        /// </summary>
+        /// <param name="scene">Claw Scene Number</param>
+        public void ChangeClawScene(int scene)
+        {
+            if (!ObsConnection.IsConnected)
+                return;
+
+            switch (scene)
+            {
+                case 2:
+                    ChangeScene(Configuration.ObsScreenSourceNames.SceneClaw2.SceneName);
+                    break;
+
+                case 3:
+                    ChangeScene(Configuration.ObsScreenSourceNames.SceneClaw3.SceneName);
+                    break;
+
+                default:
+                    ChangeScene(Configuration.ObsScreenSourceNames.SceneClaw1.SceneName);
+                    break;
+            }
+        }
+
+        public void ChangeWireTheme(WireTheme theme, bool force = false)
+        {
+            try
+            {
+                if (theme.Name == Configuration.ClawSettings.ActiveWireTheme.Name && !force)
+                {
+                    return;
+                }
+
+                //grab filters, if they exist don't bother sending more commands
+                var currentScene = ObsConnection.GetCurrentScene();
+                var sources = Configuration.ClawSettings.WireFrameList.FindAll(t => t.SceneName == currentScene.Name);
+                foreach (var source in sources)
+                {
+                    var filters = ObsConnection.GetSourceFilters(source.SourceName);
+
+                    //remove existing filters
+                    foreach (var filter in filters)
+                    {
+                        if (filter.Type == "color_filter")
+                        {
+                            ObsConnection.RemoveFilterFromSource(source.SourceName, filter.Name);
+                        }
+                    }
+
+                    //add new ones
+                    var newFilter = new JObject();
+                    newFilter.Add("hue_shift", theme.HueShift);
+                    ObsConnection.AddFilterToSource(source.SourceName, source.FilterName, source.FilterType, newFilter);
+                }
+
+                Configuration.ClawSettings.ActiveWireTheme = theme;
+            }
+            catch (Exception x)
+            {
+                var error = string.Format("ERROR {0} {1}", x.Message, x);
+                Logger.WriteLog(Logger.ErrorLog, error);
+            }
+        }
+
+        public async void CreateClip()
+        {
+            if (!Configuration.ClawSettings.ClipMissedPlush)
+                return;
+            ///setup api
+            if (Api == null)
+            {
+                Api = new TwitchAPI();
+                Api.Settings.ClientId = Configuration.TwitchSettings.ClientId;
+                Api.Settings.AccessToken = Configuration.TwitchSettings.ApiKey;
+                if (string.IsNullOrWhiteSpace(Configuration.TwitchSettings.UserId))
+                {
+                    var userid = await Api.Helix.Users.GetUsersAsync(null, new List<string> { Configuration.TwitchSettings.Channel });
+                    Configuration.TwitchSettings.UserId = userid.Users[0].Id;
+                }
+            }
+
+            try
+            {
+                //clip on twitch
+                var result = await Api.Helix.Clips.CreateClipAsync(Configuration.TwitchSettings.UserId);
+
+                //send to discord
+                var client = new HttpClient();
+                var url = new JObject();
+                url.Add("content", string.Format("A plush wasn't properly scanned. Here is the clip. {0}", result.CreatedClips[0].EditUrl));
+
+                var data = new StringContent(JsonConvert.SerializeObject(url), Encoding.UTF8, "application/json");
+                var res = await client.PostAsync(Configuration.DiscordSettings.SpamWebhook, data);
+            }
+            catch (Exception x)
+            {
+                var error = string.Format("ERROR {0} {1}", x.Message, x);
+                Logger.WriteLog(Logger.ErrorLog, error);
+            }
         }
 
         public override void Destroy()
@@ -938,170 +285,40 @@ namespace InternetClawMachine.Games.GameHelpers
             }
         }
 
-        internal void RefreshWinList()
+        public override void EndGame()
         {
-            try
-            {
-                //TODO - change this to a text field and stop using a file!
-                var dropString = string.Format("Drops since the last win: {0}", SessionDrops);
-                File.WriteAllText(Configuration.FileDrops, dropString);
-
-                //TODO - Can this be a text field too?
-                if (Configuration.EventMode.TeamRequired)
-                {
-                    var winners = Teams.OrderByDescending(u => u.Wins).ThenByDescending(u => u.Drops).ToList();
-                    var output = "Teams:\r\n";
-                    for (var i = 0; i < winners.Count; i++)
-                    {
-                        output += string.Format("{0} - \t\t{1} points, {2} drops\r\n", winners[i].Name, winners[i].Wins, winners[i].Drops);
-                    }
-
-                    output += "\r\n\r\n";
-                    for (var i = 0; i < winners.Count; i++)
-                    {
-                        output += "\r\n\r\n";
-                        output += string.Format("{0}:\r\n", winners[i].Name);
-                        for (var j = 0; j < Configuration.UserList.Count; j++)
-                        {
-                            var u = Configuration.UserList[j];
-
-                            if (u.EventTeamName.ToLower() == winners[i].Name.ToLower())
-                                output += string.Format("{0}\r\n", u.Username);
-                        }
-                    }
-                    output += "\r\n\r\n\r\n\r\n\r\n";
-                    File.WriteAllText(Configuration.FileLeaderboard, output);
-
-                }
-                else
-                {
-                    var winners = SessionWinTracker.OrderByDescending(u => u.Wins).ThenByDescending(u => u.Drops).ToList();
-                    var output = "Session Leaderboard:\r\n";
-                    for (var i = 0; i < winners.Count; i++)
-                    {
-                        output += string.Format("{0} - {1} wins, {2} drops\r\n", winners[i].Username, winners[i].Wins, winners[i].Drops);
-                    }
-                    output += "\r\n\r\n\r\n\r\n\r\n";
-                    File.WriteAllText(Configuration.FileLeaderboard, output);
-                }
-            }
-            catch (Exception ex)
-            {
-                var error = string.Format("ERROR {0} {1}", ex.Message, ex);
-                Logger.WriteLog(Logger.ErrorLog, error);
-            }
-        }
-
-        private void ClawGame_OnReturnedHome(object sender, EventArgs e)
-        {
-            Logger.WriteLog(Logger.DebugLog, string.Format("WIN CHUTE: Current player {0} in game loop {1}", PlayerQueue.CurrentPlayer, GameLoopCounterValue), Logger.LogLevel.DEBUG);
-            InScanWindow = true; //allows RFID reader to accept scans
-            MachineControl.RunConveyor(Configuration.ClawSettings.ConveyorRunAfterDrop); //start running belt so it's in motion when/if something drops
-        }
-
-        private void MachineControl_ResetButtonPressed(object sender, EventArgs e)
-        {
-            Init();
-            StartGame(null);
-        }
-
-        private void ClawGame_PingSuccess(object sender, EventArgs e)
-        {
-            Configuration.Latency = ((ClawController)MachineControl).Latency;
-            _reconnectCounter = 0;
-        }
-
-        private void ClawGame_Disconnected(object sender, EventArgs e)
-        {
-        }
-
-        private void ClawGame_PingTimeout(object sender, EventArgs e)
-        {
-            ReconnectClawController();
-        }
-
-        private void MachineControl_ClawDropping(object sender, EventArgs e)
-        {
-            SessionDrops++;
-        }
-
-        /// <summary>
-        /// Event fires after the drop command is sent and the claw returns to center
-        /// </summary>
-        /// <param name="sender"></param>
-        /// <param name="e"></param>
-        private void MachineControl_OnClawCentered(object sender, EventArgs e)
-        {
-            _failsafeCurrentResets = 0;
-            Logger.WriteLog(Logger.DebugLog, string.Format("RETURN HOME: Current player {0} in game loop {1}", PlayerQueue.CurrentPlayer, GameLoopCounterValue), Logger.LogLevel.DEBUG);
-
-            RefreshWinList();
-
-            MachineControl.Init();
-
-            //listen for chat input again
-            Configuration.OverrideChat = false;
-
-            //create a secondary list so people get credit for wins
-            var copy = new string[WinnersList.Count];
-            WinnersList.CopyTo(copy);
-
-            SecondaryWinnersList.AddRange(copy);
-            WinnersList.Clear();
-            var message = string.Format("Cleared the drop list");
-            Logger.WriteLog(Logger.MachineLog, message);
-
-            //after a bit, clear the secondary list
-            Task.Run(async delegate ()
-            {
-                await Task.Delay(Configuration.ClawSettings.SecondaryListBufferTime);
-                SecondaryWinnersList.Clear();
-                InScanWindow = false; //disable scan acceptance
-            });
-        }
-
-        private void MachineControl_OnBreakSensorTripped(object sender, EventArgs e)
-        {
-            var message = string.Format("Break sensor tripped");
-            Logger.WriteLog(Logger.MachineLog, message);
-            message = string.Format(GameModeTimer.ElapsedMilliseconds + " - " + _lastSensorTrip + " > 7000");
-            Logger.WriteLog(Logger.MachineLog, message);
-
-            //ignore repeated trips, code on the machine ignores for 1 second
-            if (GameModeTimer.ElapsedMilliseconds - _lastSensorTrip < Configuration.ClawSettings.BreakSensorWaitTime)
+            if (HasEnded)
                 return;
 
-            //record the sensor trip
-            _lastSensorTrip = GameModeTimer.ElapsedMilliseconds;
-
-            //async task to run conveyor
-            if (!Configuration.EventMode.DisableBelt)
-                RunBelt(Configuration.ClawSettings.ConveyorWaitFor);
-
-            if (Configuration.EventMode.IRTriggersWin)
+            if (MachineControl is ClawController)
             {
-                var winCancellationToken = new CancellationTokenSource();
-
-                if (CurrentWinCancellationToken != null && !CurrentWinCancellationToken.IsCancellationRequested)
-                    CurrentWinCancellationToken.Cancel();
-
-                CurrentWinCancellationToken = winCancellationToken;
-
-
-                Task.Run(async delegate ()
-                {
-                    await Task.Delay(8000); //wait 8 seconds
-
-                    if (winCancellationToken.IsCancellationRequested)
-                        return;
-
-                    CurrentWinCancellationToken = null;
-                    TriggerWin(null, null, true, 1);
-
-                }, winCancellationToken.Token);
+                ((ClawController)MachineControl).OnPingSuccess -= ClawGame_PingSuccess;
+                ((ClawController)MachineControl).OnPingTimeout -= ClawGame_PingTimeout;
+                ((ClawController)MachineControl).OnDisconnected -= ClawGame_Disconnected;
+                ((ClawController)MachineControl).OnReturnedHome -= ClawGame_OnReturnedHome;
+                ((ClawController)MachineControl).OnInfoMessage -= ClawGame_OnInfoMessage;
+                ((ClawController)MachineControl).OnMotorTimeoutBackward -= ClawGame_OnMotorTimeoutBackward;
+                ((ClawController)MachineControl).OnMotorTimeoutDown -= ClawGame_OnMotorTimeoutDown;
+                ((ClawController)MachineControl).OnMotorTimeoutForward -= ClawGame_OnMotorTimeoutForward;
+                ((ClawController)MachineControl).OnMotorTimeoutLeft -= ClawGame_OnMotorTimeoutLeft;
+                ((ClawController)MachineControl).OnMotorTimeoutRight -= ClawGame_OnMotorTimeoutRight;
+                ((ClawController)MachineControl).OnMotorTimeoutUp -= ClawGame_OnMotorTimeoutUp;
+                ((ClawController)MachineControl).OnClawTimeout -= ClawGame_OnClawTimeout;
+                ((ClawController)MachineControl).OnClawRecoiled -= ClawGame_OnClawRecoiled;
+                ((ClawController)MachineControl).OnFlipperHitForward -= ClawGame_OnFlipperHitForward;
+                ((ClawController)MachineControl).OnFlipperHitHome -= ClawGame_OnFlipperHitHome;
+                ((ClawController)MachineControl).OnFlipperTimeout -= ClawGame_OnFlipperTimeout;
             }
 
+            RfidReader.NewTagFound -= RFIDReader_NewTagFound;
+            MachineControl.OnBreakSensorTripped -= MachineControl_OnBreakSensorTripped;
+            MachineControl.OnResetButtonPressed -= MachineControl_ResetButtonPressed;
+            MachineControl.OnClawDropping -= MachineControl_ClawDropping;
+            MachineControl.OnClawCentered -= MachineControl_OnClawCentered;
+            MachineControl.Disconnect();
+            Configuration.PropertyChanged -= ClawSettings_PropertyChanged;
 
+            base.EndGame();
         }
 
         public override void HandleCommand(string channel, string username, string chatMessage, bool isSubscriber, string customRewardId)
@@ -1141,8 +358,6 @@ namespace InternetClawMachine.Games.GameHelpers
             //load user data
             var userPrefs = Configuration.UserList.GetUser(username);
 
-
-
             try
             {
                 //TODO use a handler for this rather than a switch, allow commands to be their own classes
@@ -1176,6 +391,7 @@ namespace InternetClawMachine.Games.GameHelpers
                             }
                         }
                         break;
+
                     case "chrtcl":
                         if (customRewardId == "834af606-e51b-4cba-b855-6ddf20d48215")
                         {
@@ -1202,6 +418,7 @@ namespace InternetClawMachine.Games.GameHelpers
                             }
                         }
                         break;
+
                     case "chgwinanm":
                         if (customRewardId == "aba1a822-db81-45be-b5ee-b5b362ee8ee4")
                         {
@@ -1228,10 +445,10 @@ namespace InternetClawMachine.Games.GameHelpers
                             }
                         }
                         break;
+
                     case "chgsbg":
                         if (customRewardId == "162a508c-6603-46dd-96b4-cbd837c80454")
                         {
-
                             var cgargs = chatMessage.Split(' ');
                             if (cgargs.Length != 2)
                             {
@@ -1245,7 +462,6 @@ namespace InternetClawMachine.Games.GameHelpers
                             {
                                 if (bg.Name.ToLower() == chosenBG)
                                 {
-
                                     var oBg = new GreenScreenDefinition()
                                     {
                                         Name = bg.Name,
@@ -1261,10 +477,10 @@ namespace InternetClawMachine.Games.GameHelpers
                             }
                         }
                         break;
+
                     case "chmygsbg":
                         if (customRewardId == "8d916ecf-e8fe-4732-9b55-147c59adc3d8")
                         {
-
                             var cbargs = chatMessage.Split(' ');
                             if (cbargs.Length != 2)
                             {
@@ -1288,6 +504,7 @@ namespace InternetClawMachine.Games.GameHelpers
                             }
                         }
                         break;
+
                     case "join": //join a team
 
                         //no team chosen
@@ -1329,7 +546,7 @@ namespace InternetClawMachine.Games.GameHelpers
                             if (team == null)
                             {
                                 ChatClient.SendMessage(Configuration.Channel, string.Format(Translator.GetTranslation("gameClawCommandTeamsCreateError", Configuration.UserList.GetUserLocalization(username))));
-                                
+
                                 return;
                             }
                         }
@@ -1350,13 +567,10 @@ namespace InternetClawMachine.Games.GameHelpers
                             }
                             userPrefs.EventTeamId = team.Id;
                             userPrefs.EventTeamName = team.Name;
-
                         }
-
 
                         //save it first
                         DatabaseFunctions.WriteUserPrefs(Configuration, userPrefs);
-
 
                         //tell chat
                         ChatClient.SendMessage(Configuration.Channel, string.Format(Translator.GetTranslation("gameClawCommandTeamsJoined", Configuration.UserList.GetUserLocalization(username)), teamName));
@@ -1365,6 +579,7 @@ namespace InternetClawMachine.Games.GameHelpers
                         OnTeamJoined?.Invoke(this, new TeamJoinedArgs(userPrefs.Username, teamName));
 
                         break;
+
                     case "team":
                     case "teams": //get team stats
 
@@ -1377,7 +592,8 @@ namespace InternetClawMachine.Games.GameHelpers
 
                             lock (Configuration.RecordsDatabase)
                             {
-                                try {
+                                try
+                                {
                                     Configuration.RecordsDatabase.Open();
                                     var sql = "SELECT u.username, count(*) FROM teams t INNER JOIN user_prefs u ON t.id = u.teamid INNER JOIN wins w ON w.name = u.username AND w.teamid = t.id WHERE lower(t.name) = @name GROUP BY w.name ORDER BY count(*), w.name";
                                     var command = new SQLiteCommand(sql, Configuration.RecordsDatabase);
@@ -1391,7 +607,6 @@ namespace InternetClawMachine.Games.GameHelpers
 
                                             totalWins += int.Parse(singleTeam.GetValue(1).ToString());
                                         }
-
                                     }
                                 }
                                 finally
@@ -1403,19 +618,22 @@ namespace InternetClawMachine.Games.GameHelpers
                             {
                                 var outputMessage = string.Format(Translator.GetTranslation("gameClawResponseTeamStatsNoWins", Configuration.UserList.GetUserLocalization(username)), tn);
                                 ChatClient.SendMessage(Configuration.Channel, outputMessage);
-                            } else {
+                            }
+                            else
+                            {
                                 var outputMessage = string.Format(Translator.GetTranslation("gameClawResponseTeamStats", Configuration.UserList.GetUserLocalization(username)), tn, totalWins, outputWins.Count);
                                 ChatClient.SendMessage(Configuration.Channel, outputMessage);
                                 foreach (var winner in outputWins)
                                     ChatClient.SendMessage(Configuration.Channel, winner);
                             }
-                        } else
+                        }
+                        else
                         {
                             var outputWins = new List<string>();
                             lock (Configuration.RecordsDatabase)
                             {
-
-                                try {
+                                try
+                                {
                                     Configuration.RecordsDatabase.Open();
 
                                     var sql = "SELECT t.name, count(*) FROM teams t INNER JOIN wins w ON w.teamid = t.id GROUP BY w.teamid ORDER BY count(*) desc, t.name";
@@ -1429,7 +647,6 @@ namespace InternetClawMachine.Games.GameHelpers
                                             else
                                                 break;
                                         }
-
                                     }
                                 }
                                 finally
@@ -1450,10 +667,9 @@ namespace InternetClawMachine.Games.GameHelpers
                                 foreach (var winner in outputWins)
                                     ChatClient.SendMessage(Configuration.Channel, winner);
                             }
-
-
                         }
                         break;
+
                     case "createteams":
                         if (!Configuration.AdminUsers.Contains(username))
                             return;
@@ -1462,7 +678,7 @@ namespace InternetClawMachine.Games.GameHelpers
                         foreach (var t in teams)
                         {
                             DatabaseFunctions.CreateTeam(Configuration, t.Trim(), Configuration.SessionGuid.ToString());
-                        } 
+                        }
                         Teams = DatabaseFunctions.GetTeams(Configuration, Configuration.SessionGuid.ToString());
 
                         //clear users
@@ -1473,7 +689,6 @@ namespace InternetClawMachine.Games.GameHelpers
 
                         ChatClient.SendMessage(Configuration.Channel, string.Format(Translator.GetTranslation("gameClawCommandTeamsAdded", Configuration.UserList.GetUserLocalization(username)), Teams.Count));
                         break;
-
 
                     case "play": //probably let them handle their own play is better
                                  //auto update their localization if they use a command in another language
@@ -1491,7 +706,6 @@ namespace InternetClawMachine.Games.GameHelpers
 
                         break;
 
-
                     case "help":
                         //auto update their localization if they use a command in another language
                         if (commandText != translateCommand.FinalWord)
@@ -1507,6 +721,7 @@ namespace InternetClawMachine.Games.GameHelpers
                         if (isSubscriber)
                             ShowHelpSub(username);
                         break;
+
                     case "leaders":
                         //auto update their localization if they use a command in another language
                         if (commandText != translateCommand.FinalWord ||
@@ -1602,6 +817,7 @@ namespace InternetClawMachine.Games.GameHelpers
                         }
 
                         break;
+
                     case "mystats":
                     case "stats":
                         lock (Configuration.RecordsDatabase)
@@ -1609,7 +825,6 @@ namespace InternetClawMachine.Games.GameHelpers
                             //TODO abstract all this custom database stuff
                             try
                             {
-
                                 if (commandText.ToLower() == "stats")
                                 {
                                     param = chatMessage.Split(' ');
@@ -1632,14 +847,14 @@ namespace InternetClawMachine.Games.GameHelpers
 
                                 var sessions = command.ExecuteScalar().ToString();
 
-                                sql = "select count(*) FROM movement WHERE name = @username AND direction = 'DOWN'";
+                                sql = "select count(*) FROM movement WHERE name = @username AND direction = 'DOWN' AND type = 'MOVE'";
                                 command = new SQLiteCommand(sql, Configuration.RecordsDatabase);
                                 command.Parameters.Add(new SQLiteParameter("@username", username));
 
                                 var drops = int.Parse(command.ExecuteScalar().ToString());
                                 var cost = Math.Round(drops * 0.25, 2);
 
-                                sql = "select count(*) FROM movement WHERE name = @username AND direction <> 'NA'";
+                                sql = "select count(*) FROM movement WHERE name = @username AND direction <> 'NA' AND type = 'MOVE'";
                                 command = new SQLiteCommand(sql, Configuration.RecordsDatabase);
                                 command.Parameters.Add(new SQLiteParameter("@username", username));
 
@@ -1686,6 +901,7 @@ namespace InternetClawMachine.Games.GameHelpers
                         }
 
                         break;
+
                     case "miss":
                     case "lies":
                         if (chatMessage.IndexOf(" ") < 0)
@@ -1711,6 +927,7 @@ namespace InternetClawMachine.Games.GameHelpers
                             DatabaseFunctions.WriteUserPrefs(Configuration, userPrefs);
                         }
                         break;
+
                     case "blacklights":
                         if (!isSubscriber)
                             break;
@@ -1719,7 +936,6 @@ namespace InternetClawMachine.Games.GameHelpers
                             //black lights off turns on the lights, also saves lights on
                             if (userPrefs.BlackLightsOn)
                             {
-
                                 userPrefs.BlackLightsOn = false;
                                 Configuration.ClawSettings.BlackLightMode = false;
                                 userPrefs.LightsOn = true; //off
@@ -1732,9 +948,9 @@ namespace InternetClawMachine.Games.GameHelpers
                                 userPrefs.LightsOn = false; //off
                                 DatabaseFunctions.WriteUserPrefs(Configuration, userPrefs);
                             }
-
                         }
                         break;
+
                     case "strobe":
                         if (!isSubscriber)
                             break;
@@ -1882,10 +1098,7 @@ namespace InternetClawMachine.Games.GameHelpers
                         if (!isSubscriber && String.IsNullOrEmpty(customRewardId))
                             break;
 
-
-
                         var newScene = int.Parse(scene[1]);
-
 
                         switch (newScene)
                         {
@@ -1991,7 +1204,6 @@ namespace InternetClawMachine.Games.GameHelpers
                         break;
 
                     case "bounty":
-
 
                         //auto update their localization if they use a command in another language
                         if (commandText != translateCommand.FinalWord)
@@ -2184,7 +1396,6 @@ namespace InternetClawMachine.Games.GameHelpers
                                 {
                                     if (DatabaseFunctions.GetStreamBuxBalance(Configuration, username) + Configuration.GetStreamBuxCost(StreamBuxTypes.NEWBOUNTY) >= 0)
                                     {
-
                                         //deduct it from their balance
                                         DatabaseFunctions.AddStreamBuxBalance(Configuration, username, StreamBuxTypes.NEWBOUNTY, Configuration.GetStreamBuxCost(StreamBuxTypes.NEWBOUNTY));
 
@@ -2199,6 +1410,7 @@ namespace InternetClawMachine.Games.GameHelpers
                                 CreateRandomBounty(amt, false);
 
                                 break;
+
                             case "scene":
 
                                 if (args.Length == 3)
@@ -2321,539 +1533,169 @@ namespace InternetClawMachine.Games.GameHelpers
             }
         }
 
-        private void ChangeReticle(ReticleOption opt)
+        public override void Init()
         {
+            base.Init();
 
+            _failsafeCurrentResets = 0;
+            SessionDrops = 0;
+            SessionWinTracker.Clear();
+            File.WriteAllText(Configuration.FileDrops, "");
+            File.WriteAllText(Configuration.FileLeaderboard, "");
 
             try
             {
-                if (opt.RedemptionName == Configuration.ClawSettings.ActiveReticle.RedemptionName)
+                if (!MachineControl.IsConnected)
                 {
-                    return;
-                }
-
-
-
-                //grab filters, if they exist don't bother sending more commands
-                var currentScene = ObsConnection.GetCurrentScene();
-                var sources = Configuration.ClawSettings.ReticleOptions;
-                foreach (var source in sources)
-                {
-                    try
+                    if (Configuration.ClawSettings.UseNewClawController)
                     {
-                        ObsConnection.SetSourceRender(source.ClipName, (source.ClipName == opt.ClipName));
-                    }
-                    catch (Exception x)
-                    {
-                        var error = string.Format("ERROR {0} {1}", x.Message, x);
-                        Logger.WriteLog(Logger.ErrorLog, error);
-                    }
-                }
+                        ((ClawController)MachineControl).Connect(Configuration.ClawSettings.ClawControllerIpAddress, Configuration.ClawSettings.ClawControllerPort);
+                        if (Configuration.ClawSettings.WiggleMode)
+                        {
+                            ((ClawController)MachineControl).SendCommandAsync("w on");
+                        }
+                        else
+                        {
+                            ((ClawController)MachineControl).SendCommandAsync("w off");
+                        }
 
-                Configuration.ClawSettings.ActiveReticle = opt;
+                        HandleBlackLightMode();
+                    }
+                    MachineControl.Init();
+
+                    Configuration.ReconnectAttempts++;
+                }
             }
-            catch (Exception x)
+            catch (Exception ex)
             {
-                var error = string.Format("ERROR {0} {1}", x.Message, x);
+                var error = string.Format("ERROR {0} {1}", ex.Message, ex);
                 Logger.WriteLog(Logger.ErrorLog, error);
             }
-        }
 
-        internal void RunStrobe(UserPrefs prefs)
-        {
-            var red = Configuration.ClawSettings.StrobeRedChannel;
-            var green = Configuration.ClawSettings.StrobeBlueChannel;
-            var blue = Configuration.ClawSettings.StrobeGreenChannel;
-            var strobeCount = Configuration.ClawSettings.StrobeCount;
-            var strobeDelay = Configuration.ClawSettings.StrobeDelay;
-
-            //if a user has their own settings, use those
-            if (prefs != null && prefs.CustomStrobe != null && prefs.CustomStrobe.Length > 0)
-            {
-                var channels = prefs.CustomStrobe.Split(':');
-                if (channels.Length > 2)
-                {
-                    red = int.Parse(channels[0]);
-                    green = int.Parse(channels[1]);
-                    blue = int.Parse(channels[2]);
-                }
-                if (channels.Length > 3)
-                    strobeCount = int.Parse(channels[3]);
-                if (channels.Length > 4)
-                    strobeDelay = int.Parse(channels[4].Trim());
-            }
-            RunStrobe(red, green, blue, strobeCount, strobeDelay);
-        }
-
-        internal async void RunStrobe(int red, int blue, int green, int strobeCount, int strobeDelay)
-        {
-            //STROBE CODE
             try
             {
-
-                var turnemon = false;
-                //see if the lights are on, if they are we turn em off, if not we leave it off and don't turn them back on after
-                if (MachineControl.IsLit)
+                if (RfidReader.IsConnected)
                 {
-                    MachineControl.LightSwitch(false);
-                    turnemon = true;
-                }
-
-                var strobeDuration = strobeCount * strobeDelay * 2;
-                if (strobeDuration > Configuration.ClawSettings.StrobeMaxTime)
-                    strobeDuration = Configuration.ClawSettings.StrobeMaxTime;
-
-                MachineControl.Strobe(red, green, blue, strobeCount, strobeDelay);
-
-                //if the strobe is shorter than 1-2 second we need to turn the lights on sooner than the greenscreen gets turned off because of camera delay
-                //in the real world there is a ~1-2 second lag between the camera and OBS outputting video but the OBS source changes for greenscreen are immediate so we need to account for that
-                var cameraLagTime = Configuration.ClawSettings.CameraLagTime;
-                if (strobeDuration < cameraLagTime)
-                {
-                    await Task.Delay(strobeDuration);
-                    if (turnemon)
-                        MachineControl.LightSwitch(true);
-
-                    await Task.Delay(cameraLagTime - strobeDuration);
-                    DisableGreenScreen(); //disable greenscreen
-
-                    await Task.Delay(strobeDuration);
-                    EnableGreenScreen();
+                    RfidReader.NewTagFound += RFIDReader_NewTagFound;
                 }
                 else
                 {
-                    //wait for camera sync
-                    await Task.Delay(cameraLagTime);
-                    DisableGreenScreen(); //disable greenscreen
-
-                    //wait the duration of the strobe
-                    await Task.Delay(strobeDuration - cameraLagTime);
-                    //if the lights were off turnemon
-                    if (turnemon)
-                        MachineControl.LightSwitch(true);
-
-                    //wait for camera sync again to re-enable greenscreen
-                    await Task.Delay(cameraLagTime);
-                    EnableGreenScreen(); //enable the screen
+                    RfidReader.Connect(Configuration.ClawSettings.RfidReaderIpAddress, Configuration.ClawSettings.RfidReaderPort, (byte)Configuration.ClawSettings.RfidAntennaPower);
+                    RfidReader.NewTagFound += RFIDReader_NewTagFound;
+                    RfidReader.StartListening();
                 }
             }
             catch (Exception ex)
             {
+                MessageBox.Show("Unable to connect to RFID reader. " + ex.Message);
                 var error = string.Format("ERROR {0} {1}", ex.Message, ex);
                 Logger.WriteLog(Logger.ErrorLog, error);
             }
+            LoadPlushFromDb();
+
+            InitializeEventSettings(Configuration.EventMode);
         }
 
-        private void DisableGreenScreen()
+        public void InitializeEventSettings(EventModeSettings eventConfig)
         {
-            if (Configuration.ClawSettings.BlackLightMode)
+            //home location
+            if (Configuration.ClawSettings.UseNewClawController)
             {
-                DisableGreenScreenBlackLight();
-            } else
-            {
-
-                DisableGreenScreenNormal();
-            }
-
-        }
-
-        public void ChangeWireTheme(WireTheme theme, bool force = false)
-        {
-
-
-            try
-            {
-                if (theme.Name == Configuration.ClawSettings.ActiveWireTheme.Name && !force)
+                try
                 {
-                    return;
+                    ((ClawController)MachineControl).SendCommandAsync("shome " + (int)Configuration.EventMode.ClawHomeLocation);
                 }
-
-
-
-                //grab filters, if they exist don't bother sending more commands
-                var currentScene = ObsConnection.GetCurrentScene();
-                var sources = Configuration.ClawSettings.WireFrameList.FindAll(t => t.SceneName == currentScene.Name);
-                foreach (var source in sources)
+                catch { }
+                try
                 {
-                    var filters = ObsConnection.GetSourceFilters(source.SourceName);
-
-                    //remove existing filters
-                    foreach (var filter in filters)
-                    {
-                        if (filter.Type == "color_filter")
-                        {
-                            ObsConnection.RemoveFilterFromSource(source.SourceName, filter.Name);
-                        }
-                    }
-
-                    //add new ones
-                    var newFilter = new JObject();
-                    newFilter.Add("hue_shift", theme.HueShift);
-                    ObsConnection.AddFilterToSource(source.SourceName, source.FilterName, source.FilterType, newFilter);
+                    ((ClawController)MachineControl).SendCommandAsync("mode " + (int)Configuration.EventMode.ClawMode);
                 }
-
-                Configuration.ClawSettings.ActiveWireTheme = theme;
-            }
-            catch (Exception x)
-            {
-                var error = string.Format("ERROR {0} {1}", x.Message, x);
-                Logger.WriteLog(Logger.ErrorLog, error);
-            }
-        }
-
-        private void DisableGreenScreenNormal()
-        {
-            try
-            {
-                //grab filters, if they exist don't bother sending more commands
-                var filters =
-                    ObsConnection.GetSourceFilters(Configuration.ObsSettings.GreenScreenNormalSideCamera[0].SourceName);
-                if (!filters.Any(itm =>
-                    itm.Name == Configuration.ObsSettings.GreenScreenNormalSideCamera[0].FilterName))
-                    return;
-
-                foreach (var filter in Configuration.ObsSettings.GreenScreenNormalSideCamera)
-                    ObsConnection.RemoveFilterFromSource(filter.SourceName, filter.FilterName);
-            }
-            catch (Exception x)
-            {
-                var error = string.Format("ERROR {0} {1}", x.Message, x);
-                Logger.WriteLog(Logger.ErrorLog, error);
+                catch { }
             }
 
-            try
-            {
-                foreach (var filter in Configuration.ObsSettings.GreenScreenNormalFrontCamera)
-                    ObsConnection.RemoveFilterFromSource(filter.SourceName, filter.FilterName);
-            }
-            catch (Exception x)
-            {
-                var error = string.Format("ERROR {0} {1}", x.Message, x);
-                Logger.WriteLog(Logger.ErrorLog, error);
-            }
-        }
-
-        private void DisableGreenScreenBlackLight()
-        {
-            try
-            {
-                //grab filters, if they exist don't bother sending more commands
-                var filters =
-                    ObsConnection.GetSourceFilters(Configuration.ObsSettings.GreenScreenBlackLightSideCamera[0].SourceName);
-                if (!filters.Any(itm =>
-                    itm.Name == Configuration.ObsSettings.GreenScreenBlackLightSideCamera[0].FilterName))
-                    return;
-                foreach (var filter in Configuration.ObsSettings.GreenScreenBlackLightSideCamera)
-                    ObsConnection.RemoveFilterFromSource(filter.SourceName, filter.FilterName);
-            }
-            catch (Exception x)
-            {
-                var error = string.Format("ERROR {0} {1}", x.Message, x);
-                Logger.WriteLog(Logger.ErrorLog, error);
-            }
-
-            try
-            {
-                foreach (var filter in Configuration.ObsSettings.GreenScreenBlackLightFrontCamera)
-                    ObsConnection.RemoveFilterFromSource(filter.SourceName, filter.FilterName);
-            }
-            catch (Exception x)
-            {
-                var error = string.Format("ERROR {0} {1}", x.Message, x);
-                Logger.WriteLog(Logger.ErrorLog, error);
-            }
-        }
-
-        private void EnableGreenScreen()
-        {
+            //set the greenscreen override
+            Configuration.ClawSettings.GreenScreenOverrideOff = eventConfig.GreenScreenOverrideOff;
             if (Configuration.ClawSettings.GreenScreenOverrideOff)
-                return;
-            if (Configuration.ClawSettings.BlackLightMode)
             {
-                EnableGreenScreenBlackLight();
+                DisableGreenScreen();
+            }
+
+            //Load all teams
+            if (eventConfig.EventMode == EventMode.NORMAL)
+            {
+                Teams = DatabaseFunctions.GetTeams(Configuration);
             }
             else
             {
-                EnableGreenScreenNormal();
+                Teams = DatabaseFunctions.GetTeams(Configuration, Configuration.SessionGuid.ToString());
             }
-        }
 
-        private void EnableGreenScreenNormal()
-        {
-            try
+            //Lights
+            if (eventConfig.LightsOff && MachineControl.IsLit)
+                MachineControl.LightSwitch(false);
+
+            //Black lights
+            if (eventConfig.BlacklightsOn && !Configuration.ClawSettings.BlackLightMode)
+                Configuration.ClawSettings.BlackLightMode = true;
+
+            if (eventConfig.WireTheme != null)
+                ChangeWireTheme(eventConfig.WireTheme);
+            else
             {
-                //grab filters, if they exist don't bother sending more commands
-                var filters =
-                    ObsConnection.GetSourceFilters(Configuration.ObsSettings.GreenScreenNormalFrontCamera[0].SourceName);
-                if (filters.Any(itm =>
-                    itm.Name == Configuration.ObsSettings.GreenScreenNormalFrontCamera[0].FilterName))
-                    return;
+                var theme = Configuration.ClawSettings.WireThemes.Find(t => t.Name.ToLower() == "default");
 
-                foreach (var filter in Configuration.ObsSettings.GreenScreenNormalFrontCamera)
-                    ObsConnection.AddFilterToSource(filter.SourceName, filter.FilterName, filter.FilterType,
-                        filter.Settings);
-            }
-            catch (Exception x)
-            {
-                var error = string.Format("ERROR {0} {1}", x.Message, x);
-                Logger.WriteLog(Logger.ErrorLog, error);
+                ChangeWireTheme(theme, true);
             }
 
-            try
-            {
+            if (eventConfig.Reticle != null)
+                ChangeReticle(eventConfig.Reticle);
 
-                foreach (var filter in Configuration.ObsSettings.GreenScreenNormalSideCamera)
-                    ObsConnection.AddFilterToSource(filter.SourceName, filter.FilterName, filter.FilterType,
-                        filter.Settings);
-            }
-            catch (Exception ex)
-            {
-                var error = string.Format("ERROR {0} {1}", ex.Message, ex);
-                Logger.WriteLog(Logger.ErrorLog, error);
-            }
-        }
-
-        private void EnableGreenScreenBlackLight()
-        {
-            try
-            {
-                //grab filters, if they exist don't bother sending more commands
-                var filters =
-                    ObsConnection.GetSourceFilters(Configuration.ObsSettings.GreenScreenBlackLightFrontCamera[0].SourceName);
-                if (filters.Any(itm =>
-                    itm.Name == Configuration.ObsSettings.GreenScreenBlackLightFrontCamera[0].FilterName))
-                    return;
-
-                foreach (var filter in Configuration.ObsSettings.GreenScreenBlackLightFrontCamera)
-                    ObsConnection.AddFilterToSource(filter.SourceName, filter.FilterName, filter.FilterType,
-                        filter.Settings);
-            }
-            catch (Exception x)
-            {
-                var error = string.Format("ERROR {0} {1}", x.Message, x);
-                Logger.WriteLog(Logger.ErrorLog, error);
-            }
-
-            try
-            {
-
-                foreach (var filter in Configuration.ObsSettings.GreenScreenBlackLightSideCamera)
-                    ObsConnection.AddFilterToSource(filter.SourceName, filter.FilterName, filter.FilterType,
-                        filter.Settings);
-            }
-            catch (Exception ex)
-            {
-                var error = string.Format("ERROR {0} {1}", ex.Message, ex);
-                Logger.WriteLog(Logger.ErrorLog, error);
-            }
-        }
-
-        /// <summary>
-        /// Change to a specific claw machine scene
-        /// </summary>
-        /// <param name="scene">Claw Scene Number</param>
-        public void ChangeClawScene(int scene)
-        {
-            if (!ObsConnection.IsConnected)
-                return;
-
-            switch (scene)
-            {
-                case 2:
-                    ChangeScene(Configuration.ObsScreenSourceNames.SceneClaw2.SceneName);
-                    break;
-
-                case 3:
-                    ChangeScene(Configuration.ObsScreenSourceNames.SceneClaw3.SceneName);
-                    break;
-
-                default:
-                    ChangeScene(Configuration.ObsScreenSourceNames.SceneClaw1.SceneName);
-                    break;
-            }
-        }
-
-        private void ResetPlushAudio()
-        {
-            if (!ObsConnection.IsConnected)
-                return;
-            if (!ObsConnection.GetCurrentScene().Name.StartsWith("Claw"))
-                return;
-
-            foreach (var plush in PlushieTags)
-            {
-                if (plush.WinStream.Length > 0)
-                {
-                    try
-                    {
-                        ObsConnection.SetSourceRender(plush.WinStream, false);
-                    }
-                    catch (Exception ex)
-                    {
-                        var error = string.Format("ERROR {0} {1}", ex.Message, ex);
-                        Logger.WriteLog(Logger.ErrorLog, error);
-                    }
-                }
-            }
-        }
-
-        /// <summary>
-        /// Change to a specific scene in OBS
-        /// </summary>
-        /// <param name="scene">Name of scene</param>
-        private void ChangeScene(string scene)
-        {
-            if (!ObsConnection.IsConnected)
-                return;
-
-            //TODO - this will stop it from cutting off audio/video clips if the scene isnt changing and allow them to finish playing
-            //When obs updates it so i can control playback without using the visibility of the source this will change
-            if (ObsConnection.GetCurrentScene().Name.ToLower() == scene)
-                return;
-
-            ResetObsSceneStuff(scene); //disables all theme, bounty, and popup clips of any sort
-            //ResetPlushAudio(); //hide all audio so when we switch back to this it doesn't play everythign all at once
-
-            try
-            {
-                ObsConnection.SetCurrentScene(scene);
-            }
-            catch (Exception ex)
-            {
-                var error = string.Format("ERROR {0} {1}", ex.Message, ex);
-                Logger.WriteLog(Logger.ErrorLog, error);
-            }
-            UpdateObsQueueDisplay();
-        }
-
-        private void WriteMiss(string username, string plush)
-        {
-            try
-            {
-                var date = DateTime.Now.ToString("dd-MM-yyyy");
-                var timestamp = DateTime.Now.ToString("HH:mm:ss.ff");
-                File.AppendAllText(Configuration.FileMissedPlushes, string.Format("{0} {1} {2} {3}\r\n", date, timestamp, username, plush));
-            }
-            catch (Exception ex)
-            {
-                var error = string.Format("ERROR {0} {1}", ex.Message, ex);
-                Logger.WriteLog(Logger.ErrorLog, error);
-            }
-        }
-
-        /// <summary>
-        /// Switches out the 'press !play' for the queue/leaderboards
-        /// </summary>
-        protected override void UpdateObsQueueDisplay()
-        {
-            base.UpdateObsQueueDisplay();
+            //grab current scene to make sure we skin all scenes
             if (ObsConnection.IsConnected)
             {
-                try
+                var currentscene = ObsConnection.GetCurrentScene().Name;
+
+                //TODO - pull this from config
+                var scenes = new string[] { "Claw 1", "Claw 2", "Claw 3" };
+
+                //skin all scenes
+                for (var i = 0; i < scenes.Length; i++)
                 {
-                    if (PlayerQueue.Count > 0)
+                    ObsConnection.SetCurrentScene(scenes[i]);
+
+                    //Fix greenscreen
+                    foreach (var bg in Configuration.ClawSettings.ObsGreenScreenOptions)
+                        foreach (var scene in bg.Scenes)
+                        {
+                            try
+                            {
+                                ObsConnection.SetSourceRender(scene, ((eventConfig.GreenScreen != null && bg.Name == eventConfig.GreenScreen.Name) || (eventConfig.GreenScreen == null && Configuration.ClawSettings.ObsGreenScreenDefault.Name == bg.Name)));
+                            }
+                            catch (Exception ex) //skip over scenes that error out, log errors
+                            {
+                                var error = string.Format("ERROR Source: {0} {1} {2}", scene, ex.Message, ex);
+                                Logger.WriteLog(Logger.ErrorLog, error);
+                            }
+                        }
+
+                    //update background
+                    foreach (var bg in Configuration.ClawSettings.ObsBackgroundOptions)
                     {
-                        ObsConnection.SetSourceRender(Configuration.ObsScreenSourceNames.TextOverlayChat.SourceName, true);
-                        ObsConnection.SetSourceRender(Configuration.ObsScreenSourceNames.TextOverlayPlayerQueue.SourceName, true);
-                        ObsConnection.SetSourceRender(Configuration.ObsScreenSourceNames.TextOverlayPlayNotification.SourceName, false);
+                        try
+                        {
+                            //if bg defined and is in the list, set it, otherwise if no bg defined set default
+                            ObsConnection.SetSourceRender(bg.SourceName, ((eventConfig.BackgroundScenes != null && eventConfig.BackgroundScenes.Any(s => s.SourceName == bg.SourceName)) || ((eventConfig.BackgroundScenes == null || eventConfig.BackgroundScenes.Count == 0) && Configuration.ClawSettings.ObsBackgroundDefault.SourceName == bg.SourceName)), bg.SceneName);
+                        }
+                        catch (Exception ex) //skip over scenes that error out, log errors
+                        {
+                            var error = string.Format("ERROR Source: {0} {1} {2}", bg.SourceName, ex.Message, ex);
+                            Logger.WriteLog(Logger.ErrorLog, error);
+                        }
                     }
-                    else //swap the !play image for the queue list if no one is in the queue
-                    {
-                        ObsConnection.SetSourceRender(Configuration.ObsScreenSourceNames.TextOverlayChat.SourceName, false);
-                        ObsConnection.SetSourceRender(Configuration.ObsScreenSourceNames.TextOverlayPlayerQueue.SourceName, false);
-                        ObsConnection.SetSourceRender(Configuration.ObsScreenSourceNames.TextOverlayPlayNotification.SourceName, true);
-                    }
                 }
-                catch (Exception ex)
-                {
-                    var error = string.Format("ERROR {0} {1}", ex.Message, ex);
-                    Logger.WriteLog(Logger.ErrorLog, error);
-                }
-            }
-        }
 
-        /// <summary>
-        /// When switching scenes in OBS we need to silence/hide everything so it doesnt start playing again when the scene switches back
-        /// </summary>
-        /// <param name="newScene"></param>
-        private void ResetObsSceneStuff(string newScene)
-        {
-            var curScene = ObsConnection.GetCurrentScene().Name;
-            if (!ObsConnection.IsConnected)
-                return;
-            if (!curScene.StartsWith("Claw"))
-                return;
-            if (curScene.ToLower() == newScene.ToLower())
-                return;
-            try
-            {
-                ObsConnection.SetSourceRender(Configuration.ObsScreenSourceNames.CameraConveyor.SourceName, false);
-            }
-            catch (Exception ex)
-            {
-                var error = string.Format("ERROR {0} {1}", ex.Message, ex);
-                Logger.WriteLog(Logger.ErrorLog, error);
-            }
-        }
-
-        private void RunBountyAnimation(PlushieObject plushRef)
-        {
-            if (plushRef == null)
-                return;
-
-            var data = new JObject();
-            data.Add("text", plushRef.Name);
-
-            if (!string.IsNullOrEmpty(plushRef.BountyStream))
-                data.Add("name", plushRef.BountyStream);
-            else //use the blank poster if nothing is defined
-                data.Add("name", Configuration.ObsScreenSourceNames.BountyWantedBlank.SourceName);
-
-            WsConnection.SendCommand(MediaWebSocketServer.CommandMedia, data);
-
-            /*
-            var props = OBSConnection.GetTextGDIPlusProperties(Configuration.OBSScreenSourceNames.BountyWantedText.SourceName);
-            props.Text = plushRef.Name;
-            OBSConnection.SetTextGDIPlusProperties(props);
-
-            PlayClipAsync(Configuration.OBSScreenSourceNames.BountyStartScreen, 10000);
-
-            if (plushRef.BountyStream != null && plushRef.BountyStream.Length > 0)
-            {
-                OBSSceneSource src = new OBSSceneSource() { SourceName = plushRef.BountyStream, Type = OBSSceneSourceType.IMAGE, Scene = "VideosScene" };
-                PlayClipAsync(src, 9500);
-            }
-            else
-            {
-                PlayClipAsync(Configuration.OBSScreenSourceNames.BountyWantedBlank, 9500);
-            }
-            PlayClipAsync(Configuration.OBSScreenSourceNames.BountyWantedText, 9500);
-            */
-            PoliceStrobe();
-        }
-
-        public override async Task ProcessQueue()
-        {
-            if (!ProcessingQueue)
-            {
-                var guid = Guid.NewGuid();
-                ProcessingQueue = true;
-
-                Console.WriteLine(guid + "processing queue: " + Thread.CurrentThread.ManagedThreadId);
-                try
-                {
-                    await ProcessCommands();
-                }
-                catch (Exception ex)
-                {
-                    var error = string.Format("ERROR {0} {1}", ex.Message, ex);
-                    Logger.WriteLog(Logger.ErrorLog, error);
-                }
-                finally
-                {
-                    Console.WriteLine(guid + "DONE processing queue: " + Thread.CurrentThread.ManagedThreadId);
-                    ProcessingQueue = false;
-                }
+                //reset current scene
+                ObsConnection.SetCurrentScene(currentscene);
             }
         }
 
@@ -2947,15 +1789,29 @@ namespace InternetClawMachine.Games.GameHelpers
             } //end while
         }
 
-        public void RunBelt(string seconds)
+        public override async Task ProcessQueue()
         {
-            if (!int.TryParse(seconds, out var secs))
-                return;
+            if (!ProcessingQueue)
+            {
+                var guid = Guid.NewGuid();
+                ProcessingQueue = true;
 
-            if (secs > Configuration.ClawSettings.BeltRuntimeMax || secs < Configuration.ClawSettings.BeltRuntimeMin)
-                secs = 2;
-
-            RunBelt(secs * 1000);
+                Console.WriteLine(guid + "processing queue: " + Thread.CurrentThread.ManagedThreadId);
+                try
+                {
+                    await ProcessCommands();
+                }
+                catch (Exception ex)
+                {
+                    var error = string.Format("ERROR {0} {1}", ex.Message, ex);
+                    Logger.WriteLog(Logger.ErrorLog, error);
+                }
+                finally
+                {
+                    Console.WriteLine(guid + "DONE processing queue: " + Thread.CurrentThread.ManagedThreadId);
+                    ProcessingQueue = false;
+                }
+            }
         }
 
         public void RunBelt(int milliseconds)
@@ -2964,7 +1820,7 @@ namespace InternetClawMachine.Games.GameHelpers
             {
                 Task.Run(async delegate ()
                 {
-                    InScanWindow = true; //disable scan acceptace
+                    InScanWindow = true; //disable scan acceptance
                     if (!ObsConnection.IsConnected)
                         return;
 
@@ -2978,13 +1834,478 @@ namespace InternetClawMachine.Games.GameHelpers
                     await Task.Delay(Configuration.ClawSettings.ConveyorWaitAfter);
                     ObsConnection.SetSourceRender(Configuration.ObsScreenSourceNames.CameraConveyor.SourceName, false);
 
-                    InScanWindow = false; //disable scan acceptace
+                    InScanWindow = false; //disable scan acceptance
                 });
             }
             catch (Exception ex)
             {
                 var error = string.Format("ERROR {0} {1}", ex.Message, ex);
                 Logger.WriteLog(Logger.ErrorLog, error);
+            }
+        }
+
+        public void RunBelt(string seconds)
+        {
+            if (!int.TryParse(seconds, out var secs))
+                return;
+
+            if (secs > Configuration.ClawSettings.BeltRuntimeMax || secs < Configuration.ClawSettings.BeltRuntimeMin)
+                secs = 2;
+
+            RunBelt(secs * 1000);
+        }
+
+        public override void StartGame(string user)
+        {
+            _lastSensorTrip = 0;
+            _lastBountyPlay = 0;
+            base.StartGame(user);
+            Notifier.SendDiscordMessage(Configuration.DiscordSettings.SpamWebhook, string.Format("Game Mode Started:  {0}", GameMode.ToString()));
+            try
+            {
+                ObsConnection.SetSourceRender(Configuration.ObsScreenSourceNames.Construction.SourceName, false,
+                    Configuration.ObsScreenSourceNames.Construction.SceneName);
+            }
+            catch
+            {
+            }
+        }
+
+        public void TriggerWin(PlushieObject scannedPlush)
+        {
+            TriggerWin(scannedPlush, null, false, 1);
+        }
+
+        /// <summary>
+        /// Triggers a win for specified tag
+        /// </summary>
+        /// <param name="epc">Tag to give win for</param>
+        /// <param name="forcedWinner">person to declare the winner</param>
+        public void TriggerWin(PlushieObject scannedPlush, string forcedWinner, bool irscanwin, int pointsToAdd)
+        {
+            try
+            {
+                //TODO - refactor all of this, it's a hodgepodge built overtime initially requiring only a plush scan
+                if (scannedPlush == null && forcedWinner == null && !irscanwin)
+                    return;
+
+                //get the winner taking into account win queues and forced winners
+                var winner = GetCurrentWinner(forcedWinner);
+                if (winner == null)
+                    return;
+
+                if (scannedPlush == null && !Configuration.EventMode.DisableRFScan)
+                {
+                    Task.Run(async delegate
+                    {
+                        await Task.Delay(4000);
+                        CreateClip();
+                    });
+                }
+
+                RunWinScenario(scannedPlush, winner, pointsToAdd);
+
+                var specialClip = false; //this is an override so confetti doesn't play
+
+                var prefs = Configuration.UserList.GetUser(winner); ///load the user data
+
+                //strobe stuff
+                if (!Configuration.EventMode.DisableStrobe)
+                    RunStrobe(prefs);
+
+                //wait 1 second to do further things so the lights are shut off
+                Thread.Sleep(1000);
+
+                //a lot of the animations are timed and setup in code because I don't want to make a whole animation class
+                //bounty mode
+                if (RunBountyWin(scannedPlush, winner))
+                    return; //don't play anything else if a bounty played
+
+                //events override custom settings so parse that first
+                // TODO - move this to a more dynamic action
+                if (Configuration.EventMode.WinAnimation == "THEME-HalloweenScare" && WinnersList.Count > 0)
+                {
+                    // TODO - move this to a more dynamic action
+                    specialClip = true;
+                    RunScare();
+                }
+                else if (Configuration.EventMode.AllowOverrideWinAnimation && prefs != null && !string.IsNullOrEmpty(prefs.WinClipName)) //if we have a custom user animation and didn't define one for the event, use it
+                {
+                    specialClip = true;
+                    var data = new JObject();
+                    data.Add("name", prefs.WinClipName); //name of clip to play
+                    data.Add("duration", 8000); //max 8 seconds for a win animation
+
+                    WsConnection.SendCommand(MediaWebSocketServer.CommandMedia, data);
+                }
+                else if (Configuration.EventMode.EventMode == EventMode.SPECIAL && ((Configuration.EventMode.WinAnimation != null && pointsToAdd > 0) || (Configuration.EventMode.FailAnimation != null && pointsToAdd < 0))) //if they didnt have a custom animation but an event is going on with a custom animation
+                {
+                    if (pointsToAdd > 0)
+                    {
+                        specialClip = true;
+                        var data = new JObject();
+                        data.Add("name", Configuration.EventMode.WinAnimation);
+                        WsConnection.SendCommand(MediaWebSocketServer.CommandMedia, data);
+                    }
+                    else
+                    {
+                        specialClip = true;
+                        var data = new JObject();
+                        data.Add("name", Configuration.EventMode.FailAnimation);
+                        WsConnection.SendCommand(MediaWebSocketServer.CommandMedia, data);
+                    }
+                }
+                else if (scannedPlush != null && scannedPlush.WinStream.Length > 0) //if there was no custom or event then check if the plush itself has a custom animation
+                {
+                    if (scannedPlush.PlushId == 23) //sharky has a special use case, every 100 grabs is the full shark dance
+                    {
+                        try
+                        {
+                            Configuration.RecordsDatabase.Open();
+                            var sql = "SELECT count(*) FROM wins WHERE name = '" + winner +
+                                        "' AND PlushID = 23";
+                            var command = new SQLiteCommand(sql, Configuration.RecordsDatabase);
+                            var wins = int.Parse(command.ExecuteScalar().ToString());
+                            Configuration.RecordsDatabase.Close();
+
+                            if (wins % 100 == 0) //check for X00th grab
+                            {
+                                specialClip = true;
+                                var data = new JObject();
+                                data.Add("name", scannedPlush.WinStream);
+                                data.Add("duration", 38000);
+
+                                WsConnection.SendCommand(MediaWebSocketServer.CommandMedia, data);
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            var error = string.Format("ERROR {0} {1}", ex.Message, ex);
+                            Logger.WriteLog(Logger.ErrorLog, error);
+                        }
+                    }
+
+                    if (!specialClip)
+                    {
+                        var data = new JObject();
+
+                        //if there are fields specified then parse it
+                        if (scannedPlush.WinStream.Contains(";"))
+                        {
+                            specialClip = true; //we set this here only because anything with fields is a full screen overlay and not just audio, this allows the confetti animation to still play overtop of the sound clips if not set to true in the ELSE below
+                            var pieces = scannedPlush.WinStream.Split(';');
+                            data.Add("name", pieces[0]);
+                            data.Add("duration", int.Parse(pieces[2]));
+                        }
+                        else //otherwise play the clip in its entirety
+                        {
+                            //not setting specialClip = true because this is a sound only event
+                            //TODO - better define this as a sound-only clip
+                            data.Add("name", scannedPlush.WinStream);
+                        }
+
+                        WsConnection.SendCommand(MediaWebSocketServer.CommandMedia, data);
+                    }
+                }
+
+                if (!specialClip) //default win notification if no other clip has played
+                {
+                    var data = new JObject();
+                    data.Add("name", Configuration.ObsScreenSourceNames.WinAnimationDefault.SourceName);
+                    WsConnection.SendCommand(MediaWebSocketServer.CommandMedia, data);
+                }
+            }
+            catch (Exception ex)
+            {
+                var error = string.Format("ERROR {0} {1}", ex.Message, ex);
+                Logger.WriteLog(Logger.ErrorLog, error);
+            }
+        }
+
+        internal int GetDbLastRename(string username)
+        {
+            lock (Configuration.RecordsDatabase)
+            {
+                Configuration.RecordsDatabase.Open();
+                var changeTime = "";
+                try
+                {
+                    var sql = "SELECT ChangeDate FROM plushie WHERE ChangedBy = '" + username.ToLower() + "' ORDER BY ChangeDate DESC LIMIT 1";
+                    var command = new SQLiteCommand(sql, Configuration.RecordsDatabase);
+                    var res = command.ExecuteScalar();
+                    if (res != null)
+                        changeTime = command.ExecuteScalar().ToString();
+                }
+                finally
+                {
+                    Configuration.RecordsDatabase.Close();
+                }
+                return changeTime == "" ? 0 : int.Parse(changeTime);
+            }
+        }
+
+        internal int GetDbPlushDetails(string plushName)
+        {
+            lock (Configuration.RecordsDatabase)
+            {
+                Configuration.RecordsDatabase.Open();
+                var i = 0;
+                var outputTop = "";
+                try
+                {
+                    var sql = "SELECT Name, ChangeDate FROM plushie WHERE Name = '" + plushName + "'";
+                    var command = new SQLiteCommand(sql, Configuration.RecordsDatabase);
+                    using (var plushes = command.ExecuteReader())
+                    {
+                        while (plushes.Read())
+                        {
+                            i++;
+                            outputTop += plushes.GetValue(1);
+                            break;
+                        }
+                    }
+                }
+                finally
+                {
+                    Configuration.RecordsDatabase.Close();
+                }
+
+                if (i > 0)
+                    return outputTop == "" ? 0 : int.Parse(outputTop);
+                else
+                    throw new Exception("No plush by that name");
+            }
+        }
+
+        internal async void PoliceStrobe()
+        {
+            //STROBE CODE
+            try
+            {
+                var turnemon = false;
+                //see if the lights are on, if they are we turn em off, if not we leave it off and don't turn them back on after
+                if (MachineControl.IsLit)
+                {
+                    MachineControl.LightSwitch(false);
+                    turnemon = true;
+                }
+
+                var strobeDuration = Configuration.ClawSettings.StrobeCount * Configuration.ClawSettings.StrobeDelay * 4;
+
+                MachineControl.DualStrobe(255, 0, 0, 0, 255, 0, Configuration.ClawSettings.StrobeCount, Configuration.ClawSettings.StrobeDelay);
+
+                //if the strobe is shorter than 1-2 second we need to turn the lights on sooner than the greenscreen gets turned off because of camera delay
+                //in the real world there is a ~1-2 second lag between the camera and OBS outputting video but the OBS source changes for greenscreen are immediate so we need to account for that
+                var cameraLagTime = Configuration.ClawSettings.CameraLagTime;
+                if (strobeDuration < cameraLagTime)
+                {
+                    await Task.Delay(strobeDuration);
+                    if (turnemon)
+                        MachineControl.LightSwitch(true);
+
+                    await Task.Delay(cameraLagTime - strobeDuration);
+                    DisableGreenScreen(); //disable greenscreen
+
+                    await Task.Delay(strobeDuration);
+                    EnableGreenScreen();
+                }
+                else
+                {
+                    //wait for camera sync
+                    await Task.Delay(cameraLagTime);
+                    DisableGreenScreen(); //disable greenscreen
+
+                    //wait the duration of the strobe
+                    await Task.Delay(strobeDuration - cameraLagTime);
+                    //if the lights were off turnemon
+                    if (turnemon)
+                        MachineControl.LightSwitch(true);
+
+                    //wait for camera sync again to re-enable greenscreen
+                    await Task.Delay(cameraLagTime);
+                    EnableGreenScreen(); //enable the screen
+                }
+            }
+            catch (Exception ex)
+            {
+                var error = string.Format("ERROR {0} {1}", ex.Message, ex);
+                Logger.WriteLog(Logger.ErrorLog, error);
+            }
+        }
+
+        internal void RefreshWinList()
+        {
+            try
+            {
+                //TODO - change this to a text field and stop using a file!
+                var dropString = string.Format("Drops since the last win: {0}", SessionDrops);
+                File.WriteAllText(Configuration.FileDrops, dropString);
+
+                //TODO - Can this be a text field too?
+                if (Configuration.EventMode.TeamRequired)
+                {
+                    var winners = Teams.OrderByDescending(u => u.Wins).ThenByDescending(u => u.Drops).ToList();
+                    var output = "Teams:\r\n";
+                    for (var i = 0; i < winners.Count; i++)
+                    {
+                        output += string.Format("{0} - \t\t{1} points, {2} drops\r\n", winners[i].Name, winners[i].Wins, winners[i].Drops);
+                    }
+
+                    output += "\r\n\r\n";
+                    for (var i = 0; i < winners.Count; i++)
+                    {
+                        output += "\r\n\r\n";
+                        output += string.Format("{0}:\r\n", winners[i].Name);
+                        for (var j = 0; j < Configuration.UserList.Count; j++)
+                        {
+                            var u = Configuration.UserList[j];
+
+                            if (u.EventTeamName.ToLower() == winners[i].Name.ToLower())
+                                output += string.Format("{0}\r\n", u.Username);
+                        }
+                    }
+                    output += "\r\n\r\n\r\n\r\n\r\n";
+                    File.WriteAllText(Configuration.FileLeaderboard, output);
+                }
+                else
+                {
+                    var winners = SessionWinTracker.OrderByDescending(u => u.Wins).ThenByDescending(u => u.Drops).ToList();
+                    var output = "Session Leaderboard:\r\n";
+                    for (var i = 0; i < winners.Count; i++)
+                    {
+                        output += string.Format("{0} - {1} wins, {2} drops\r\n", winners[i].Username, winners[i].Wins, winners[i].Drops);
+                    }
+                    output += "\r\n\r\n\r\n\r\n\r\n";
+                    File.WriteAllText(Configuration.FileLeaderboard, output);
+                }
+            }
+            catch (Exception ex)
+            {
+                var error = string.Format("ERROR {0} {1}", ex.Message, ex);
+                Logger.WriteLog(Logger.ErrorLog, error);
+            }
+        }
+
+        internal async void RunStrobe(int red, int blue, int green, int strobeCount, int strobeDelay)
+        {
+            //STROBE CODE
+            try
+            {
+                var turnemon = false;
+                //see if the lights are on, if they are we turn em off, if not we leave it off and don't turn them back on after
+                if (MachineControl.IsLit)
+                {
+                    MachineControl.LightSwitch(false);
+                    turnemon = true;
+                }
+
+                var strobeDuration = strobeCount * strobeDelay * 2;
+                if (strobeDuration > Configuration.ClawSettings.StrobeMaxTime)
+                    strobeDuration = Configuration.ClawSettings.StrobeMaxTime;
+
+                MachineControl.Strobe(red, green, blue, strobeCount, strobeDelay);
+
+                //if the strobe is shorter than 1-2 second we need to turn the lights on sooner than the greenscreen gets turned off because of camera delay
+                //in the real world there is a ~1-2 second lag between the camera and OBS outputting video but the OBS source changes for greenscreen are immediate so we need to account for that
+                var cameraLagTime = Configuration.ClawSettings.CameraLagTime;
+                if (strobeDuration < cameraLagTime)
+                {
+                    await Task.Delay(strobeDuration);
+                    if (turnemon)
+                        MachineControl.LightSwitch(true);
+
+                    await Task.Delay(cameraLagTime - strobeDuration);
+                    DisableGreenScreen(); //disable greenscreen
+
+                    await Task.Delay(strobeDuration);
+                    EnableGreenScreen();
+                }
+                else
+                {
+                    //wait for camera sync
+                    await Task.Delay(cameraLagTime);
+                    DisableGreenScreen(); //disable greenscreen
+
+                    //wait the duration of the strobe
+                    await Task.Delay(strobeDuration - cameraLagTime);
+                    //if the lights were off turnemon
+                    if (turnemon)
+                        MachineControl.LightSwitch(true);
+
+                    //wait for camera sync again to re-enable greenscreen
+                    await Task.Delay(cameraLagTime);
+                    EnableGreenScreen(); //enable the screen
+                }
+            }
+            catch (Exception ex)
+            {
+                var error = string.Format("ERROR {0} {1}", ex.Message, ex);
+                Logger.WriteLog(Logger.ErrorLog, error);
+            }
+        }
+
+        internal void RunStrobe(UserPrefs prefs)
+        {
+            var red = Configuration.ClawSettings.StrobeRedChannel;
+            var green = Configuration.ClawSettings.StrobeBlueChannel;
+            var blue = Configuration.ClawSettings.StrobeGreenChannel;
+            var strobeCount = Configuration.ClawSettings.StrobeCount;
+            var strobeDelay = Configuration.ClawSettings.StrobeDelay;
+
+            //if a user has their own settings, use those
+            if (prefs != null && prefs.CustomStrobe != null && prefs.CustomStrobe.Length > 0)
+            {
+                var channels = prefs.CustomStrobe.Split(':');
+                if (channels.Length > 2)
+                {
+                    red = int.Parse(channels[0]);
+                    green = int.Parse(channels[1]);
+                    blue = int.Parse(channels[2]);
+                }
+                if (channels.Length > 3)
+                    strobeCount = int.Parse(channels[3]);
+                if (channels.Length > 4)
+                    strobeDelay = int.Parse(channels[4].Trim());
+            }
+            RunStrobe(red, green, blue, strobeCount, strobeDelay);
+        }
+
+        internal void WriteDbNewPushName(string oldName, string newName, string user)
+        {
+            lock (Configuration.RecordsDatabase)
+            {
+                try
+                {
+                    Configuration.RecordsDatabase.Open();
+
+                    var sql = "UPDATE plushie SET Name = @newName, ChangedBy = @user, ChangeDate = @epoch WHERE Name = @oldName";
+                    var command = Configuration.RecordsDatabase.CreateCommand();
+                    command.CommandType = CommandType.Text;
+                    command.CommandText = sql;
+                    command.Parameters.Add(new SQLiteParameter("@newName", newName));
+                    command.Parameters.Add(new SQLiteParameter("@oldName", oldName));
+                    command.Parameters.Add(new SQLiteParameter("@user", user));
+                    command.Parameters.Add(new SQLiteParameter("@epoch", Helpers.GetEpoch()));
+                    command.ExecuteNonQuery();
+                    for (var i = 0; i < PlushieTags.Count; i++)
+                    {
+                        if (PlushieTags[i].Name.ToLower() == oldName.ToLower())
+                        {
+                            PlushieTags[i].Name = newName;
+                            break;
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    var error = string.Format("ERROR {0} {1}", ex.Message, ex);
+                    Logger.WriteLog(Logger.ErrorLog, error);
+                    Configuration.LoadDatebase();
+                }
+                finally
+                {
+                    Configuration.RecordsDatabase.Close();
+                }
             }
         }
 
@@ -2995,7 +2316,6 @@ namespace InternetClawMachine.Games.GameHelpers
             //for now, everything below requires an OBS connection to run
             if (!ObsConnection.IsConnected)
                 return;
-
 
             var userPrefs = Configuration.UserList.GetUser(e.Username);
             //if no user prefs, then we just load defaults here, generally this is the end of a users turn so we set back to defaults
@@ -3011,24 +2331,22 @@ namespace InternetClawMachine.Games.GameHelpers
                         foreach (var scene in bg.Scenes)
                             ObsConnection.SetSourceRender(scene, bg.Name == Configuration.ClawSettings.ObsGreenScreenActive.Name);
 
-
                     var theme = Configuration.ClawSettings.WireThemes.Find(t => t.Name.ToLower() == "default");
                     var rtcl = Configuration.ClawSettings.ReticleOptions.Find(t => t.RedemptionName.ToLower() == "default");
 
                     ChangeWireTheme(theme);
                     ChangeReticle(rtcl);
-                } catch
+                }
+                catch
                 {
-
                 }
 
                 return;
-            } else if (userPrefs == null)
+            }
+            else if (userPrefs == null)
             {
                 return;
             }
-
-
 
             //check blacklight mode, if they don't have it and it's currently enabled, disable it first
             //this removes the backgrounds and other things related to blacklight mode before switching scenes
@@ -3121,7 +2439,6 @@ namespace InternetClawMachine.Games.GameHelpers
                         foreach (var bg in Configuration.ClawSettings.ObsGreenScreenOptions)
                             foreach (var scene in bg.Scenes)
                                 ObsConnection.SetSourceRender(scene, bg.Name == userPrefs.GreenScreen);
-
                     }
                     else
                     {
@@ -3132,7 +2449,6 @@ namespace InternetClawMachine.Games.GameHelpers
                         foreach (var bg in Configuration.ClawSettings.ObsGreenScreenOptions)
                             foreach (var scene in bg.Scenes)
                                 ObsConnection.SetSourceRender(scene, bg.Name == Configuration.ClawSettings.ObsGreenScreenActive.Name);
-
                     }
                 }
                 catch (Exception ex)
@@ -3166,7 +2482,9 @@ namespace InternetClawMachine.Games.GameHelpers
             else if (Configuration.EventMode.WireTheme != null)
             {
                 ChangeWireTheme(Configuration.EventMode.WireTheme);
-            } else { 
+            }
+            else
+            {
                 var theme = Configuration.ClawSettings.WireThemes.Find(t => t.Name.ToLower() == "default");
 
                 ChangeWireTheme(theme);
@@ -3189,292 +2507,71 @@ namespace InternetClawMachine.Games.GameHelpers
                     //prefs.LightsOn = MachineControl.IsLit;
                     DatabaseFunctions.WriteUserPrefs(Configuration, prefs);
                 }
-
             }
         }
 
-        internal int GetDbLastRename(string username)
+        /// <summary>
+        /// Switches out the 'press !play' for the queue/leaderboards
+        /// </summary>
+        protected override void UpdateObsQueueDisplay()
         {
-            lock (Configuration.RecordsDatabase)
+            base.UpdateObsQueueDisplay();
+            if (ObsConnection.IsConnected)
             {
-                Configuration.RecordsDatabase.Open();
-                var changeTime = "";
                 try
                 {
-                    var sql = "SELECT ChangeDate FROM plushie WHERE ChangedBy = '" + username.ToLower() + "' ORDER BY ChangeDate DESC LIMIT 1";
-                    var command = new SQLiteCommand(sql, Configuration.RecordsDatabase);
-                    var res = command.ExecuteScalar();
-                    if (res != null)
-                        changeTime = command.ExecuteScalar().ToString();
-                }
-                finally
-                {
-                    Configuration.RecordsDatabase.Close();
-                }
-                return changeTime == "" ? 0 : int.Parse(changeTime);
-            }
-        }
-
-        internal int GetDbPlushDetails(string plushName)
-        {
-            lock (Configuration.RecordsDatabase)
-            {
-                Configuration.RecordsDatabase.Open();
-                var i = 0;
-                var outputTop = "";
-                try
-                {
-                    var sql = "SELECT Name, ChangeDate FROM plushie WHERE Name = '" + plushName + "'";
-                    var command = new SQLiteCommand(sql, Configuration.RecordsDatabase);
-                    using (var plushes = command.ExecuteReader())
+                    if (PlayerQueue.Count > 0)
                     {
-                        while (plushes.Read())
-                        {
-                            i++;
-                            outputTop += plushes.GetValue(1);
-                            break;
-                        }
+                        ObsConnection.SetSourceRender(Configuration.ObsScreenSourceNames.TextOverlayChat.SourceName, true);
+                        ObsConnection.SetSourceRender(Configuration.ObsScreenSourceNames.TextOverlayPlayerQueue.SourceName, true);
+                        ObsConnection.SetSourceRender(Configuration.ObsScreenSourceNames.TextOverlayPlayNotification.SourceName, false);
                     }
-                }
-                finally
-                {
-                    Configuration.RecordsDatabase.Close();
-                }
-
-                if (i > 0)
-                    return outputTop == "" ? 0 : int.Parse(outputTop);
-                else
-                    throw new Exception("No plush by that name");
-            }
-        }
-
-        internal void WriteDbNewPushName(string oldName, string newName, string user)
-        {
-            lock (Configuration.RecordsDatabase)
-            {
-                try
-                {
-                    Configuration.RecordsDatabase.Open();
-
-                    var sql = "UPDATE plushie SET Name = @newName, ChangedBy = @user, ChangeDate = @epoch WHERE Name = @oldName";
-                    var command = Configuration.RecordsDatabase.CreateCommand();
-                    command.CommandType = CommandType.Text;
-                    command.CommandText = sql;
-                    command.Parameters.Add(new SQLiteParameter("@newName", newName));
-                    command.Parameters.Add(new SQLiteParameter("@oldName", oldName));
-                    command.Parameters.Add(new SQLiteParameter("@user", user));
-                    command.Parameters.Add(new SQLiteParameter("@epoch", Helpers.GetEpoch()));
-                    command.ExecuteNonQuery();
-                    for (var i = 0; i < PlushieTags.Count; i++)
+                    else //swap the !play image for the queue list if no one is in the queue
                     {
-                        if (PlushieTags[i].Name.ToLower() == oldName.ToLower())
-                        {
-                            PlushieTags[i].Name = newName;
-                            break;
-                        }
+                        ObsConnection.SetSourceRender(Configuration.ObsScreenSourceNames.TextOverlayChat.SourceName, false);
+                        ObsConnection.SetSourceRender(Configuration.ObsScreenSourceNames.TextOverlayPlayerQueue.SourceName, false);
+                        ObsConnection.SetSourceRender(Configuration.ObsScreenSourceNames.TextOverlayPlayNotification.SourceName, true);
                     }
                 }
                 catch (Exception ex)
                 {
                     var error = string.Format("ERROR {0} {1}", ex.Message, ex);
                     Logger.WriteLog(Logger.ErrorLog, error);
-                    Configuration.LoadDatebase();
-                }
-                finally
-                {
-                    Configuration.RecordsDatabase.Close();
                 }
             }
         }
 
-        public void TriggerWin(PlushieObject scannedPlush)
+        private void AdjustOBSGreenScreenFilters()
         {
-            TriggerWin(scannedPlush, null, false, 1);
+            //if black light mode on init make sure greenscreen filters are swapped
+            if (Configuration.ClawSettings.BlackLightMode)
+            {
+                DisableGreenScreenNormal();
+                EnableGreenScreen();
+            }
+            else
+            {
+                DisableGreenScreenBlackLight();
+                EnableGreenScreen();
+            }
         }
 
-        /// <summary>
-        /// Triggers a win for specified tag
-        /// </summary>
-        /// <param name="epc">Tag to give win for</param>
-        /// <param name="forcedWinner">person to declare the winner</param>
-        public void TriggerWin(PlushieObject scannedPlush, string forcedWinner, bool irscanwin, int pointsToAdd)
+        private void ChangeReticle(ReticleOption opt)
         {
             try
             {
-                //TODO - refactor all of this, it's a hodgepodge built overtime initially requiring only a plush scan
-                if (scannedPlush == null && forcedWinner == null && !irscanwin)
+                if (opt.RedemptionName == Configuration.ClawSettings.ActiveReticle.RedemptionName)
+                {
                     return;
-
-
-
-                //get the winner taking into account win queues and forced winners
-                var winner = GetCurrentWinner(forcedWinner);
-                if (winner == null)
-                    return;
-
-                if (scannedPlush == null && !Configuration.EventMode.DisableRFScan)
-                {
-                    Task.Run(async delegate
-                    {
-                        await Task.Delay(4000);
-                        CreateClip();
-                    });
                 }
 
-                RunWinScenario(scannedPlush, winner, pointsToAdd);
+                //grab filters, if they exist don't bother sending more commands
+                var currentScene = ObsConnection.GetCurrentScene();
+                var sourceSettings = ObsConnection.GetSourceSettings(opt.ClipName);
+                sourceSettings.sourceSettings["file"] = opt.FilePath;
 
-                var specialClip = false; //this is an override so confetti doesn't play
-
-                
-                var prefs = Configuration.UserList.GetUser(winner); ///load the user data
-
-                //strobe stuff
-                if (!Configuration.EventMode.DisableStrobe)
-                    RunStrobe(prefs);
-
-                //wait 1 second to do further things so the lights are shut off
-                Thread.Sleep(1000);
-
-                //a lot of the animations are timed and setup in code because I don't want to make a whole animation class
-                //bounty mode
-                if (RunBountyWin(scannedPlush, winner))
-                    return; //don't play anything else if a bounty played
-
-                //events override custom settings so parse that first
-                // TODO - move this to a more dynamic action
-                if (Configuration.EventMode.WinAnimation == "THEME-HalloweenScare" && WinnersList.Count > 0)
-                {
-                    // TODO - move this to a more dynamic action
-                    specialClip = true;
-                    RunScare();
-                }
-                else if (Configuration.EventMode.AllowOverrideWinAnimation && prefs != null && !string.IsNullOrEmpty(prefs.WinClipName)) //if we have a custom user animation and didn't define one for the event, use it
-                {
-                    specialClip = true;
-                    var data = new JObject();
-                    data.Add("name", prefs.WinClipName); //name of clip to play
-                    data.Add("duration", 8000); //max 8 seconds for a win animation
-
-                    WsConnection.SendCommand(MediaWebSocketServer.CommandMedia, data);
-                    
-                }
-                else if (Configuration.EventMode.EventMode == EventMode.SPECIAL && ((Configuration.EventMode.WinAnimation != null && pointsToAdd > 0) || (Configuration.EventMode.FailAnimation != null && pointsToAdd < 0))) //if they didnt have a custom animation but an event is going on with a custom animation
-                {
-                    if (pointsToAdd > 0)
-                    {
-                        specialClip = true;
-                        var data = new JObject();
-                        data.Add("name", Configuration.EventMode.WinAnimation);
-                        WsConnection.SendCommand(MediaWebSocketServer.CommandMedia, data);
-                    } else
-                    {
-                        specialClip = true;
-                        var data = new JObject();
-                        data.Add("name", Configuration.EventMode.FailAnimation);
-                        WsConnection.SendCommand(MediaWebSocketServer.CommandMedia, data);
-                    }
-                }
-                else if (scannedPlush != null && scannedPlush.WinStream.Length > 0) //if there was no custom or event then check if the plush itself has a custom animation
-                {
-                    if (scannedPlush.PlushId == 23) //sharky has a special use case, every 100 grabs is the full shark dance
-                    {
-                        try
-                        {
-                            Configuration.RecordsDatabase.Open();
-                            var sql = "SELECT count(*) FROM wins WHERE name = '" + winner +
-                                        "' AND PlushID = 23";
-                            var command = new SQLiteCommand(sql, Configuration.RecordsDatabase);
-                            var wins = int.Parse(command.ExecuteScalar().ToString());
-                            Configuration.RecordsDatabase.Close();
-
-                            if (wins % 100 == 0) //check for X00th grab
-                            {
-                                specialClip = true;
-                                var data = new JObject();
-                                data.Add("name", scannedPlush.WinStream);
-                                data.Add("duration", 38000);
-
-                                WsConnection.SendCommand(MediaWebSocketServer.CommandMedia, data);
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            var error = string.Format("ERROR {0} {1}", ex.Message, ex);
-                            Logger.WriteLog(Logger.ErrorLog, error);
-                        }
-                    }
-
-                    if (!specialClip)
-                    {
-                        var data = new JObject();
-
-                        //if there are fields specified then parse it
-                        if (scannedPlush.WinStream.Contains(";"))
-                        {
-                            specialClip = true; //we set this here only because anything with fields is a full screen overlay and not just audio, this allows the confetti animation to still play overtop of the sound clips if not set to true in the ELSE below
-                            var pieces = scannedPlush.WinStream.Split(';');
-                            data.Add("name", pieces[0]);
-                            data.Add("duration", int.Parse(pieces[2]));
-                        }
-                        else //otherwise play the clip in its entirety
-                        {
-                            //not setting specialClip = true because this is a sound only event
-                            //TODO - better define this as a sound-only clip
-                            data.Add("name", scannedPlush.WinStream);
-                        }
-
-                        WsConnection.SendCommand(MediaWebSocketServer.CommandMedia, data);
-                    }
-                }
-
-                if (!specialClip) //default win notification if no other clip has played
-                {
-                    var data = new JObject();
-                    data.Add("name", Configuration.ObsScreenSourceNames.WinAnimationDefault.SourceName);
-                    WsConnection.SendCommand(MediaWebSocketServer.CommandMedia, data);
-                }
-
-
-            }
-            catch (Exception ex)
-            {
-                var error = string.Format("ERROR {0} {1}", ex.Message, ex);
-                Logger.WriteLog(Logger.ErrorLog, error);
-            }
-        }
-
-        public async void CreateClip()
-        {
-            if (!Configuration.ClawSettings.ClipMissedPlush)
-                return;
-            ///setup api
-            if (API == null)
-            {
-
-                API = new TwitchAPI();
-                API.Settings.ClientId = Configuration.TwitchSettings.ClientId;
-                API.Settings.AccessToken = Configuration.TwitchSettings.ApiKey;
-                if (string.IsNullOrWhiteSpace(Configuration.TwitchSettings.UserId))
-                {
-                    var userid = await API.Helix.Users.GetUsersAsync(null, new List<string> { Configuration.TwitchSettings.Channel });
-                    Configuration.TwitchSettings.UserId = userid.Users[0].Id;
-                }
-
-            }
-
-            
-            try
-            {
-                //clip on twitch
-                var result = await API.Helix.Clips.CreateClipAsync(Configuration.TwitchSettings.UserId);
-
-                //send to discord
-                var client = new HttpClient();
-                var url = new JObject();
-                url.Add("content", string.Format("A plush wasn't properly scanned. Here is the clip. {0}", result.CreatedClips[0].EditUrl));
-
-                var data = new StringContent(JsonConvert.SerializeObject(url), Encoding.UTF8, "application/json");
-                var res = await client.PostAsync(Configuration.DiscordSettings.SpamWebhook, data);
+                ObsConnection.SetSourceSettings(opt.ClipName, sourceSettings.sourceSettings);
+                Configuration.ClawSettings.ActiveReticle = opt;
             }
             catch (Exception x)
             {
@@ -3483,49 +2580,186 @@ namespace InternetClawMachine.Games.GameHelpers
             }
         }
 
-
         /// <summary>
-        /// Run a bounty win if all checks pass
+        /// Change to a specific scene in OBS
         /// </summary>
-        /// <param name="scannedPlush">Plush just grabbed</param>
-        /// <returns>true if the bounty scenario played</returns>
-        private bool RunBountyWin(PlushieObject scannedPlush, string winner)
+        /// <param name="scene">Name of scene</param>
+        private void ChangeScene(string scene)
         {
-            if (scannedPlush != null && Bounty != null && Bounty.Name.ToLower() == scannedPlush.Name.ToLower())
+            if (!ObsConnection.IsConnected)
+                return;
+
+            //TODO - this will stop it from cutting off audio/video clips if the scene isnt changing and allow them to finish playing
+            //When obs updates it so i can control playback without using the visibility of the source this will change
+            if (ObsConnection.GetCurrentScene().Name.ToLower() == scene)
+                return;
+
+            ResetObsSceneStuff(scene); //disables all theme, bounty, and popup clips of any sort
+            //ResetPlushAudio(); //hide all audio so when we switch back to this it doesn't play everythign all at once
+
+            try
             {
-                
-                if (winner != null)
-                {
-                    var msg = string.Format(
-                        Translator.GetTranslation("gameClawResponseBountyWin", Configuration.UserList.GetUserLocalization(winner)),
-                        winner, scannedPlush.Name, Bounty.Amount);
-                    ChatClient.SendMessage(Configuration.Channel, msg);
-
-                    //update obs
-                    DatabaseFunctions.AddStreamBuxBalance(Configuration, winner, StreamBuxTypes.BOUNTY,
-                        Bounty.Amount);
-                }
-
-
-                var data = new JObject();
-                data.Add("text", Bounty.Name);
-                data.Add("name", Configuration.ObsScreenSourceNames.BountyEndScreen.SourceName);
-                //data.Add("duration", 14000);
-
-                WsConnection.SendCommand(MediaWebSocketServer.CommandMedia, data);
-
-                //reset to no bounty
-                Bounty = null;
-
-                if (Configuration.ClawSettings.AutoBountyMode)
-                {
-                    CreateRandomBounty(Configuration.ClawSettings.AutoBountyAmount, true);
-                }
-                return true;
+                ObsConnection.SetCurrentScene(scene);
             }
-            return false;
+            catch (Exception ex)
+            {
+                var error = string.Format("ERROR {0} {1}", ex.Message, ex);
+                Logger.WriteLog(Logger.ErrorLog, error);
+            }
+            UpdateObsQueueDisplay();
         }
 
+        private void ClawGame_Disconnected(object sender, EventArgs e)
+        {
+        }
+
+        private void ClawGame_OnClawRecoiled(object sender, EventArgs e)
+        {
+            if (Configuration.EventMode.DisableReturnHome)
+            {
+                MachineControl_OnClawCentered(sender, e);
+            }
+        }
+
+        private void ClawGame_OnClawTimeout(object sender, EventArgs e)
+        {
+            //Emailer.SendEmail(Configuration.EmailAddress, "Claw machine timeout closed", "Claw Timeout");
+            Notifier.SendDiscordMessage(Configuration.DiscordSettings.SpamWebhook, "Claw machine timeout closed");
+        }
+
+        private void ClawGame_OnFlipperHitForward(object sender, EventArgs e)
+        {
+            if (Configuration.EventMode.FlipperPosition == FlipperDirection.FLIPPER_FORWARD || Configuration.EventMode.DisableFlipper)
+                return;
+
+            Task.Run(async delegate ()
+            {
+                await ((ClawController)MachineControl).RunConveyor(1000);
+
+                ((ClawController)MachineControl).Flipper(FlipperDirection.FLIPPER_HOME);
+            });
+        }
+
+        private void ClawGame_OnFlipperHitHome(object sender, EventArgs e)
+        {
+        }
+
+        private void ClawGame_OnFlipperTimeout(object sender, EventArgs e)
+        {
+            Notifier.SendEmail(Configuration.EmailAddress, "Flipper timeout, CHECK ASAP!!!", "Flipper Timeout");
+            Notifier.SendDiscordMessage(Configuration.DiscordSettings.SpamWebhook, "Flipper timeout, CHECK ASAP!!!");
+        }
+
+        private void ClawGame_OnInfoMessage(IMachineControl controller, string message)
+        {
+            Logger.WriteLog(Logger.DebugLog, message, Logger.LogLevel.TRACE);
+        }
+
+        private void ClawGame_OnMotorTimeoutBackward(object sender, EventArgs e)
+        {
+            //Emailer.SendEmail(Configuration.EmailAddress, "Claw machine timeout back", "Claw Timeout");
+            Notifier.SendDiscordMessage(Configuration.DiscordSettings.SpamWebhook, "Claw machine timeout back");
+            ResetMachine();
+        }
+
+        private void ClawGame_OnMotorTimeoutDown(object sender, EventArgs e)
+        {
+            //Emailer.SendEmail(Configuration.EmailAddress, "Claw machine timeout dropping", "Claw Timeout");
+            Notifier.SendDiscordMessage(Configuration.DiscordSettings.SpamWebhook, "Claw machine timeout dropping");
+            ResetMachine();
+        }
+
+        private void ClawGame_OnMotorTimeoutForward(object sender, EventArgs e)
+        {
+            //Emailer.SendEmail(Configuration.EmailAddress, "Claw machine timeout forward", "Claw Timeout");
+            Notifier.SendDiscordMessage(Configuration.DiscordSettings.SpamWebhook, "Claw machine timeout forward");
+            ResetMachine();
+        }
+
+        private void ClawGame_OnMotorTimeoutLeft(object sender, EventArgs e)
+        {
+            //Emailer.SendEmail(Configuration.EmailAddress, "Claw machine timeout left", "Claw Timeout");
+            Notifier.SendDiscordMessage(Configuration.DiscordSettings.SpamWebhook, "Claw machine timeout left");
+            ResetMachine();
+        }
+
+        private void ClawGame_OnMotorTimeoutRight(object sender, EventArgs e)
+        {
+            //Emailer.SendEmail(Configuration.EmailAddress, "Claw machine timeout right", "Claw Timeout");
+            Notifier.SendDiscordMessage(Configuration.DiscordSettings.SpamWebhook, "Claw machine timeout right");
+            ResetMachine();
+        }
+
+        private void ClawGame_OnMotorTimeoutUp(object sender, EventArgs e)
+        {
+            //Emailer.SendEmail(Configuration.EmailAddress, "Claw machine timeout recoiling", "Claw Timeout");
+            Notifier.SendDiscordMessage(Configuration.DiscordSettings.SpamWebhook, "Claw machine timeout recoiling");
+            ResetMachine();
+        }
+
+        private void ClawGame_OnNewSubscriber(object sender, TwitchLib.Client.Events.OnNewSubscriberArgs e)
+        {
+            PoliceStrobe();
+            ((ClawController)MachineControl).SendCommandAsync("wt 200");
+            ((ClawController)MachineControl).SendCommandAsync("clap");
+        }
+
+        private void ClawGame_OnReSubscriber(object sender, TwitchLib.Client.Events.OnReSubscriberArgs e)
+        {
+            PoliceStrobe();
+            ((ClawController)MachineControl).SendCommandAsync("wt 200");
+            ((ClawController)MachineControl).SendCommandAsync("clap");
+        }
+
+        private void ClawGame_OnReturnedHome(object sender, EventArgs e)
+        {
+            Logger.WriteLog(Logger.DebugLog, string.Format("WIN CHUTE: Current player {0} in game loop {1}", PlayerQueue.CurrentPlayer, GameLoopCounterValue), Logger.LogLevel.DEBUG);
+            InScanWindow = true; //allows RFID reader to accept scans
+            MachineControl.RunConveyor(Configuration.ClawSettings.ConveyorRunAfterDrop); //start running belt so it's in motion when/if something drops
+        }
+
+        private void ClawGame_OnTeamJoined(object sender, TeamJoinedArgs e)
+        {
+        }
+
+        private void ClawGame_PingSuccess(object sender, EventArgs e)
+        {
+            Configuration.Latency = ((ClawController)MachineControl).Latency;
+            _reconnectCounter = 0;
+        }
+
+        private void ClawGame_PingTimeout(object sender, EventArgs e)
+        {
+            ReconnectClawController();
+        }
+
+        private void ClawSettings_PropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName == "WiggleMode")
+            {
+                if (Configuration.ClawSettings.WiggleMode)
+                {
+                    ((ClawController)MachineControl).SendCommandAsync("w on");
+                }
+                else
+                {
+                    ((ClawController)MachineControl).SendCommandAsync("w off");
+                }
+            }
+            else if (e.PropertyName == "BlackLightMode")
+            {
+                HandleBlackLightMode();
+            }
+        }
+
+        private void Configuration_EventModeChanged(object sender, EventModeArgs e)
+        {
+            //create new session
+            Configuration.SessionGuid = Guid.NewGuid();
+            DatabaseFunctions.WriteDbSessionRecord(Configuration, Configuration.SessionGuid.ToString(), (int)Configuration.EventMode.EventMode, Configuration.EventMode.DisplayName);
+
+            InitializeEventSettings(e.Event);
+        }
 
         private void CreateRandomBounty(int amount, bool withDelay = true)
         {
@@ -3550,62 +2784,127 @@ namespace InternetClawMachine.Games.GameHelpers
                     var saying = Configuration.ClawSettings.BountySayings[idx];
                     var bountyMessage = Translator.GetTranslation(saying, Configuration.UserList.GetUserLocalization(PlayerQueue.CurrentPlayer)).Replace("<<plush>>", Bounty.Name).Replace("<<bux>>", Bounty.Amount.ToString());
 
-
                     await Task.Delay(100);
                     ChatClient.SendMessage(Configuration.Channel, bountyMessage);
                 });
             }
         }
 
-        internal async void PoliceStrobe()
+        private void DisableGreenScreen()
         {
-            //STROBE CODE
+            if (Configuration.ClawSettings.BlackLightMode)
+            {
+                DisableGreenScreenBlackLight();
+            }
+            else
+            {
+                DisableGreenScreenNormal();
+            }
+        }
+
+        private void DisableGreenScreenBlackLight()
+        {
             try
             {
+                //grab filters, if they exist don't bother sending more commands
+                var filters =
+                    ObsConnection.GetSourceFilters(Configuration.ObsSettings.GreenScreenBlackLightSideCamera[0].SourceName);
+                if (!filters.Any(itm =>
+                    itm.Name == Configuration.ObsSettings.GreenScreenBlackLightSideCamera[0].FilterName))
+                    return;
+                foreach (var filter in Configuration.ObsSettings.GreenScreenBlackLightSideCamera)
+                    ObsConnection.RemoveFilterFromSource(filter.SourceName, filter.FilterName);
+            }
+            catch (Exception x)
+            {
+                var error = string.Format("ERROR {0} {1}", x.Message, x);
+                Logger.WriteLog(Logger.ErrorLog, error);
+            }
 
-                var turnemon = false;
-                //see if the lights are on, if they are we turn em off, if not we leave it off and don't turn them back on after
-                if (MachineControl.IsLit)
-                {
-                    MachineControl.LightSwitch(false);
-                    turnemon = true;
-                }
+            try
+            {
+                foreach (var filter in Configuration.ObsSettings.GreenScreenBlackLightFrontCamera)
+                    ObsConnection.RemoveFilterFromSource(filter.SourceName, filter.FilterName);
+            }
+            catch (Exception x)
+            {
+                var error = string.Format("ERROR {0} {1}", x.Message, x);
+                Logger.WriteLog(Logger.ErrorLog, error);
+            }
+        }
 
-                var strobeDuration = Configuration.ClawSettings.StrobeCount * Configuration.ClawSettings.StrobeDelay * 4;
+        private void DisableGreenScreenNormal()
+        {
+            try
+            {
+                //grab filters, if they exist don't bother sending more commands
+                var filters =
+                    ObsConnection.GetSourceFilters(Configuration.ObsSettings.GreenScreenNormalSideCamera[0].SourceName);
+                if (!filters.Any(itm =>
+                    itm.Name == Configuration.ObsSettings.GreenScreenNormalSideCamera[0].FilterName))
+                    return;
 
-                MachineControl.DualStrobe(255, 0, 0, 0, 255, 0, Configuration.ClawSettings.StrobeCount, Configuration.ClawSettings.StrobeDelay);
+                foreach (var filter in Configuration.ObsSettings.GreenScreenNormalSideCamera)
+                    ObsConnection.RemoveFilterFromSource(filter.SourceName, filter.FilterName);
+            }
+            catch (Exception x)
+            {
+                var error = string.Format("ERROR {0} {1}", x.Message, x);
+                Logger.WriteLog(Logger.ErrorLog, error);
+            }
 
-                //if the strobe is shorter than 1-2 second we need to turn the lights on sooner than the greenscreen gets turned off because of camera delay
-                //in the real world there is a ~1-2 second lag between the camera and OBS outputting video but the OBS source changes for greenscreen are immediate so we need to account for that
-                var cameraLagTime = Configuration.ClawSettings.CameraLagTime;
-                if (strobeDuration < cameraLagTime)
-                {
-                    await Task.Delay(strobeDuration);
-                    if (turnemon)
-                        MachineControl.LightSwitch(true);
+            try
+            {
+                foreach (var filter in Configuration.ObsSettings.GreenScreenNormalFrontCamera)
+                    ObsConnection.RemoveFilterFromSource(filter.SourceName, filter.FilterName);
+            }
+            catch (Exception x)
+            {
+                var error = string.Format("ERROR {0} {1}", x.Message, x);
+                Logger.WriteLog(Logger.ErrorLog, error);
+            }
+        }
 
-                    await Task.Delay(cameraLagTime - strobeDuration);
-                    DisableGreenScreen(); //disable greenscreen
+        private void EnableGreenScreen()
+        {
+            if (Configuration.ClawSettings.GreenScreenOverrideOff)
+                return;
+            if (Configuration.ClawSettings.BlackLightMode)
+            {
+                EnableGreenScreenBlackLight();
+            }
+            else
+            {
+                EnableGreenScreenNormal();
+            }
+        }
 
-                    await Task.Delay(strobeDuration);
-                    EnableGreenScreen();
-                }
-                else
-                {
-                    //wait for camera sync
-                    await Task.Delay(cameraLagTime);
-                    DisableGreenScreen(); //disable greenscreen
+        private void EnableGreenScreenBlackLight()
+        {
+            try
+            {
+                //grab filters, if they exist don't bother sending more commands
+                var filters =
+                    ObsConnection.GetSourceFilters(Configuration.ObsSettings.GreenScreenBlackLightFrontCamera[0].SourceName);
+                if (filters.Any(itm =>
+                    itm.Name == Configuration.ObsSettings.GreenScreenBlackLightFrontCamera[0].FilterName))
+                    return;
 
-                    //wait the duration of the strobe
-                    await Task.Delay(strobeDuration - cameraLagTime);
-                    //if the lights were off turnemon
-                    if (turnemon)
-                        MachineControl.LightSwitch(true);
+                foreach (var filter in Configuration.ObsSettings.GreenScreenBlackLightFrontCamera)
+                    ObsConnection.AddFilterToSource(filter.SourceName, filter.FilterName, filter.FilterType,
+                        filter.Settings);
+            }
+            catch (Exception x)
+            {
+                var error = string.Format("ERROR {0} {1}", x.Message, x);
+                Logger.WriteLog(Logger.ErrorLog, error);
+            }
 
-                    //wait for camera sync again to re-enable greenscreen
-                    await Task.Delay(cameraLagTime);
-                    EnableGreenScreen(); //enable the screen
-                }
+            try
+            {
+                foreach (var filter in Configuration.ObsSettings.GreenScreenBlackLightSideCamera)
+                    ObsConnection.AddFilterToSource(filter.SourceName, filter.FilterName, filter.FilterType,
+                        filter.Settings);
             }
             catch (Exception ex)
             {
@@ -3614,5 +2913,654 @@ namespace InternetClawMachine.Games.GameHelpers
             }
         }
 
+        private void EnableGreenScreenNormal()
+        {
+            try
+            {
+                //grab filters, if they exist don't bother sending more commands
+                var filters =
+                    ObsConnection.GetSourceFilters(Configuration.ObsSettings.GreenScreenNormalFrontCamera[0].SourceName);
+                if (filters.Any(itm =>
+                    itm.Name == Configuration.ObsSettings.GreenScreenNormalFrontCamera[0].FilterName))
+                    return;
+
+                foreach (var filter in Configuration.ObsSettings.GreenScreenNormalFrontCamera)
+                    ObsConnection.AddFilterToSource(filter.SourceName, filter.FilterName, filter.FilterType,
+                        filter.Settings);
+            }
+            catch (Exception x)
+            {
+                var error = string.Format("ERROR {0} {1}", x.Message, x);
+                Logger.WriteLog(Logger.ErrorLog, error);
+            }
+
+            try
+            {
+                foreach (var filter in Configuration.ObsSettings.GreenScreenNormalSideCamera)
+                    ObsConnection.AddFilterToSource(filter.SourceName, filter.FilterName, filter.FilterType,
+                        filter.Settings);
+            }
+            catch (Exception ex)
+            {
+                var error = string.Format("ERROR {0} {1}", ex.Message, ex);
+                Logger.WriteLog(Logger.ErrorLog, error);
+            }
+        }
+
+        private string GetCurrentWinner(string forcedWinner)
+        {
+            var winner = "";
+            var rnd = new Random();
+
+            if (forcedWinner != null)
+            {
+                winner = forcedWinner;
+            }
+            else if (SecondaryWinnersList.Count > 0)
+            {
+                winner = SecondaryWinnersList[rnd.Next(SecondaryWinnersList.Count - 1)];
+            }
+            else if (WinnersList.Count > 0)
+            {
+                winner = WinnersList[rnd.Next(WinnersList.Count - 1)];
+            }
+            else if (PlayerQueue.CurrentPlayer != null) //there are no lists of winners use the current player
+            {
+                winner = PlayerQueue.CurrentPlayer;
+            }
+            else //
+            {
+                winner = null;
+            }
+            return winner;
+        }
+
+        private PlushieObject GetRandomPlush()
+        {
+            var rnd = new Random();
+
+            var iterations = 10000; //how many times to find a new plush
+            for (var i = 0; i < iterations; i++)
+            {
+                var rndNumber = rnd.Next(PlushieTags.Count);
+                if (!PlushieTags[rndNumber].WasGrabbed)
+                    return PlushieTags[rndNumber];
+            }
+            return null;
+        }
+
+        private void HandleBlackLightMode()
+        {
+            //adjust settings on load for game
+            if (Configuration.ClawSettings.BlackLightMode)
+            {
+                try
+                {
+                    MachineControl.LightSwitch(false);
+                    ((ClawController)MachineControl).SendCommand("pm 16 1");
+                    ((ClawController)MachineControl).SendCommand("ps 16 1");
+                }
+                catch (Exception x)
+                {
+                    var error = string.Format("ERROR {0} {1}", x.Message, x);
+                    Logger.WriteLog(Logger.ErrorLog, error);
+                }
+
+                AdjustOBSGreenScreenFilters();
+
+                //TODO - don't hardcode this
+                try
+                {
+                    ObsConnection.SetSourceRender("moon", true);
+                    ObsConnection.SetSourceRender("moon2", true);
+                }
+                catch (Exception x)
+                {
+                    var error = string.Format("ERROR {0} {1}", x.Message, x);
+                    Logger.WriteLog(Logger.ErrorLog, error);
+                }
+            }
+            else
+            {
+                try
+                {
+                    ((ClawController)MachineControl).SendCommand("ps 16 0");
+                    MachineControl.LightSwitch(true);
+                }
+                catch (Exception x)
+                {
+                    var error = string.Format("ERROR {0} {1}", x.Message, x);
+                    Logger.WriteLog(Logger.ErrorLog, error);
+                }
+
+                AdjustOBSGreenScreenFilters();
+
+                //TODO - don't hardcode this
+                try
+                {
+                    ObsConnection.SetSourceRender("moon", false);
+                    ObsConnection.SetSourceRender("moon2", false);
+                }
+                catch (Exception x)
+                {
+                    var error = string.Format("ERROR {0} {1}", x.Message, x);
+                    Logger.WriteLog(Logger.ErrorLog, error);
+                }
+            }
+        }
+
+        private void LoadPlushFromDb()
+        {
+            lock (Configuration.RecordsDatabase)
+            {
+                try
+                {
+                    if (PlushieTags != null)
+                        PlushieTags.Clear();
+                    else
+                        PlushieTags = new List<PlushieObject>();
+
+                    Configuration.RecordsDatabase.Open();
+                    var sql = "SELECT p.Name, c.PlushID, c.EPC, p.ChangedBy, p.ChangeDate, p.WinStream, p.BountyStream, p.BonusBux FROM plushie p INNER JOIN plushie_codes c ON p.ID = c.PlushID WHERE p.Active = 1 ORDER BY p.name";
+                    var command = new SQLiteCommand(sql, Configuration.RecordsDatabase);
+                    using (var dbPlushies = command.ExecuteReader())
+                    {
+                        while (dbPlushies.Read())
+                        {
+                            var name = (string)dbPlushies.GetValue(0);
+                            var plushId = int.Parse(dbPlushies.GetValue(1).ToString());
+                            var epc = (string)dbPlushies.GetValue(2);
+                            var changedBy = dbPlushies.GetValue(3).ToString();
+                            var changeDate = 0;
+                            if (dbPlushies.GetValue(4).ToString().Length > 0)
+                                changeDate = int.Parse(dbPlushies.GetValue(4).ToString());
+
+                            var winStream = dbPlushies.GetValue(5).ToString();
+
+                            var bountyStream = dbPlushies.GetValue(6).ToString();
+
+                            var bonusBux = 0;
+
+                            if (dbPlushies.GetValue(7).ToString().Length > 0)
+                                bonusBux = int.Parse(dbPlushies.GetValue(7).ToString());
+
+                            var existing = PlushieTags.FirstOrDefault(itm => itm.PlushId == plushId);
+                            if (existing != null)
+                            {
+                                existing.EpcList.Add(epc);
+                            }
+                            else
+                            {
+                                var plush = new PlushieObject() { Name = name, PlushId = plushId, ChangedBy = changedBy, ChangeDate = changeDate, WinStream = winStream, BountyStream = bountyStream, FromDatabase = true, BonusBux = bonusBux };
+                                plush.EpcList = new List<string>() { epc };
+                                PlushieTags.Add(plush);
+                            }
+                        }
+                    }
+                    Configuration.RecordsDatabase.Close();
+                }
+                catch (Exception ex)
+                {
+                    var error = string.Format("ERROR {0} {1}", ex.Message, ex);
+                    Logger.WriteLog(Logger.ErrorLog, error);
+                }
+            }
+        }
+
+        private void MachineControl_ClawDropping(object sender, EventArgs e)
+        {
+            SessionDrops++;
+        }
+
+        private void MachineControl_OnBreakSensorTripped(object sender, EventArgs e)
+        {
+            var message = string.Format("Break sensor tripped");
+            Logger.WriteLog(Logger.MachineLog, message);
+            message = string.Format(GameModeTimer.ElapsedMilliseconds + " - " + _lastSensorTrip + " > 7000");
+            Logger.WriteLog(Logger.MachineLog, message);
+
+            //ignore repeated trips, code on the machine ignores for 1 second
+            if (GameModeTimer.ElapsedMilliseconds - _lastSensorTrip < Configuration.ClawSettings.BreakSensorWaitTime)
+                return;
+
+            //record the sensor trip
+            _lastSensorTrip = GameModeTimer.ElapsedMilliseconds;
+
+            //async task to run conveyor
+            if (!Configuration.EventMode.DisableBelt)
+                RunBelt(Configuration.ClawSettings.ConveyorWaitFor);
+
+            if (Configuration.EventMode.IRTriggersWin)
+            {
+                var winCancellationToken = new CancellationTokenSource();
+
+                if (CurrentWinCancellationToken != null && !CurrentWinCancellationToken.IsCancellationRequested)
+                    CurrentWinCancellationToken.Cancel();
+
+                CurrentWinCancellationToken = winCancellationToken;
+
+                Task.Run(async delegate ()
+                {
+                    await Task.Delay(8000); //wait 8 seconds
+
+                    if (winCancellationToken.IsCancellationRequested)
+                        return;
+
+                    CurrentWinCancellationToken = null;
+                    TriggerWin(null, null, true, 1);
+                }, winCancellationToken.Token);
+            }
+        }
+
+        /// <summary>
+        /// Event fires after the drop command is sent and the claw returns to center
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void MachineControl_OnClawCentered(object sender, EventArgs e)
+        {
+            _failsafeCurrentResets = 0;
+            Logger.WriteLog(Logger.DebugLog, string.Format("RETURN HOME: Current player {0} in game loop {1}", PlayerQueue.CurrentPlayer, GameLoopCounterValue), Logger.LogLevel.DEBUG);
+
+            RefreshWinList();
+
+            MachineControl.Init();
+
+            //listen for chat input again
+            Configuration.OverrideChat = false;
+
+            //create a secondary list so people get credit for wins
+            var copy = new string[WinnersList.Count];
+            WinnersList.CopyTo(copy);
+
+            SecondaryWinnersList.AddRange(copy);
+            WinnersList.Clear();
+            var message = string.Format("Cleared the drop list");
+            Logger.WriteLog(Logger.MachineLog, message);
+
+            //after a bit, clear the secondary list
+            Task.Run(async delegate ()
+            {
+                await Task.Delay(Configuration.ClawSettings.SecondaryListBufferTime);
+                SecondaryWinnersList.Clear();
+                InScanWindow = false; //disable scan acceptance
+            });
+        }
+
+        private void MachineControl_ResetButtonPressed(object sender, EventArgs e)
+        {
+            Init();
+            StartGame(null);
+        }
+
+        /// <summary>
+        /// Play a clip in OBS for X seconds then hide it
+        /// </summary>
+        /// <param name="clipName">Name of the source in OBS</param>
+        /// <param name="ms">seconds to play the clip</param>
+        private async void PlayClipAsync(ObsSceneSource clipName, int ms)
+        {
+            if (ObsConnection.IsConnected)
+            {
+                try
+                {
+                    lock (ObsConnection)
+                    {
+                        ObsConnection.SetSourceRender(clipName.SourceName, false, clipName.SceneName);
+                        ObsConnection.SetSourceRender(clipName.SourceName, true, clipName.SceneName);
+                    }
+                    await Task.Delay(ms);
+                    lock (ObsConnection)
+                    {
+                        ObsConnection.SetSourceRender(clipName.SourceName, false, clipName.SceneName);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    var error = string.Format("ERROR {0} {1}", ex.Message, ex);
+                    Logger.WriteLog(Logger.ErrorLog, error);
+                }
+            }
+        }
+
+        private void ReconnectClawController()
+        {
+            var connected = false;
+            while (_reconnectCounter < 10000 && !connected)
+            {
+                _reconnectCounter++;
+                Configuration.ReconnectAttempts++;
+                connected = ((ClawController)MachineControl).Connect(Configuration.ClawSettings.ClawControllerIpAddress, Configuration.ClawSettings.ClawControllerPort);
+                if (!connected)
+                    Thread.Sleep(20000);
+            }
+        }
+
+        private void ResetMachine()
+        {
+            if (_failsafeCurrentResets < _failsafeMaxResets)
+            {
+                _failsafeCurrentResets++;
+                Task.Run(async delegate
+                {
+                    await Task.Delay(10000);
+                    ((ClawController)MachineControl).SendCommand("state 0");
+                    ((ClawController)MachineControl).SendCommand("reset");
+                });
+            }
+            else
+            {
+                try
+                {
+                    ChatClient.SendMessage(Configuration.Channel, "Machine has failed to reset the maximum number of times. Use !discord to contact the owner.");
+                }
+                catch { }
+                try
+                {
+                    ObsConnection.SetSourceRender(Configuration.ObsScreenSourceNames.Construction.SourceName, true,
+                        Configuration.ObsScreenSourceNames.Construction.SceneName);
+                }
+                catch
+                {
+                }
+                try
+                {
+                    Task.Run(async delegate
+                    {
+                        //send to discord
+                        var client = new HttpClient();
+                        var url = new JObject();
+                        url.Add("content", string.Format("Oh no I broke! Someone find my owner to fix me!"));
+
+                        var data = new StringContent(JsonConvert.SerializeObject(url), Encoding.UTF8, "application/json");
+                        var res = await client.PostAsync(Configuration.DiscordSettings.ChatWebhook, data);
+                    });
+                }
+                catch { }
+            }
+        }
+
+        /// <summary>
+        /// When switching scenes in OBS we need to silence/hide everything so it doesnt start playing again when the scene switches back
+        /// </summary>
+        /// <param name="newScene"></param>
+        private void ResetObsSceneStuff(string newScene)
+        {
+            var curScene = ObsConnection.GetCurrentScene().Name;
+            if (!ObsConnection.IsConnected)
+                return;
+            if (!curScene.StartsWith("Claw"))
+                return;
+            if (String.Equals(curScene, newScene, StringComparison.CurrentCultureIgnoreCase))
+                return;
+            try
+            {
+                ObsConnection.SetSourceRender(Configuration.ObsScreenSourceNames.CameraConveyor.SourceName, false);
+            }
+            catch (Exception ex)
+            {
+                var error = string.Format("ERROR {0} {1}", ex.Message, ex);
+                Logger.WriteLog(Logger.ErrorLog, error);
+            }
+        }
+
+        private void ResetPlushAudio()
+        {
+            if (!ObsConnection.IsConnected)
+                return;
+            if (!ObsConnection.GetCurrentScene().Name.StartsWith("Claw"))
+                return;
+
+            foreach (var plush in PlushieTags)
+            {
+                if (plush.WinStream.Length > 0)
+                {
+                    try
+                    {
+                        ObsConnection.SetSourceRender(plush.WinStream, false);
+                    }
+                    catch (Exception ex)
+                    {
+                        var error = string.Format("ERROR {0} {1}", ex.Message, ex);
+                        Logger.WriteLog(Logger.ErrorLog, error);
+                    }
+                }
+            }
+        }
+
+        private void RFIDReader_NewTagFound(EpcData epcData)
+        {
+            var epc = epcData.Epc.Trim();
+            Logger.WriteLog(Logger.DebugLog, epc, Logger.LogLevel.TRACE);
+            if (Configuration.EventMode.DisableRFScan) return; //ignore scans
+
+            if (InScanWindow)
+            {
+                var scannedPlushObject = PlushieTags.FirstOrDefault(itm => itm.EpcList.Contains(epc));
+
+                //TODO - refactor all of this, it's a hodgepodge built overtime initially requiring only a plush scan
+                if (scannedPlushObject == null)
+                    return;
+
+                //if we're scanning a plush cancel an IR scan trigger
+                if (!scannedPlushObject.WasGrabbed && CurrentWinCancellationToken != null && !CurrentWinCancellationToken.IsCancellationRequested)
+                    CurrentWinCancellationToken.Cancel();
+
+                //if this hasn't been scanned yet
+                if (!scannedPlushObject.WasGrabbed)
+                {
+                    if (scannedPlushObject != null)
+                        scannedPlushObject.WasGrabbed = true;
+
+                    TriggerWin(scannedPlushObject);
+                }
+            }
+        }
+
+        private void RunBountyAnimation(PlushieObject plushRef)
+        {
+            if (plushRef == null)
+                return;
+
+            var data = new JObject();
+            data.Add("text", plushRef.Name);
+
+            if (!string.IsNullOrEmpty(plushRef.BountyStream))
+                data.Add("name", plushRef.BountyStream);
+            else //use the blank poster if nothing is defined
+                data.Add("name", Configuration.ObsScreenSourceNames.BountyWantedBlank.SourceName);
+
+            WsConnection.SendCommand(MediaWebSocketServer.CommandMedia, data);
+
+            /*
+            var props = OBSConnection.GetTextGDIPlusProperties(Configuration.OBSScreenSourceNames.BountyWantedText.SourceName);
+            props.Text = plushRef.Name;
+            OBSConnection.SetTextGDIPlusProperties(props);
+
+            PlayClipAsync(Configuration.OBSScreenSourceNames.BountyStartScreen, 10000);
+
+            if (plushRef.BountyStream != null && plushRef.BountyStream.Length > 0)
+            {
+                OBSSceneSource src = new OBSSceneSource() { SourceName = plushRef.BountyStream, Type = OBSSceneSourceType.IMAGE, Scene = "VideosScene" };
+                PlayClipAsync(src, 9500);
+            }
+            else
+            {
+                PlayClipAsync(Configuration.OBSScreenSourceNames.BountyWantedBlank, 9500);
+            }
+            PlayClipAsync(Configuration.OBSScreenSourceNames.BountyWantedText, 9500);
+            */
+            PoliceStrobe();
+        }
+
+        /// <summary>
+        /// Run a bounty win if all checks pass
+        /// </summary>
+        /// <param name="scannedPlush">Plush just grabbed</param>
+        /// <returns>true if the bounty scenario played</returns>
+        private bool RunBountyWin(PlushieObject scannedPlush, string winner)
+        {
+            if (scannedPlush != null && Bounty != null && Bounty.Name.ToLower() == scannedPlush.Name.ToLower())
+            {
+                if (winner != null)
+                {
+                    var msg = string.Format(
+                        Translator.GetTranslation("gameClawResponseBountyWin", Configuration.UserList.GetUserLocalization(winner)),
+                        winner, scannedPlush.Name, Bounty.Amount);
+                    ChatClient.SendMessage(Configuration.Channel, msg);
+
+                    //update obs
+                    DatabaseFunctions.AddStreamBuxBalance(Configuration, winner, StreamBuxTypes.BOUNTY,
+                        Bounty.Amount);
+                }
+
+                var data = new JObject();
+                data.Add("text", Bounty.Name);
+                data.Add("name", Configuration.ObsScreenSourceNames.BountyEndScreen.SourceName);
+                //data.Add("duration", 14000);
+
+                WsConnection.SendCommand(MediaWebSocketServer.CommandMedia, data);
+
+                //reset to no bounty
+                Bounty = null;
+
+                if (Configuration.ClawSettings.AutoBountyMode)
+                {
+                    CreateRandomBounty(Configuration.ClawSettings.AutoBountyAmount, true);
+                }
+                return true;
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// Sends text to chat for the winner, increments the win counter
+        /// </summary>
+        /// <param name="objPlush">Plush that was grabbed</param>
+        /// <param name="winner">name of winner, could be a team or a person</param>
+        /// <param name="pointsToAdd">How much do we add to their win total? Can be negative.</param>
+
+        private void RunWinScenario(PlushieObject objPlush, string winner, int pointsToAdd)
+        {
+            var saying = "";
+
+            //do we have a winner?
+            if (string.IsNullOrEmpty(winner))
+            {
+                if (objPlush != null)
+                {
+                    saying = string.Format("Oops the scanner just scanned {0} accidentally!", objPlush.Name);
+                    Logger.WriteLog(Logger.MachineLog, "ERROR: " + saying);
+                }
+            }
+
+            var usr = Configuration.UserList.GetUser(winner);
+            var winnerName = winner;
+            var teamid = usr.TeamId;
+            if (Configuration.EventMode.TeamRequired)
+                teamid = usr.EventTeamId;
+
+            var team = Teams.FirstOrDefault(t => t.Id == teamid);
+            if (team != null)
+            {
+                team.Wins += pointsToAdd;
+                if (this.GameMode == GameModeType.REALTIMETEAM)
+                    winnerName = team.Name;
+            }
+
+            //see if they're in the tracker yeta
+            var user = SessionWinTracker.FirstOrDefault(u => u.Username == winner);
+            if (user != null)
+                user = SessionWinTracker.First(u => u.Username == winner);
+            else
+                user = new SessionWinTracker() { Username = winner };
+
+            if (pointsToAdd < 0) //if we're negative points, handle inside this so we don't skip to another text we don't want
+            {
+                if (!string.IsNullOrEmpty(Configuration.EventMode.CustomFailTextResource)) //if custom text exists we use it
+                {
+                    if (objPlush != null) //if they grabbed the wrong plush
+                    {
+                        saying = string.Format(Translator.GetTranslation(Configuration.EventMode.CustomFailTextResource, Configuration.UserList.GetUserLocalization(winner)), winnerName, objPlush.Name, objPlush.BonusBux);
+                    }
+                    else
+                    {
+                        saying = string.Format(Translator.GetTranslation(Configuration.EventMode.CustomFailTextResource, Configuration.UserList.GetUserLocalization(winner)), winnerName);
+                    }
+                }
+            }
+            else if (objPlush != null && !string.IsNullOrEmpty(Configuration.EventMode.CustomWinTextResource) && pointsToAdd > 0) //if an RF scan but also custom text enter here
+            {
+                saying = string.Format(Translator.GetTranslation(Configuration.EventMode.CustomWinTextResource, Configuration.UserList.GetUserLocalization(winner)), winnerName, objPlush.Name, objPlush.BonusBux, pointsToAdd);
+                DatabaseFunctions.AddStreamBuxBalance(Configuration, user.Username, StreamBuxTypes.WIN, objPlush.BonusBux);
+            }
+            else if (!string.IsNullOrEmpty(Configuration.EventMode.CustomWinTextResource) && pointsToAdd > 0) //if an RF scan but also custom text enter here
+            {
+                saying = string.Format(Translator.GetTranslation(Configuration.EventMode.CustomWinTextResource, Configuration.UserList.GetUserLocalization(winner)), winnerName, null, pointsToAdd, pointsToAdd);
+                DatabaseFunctions.AddStreamBuxBalance(Configuration, user.Username, StreamBuxTypes.WIN, pointsToAdd);
+            }
+            //otherwise if just a custom win, mainly for events, use this
+            else if (!string.IsNullOrEmpty(Configuration.EventMode.CustomWinTextResource))
+            {
+                saying = string.Format(Translator.GetTranslation(Configuration.EventMode.CustomWinTextResource, Configuration.UserList.GetUserLocalization(winner)), winnerName, Configuration.EventMode.WinMultiplier);
+                DatabaseFunctions.AddStreamBuxBalance(Configuration, user.Username, StreamBuxTypes.WIN, Configuration.GetStreamBuxCost(StreamBuxTypes.WIN) * Configuration.EventMode.WinMultiplier);
+            }
+            else if (objPlush != null)
+            {
+                saying = string.Format(Translator.GetTranslation("gameClawGrabPlush", Configuration.UserList.GetUserLocalization(winner)), winnerName, objPlush.Name);
+                DatabaseFunctions.AddStreamBuxBalance(Configuration, user.Username, StreamBuxTypes.WIN, Configuration.GetStreamBuxCost(StreamBuxTypes.WIN));
+
+                if (objPlush.BonusBux > 0)
+                    DatabaseFunctions.AddStreamBuxBalance(Configuration, usr.Username, StreamBuxTypes.WIN, objPlush.BonusBux);
+
+                DatabaseFunctions.WriteDbWinRecord(Configuration, usr, objPlush.PlushId, Configuration.SessionGuid.ToString());
+            }
+            else
+            {
+                saying = string.Format(Translator.GetTranslation("gameClawGrabSomething", Configuration.UserList.GetUserLocalization(winner)), winnerName);
+                DatabaseFunctions.AddStreamBuxBalance(Configuration, usr.Username, StreamBuxTypes.WIN, Configuration.GetStreamBuxCost(StreamBuxTypes.WIN));
+
+                DatabaseFunctions.WriteDbWinRecord(Configuration, usr, -1, Configuration.SessionGuid.ToString());
+            }
+
+            //increment their wins
+            user.Wins += pointsToAdd;
+
+            //increment the current goals wins
+            Configuration.DataExchanger.GoalPercentage += Configuration.GoalProgressIncrement;
+            Configuration.Save();
+
+            //reset how many drops it took to win
+            SessionDrops = 0; //set to 0 for display
+            RefreshWinList();
+
+            Notifier.SendEmail(Configuration.EmailAddress, "Someone won a prize: " + saying, saying);
+            Notifier.SendDiscordMessage(Configuration.DiscordSettings.SpamWebhook, winner + " won a prize: " + saying);
+
+            //send message after a bit
+            Task.Run(async delegate ()
+            {
+                await Task.Delay(Configuration.WinNotificationDelay);
+                ChatClient.SendMessage(Configuration.Channel, saying);
+                Logger.WriteLog(Configuration.Channel, saying);
+            });
+        }
+
+        private void WriteMiss(string username, string plush)
+        {
+            try
+            {
+                var date = DateTime.Now.ToString("dd-MM-yyyy");
+                var timestamp = DateTime.Now.ToString("HH:mm:ss.ff");
+                File.AppendAllText(Configuration.FileMissedPlushes, $"{date} {timestamp} {username} {plush}\r\n");
+            }
+            catch (Exception ex)
+            {
+                var error = $"ERROR {ex.Message} {ex}";
+                Logger.WriteLog(Logger.ErrorLog, error);
+            }
+        }
+
+        #endregion Methods
     }
 }

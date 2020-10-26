@@ -7,11 +7,12 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Windows.Documents;
 
 namespace InternetClawMachine.Hardware.ClawControl
 {
     public delegate void ClawInfoEventArgs(IMachineControl controller, string message);
+
+    public delegate void ClawScoreEventArgs(IMachineControl controller, string slotNumber);
 
     /**
      * Talk to the claw machine controller
@@ -19,13 +20,14 @@ namespace InternetClawMachine.Hardware.ClawControl
      * All commands are sent with a sequence number, this number is echoed back in the response to the command. Events not predicated by a command are returned with a sequence of 0
      * Send format: sequence command arguments
      *    e.g. 2 f 200 - this would be sequence 2, forward command for 200 ms
-     *   
+     *
      *
      * Receive format: response:sequence values
      *    e.g. 900:2 - this is a response to the above command, 900 is a generic info response, 2 is the sequence
-     *   or 107:0 - this is an event, the zero means this is not a response to anything 
+     *   or 107:0 - this is an event, the zero means this is not a response to anything
      *
      */
+
     internal class ClawController : IMachineControl
     {
         /// <summary>
@@ -88,7 +90,9 @@ namespace InternetClawMachine.Hardware.ClawControl
         public event EventHandler OnFlipperTimeout;
 
         public event ClawInfoEventArgs OnInfoMessage;
-        
+
+        public event ClawScoreEventArgs OnScoreSensorTripped;
+
         public string IpAddress { set; get; }
         public int Port { get; set; }
 
@@ -129,10 +133,13 @@ namespace InternetClawMachine.Hardware.ClawControl
 
         public bool IsLit { get; private set; } = true;
 
-        public bool IsConnected { get
+        public bool IsConnected
         {
-            return _workSocket != null && _workSocket.Connected;
-        } }
+            get
+            {
+                return _workSocket != null && _workSocket.Connected;
+            }
+        }
 
         public MovementDirection CurrentDirection
         {
@@ -266,6 +273,7 @@ namespace InternetClawMachine.Hardware.ClawControl
             }
             return false;
         }
+
         public void StartPing()
         {
             _pingQueue.Clear();
@@ -338,7 +346,7 @@ namespace InternetClawMachine.Hardware.ClawControl
                 //echo the data received back to the client
                 //e.SetBuffer(e.Offset, e.BytesTransferred);
                 int i;
-                
+
                 for (i = 0; i < e.BytesTransferred; i++)
                 {
                     _receiveBuffer[_receiveIdx] = e.Buffer[i];
@@ -348,7 +356,6 @@ namespace InternetClawMachine.Hardware.ClawControl
                     _receiveIdx = 0; //reset index to zero
                     Array.Clear(_receiveBuffer, 0, _receiveBuffer.Length); //also make sure the array is zeroed
                     commands.Add(response);
-                    
                 }
                 e.SetBuffer(0, 1024);
             }
@@ -389,7 +396,6 @@ namespace InternetClawMachine.Hardware.ClawControl
                             _currentWaitSequenceNumberCommand = -1;
                             _lastCommandResponse = response;
                         }
-
                     }
                     var resp = (ClawEvents)int.Parse(eventResp);
                     switch (resp)
@@ -414,7 +420,7 @@ namespace InternetClawMachine.Hardware.ClawControl
                                     //cancel the task if running
                                     ping.CancelToken.Cancel();
                                     _pingQueue.RemoveAt(i);
-                                    
+
                                     OnPingSuccess?.Invoke(this, new EventArgs());
                                     break;
                                 }
@@ -446,6 +452,11 @@ namespace InternetClawMachine.Hardware.ClawControl
                             OnLimitHitDown?.Invoke(this, new EventArgs());
                             break;
 
+                        case ClawEvents.EVENT_SCORE_SENSOR:
+                            OnScoreSensorTripped?.Invoke(this,
+                                response.Substring(delims[0].Length, response.Length - delims[0].Length).Trim());
+                            break;
+
                         case ClawEvents.EVENT_FLIPPER_ERROR:
                             var data = response.Substring(delims[0].Length, response.Length - delims[0].Length).Trim();
                             OnFlipperError?.Invoke(this, data);
@@ -459,6 +470,7 @@ namespace InternetClawMachine.Hardware.ClawControl
                             OnFlipperHitHome?.Invoke(this, new EventArgs());
 
                             break;
+
                         case ClawEvents.EVENT_FAILSAFE_FLIPPER:
                             //if the flipper times out moving forward, move it back againp
                             if (_lastFlipperDirection == FlipperDirection.FLIPPER_FORWARD)
@@ -467,6 +479,7 @@ namespace InternetClawMachine.Hardware.ClawControl
                             OnFlipperTimeout?.Invoke(this, new EventArgs());
 
                             break;
+
                         case ClawEvents.EVENT_FAILSAFE_LEFT:
                             OnMotorTimeoutLeft?.Invoke(this, new EventArgs());
                             break;
@@ -527,14 +540,12 @@ namespace InternetClawMachine.Hardware.ClawControl
                 var error = string.Format("ERROR {0} {1}", ex.Message, ex);
                 Logger.WriteLog(Logger.ErrorLog, error);
             }
-            
         }
 
         private async void Ping()
         {
             try
             {
-
                 //only restart the timer if there are no outstanding pings
                 if (_pingQueue.Count == 0)
                 {
@@ -551,12 +562,12 @@ namespace InternetClawMachine.Hardware.ClawControl
                 await Task.Run(async delegate
                 {
                     await Task.Delay(_maximumPingTime); //simply wait some second to check for the last ping
-                if (ping.CancelToken.IsCancellationRequested)
+                    if (ping.CancelToken.IsCancellationRequested)
                     {
                         if (ping.Success)
                         {
-                        //start a ping in 10 seconds?
-                        await Task.Delay(10000);
+                            //start a ping in 10 seconds?
+                            await Task.Delay(10000);
                             Ping();
                         }
                         _pingQueue.Remove(ping);
@@ -567,12 +578,12 @@ namespace InternetClawMachine.Hardware.ClawControl
                     if (!_workSocket.Connected)
                     {
                         _pingQueue.Clear();
-                    //don't do anything if we disconnected afterward
-                }
+                        //don't do anything if we disconnected afterward
+                    }
                     else if (!ping.Success) //no response, TIMEOUT!
-                {
-                    //first, check if any pings AFTER this have succeeded, maybe this got delayed for some reason
-                    var hasOtherSuccess = false;
+                    {
+                        //first, check if any pings AFTER this have succeeded, maybe this got delayed for some reason
+                        var hasOtherSuccess = false;
                         foreach (var p in _pingQueue)
                         {
                             if (p.Sequence > ping.Sequence && p.Success)
@@ -581,12 +592,12 @@ namespace InternetClawMachine.Hardware.ClawControl
 
                         if (hasOtherSuccess)
                         {
-                        //if another successful ping was after this one we just remove it and continue on
-                        //also don't spawn a new ping because the subsequent ping will do taht
-                        _pingQueue.Remove(ping);
+                            //if another successful ping was after this one we just remove it and continue on
+                            //also don't spawn a new ping because the subsequent ping will do taht
+                            _pingQueue.Remove(ping);
                         }
                         else //yea we really timed out
-                    {
+                        {
                             _pingQueue.Clear();
                             Logger.WriteLog(Logger.MachineLog, "Ping timeout: " + Latency);
                             _workSocket.Disconnect(false);
@@ -595,9 +606,9 @@ namespace InternetClawMachine.Hardware.ClawControl
                         }
                     }
                     else //this ping was a success
-                {
-                    //start a ping in 10 seconds?
-                    await Task.Delay(10000);
+                    {
+                        //start a ping in 10 seconds?
+                        await Task.Delay(10000);
                         Ping();
                     }
                 }, ping.CancelToken.Token);
@@ -607,8 +618,6 @@ namespace InternetClawMachine.Hardware.ClawControl
                 var error = string.Format("ERROR {0} {1}", ex.Message, ex);
                 Logger.WriteLog(Logger.ErrorLog, error);
             }
-            
-
         }
 
         public void Disconnect()
@@ -635,16 +644,13 @@ namespace InternetClawMachine.Hardware.ClawControl
             int seq = Sequence; //sequence increments each time it's asked for, just asking once
             try
             {
-                
                 command = seq + " " + command; //add a sequence number
                 // Encode the data string into a byte array.
                 var msg = Encoding.ASCII.GetBytes(command + "\n");
                 Logger.WriteLog(Logger.MachineLog, "SEND: " + command, Logger.LogLevel.DEBUG);
-                
+
                 // Send the data through the socket.
                 _workSocket.Send(msg);
-
-
             }
             catch (Exception ex)
             {
@@ -666,7 +672,7 @@ namespace InternetClawMachine.Hardware.ClawControl
                 // Encode the data string into a byte array.
                 var msg = Encoding.ASCII.GetBytes(command + "\n");
                 Logger.WriteLog(Logger.MachineLog, "SEND: " + command, Logger.LogLevel.DEBUG);
-                
+
                 // Send the data through the socket.
                 _currentWaitSequenceNumberCommand = seq;
                 _lastCommandResponse = null;
@@ -739,12 +745,15 @@ namespace InternetClawMachine.Hardware.ClawControl
                     case MovementDirection.UP:
                         dir = "u";
                         break;
+
                     case MovementDirection.DOWN:
                         dir = "dn";
                         break;
+
                     case MovementDirection.CLAWCLOSE:
                         dir = "claw";
                         break;
+
                     case MovementDirection.DROP:
                         IsClawPlayActive = true;
                         dir = "d";
@@ -767,7 +776,7 @@ namespace InternetClawMachine.Hardware.ClawControl
                 if (duration > 0)
                 {
                     var guid = Guid.NewGuid();
-                    Logger.WriteLog(Logger.DebugLog,  guid + " sleeping: " + Thread.CurrentThread.ManagedThreadId, Logger.LogLevel.TRACE);
+                    Logger.WriteLog(Logger.DebugLog, guid + " sleeping: " + Thread.CurrentThread.ManagedThreadId, Logger.LogLevel.TRACE);
                     await Task.Delay(duration);
                     Logger.WriteLog(Logger.DebugLog, guid + " woke: " + Thread.CurrentThread.ManagedThreadId, Logger.LogLevel.TRACE);
                 }
@@ -825,7 +834,6 @@ namespace InternetClawMachine.Hardware.ClawControl
                 return;
             SendCommandAsync("belt " + runtime);
             await Task.Delay(runtime);
-            
         }
 
         public void SetClawPower(int percent)
@@ -886,6 +894,19 @@ namespace InternetClawMachine.Hardware.ClawControl
         }
 
         /// <summary>
+        /// Enable or disable a sensor individually
+        /// </summary>
+        /// <param name="sensor">Sensor number</param>
+        /// <param name="isEnabled">Flag to enable</param>
+        public void EnableSensor(int sensor, bool isEnabled)
+        {
+            if (!IsConnected)
+                return;
+            var str = string.Format("ss {0} {1}", sensor, isEnabled ? 1 : 2);
+            SendCommandAsync(str);
+        }
+
+        /// <summary>
         /// Get the value for a specific failsafe from the claw controller
         /// </summary>
         /// <param name="type">Type of failsafe to get</param>
@@ -899,7 +920,6 @@ namespace InternetClawMachine.Hardware.ClawControl
             var res = SendCommand(str);
             return int.Parse(res);
         }
-
 
         public async Task StopMove()
         {
@@ -930,32 +950,37 @@ namespace InternetClawMachine.Hardware.ClawControl
         }
     }
 
-    class ClawPing
+    internal class ClawPing
     {
         /// <summary>
         /// Sequence number sent for this ping
         /// </summary>
         public int Sequence { set; get; }
+
         /// <summary>
         /// Whether it was successful
         /// </summary>
         public bool Success { set; get; }
+
         /// <summary>
         /// When did this ping start?
         /// </summary>
         public long StartTime { get; internal set; }
+
         /// <summary>
         /// Cancellation token for the Task
         /// </summary>
         public CancellationTokenSource CancelToken { get; internal set; }
     }
 
-    public enum ClawHomeLocation {
+    public enum ClawHomeLocation
+    {
         FRONTLEFT,
         FRONTRIGHT,
         BACKLEFT,
         BACKRIGHT
     }
+
     public enum ClawMode
     {
         NORMAL,

@@ -58,14 +58,14 @@
         </Style>
         <DataTemplate x:Key="HeaderTemplateArrowUp">
             <DockPanel LastChildFill="True" Width="{Binding ActualWidth, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type GridViewColumnHeader}}}">
-                <Path x:Name="arrowUp" StrokeThickness="1" Fill="Gray" Data="M 5,10 L 15,10 L 10,5 L 5,10" DockPanel.Dock="Right" Width="20" HorizontalAlignment="Right" Margin="5,0,5,0" SnapsToDevicePixels="True"/>
+                <Path x:Name="arrowUp" StrokeThickness="1" Fill="Gray" Data="M 5,10 L 15,10 L 10,5 L 5,10" DockPanel.Dock="Right" Width="20" HorizontalAlignment="Right" Margin="5,0,5,0" SnapsToDevicePixels="True" />
                 <TextBlock Text="{Binding }" />
             </DockPanel>
         </DataTemplate>
 
         <DataTemplate x:Key="HeaderTemplateArrowDown">
             <DockPanel LastChildFill="True" Width="{Binding ActualWidth, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type GridViewColumnHeader}}}">
-                <Path x:Name="arrowDown" StrokeThickness="1" Fill="Gray"  Data="M 5,5 L 10,10 L 15,5 L 5,5" DockPanel.Dock="Right" Width="20" HorizontalAlignment="Right" Margin="5,0,5,0" SnapsToDevicePixels="True"/>
+                <Path x:Name="arrowDown" StrokeThickness="1" Fill="Gray"  Data="M 5,5 L 10,10 L 15,5 L 5,5" DockPanel.Dock="Right" Width="20" HorizontalAlignment="Right" Margin="5,0,5,0" SnapsToDevicePixels="True" />
                 <TextBlock Text="{Binding }" />
             </DockPanel>
         </DataTemplate>
@@ -74,8 +74,8 @@
     <Grid Margin="0,0,0,-2" Width="797">
         <Grid>
             <Grid.RowDefinitions>
-                <RowDefinition Height="388*"/>
-                <RowDefinition Height="509*"/>
+                <RowDefinition Height="388*" />
+                <RowDefinition Height="509*" />
             </Grid.RowDefinitions>
             <TextBox Margin="15,43,423,126" TextWrapping="Wrap" AllowDrop="False" x:Name="txtDump" ScrollViewer.CanContentScroll="True" VerticalScrollBarVisibility="Visible" FontFamily="Yu Gothic UI Semibold" Text="(Nickname) Test" FontSize="20" Background="Black" Foreground="#FF408080" />
             <TextBox Margin="15,0,423,92" TextWrapping="Wrap" AllowDrop="False" x:Name="txtInput" KeyUp="Input_KeyUp" Foreground="#FF408080" Background="Black" Height="29" VerticalAlignment="Bottom">
@@ -89,7 +89,7 @@
             <Button Content="Left" HorizontalAlignment="Right" Margin="0,59,188,0" VerticalAlignment="Top" Width="76" x:Name="btnLeft" PreviewMouseDown="btnLeft_MouseDown" PreviewMouseUp="btnLeft_MouseUp" />
             <Button Content="Right" HorizontalAlignment="Right" Margin="0,59,9,0" VerticalAlignment="Top" Width="74" x:Name="btnRight" PreviewMouseDown="btnRight_MouseDown" PreviewMouseUp="btnRight_MouseUp" />
             <Button Content="Drop" HorizontalAlignment="Right" Margin="0,59,102,0" VerticalAlignment="Top" Width="64" x:Name="btnDrop" PreviewMouseDown="btnDrop_MouseDown" PreviewMouseUp="btnDrop_MouseUp" />
-            <ListBox HorizontalAlignment="Right" Height="186" Margin="0,43,276,0" VerticalAlignment="Top" Width="125" x:Name="lstViewers" Background="Black" Foreground="#FF408080" BorderBrush="Red" BorderThickness="0" ItemsSource="{Binding UserList}" DisplayMemberPath="Username"/>
+            <ListBox HorizontalAlignment="Right" Height="186" Margin="0,43,276,0" VerticalAlignment="Top" Width="125" x:Name="lstViewers" Background="Black" Foreground="#FF408080" BorderBrush="Red" BorderThickness="0" ItemsSource="{Binding UserList}" DisplayMemberPath="Username" />
             <Label Content="Viewers" HorizontalAlignment="Left" Margin="371,14,0,0" VerticalAlignment="Top" Height="26" Width="54" />
             <Button Content="Reconnect" HorizontalAlignment="Right" Margin="0,312,276,0" VerticalAlignment="Top" Width="125" x:Name="btnReconnect" Click="btnReconnect_Click" />
             <Button Content="Pause" HorizontalAlignment="Left" Margin="134,0,0,12" VerticalAlignment="Bottom" Width="75" x:Name="btnPause" Click="btnPause_Click" />
@@ -101,11 +101,16 @@
             <Button x:Name="btnOBSConnect" Content="OBS Connect" HorizontalAlignment="Left" Margin="224,0,0,12" VerticalAlignment="Bottom" Width="125" Click="btnOBSConnect_Click" />
             <Button x:Name="btnUp" Content="Up" HorizontalAlignment="Right" Margin="0,183,155,0" VerticalAlignment="Top" Width="109" PreviewMouseDown="btnUp_PreviewMouseDown" PreviewMouseUp="btnUp_PreviewMouseUp" />
 
-            <ComboBox x:Name="cmbEventMode" HorizontalAlignment="Left" Margin="634,312,0,0" VerticalAlignment="Top" Width="120" SelectedIndex="0" SelectionChanged="cmbEventMode_SelectionChanged" ItemsSource="{Binding ClawSettings.EventModes}" DisplayMemberPath="DisplayName" Height="28"/>
+            <ComboBox x:Name="cmbEventMode" HorizontalAlignment="Left" Margin="634,312,0,0" VerticalAlignment="Top" Width="120" SelectedIndex="0" SelectionChanged="cmbEventMode_SelectionChanged" ItemsSource="{Binding ClawSettings.EventModes}" DisplayMemberPath="DisplayName" Height="28" />
             <Button x:Name="btnSaveConfig" Content="Save Configuration" Margin="0,0,15,18" Click="btnSaveConfig_Click" Grid.Row="1" Height="32" VerticalAlignment="Bottom" HorizontalAlignment="Right" Width="162" />
-            <TabControl Margin="15,11,15,65" Grid.Row="1">
+            <TabControl Margin="10,10,20,55" Grid.Row="1">
                 <TabItem Header="General" Padding="20,2">
                     <Grid>
+
+                        <Label Content="OBS Websocket URL" HorizontalAlignment="Left" Margin="10,313,0,0" VerticalAlignment="Top" RenderTransformOrigin="2.879,8.115" />
+                        <TextBox HorizontalAlignment="Left" Height="23" Margin="142,313,0,0" Text="{Binding ObsSettings.Url}" VerticalAlignment="Top" Width="120" />
+                        <Label Content="OBS Password" HorizontalAlignment="Left" Margin="12,341,0,0" VerticalAlignment="Top" />
+                        <TextBox HorizontalAlignment="Left" Height="23" Margin="142,344,0,0" Text="{Binding ObsSettings.Password}" VerticalAlignment="Top" Width="120" />
                         <Slider x:Name="sldrdiscordAnnounceDelay" HorizontalAlignment="Left" Margin="10,36,0,0" VerticalAlignment="Top" Width="113" Maximum="14400000" Minimum="1" LargeChange="1000" SmallChange="1000" Value="{Binding RecurringAnnounceDelay, Mode=TwoWay}" IsSnapToTickEnabled="True" TickFrequency="1000" />
                         <Label Content="Recurring AnnounceDelay" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top" RenderTransformOrigin="-0.026,-0.077" />
                         <Label x:Name="lbldiscordAnnounceDelay" HorizontalAlignment="Left" Margin="169,10,0,0" VerticalAlignment="Top" RenderTransformOrigin="0.368,-0.308" Content="{Binding Value, ElementName=sldrdiscordAnnounceDelay}" />
@@ -140,9 +145,9 @@
                         <TextBox HorizontalAlignment="Left" Height="23" Margin="328,178,0,0" TextWrapping="NoWrap"  Text="{Binding MailFrom}" VerticalAlignment="Top" Width="120" />
                         <Label Content="Email To" HorizontalAlignment="Left" Margin="224,206,0,0" VerticalAlignment="Top" />
                         <TextBox HorizontalAlignment="Left" Height="23" Margin="328,209,0,0" TextWrapping="NoWrap" Text="{Binding EmailAddress}" VerticalAlignment="Top" Width="120" />
-                        <ComboBox x:Name="cmbLogLevel" HorizontalAlignment="Left" VerticalAlignment="Top" Width="120" Margin="328,241,0,0" SelectionChanged="CmbLogLevel_SelectionChanged" DisplayMemberPath="Name"/>
+                        <ComboBox x:Name="cmbLogLevel" HorizontalAlignment="Left" VerticalAlignment="Top" Width="120" Margin="328,241,0,0" SelectionChanged="CmbLogLevel_SelectionChanged" DisplayMemberPath="Name" />
                         <Label Content="Log Level" HorizontalAlignment="Left" Margin="224,241,0,0" VerticalAlignment="Top" />
-                        <Button x:Name="btnReloadTranslations" Content="Reload Translations" HorizontalAlignment="Left" VerticalAlignment="Top" Width="162" Margin="477,290,0,0" Click="BtnReloadTranslations_Click"/>
+                        <Button x:Name="btnReloadTranslations" Content="Reload Translations" HorizontalAlignment="Left" VerticalAlignment="Top" Width="162" Margin="477,290,0,0" Click="BtnReloadTranslations_Click" />
                         <Button x:Name="btnTvEnable" Content="Enable TV" HorizontalAlignment="Left" VerticalAlignment="Top" Width="108" Margin="477,180,0,0" Click="BtnTvEnable_Click" />
                         <Button x:Name="btnTvDisable" Content="Disable TV" HorizontalAlignment="Left" VerticalAlignment="Top" Width="110" Margin="590,180,0,0" Click="BtnTvDisable_Click" />
                         <Button x:Name="btnGlitch1" Content="1" HorizontalAlignment="Left" VerticalAlignment="Top" Width="45" Margin="477,143,0,0" />
@@ -154,7 +159,7 @@
                 </TabItem>
                 <TabItem Header="Plushes" Padding="20,2">
                     <Grid>
-                        <ListView x:Name="lstPlushes" HorizontalAlignment="Left" Height="318" VerticalAlignment="Top" Width="716" Margin="10,10,0,0" GridViewColumnHeader.Click="LstPlushes_OnClick">
+                        <ListView x:Name="lstPlushes" HorizontalAlignment="Left" Height="304" VerticalAlignment="Top" Width="716" Margin="10,10,0,0" GridViewColumnHeader.Click="LstPlushes_OnClick">
                             <ListView.View>
                                 <GridView>
                                     <GridViewColumn DisplayMemberBinding="{Binding PlushId}" Header="Id" Width="50" />
@@ -165,58 +170,70 @@
                                 </GridView>
                             </ListView.View>
                         </ListView>
-                        <Button x:Name="btnMarkGrabbed" Content="Grabbed" HorizontalAlignment="Left" Margin="10,333,0,0" VerticalAlignment="Top" Width="88" Click="BtnMarkGrabbed_Click" />
-                        <Button x:Name="btnPlushListRefresh" Content="Refresh" HorizontalAlignment="Left" Margin="103,333,0,0" VerticalAlignment="Top" Width="81" Click="BtnPlushListRefresh_Click" />
-                        <TextBox x:Name="txtLastEPC" Height="29" TextWrapping="NoWrap" Margin="284,332,215,58" />
-                        <Label Content="Last EPC Scan" HorizontalAlignment="Left" Height="28" Margin="189,333,0,0" VerticalAlignment="Top" Width="95" />
-                        <TextBox x:Name="txtPLushName" Height="29" TextWrapping="Wrap" Text="" Margin="284,366,215,24" />
-                        <Label Content="Plush Name" HorizontalAlignment="Left" Height="28" Margin="189,366,0,0" VerticalAlignment="Top" Width="95" />
-                        <Button x:Name="btnPlushAddNew" Content="Add" HorizontalAlignment="Left" Margin="551,333,0,0" VerticalAlignment="Top" Width="81" Click="BtnPlushAddNew_Click" />
-                        <Button x:Name="btnClearPlushScan" Content="Clear" HorizontalAlignment="Left" Margin="551,370,0,0" VerticalAlignment="Top" Width="81" Click="btnClearPlushScan_Click"/>
-                        <Button x:Name="btnIRScanned" Content="IR Scan" HorizontalAlignment="Left" Margin="10,370,0,0" VerticalAlignment="Top" Width="88" Click="BtnIRScanned_Click"/>
+                        <Button x:Name="btnMarkGrabbed" Content="Grabbed" HorizontalAlignment="Left" Margin="10,319,0,0" VerticalAlignment="Top" Width="88" Click="BtnMarkGrabbed_Click" />
+                        <Button x:Name="btnPlushListRefresh" Content="Refresh" HorizontalAlignment="Left" Margin="103,319,0,0" VerticalAlignment="Top" Width="81" Click="BtnPlushListRefresh_Click" />
+                        <TextBox x:Name="txtLastEPC" Height="29" TextWrapping="NoWrap" Margin="284,318,215,49" />
+                        <Label Content="Last EPC Scan" HorizontalAlignment="Left" Height="28" Margin="189,319,0,0" VerticalAlignment="Top" Width="95" />
+                        <TextBox x:Name="txtPLushName" Height="29" TextWrapping="Wrap" Text="" Margin="284,352,215,15" />
+                        <Label Content="Plush Name" HorizontalAlignment="Left" Height="28" Margin="189,352,0,0" VerticalAlignment="Top" Width="95" />
+                        <Button x:Name="btnPlushAddNew" Content="Add" HorizontalAlignment="Left" Margin="551,319,0,0" VerticalAlignment="Top" Width="81" Click="BtnPlushAddNew_Click" />
+                        <Button x:Name="btnClearPlushScan" Content="Clear" HorizontalAlignment="Left" Margin="551,356,0,0" VerticalAlignment="Top" Width="81" Click="btnClearPlushScan_Click" />
+                        <Button x:Name="btnIRScanned" Content="IR Scan" HorizontalAlignment="Left" Margin="10,356,0,0" VerticalAlignment="Top" Width="88" Click="BtnIRScanned_Click" />
                     </Grid>
                 </TabItem>
                 <TabItem Header="Game Controls" Padding="20,2">
-                    <Grid >
-                        <Button x:Name="btnTeam1AddOne" Content="+1" HorizontalAlignment="Left" VerticalAlignment="Top" Width="51" Margin="10,41,0,0" Click="BtnTeam1AddOne_Click"/>
-                        <Label Content="Team 1" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="10,10,0,0"/>
-                        <Button x:Name="btnTeam1SubOne" Content="-1" HorizontalAlignment="Left" VerticalAlignment="Top" Width="51" Margin="10,78,0,0" Click="BtnTeam1SubOne_Click"/>
-                        <Button x:Name="btnTeam1AddFive" Content="+5" HorizontalAlignment="Left" VerticalAlignment="Top" Width="51" Margin="66,41,0,0" Click="BtnTeam1AddFive_Click" />
-                        <ListBox x:Name="lstPlayerQueue" HorizontalAlignment="Left" Height="185" VerticalAlignment="Top" Width="232" Margin="519,41,0,0" BorderBrush="#FF6D6D6D" BorderThickness="1"/>
-                        <Label Content="Player Queue" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="519,10,0,0"/>
-                        <Button x:Name="btnRefreshQueueList" Content="Refresh" HorizontalAlignment="Left" VerticalAlignment="Top" Width="232" Margin="519,272,0,0" Click="BtnRefreshQueueList_Click"/>
-                        <Button x:Name="btnRemoveFromQueue" Content="Remove" HorizontalAlignment="Left" VerticalAlignment="Top" Width="112" Margin="639,231,0,0" Click="BtnRemoveFromQueue_Click"/>
-                        <Button x:Name="btnNextTriviaQuestion" Content="Skip Question" HorizontalAlignment="Left" VerticalAlignment="Top" Width="127" Margin="139,41,0,0" Click="BtnNextTriviaQuestion_Click"/>
-                        <Label Content="Trivia" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="139,15,0,0"/>
-                        <CheckBox Content="Lights Off" HorizontalAlignment="Left" IsChecked="{Binding EventMode.LightsOff, Mode=TwoWay}" VerticalAlignment="Top" Margin="10,132,0,0"/>
-                        <CheckBox Content="Blacklights On" HorizontalAlignment="Left" IsChecked="{Binding EventMode.BlacklightsOn, Mode=TwoWay}" VerticalAlignment="Top" Margin="10,155,0,0"/>
-                        <CheckBox Content="Disable RF Scan" HorizontalAlignment="Left" IsChecked="{Binding EventMode.DisableRFScan, Mode=TwoWay}" VerticalAlignment="Top" Margin="10,178,0,0"/>
-                        <CheckBox Content="Disable Belt" HorizontalAlignment="Left" IsChecked="{Binding EventMode.DisableBelt, Mode=TwoWay}" VerticalAlignment="Top" Margin="10,201,0,0"/>
-                        <CheckBox Content="Disable Return Home" HorizontalAlignment="Left" IsChecked="{Binding EventMode.DisableReturnHome, Mode=TwoWay}" VerticalAlignment="Top" Margin="10,224,0,0"/>
-                        <CheckBox Content="Disable Bounty" HorizontalAlignment="Left" IsChecked="{Binding EventMode.DisableBounty, Mode=TwoWay}" VerticalAlignment="Top" Margin="10,247,0,0"/>
-                        <CheckBox Content="IR Triggers Win" HorizontalAlignment="Left" IsChecked="{Binding EventMode.IRTriggersWin, Mode=TwoWay}" VerticalAlignment="Top" Margin="217,247,0,0"/>
-                        <xctk:IntegerUpDown Value="{Binding EventMode.WinMultiplier, Mode=TwoWay}" Margin="10,381,700,2" />
-                        <Label Content="Win Multiplier" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="66,381,0,-2"/>
-                        <TextBox HorizontalAlignment="Left" Height="23" TextWrapping="Wrap" Text="{Binding EventMode.CustomWinTextResource, Mode=TwoWay}" VerticalAlignment="Top" Width="78" Margin="10,320,0,0"/>
-                        <TextBox HorizontalAlignment="Left" Height="23" TextWrapping="Wrap" Text="{Binding EventMode.CustomFailTextResource, Mode=TwoWay}" VerticalAlignment="Top" Width="78" Margin="10,348,0,0"/>
-                        <Label Content="Win Text Resource" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="93,324,0,0"/>
-                        <Label Content="Fail Text Resource" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="93,350,0,0"/>
-                        <CheckBox Content="Allow Scene Override" HorizontalAlignment="Left" IsChecked="{Binding EventMode.AllowOverrideScene, Mode=TwoWay}" VerticalAlignment="Top" Margin="217,132,0,0"/>
-                        <CheckBox Content="Allow Lights Override" HorizontalAlignment="Left" IsChecked="{Binding EventMode.AllowOverrideLights, Mode=TwoWay}" VerticalAlignment="Top" Margin="217,155,0,0"/>
-                        <CheckBox Content="Allow Greenscr. Override" HorizontalAlignment="Left" IsChecked="{Binding EventMode.AllowOverrideGreenscreen, Mode=TwoWay}" VerticalAlignment="Top" Margin="217,178,0,0"/>
-                        <CheckBox Content="Allow Win Anim. Override" HorizontalAlignment="Left" IsChecked="{Binding EventMode.AllowOverrideWinAnimation, Mode=TwoWay}" VerticalAlignment="Top" Margin="217,201,0,0"/>
-                        <CheckBox Content="Allow Wire Frame Override" HorizontalAlignment="Left" IsChecked="{Binding EventMode.AllowOverrideWireFrame, Mode=TwoWay}" VerticalAlignment="Top" Margin="217,224,0,0"/>
-                        <CheckBox Content="Disable Strobe" HorizontalAlignment="Left" IsChecked="{Binding EventMode.DisableStrobe, Mode=TwoWay}" VerticalAlignment="Top" Margin="10,270,0,0"/>
-                        <CheckBox Content="Team Required" HorizontalAlignment="Left" IsChecked="{Binding EventMode.TeamRequired, Mode=TwoWay}" VerticalAlignment="Top" Margin="217,270,0,0"/>
-                        <CheckBox Content="Force Disable Greenscreen" HorizontalAlignment="Left" IsChecked="{Binding EventMode.GreenScreenOverrideOff, Mode=TwoWay}" VerticalAlignment="Top" Margin="217,293,0,0"/>
-                        <CheckBox Content="Disable Flipper" HorizontalAlignment="Left" IsChecked="{Binding EventMode.DisableFlipper, Mode=TwoWay}" VerticalAlignment="Top" Margin="10,293,0,0"/>
-                        <xctk:IntegerUpDown Value="{Binding EventMode.QueueSizeMax, Mode=TwoWay}" Margin="161,381,549,2" />
-                        <Label Content="Max Queue Size" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="217,381,0,-2"/>
-                        <Button x:Name="btnWinnerPlayer1" Content="Player 1" HorizontalAlignment="Left" VerticalAlignment="Top" Width="79" Margin="282,41,0,0" Click="BtnWinnerPlayer1_Click"/>
-                        <Label Content="Tic-Tac-Toe Winner" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="282,19,0,0"/>
-                        <Button x:Name="btnWinnerPlayer2" Content="Player 2" HorizontalAlignment="Left" VerticalAlignment="Top" Width="84" Margin="366,41,0,0" Click="BtnWinnerPlayer2_Click"/>
-                        <Button x:Name="btnAddToQueue" Content="Add" HorizontalAlignment="Left" VerticalAlignment="Top" Width="115" Margin="519,231,0,0" Click="BtnAddToQueue_Click"/>
+                    <Grid>
 
+                        <Button x:Name="btnTeam1AddOne" Content="+1" HorizontalAlignment="Left" VerticalAlignment="Top" Width="51" Click="BtnTeam1AddOne_Click" Margin="10,33,0,0" />
+                        <Label Content="Active Team Scoring" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="10,7,0,0" />
+                        <Button x:Name="btnTeam1SubOne" Content="-1" HorizontalAlignment="Left" VerticalAlignment="Top" Width="51" Click="BtnTeam1SubOne_Click" Margin="10,70,0,0" />
+                        <Button x:Name="btnTeam1AddFive" Content="+5" HorizontalAlignment="Left" VerticalAlignment="Top" Width="51" Click="BtnTeam1AddFive_Click" Margin="66,33,0,0" />
+                        <Button x:Name="btnNextTriviaQuestion" Content="Skip Question" HorizontalAlignment="Left" VerticalAlignment="Top" Width="127" Click="BtnNextTriviaQuestion_Click" Margin="355,36,0,0" />
+                        <Label Content="Trivia" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="355,10,0,0" RenderTransformOrigin="-0.179,-0.923" />
+                        <Button x:Name="btnWinnerPlayer1" Content="Player 1" HorizontalAlignment="Left" VerticalAlignment="Top" Width="84" Click="BtnWinnerPlayer1_Click" RenderTransformOrigin="0.861,1.125" Margin="157,33,0,0" />
+                        <Label Content="Tic-Tac-Toe Winner" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="157,7,0,0" />
+                        <Button x:Name="btnWinnerPlayer2" Content="Player 2" HorizontalAlignment="Left" VerticalAlignment="Top" Width="84" Click="BtnWinnerPlayer2_Click" Margin="246,33,0,0" />
+                        <ListBox x:Name="lstPlayerQueue" HorizontalAlignment="Left" Height="185" VerticalAlignment="Top" Width="232" Margin="519,41,0,0" BorderBrush="#FF6D6D6D" BorderThickness="1" />
+                        <Label Content="Player Queue" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="519,10,0,0" />
+                        <Button x:Name="btnRefreshQueueList" Content="Refresh" HorizontalAlignment="Left" VerticalAlignment="Top" Width="232" Margin="519,272,0,0" Click="BtnRefreshQueueList_Click" />
+                        <Button x:Name="btnRemoveFromQueue" Content="Remove" HorizontalAlignment="Left" VerticalAlignment="Top" Width="112" Margin="639,231,0,0" Click="BtnRemoveFromQueue_Click" />
+                        <Button x:Name="btnAddToQueue" Content="Add" HorizontalAlignment="Left" VerticalAlignment="Top" Width="115" Margin="519,231,0,0" Click="BtnAddToQueue_Click" />
+                        <Button x:Name="btnRefreshUserSettings" Content="Refresh" HorizontalAlignment="Left" VerticalAlignment="Top" Width="125" Margin="10,139,0,0" Click="BtnRefreshUserSettings_Click" />
+                        <Label Content="Refresh User Settings" HorizontalAlignment="Left" Margin="10,113,0,0" VerticalAlignment="Top" RenderTransformOrigin="0.275,0.115" />
+                    </Grid>
+                </TabItem>
+                <TabItem Header="Event Settings" Padding="20,2">
+                    <Grid>
+                        <CheckBox Content="Lights Off" HorizontalAlignment="Left" IsChecked="{Binding EventMode.LightsOff, Mode=TwoWay}" VerticalAlignment="Top" Margin="10,13,0,0" />
+                        <CheckBox Content="Blacklights On" HorizontalAlignment="Left" IsChecked="{Binding EventMode.BlacklightsOn, Mode=TwoWay}" VerticalAlignment="Top" Margin="10,36,0,0" />
+                        <CheckBox Content="Disable RF Scan" HorizontalAlignment="Left" IsChecked="{Binding EventMode.DisableRFScan, Mode=TwoWay}" VerticalAlignment="Top" Margin="10,59,0,0" />
+                        <CheckBox Content="Disable Belt" HorizontalAlignment="Left" IsChecked="{Binding EventMode.DisableBelt, Mode=TwoWay}" VerticalAlignment="Top" Margin="10,82,0,0" />
+                        <CheckBox Content="Disable Return Home" HorizontalAlignment="Left" IsChecked="{Binding EventMode.DisableReturnHome, Mode=TwoWay}" VerticalAlignment="Top" Margin="10,105,0,0" />
+                        <CheckBox Content="Disable Bounty" HorizontalAlignment="Left" IsChecked="{Binding EventMode.DisableBounty, Mode=TwoWay}" VerticalAlignment="Top" Margin="10,128,0,0" />
+                        <CheckBox Content="IR Triggers Win" HorizontalAlignment="Left" IsChecked="{Binding EventMode.IRTriggersWin, Mode=TwoWay}" VerticalAlignment="Top" Margin="217,128,0,0" />
+                        <xctk:IntegerUpDown Value="{Binding EventMode.WinMultiplier, Mode=TwoWay}" Margin="10,262,700,113" />
+                        <Label Content="Win Multiplier" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="66,262,0,0" />
+                        <TextBox HorizontalAlignment="Left" Height="23" TextWrapping="Wrap" Text="{Binding EventMode.CustomWinTextResource, Mode=TwoWay}" VerticalAlignment="Top" Width="78" Margin="10,201,0,0" />
+                        <TextBox HorizontalAlignment="Left" Height="23" TextWrapping="Wrap" Text="{Binding EventMode.CustomFailTextResource, Mode=TwoWay}" VerticalAlignment="Top" Width="78" Margin="10,229,0,0" />
+                        <Label Content="Win Text Resource" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="93,205,0,0" />
+                        <Label Content="Fail Text Resource" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="93,231,0,0" />
+                        <CheckBox Content="Allow Scene Override" HorizontalAlignment="Left" IsChecked="{Binding EventMode.AllowOverrideScene, Mode=TwoWay}" VerticalAlignment="Top" Margin="217,13,0,0" />
+                        <CheckBox Content="Allow Lights Override" HorizontalAlignment="Left" IsChecked="{Binding EventMode.AllowOverrideLights, Mode=TwoWay}" VerticalAlignment="Top" Margin="217,36,0,0" />
+                        <CheckBox Content="Allow Greenscr. Override" HorizontalAlignment="Left" IsChecked="{Binding EventMode.AllowOverrideGreenscreen, Mode=TwoWay}" VerticalAlignment="Top" Margin="217,59,0,0" />
+                        <CheckBox Content="Allow Win Anim. Override" HorizontalAlignment="Left" IsChecked="{Binding EventMode.AllowOverrideWinAnimation, Mode=TwoWay}" VerticalAlignment="Top" Margin="217,82,0,0" />
+                        <CheckBox Content="Allow Wire Frame Override" HorizontalAlignment="Left" IsChecked="{Binding EventMode.AllowOverrideWireFrame, Mode=TwoWay}" VerticalAlignment="Top" Margin="217,105,0,0" />
+                        <CheckBox Content="Disable Strobe" HorizontalAlignment="Left" IsChecked="{Binding EventMode.DisableStrobe, Mode=TwoWay}" VerticalAlignment="Top" Margin="10,151,0,0" />
+                        <CheckBox Content="Team Required" HorizontalAlignment="Left" IsChecked="{Binding EventMode.TeamRequired, Mode=TwoWay}" VerticalAlignment="Top" Margin="217,151,0,0" />
+                        <CheckBox Content="Force Disable Greenscreen" HorizontalAlignment="Left" IsChecked="{Binding EventMode.GreenScreenOverrideOff, Mode=TwoWay}" VerticalAlignment="Top" Margin="217,174,0,0" />
+                        <CheckBox Content="Disable Flipper" HorizontalAlignment="Left" IsChecked="{Binding EventMode.DisableFlipper, Mode=TwoWay}" VerticalAlignment="Top" Margin="10,174,0,0" />
+                        <xctk:IntegerUpDown Value="{Binding EventMode.QueueSizeMax, Mode=TwoWay}" Margin="10,288,700,87" />
+                        <Label Content="Max Queue Size" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="66,288,0,0" />
+                        <Label Content="Greenscreen" HorizontalAlignment="Left" Margin="585,286,0,0" VerticalAlignment="Top" RenderTransformOrigin="-0.026,-0.077" />
+                        <Button Content="Enable" HorizontalAlignment="Left" Margin="586,311,0,0" VerticalAlignment="Top" Width="80" Click="Button_Click_3" />
+                        <Button Content="Disable" HorizontalAlignment="Left" Margin="671,311,0,0" VerticalAlignment="Top" Width="80" Click="Button_Click_4" />
+                        <ComboBox x:Name="cmbBackgrounds" HorizontalAlignment="Left" VerticalAlignment="Top" Width="165" Margin="586,358,0,0" SelectionChanged="CmbBackgrounds_SelectionChanged"  ItemsSource="{Binding ClawSettings.ObsGreenScreenOptions}" DisplayMemberPath="Name" />
+                        <ComboBox x:Name="cmbThemes" HorizontalAlignment="Left" VerticalAlignment="Top" Width="165" Margin="586,255,0,0" ItemsSource="{Binding ClawSettings.WireThemes}" DisplayMemberPath="Name" SelectionChanged="CmbThemes_SelectionChanged" />
+                        <Label Content="Theme" HorizontalAlignment="Left" Margin="586,229,0,0" VerticalAlignment="Top" RenderTransformOrigin="-0.026,-0.077" />
                     </Grid>
                 </TabItem>
                 <TabItem Header="Claw" Padding="20,2">
@@ -271,28 +288,28 @@
 
                         <Label Content="Claw Camera IP" HorizontalAlignment="Left" Margin="551,146,0,0" VerticalAlignment="Top" />
                         <TextBox HorizontalAlignment="Left" Height="23" Margin="551,177,0,0" Text="{Binding ClawSettings.ClawCameraAddress}" VerticalAlignment="Top" Width="120" />
-                        <Label Content="Greenscreen" HorizontalAlignment="Left" Margin="551,304,0,0" VerticalAlignment="Top" RenderTransformOrigin="-0.026,-0.077" />
-                        <Button Content="Enable" HorizontalAlignment="Left" Margin="552,329,0,0" VerticalAlignment="Top" Width="80" Click="Button_Click_3" />
-                        <Button Content="Disable" HorizontalAlignment="Left" Margin="637,329,0,0" VerticalAlignment="Top" Width="80" Click="Button_Click_4" />
                         <Slider x:Name="sldrconveyorRunFlipper" HorizontalAlignment="Left" Margin="193,317,0,0" VerticalAlignment="Top" Width="113" Maximum="5000" Minimum="1" Value="{Binding ClawSettings.ConveyorRunDuringFlipper, Mode=TwoWay}" SmallChange="100" LargeChange="100" IsSnapToTickEnabled="True" TickFrequency="100" />
                         <Label Content="conveyorRunFlipper" HorizontalAlignment="Left" Margin="193,291,0,0" VerticalAlignment="Top" RenderTransformOrigin="-0.026,-0.077" />
                         <Label x:Name="lblconveyorRunFlipper" HorizontalAlignment="Left" Margin="325,291,0,0" VerticalAlignment="Top" RenderTransformOrigin="0.368,-0.308" Content="{Binding Value, ElementName=sldrconveyorRunFlipper}" />
                         <Slider x:Name="sldrBreakSensorWaitTime" HorizontalAlignment="Left" Margin="193,362,0,0" VerticalAlignment="Top" Width="113" Maximum="30000" Minimum="1" Value="{Binding ClawSettings.ConveyorRunDuringFlipper, Mode=TwoWay}" SmallChange="100" LargeChange="1000" IsSnapToTickEnabled="True" TickFrequency="100" />
                         <Label Content="BreakSensorWaitTime" HorizontalAlignment="Left" Margin="193,336,0,0" VerticalAlignment="Top" RenderTransformOrigin="-0.026,-0.077" />
                         <Label x:Name="lblconveyorBreakSensorWait" HorizontalAlignment="Left" Margin="325,336,0,0" VerticalAlignment="Top" RenderTransformOrigin="0.368,-0.308" Content="{Binding Value, ElementName=sldrBreakSensorWaitTime}" />
-                        <ComboBox x:Name="cmbBackgrounds" HorizontalAlignment="Left" VerticalAlignment="Top" Width="165" Margin="552,376,0,0" SelectionChanged="CmbBackgrounds_SelectionChanged"  ItemsSource="{Binding ClawSettings.ObsGreenScreenOptions}" DisplayMemberPath="Name"/>
-                        <ComboBox x:Name="cmbThemes" HorizontalAlignment="Left" VerticalAlignment="Top" Width="165" Margin="373,376,0,0" ItemsSource="{Binding ClawSettings.WireThemes}" DisplayMemberPath="Name" SelectionChanged="CmbThemes_SelectionChanged"/>
-                        <Label Content="Theme" HorizontalAlignment="Left" Margin="373,350,0,0" VerticalAlignment="Top" RenderTransformOrigin="-0.026,-0.077" />
                         <Slider x:Name="sldrConveyorWaitBeforeFlipper" HorizontalAlignment="Left" Margin="193,222,0,0" VerticalAlignment="Top" Width="113" Maximum="5000" Value="{Binding ClawSettings.ConveyorWaitBeforeFlipper, Mode=TwoWay}" SmallChange="100" LargeChange="100" IsSnapToTickEnabled="True" TickFrequency="100" />
                         <Label Content="ConveyorWaitBeforeFlipper" HorizontalAlignment="Left" Margin="193,196,0,0" VerticalAlignment="Top" RenderTransformOrigin="-0.026,-0.077" />
                         <Label x:Name="lblConveyorWaitBeforeFlipper" HorizontalAlignment="Left" Margin="360,196,0,0" VerticalAlignment="Top" RenderTransformOrigin="0.368,-0.308" Content="{Binding Value, ElementName=sldrConveyorWaitBeforeFlipper}" />
-                        <CheckBox x:Name="chkClipRFIDMisses" Content="Clip RFID Misses" HorizontalAlignment="Left" Margin="347,154,0,0" VerticalAlignment="Top" IsChecked="{Binding ClawSettings.ClipMissedPlush, Mode=TwoWay}" />
+                        <CheckBox x:Name="chkClipRFIDMisses" Content="Clip RFID Misses" HorizontalAlignment="Left" Margin="553,299,0,0" VerticalAlignment="Top" IsChecked="{Binding ClawSettings.ClipMissedPlush, Mode=TwoWay}" />
                         <Slider x:Name="sldrconveyorRuntimeMin" HorizontalAlignment="Left" Margin="355,272,0,0" VerticalAlignment="Top" Width="113" Maximum="5000" Minimum="1" Value="{Binding ClawSettings.BeltRuntimeMin, Mode=TwoWay}" SmallChange="100" LargeChange="100" IsSnapToTickEnabled="True" TickFrequency="100" />
                         <Label Content="beltRuntimeMin" HorizontalAlignment="Left" Margin="355,246,0,0" VerticalAlignment="Top" RenderTransformOrigin="-0.026,-0.077" />
                         <Label x:Name="lblconveyorRuntimeMin" HorizontalAlignment="Left" Margin="487,246,0,0" VerticalAlignment="Top" RenderTransformOrigin="0.368,-0.308" Content="{Binding Value, ElementName=sldrconveyorRuntimeMin}" />
                         <Slider x:Name="sldrconveyorRuntimeMax" HorizontalAlignment="Left" Margin="355,321,0,0" VerticalAlignment="Top" Width="113" Maximum="5000" Minimum="1" Value="{Binding ClawSettings.BeltRuntimeMax, Mode=TwoWay}" SmallChange="100" LargeChange="100" IsSnapToTickEnabled="True" TickFrequency="100" />
                         <Label Content="beltRuntimeMax" HorizontalAlignment="Left" Margin="355,295,0,0" VerticalAlignment="Top" RenderTransformOrigin="-0.026,-0.077" />
                         <Label x:Name="lblconveyorRuntimeMax" HorizontalAlignment="Left" Margin="487,295,0,0" VerticalAlignment="Top" RenderTransformOrigin="0.368,-0.308" Content="{Binding Value, ElementName=sldrconveyorRuntimeMax}" />
+                        <Slider x:Name="sldrSingleCommandUsageCounter" HorizontalAlignment="Left" Margin="356,362,0,0" VerticalAlignment="Top" Width="113" Maximum="50" Minimum="1" Value="{Binding ClawSettings.SingleCommandUsageCounter, Mode=TwoWay}" SmallChange="1" IsSnapToTickEnabled="True" />
+                        <Label Content="snglCmdUsgCnter" HorizontalAlignment="Left" Margin="356,336,0,0" VerticalAlignment="Top" RenderTransformOrigin="-0.026,-0.077" />
+                        <Label x:Name="lblSingleCommandUsageCounter" HorizontalAlignment="Left" Margin="488,336,0,0" VerticalAlignment="Top" RenderTransformOrigin="0.368,-0.308" Content="{Binding Value, ElementName=sldrSingleCommandUsageCounter}" />
+                        <Slider x:Name="sldrmaxCommandsPerLine" HorizontalAlignment="Left" Margin="347,174,0,0" VerticalAlignment="Top" Width="113" Maximum="40" Minimum="1" SmallChange="1" Value="{Binding ClawSettings.MaxCommandsPerLine, Mode=TwoWay}" IsSnapToTickEnabled="True" />
+                        <Label Content="maxCommandsPerLine" HorizontalAlignment="Left" Margin="347,143,0,0" VerticalAlignment="Top" RenderTransformOrigin="-0.026,-0.077" />
+                        <Label x:Name="lblmaxCommandsPerLine" HorizontalAlignment="Left" Margin="487,143,0,0" VerticalAlignment="Top" RenderTransformOrigin="0.368,-0.308" Content="{Binding Value, ElementName=sldrmaxCommandsPerLine}" />
                     </Grid>
                 </TabItem>
                 <TabItem Header="Golf" Padding="20,2">
@@ -433,7 +450,7 @@
                                     <Label Content="Send Command" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="415,16,0,0" />
                                     <TextBlock x:Name="txtClawCommandResponse" HorizontalAlignment="Left" TextWrapping="Wrap" Text="Response..." VerticalAlignment="Top" Margin="415,64,0,0" Height="105" Width="285" />
                                     <CheckBox x:Name="chkWiggleMode" Content="Wiggle Mode" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="219,69,0,0" IsChecked="{Binding ClawSettings.WiggleMode, Mode=TwoWay}" />
-                                    <CheckBox x:Name="chkBlackLightsOn" Content="Black Lights" HorizontalAlignment="Left" Margin="219,107,0,0" VerticalAlignment="Top" IsChecked="{Binding ClawSettings.BlackLightMode, Mode=TwoWay}" Click="ChkBlackLightsOn_Click"/>
+                                    <CheckBox x:Name="chkBlackLightsOn" Content="Black Lights" HorizontalAlignment="Left" Margin="219,107,0,0" VerticalAlignment="Top" IsChecked="{Binding ClawSettings.BlackLightMode, Mode=TwoWay}" Click="ChkBlackLightsOn_Click" />
                                 </Grid>
                             </TabItem>
                             <TabItem Header="Golf Controller" HorizontalAlignment="Left" Height="20" VerticalAlignment="Top" Width="129" Margin="18,0,-18,0">
@@ -483,7 +500,6 @@
                                     <Button x:Name="btnWaterBotConnect" Content="Wtr Connect" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top" Width="145" Click="btnWaterBotConnect_Click" />
                                 </Grid>
                             </TabItem>
-
                         </TabControl>
                     </Grid>
                 </TabItem>
@@ -492,7 +508,7 @@
                         <TabControl HorizontalAlignment="Left" Height="399" Margin="10,10,0,0" VerticalAlignment="Top" Width="716">
                             <TabItem Header="Twitch" Padding="20,2">
                                 <Grid>
-                                    <Button x:Name="btnTwitchClip" Content="Twitch Clip" HorizontalAlignment="Left" VerticalAlignment="Top" Width="138" Margin="243,13,0,0" Click="BtnTwitchClip_Click"/>
+                                    <Button x:Name="btnTwitchClip" Content="Twitch Clip" HorizontalAlignment="Left" VerticalAlignment="Top" Width="138" Margin="243,13,0,0" Click="BtnTwitchClip_Click" />
                                     <Label Content="Username" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top" />
                                     <TextBox HorizontalAlignment="Left" Height="23" Margin="98,13,0,0" TextWrapping="Wrap" Text="{Binding TwitchSettings.Username}" VerticalAlignment="Top" Width="120" />
                                     <Label Content="API Key" HorizontalAlignment="Left" Margin="10,96,0,0" VerticalAlignment="Top" />
@@ -518,18 +534,6 @@
                                     <TextBox HorizontalAlignment="Left" Height="23" Margin="98,69,0,0" Text="{Binding GoodGameSettings.UserId}"  VerticalAlignment="Top" Width="120" />
                                 </Grid>
                             </TabItem>
-                            <TabItem Header="Mixer" Padding="20,2">
-                                <Grid>
-                                    <Label Content="Username" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top" />
-                                    <TextBox HorizontalAlignment="Left" Height="23" Margin="98,13,0,0" TextWrapping="Wrap" Text="{Binding MixerSettings.Username}" VerticalAlignment="Top" Width="120" />
-                                    <Label Content="API Key" HorizontalAlignment="Left" Margin="10,68,0,0" VerticalAlignment="Top" />
-                                    <TextBox HorizontalAlignment="Left" Height="23" Margin="98,69,0,0" Text="{Binding MixerSettings.ClientId}"  VerticalAlignment="Top" Width="120" />
-                                    <Label Content="Channel" HorizontalAlignment="Left" Margin="10,38,0,0" VerticalAlignment="Top" />
-                                    <TextBox HorizontalAlignment="Left" Height="23" Margin="98,41,0,0" TextWrapping="Wrap" Text="{Binding MixerSettings.Channel}" VerticalAlignment="Top" Width="120" />
-                                    <Label Content="Secret" HorizontalAlignment="Left" Margin="10,94,0,0" VerticalAlignment="Top" />
-                                    <TextBox HorizontalAlignment="Left" Height="23" Margin="98,97,0,0" TextWrapping="Wrap" Text="{Binding MixerSettings.Secret}" VerticalAlignment="Top" Width="120" />
-                                </Grid>
-                            </TabItem>
                             <TabItem Header="Discord" Padding="20,2">
                                 <Grid>
                                     <Label Content="Spam Webhook" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top" />
@@ -549,15 +553,6 @@
                         </TabControl>
                     </Grid>
                 </TabItem>
-                <TabItem Header="OBS" Padding="20,2">
-                    <Grid>
-                        <Label Content="Websocket URL" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top" />
-                        <TextBox HorizontalAlignment="Left" Height="23" Margin="114,13,0,0" Text="{Binding ObsSettings.Url}" VerticalAlignment="Top" Width="120" />
-                        <Label Content="Password" HorizontalAlignment="Left" Margin="10,38,0,0" VerticalAlignment="Top" />
-                        <TextBox HorizontalAlignment="Left" Height="23" Margin="114,41,0,0" Text="{Binding ObsSettings.Password}" VerticalAlignment="Top" Width="120" />
-                    </Grid>
-                </TabItem>
-
             </TabControl>
             <Label Content="Event Mode" HorizontalAlignment="Left" Margin="629,281,0,0" VerticalAlignment="Top" Height="26" Width="79" />
             <Button Content="Reload Configuration" Margin="0,0,188,18" Click="Button_Click" Grid.Row="1" HorizontalAlignment="Right" Width="176" Height="32" VerticalAlignment="Bottom" />
@@ -565,8 +560,7 @@
             <Label Content="Reconnects" HorizontalAlignment="Right" Margin="0,234,325,0" VerticalAlignment="Top" Height="26" Width="75" />
             <Label x:Name="lblReconects_Copy" Content="{Binding ChatReconnectAttempts}" Margin="0,242,310,0" VerticalAlignment="Top" RenderTransformOrigin="11.1,3.9" HorizontalAlignment="Right" Width="10" Height="10" />
             <Button Content="Down" HorizontalAlignment="Right" Margin="0,183,9,0" VerticalAlignment="Top" Width="109" x:Name="btnDown" PreviewMouseUp="BtnDown_PreviewMouseUp" PreviewMouseDown="BtnDown_PreviewMouseDown" />
-            <Button Content="Do Something" HorizontalAlignment="Left" Margin="396,349,0,0" VerticalAlignment="Top" Width="125" Click="Button_Click_2"/>
+            <Button Content="Do Something" HorizontalAlignment="Left" Margin="396,349,0,0" VerticalAlignment="Top" Width="125" Click="Button_Click_2" />
         </Grid>
-
     </Grid>
 </Window>

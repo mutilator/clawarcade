@@ -1,14 +1,15 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Data.SQLite;
-using System.Diagnostics;
-using System.Threading;
-using System.Threading.Tasks;
-using InternetClawMachine.Chat;
+﻿using InternetClawMachine.Chat;
 using InternetClawMachine.Games.GameHelpers;
 using InternetClawMachine.Games.OtherGame;
 using InternetClawMachine.Settings;
 using OBSWebsocketDotNet;
+using System;
+using System.Collections.Generic;
+using System.Data;
+using System.Data.SQLite;
+using System.Diagnostics;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace InternetClawMachine.Games
 {
@@ -23,7 +24,6 @@ namespace InternetClawMachine.Games
         /// Teams for players to join
         /// </summary>
         public List<GameTeam> Teams { set; get; }
-
 
         /// <summary>
         /// flag for updating the player queue file
@@ -59,8 +59,6 @@ namespace InternetClawMachine.Games
         /// Thrown when round starts
         /// </summary>
         public event EventHandler<RoundStartedArgs> RoundStarted;
-
-        
 
         ///
         public BotConfiguration Configuration { get; set; }
@@ -177,7 +175,7 @@ namespace InternetClawMachine.Games
             WinnersList = new List<string>();
             SecondaryWinnersList = new List<string>();
 
-            PlayerQueue = new PlayerQueue();
+            PlayerQueue = new PlayerQueue(Configuration.EventMode.QueueSizeMax);
             CommandQueue = new List<ClawCommand>();
             CommandQueueTimer = new Stopwatch();
             GameModeTimer = new Stopwatch();
@@ -220,7 +218,6 @@ namespace InternetClawMachine.Games
 
         public virtual void Init()
         {
-            
             PlayerQueue.OnChangedQueue += PlayerQueue_ChangedPlayerQueue;
             Configuration.StreamBuxCosts = DatabaseFunctions.LoadStreamBux(Configuration);
         }
@@ -254,10 +251,15 @@ namespace InternetClawMachine.Games
 
         public void WriteDbMovementAction(string name, string direction)
         {
-            WriteDbMovementAction(name, direction, Configuration.SessionGuid.ToString());
+            WriteDbMovementAction(name, direction, Configuration.SessionGuid.ToString(), "MOVE");
         }
 
-        public void WriteDbMovementAction(string name, string direction, string guid)
+        public void WriteDbMovementAction(string name, string direction, string type)
+        {
+            WriteDbMovementAction(name, direction, Configuration.SessionGuid.ToString(), type);
+        }
+
+        public void WriteDbMovementAction(string name, string direction, string guid, string type)
         {
             if (!Configuration.RecordStats)
                 return;
@@ -266,8 +268,15 @@ namespace InternetClawMachine.Games
                 try
                 {
                     Configuration.RecordsDatabase.Open();
-                    var sql = "INSERT INTO movement (datetime, name, direction, guid) VALUES (" + Helpers.GetEpoch() + ", '" + name + "', '" + direction + "', '" + guid + "')";
-                    var command = new SQLiteCommand(sql, Configuration.RecordsDatabase);
+                    var sql = "INSERT INTO movement (datetime, name, direction, type, guid) VALUES (@datetime, @name, @direction, @type, @guid)";
+                    var command = Configuration.RecordsDatabase.CreateCommand();
+                    command.CommandType = CommandType.Text;
+                    command.CommandText = sql;
+                    command.Parameters.Add(new SQLiteParameter("@datetime", Helpers.GetEpoch()));
+                    command.Parameters.Add(new SQLiteParameter("@name", name));
+                    command.Parameters.Add(new SQLiteParameter("@direction", direction));
+                    command.Parameters.Add(new SQLiteParameter("@type", type));
+                    command.Parameters.Add(new SQLiteParameter("@guid", guid));
                     command.ExecuteNonQuery();
                 }
                 catch (Exception ex)
@@ -426,5 +435,4 @@ namespace InternetClawMachine.Games
         public string Username { set; get; }
         public GameModeType GameMode { set; get; }
     }
-
 }

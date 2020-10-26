@@ -89,9 +89,6 @@
     <Reference Include="Microsoft.Extensions.Primitives, Version=3.0.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
       <HintPath>..\packages\Microsoft.Extensions.Primitives.3.0.0-preview4.19216.2\lib\netstandard2.0\Microsoft.Extensions.Primitives.dll</HintPath>
     </Reference>
-    <Reference Include="Mixer.Base, Version=0.8.4.12, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\mixer-client-csharp.0.8.4.12-beta\lib\netstandard2.0\Mixer.Base.dll</HintPath>
-    </Reference>
     <Reference Include="Newtonsoft.Json, Version=12.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
       <HintPath>..\packages\Newtonsoft.Json.12.0.2\lib\net45\Newtonsoft.Json.dll</HintPath>
     </Reference>
@@ -247,10 +244,10 @@
     </ApplicationDefinition>
     <Compile Include="AudioManager.cs" />
     <Compile Include="BackgroundDefinition.cs" />
-    <Compile Include="Chat\MixerChatAPI.cs" />
     <Compile Include="DatabaseFunctions.cs" />
     <Compile Include="EpochToDate.cs" />
     <Compile Include="Games\ClawGame\ClawMarbles.cs" />
+    <Compile Include="Games\ClawGame\ClawPlinko.cs" />
     <Compile Include="Games\ClawGame\ClawTicTacToe.cs" />
     <Compile Include="Games\GameHelpers\TeamJoinedArgs.cs" />
     <Compile Include="Games\GameHelpers\TriviaMessageMode.cs" />
@@ -263,6 +260,7 @@
     <Compile Include="Games\GameHelpers\TriviaAnswer.cs" />
     <Compile Include="Games\GameHelpers\TriviaQuestion.cs" />
     <Compile Include="Hardware\ClawControl\FlipperDirection.cs" />
+    <Compile Include="PlayerQueueSizeExceeded.cs" />
     <Compile Include="Settings\DiscordSettings.cs" />
     <Compile Include="Settings\EventModeArgs.cs" />
     <Compile Include="Settings\EventModeSettings.cs" />
@@ -288,12 +286,12 @@
     <Compile Include="Games\Game.cs" />
     <Compile Include="Hardware\Gantry\GameGantry.cs" />
     <Compile Include="Games\OtherGame\GameModeVote.cs" />
-    <Compile Include="Games\ClawGame\ClawCommand.cs" />
-    <Compile Include="Games\ClawGame\ClawDirection.cs" />
+    <Compile Include="Games\GameHelpers\ClawCommand.cs" />
+    <Compile Include="Games\GameHelpers\ClawDirection.cs" />
     <Compile Include="Games\GameMode.cs" />
     <Compile Include="Games\GamePhase.cs" />
     <Compile Include="Games\ClawGame\ClawChaos.cs" />
-    <Compile Include="Games\ClawGame\ClawCommandGroup.cs" />
+    <Compile Include="Games\GameHelpers\ClawCommandGroup.cs" />
     <Compile Include="Games\ClawGame\ClawGame.cs" />
     <Compile Include="Games\ClawGame\ClawSingleQueue.cs" />
     <Compile Include="Games\GantryGame\GantryGame.cs" />
@@ -316,7 +314,6 @@
     <Compile Include="Games\GameHelpers\PlayerQueue.cs" />
     <Compile Include="Hardware\RFID\RFIDReader.cs" />
     <Compile Include="Settings\GoodGameSettings.cs" />
-    <Compile Include="Settings\MixerSettings.cs" />
     <Compile Include="Settings\ObsSceneSource.cs" />
     <Compile Include="Settings\ObsScreenSourceNames.cs" />
     <Compile Include="Settings\OBSSettings.cs" />

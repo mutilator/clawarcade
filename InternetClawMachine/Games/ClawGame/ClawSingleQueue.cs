@@ -1,15 +1,15 @@
-﻿using InternetClawMachine.Games.GameHelpers;
+﻿using InternetClawMachine.Chat;
+using InternetClawMachine.Games.GameHelpers;
+using InternetClawMachine.Hardware.ClawControl;
+using InternetClawMachine.Settings;
 using OBSWebsocketDotNet;
 using System;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
-using InternetClawMachine.Chat;
-using InternetClawMachine.Settings;
-using InternetClawMachine.Hardware.ClawControl;
 
-namespace InternetClawMachine.Games.GameHelpers
+namespace InternetClawMachine.Games.ClawGame
 {
     internal class ClawSingleQueue : ClawGame
     {
@@ -22,6 +22,26 @@ namespace InternetClawMachine.Games.GameHelpers
             MachineControl.OnClawCentered += MachineControl_OnClawCentered;
             ((ClawController)MachineControl).OnClawRecoiled += MachineControl_OnClawRecoiled;
             StartMessage = string.Format(Translator.GetTranslation("gameClawSingleQueueStartGame", Translator.DefaultLanguage), Configuration.CommandPrefix);
+
+            PlayerQueue.OnJoinedQueue += PlayerQueue_OnJoinedQueue;
+        }
+
+        private void PlayerQueue_OnJoinedQueue(object sender, QueueUpdateArgs e)
+        {
+            var pos = e.Index;
+            var username = e.Username;
+
+            if (pos == 0)
+            {
+                StartRound(username);
+            }
+            else
+            {
+                if (pos == 1)//lol i'm so lazy
+                    ChatClient.SendMessage(Configuration.Channel, Translator.GetTranslation("gameClawCommandPlayQueueAdd1", Configuration.UserList.GetUserLocalization(username)));
+                else
+                    ChatClient.SendMessage(Configuration.Channel, string.Format(Translator.GetTranslation("gameClawCommandPlayQueueAdd2", Configuration.UserList.GetUserLocalization(username)), pos));
+            }
         }
 
         internal virtual void MachineControl_OnClawRecoiled(object sender, EventArgs e)
@@ -45,6 +65,7 @@ namespace InternetClawMachine.Games.GameHelpers
                 return;
             if (MachineControl != null)
                 MachineControl.OnClawCentered -= MachineControl_OnClawCentered;
+            PlayerQueue.OnJoinedQueue -= PlayerQueue_OnJoinedQueue;
             base.EndGame();
         }
 
@@ -52,8 +73,8 @@ namespace InternetClawMachine.Games.GameHelpers
         {
             if (MachineControl != null)
                 MachineControl.OnClawCentered -= MachineControl_OnClawCentered;
+            PlayerQueue.OnJoinedQueue -= PlayerQueue_OnJoinedQueue;
             base.Destroy();
-            
         }
 
         public override void HandleCommand(string channel, string username, string chatMessage, bool isSubscriber, string customRewardId)
@@ -63,11 +84,9 @@ namespace InternetClawMachine.Games.GameHelpers
             if (chatMessage.IndexOf(" ") >= 0)
                 commandText = chatMessage.Substring(1, chatMessage.IndexOf(" ") - 1);
 
-
             var translateCommand = Translator.FindWord(commandText, "en-US");
 
             string[] param;
-
 
             //split our args
             param = chatMessage.Split(' ');
@@ -77,7 +96,7 @@ namespace InternetClawMachine.Games.GameHelpers
                 case "play":
                     var userPrefs = Configuration.UserList.GetUser(username);
 
-                    //TODO - Fix this so it doesnt rely on event name
+                    //TODO - Fix this so it doesn't rely on event name
                     if (Configuration.EventMode.DisableBounty && Bounty == null && Configuration.EventMode.DisplayName == "Bounty")
                     {
                         ChatClient.SendMessage(Configuration.Channel, Translator.GetTranslation("responseEventPlay", userPrefs.Localization));
@@ -89,7 +108,6 @@ namespace InternetClawMachine.Games.GameHelpers
                         ChatClient.SendMessage(Configuration.Channel, Translator.GetTranslation("responseEventPlayChooseTeam", userPrefs.Localization));
                         return;
                     }
-
 
                     if (PlayerQueue.Contains(username))
                     {
@@ -110,37 +128,25 @@ namespace InternetClawMachine.Games.GameHelpers
                         PlayerQueue.RemoveSinglePlayer(PlayerQueue.CurrentPlayer);
                     }
 
-                    if (Configuration.EventMode.QueueSizeMax > 0 && PlayerQueue.Count >= Configuration.EventMode.QueueSizeMax)
-                    {
-                        ChatClient.SendMessage(Configuration.Channel, string.Format(Translator.GetTranslation("gameClawCommandPlayQueueFull", userPrefs.Localization), Configuration.EventMode.QueueSizeMax));
-                        return;
-                    }
-
                     //rather than having something constantly checking for the next player the end time of the current player is used to move to the next
                     //however if no player is in the queue this will never come about so we need to check it here
-                    var pos = PlayerQueue.AddSinglePlayer(username);
-
-                    pos = pos - PlayerQueue.Index;
-
-                    if (pos == 0)
+                    try
                     {
-                        StartRound(username);
+                        PlayerQueue.AddSinglePlayer(username);
                     }
-                    else
+                    catch (PlayerQueueSizeExceeded)
                     {
-                        if (pos == 1)//lol i'm so lazy
-                            ChatClient.SendMessage(Configuration.Channel, Translator.GetTranslation("gameClawCommandPlayQueueAdd1", Configuration.UserList.GetUserLocalization(username)));
-                        else
-                            ChatClient.SendMessage(Configuration.Channel, string.Format(Translator.GetTranslation("gameClawCommandPlayQueueAdd2", Configuration.UserList.GetUserLocalization(username)), pos));
+                        ChatClient.SendMessage(Configuration.Channel, string.Format(Translator.GetTranslation("gameClawCommandPlayQueueFull", userPrefs.Localization), Configuration.EventMode.QueueSizeMax));
                     }
 
                     break;
+
                 case "quit":
                 case "leave":
                     if (PlayerQueue.CurrentPlayer == null)
                         break;
                     if (PlayerQueue.CurrentPlayer.ToLower() != username.ToLower())
-                    {                        
+                    {
                         PlayerQueue.RemoveSinglePlayer(username.ToLower()); //remove them from the queue if it's not their turn
                     }
                     else //otherwise they're doing it during their turn and we need to gift it to someone else
@@ -152,6 +158,7 @@ namespace InternetClawMachine.Games.GameHelpers
                         GiftTurn(username.ToLower(), newPlayer);
                     }
                     break;
+
                 case "gift":
                     if (param.Length != 2)
                         break;
@@ -198,6 +205,10 @@ namespace InternetClawMachine.Games.GameHelpers
                         GiftTurn(username.ToLower(), nickname);
                 }
 
+                var userObject = Configuration.UserList.GetUser(username);
+                if (userObject == null)
+                    return;
+
                 //check if it's a single command or stringed commands
                 if (msg.Trim().Length <= 2)
                 {
@@ -207,6 +218,17 @@ namespace InternetClawMachine.Games.GameHelpers
 
                     if (message.ToLower().Equals("d"))
                         DropInCommandQueue = true;
+
+                    if (!userObject.KnowsMultiple)
+                    {
+                        userObject.SingleCommandUsageCounter++;
+                        if (userObject.SingleCommandUsageCounter > Configuration.ClawSettings.SingleCommandUsageCounter)
+                        {
+                            ChatClient.SendMessage(Configuration.Channel, string.Format(Translator.GetTranslation("responseSayMultipleAnnounce", Configuration.UserList.GetUserLocalization(username)), username, Configuration.ClawSettings.MaxCommandsPerLine));
+
+                            userObject.SingleCommandUsageCounter = 0;
+                        }
+                    }
 
                     //if not run all directional commands
                     HandleSingleCommand(username, message);
@@ -226,9 +248,16 @@ namespace InternetClawMachine.Games.GameHelpers
                         var command = data[2];
                         total += command.Length + 1;
                     }
-                    //means we only have one letter commands
-                    if (matches.Count > 0 && total == msg.Length && matches.Count < 10)
+
+                    //means we only have valid commands
+                    if (matches.Count > 0 && total == msg.Length && matches.Count <= Configuration.ClawSettings.MaxCommandsPerLine)
                     {
+                        if (!userObject.KnowsMultiple)
+                        {
+                            userObject.KnowsMultiple = true;
+                            DatabaseFunctions.WriteUserPrefs(Configuration, userObject);
+                        }
+
                         if (msg.Contains("d") && !DropInCommandQueue)
                             DropInCommandQueue = true;
 
@@ -395,9 +424,16 @@ namespace InternetClawMachine.Games.GameHelpers
 
             ChatClient.SendMessage(Configuration.Channel, StartMessage);
             if (username != null)
-                PlayerQueue.AddSinglePlayer(username);
-
-            StartRound(PlayerQueue.GetNextPlayer());
+            {
+                try
+                {
+                    PlayerQueue.AddSinglePlayer(username);
+                }
+                catch (PlayerQueueSizeExceeded)
+                {
+                    ChatClient.SendMessage(Configuration.Channel, string.Format(Translator.GetTranslation("gameClawCommandPlayQueueFull", Translator.DefaultLanguage), Configuration.EventMode.QueueSizeMax));
+                }
+            }
         }
 
         public override void StartRound(string username)

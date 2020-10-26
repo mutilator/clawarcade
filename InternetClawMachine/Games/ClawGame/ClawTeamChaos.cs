@@ -1,19 +1,18 @@
-﻿using InternetClawMachine.Games.GameHelpers;
+﻿using InternetClawMachine.Chat;
+using InternetClawMachine.Games.GameHelpers;
+using InternetClawMachine.Hardware.ClawControl;
+using InternetClawMachine.Settings;
 using OBSWebsocketDotNet;
 using System;
 using System.Linq;
-using System.Threading.Tasks;
-using InternetClawMachine.Chat;
-using InternetClawMachine.Settings;
-using InternetClawMachine.Hardware.ClawControl;
-using System.Threading;
 using System.Text.RegularExpressions;
+using System.Threading;
+using System.Threading.Tasks;
 
-namespace InternetClawMachine.Games.GameHelpers
+namespace InternetClawMachine.Games.ClawGame
 {
     internal class ClawTeamChaos : ClawGame
     {
-
         internal DroppingPlayer CurrentDroppingPlayer { set; get; }
 
         public ClawTeamChaos(IChatApi client, BotConfiguration configuration, OBSWebsocket obs) : base(client, configuration, obs)
@@ -23,6 +22,25 @@ namespace InternetClawMachine.Games.GameHelpers
             MachineControl.OnClawCentered += MachineControl_OnClawCentered;
             ((ClawController)MachineControl).OnClawRecoiled += ClawSingleQueue_OnClawRecoiled;
             StartMessage = string.Format(Translator.GetTranslation("gameClawTeamChaosStartGame", Translator.DefaultLanguage), Configuration.CommandPrefix);
+            PlayerQueue.OnJoinedQueue += PlayerQueue_OnJoinedQueue;
+        }
+
+        private void PlayerQueue_OnJoinedQueue(object sender, QueueUpdateArgs e)
+        {
+            var pos = e.Index;
+            var username = e.Username;
+
+            if (pos == 0)
+            {
+                StartRound(username);
+            }
+            else
+            {
+                if (pos == 1)//lol i'm so lazy
+                    ChatClient.SendMessage(Configuration.Channel, Translator.GetTranslation("gameClawCommandPlayQueueAdd1", Configuration.UserList.GetUserLocalization(username)));
+                else
+                    ChatClient.SendMessage(Configuration.Channel, string.Format(Translator.GetTranslation("gameClawCommandPlayQueueAdd2", Configuration.UserList.GetUserLocalization(username)), pos));
+            }
         }
 
         private void ClawSingleQueue_OnClawRecoiled(object sender, EventArgs e)
@@ -32,7 +50,6 @@ namespace InternetClawMachine.Games.GameHelpers
                 MachineControl_OnClawCentered(sender, e);
             }
         }
-
 
         private void MachineControl_OnClawCentered(object sender, EventArgs e)
         {
@@ -65,11 +82,9 @@ namespace InternetClawMachine.Games.GameHelpers
             if (chatMessage.IndexOf(" ") >= 0)
                 commandText = chatMessage.Substring(1, chatMessage.IndexOf(" ") - 1);
 
-
             var translateCommand = Translator.FindWord(commandText, "en-US");
 
             string[] param;
-
 
             //split our args
             param = chatMessage.Split(' ');
@@ -116,27 +131,12 @@ namespace InternetClawMachine.Games.GameHelpers
                     //however if no player is in the queue this will never come about so we need to check it here
                     var pos = PlayerQueue.AddSinglePlayer(teamName);
 
-                    pos = pos - PlayerQueue.Index;
-
-                    if (pos == 0)
-                    {
-                        StartRound(username);
-                    }
-                    else
-                    {
-                        if (pos == 1)//lol i'm so lazy
-                            ChatClient.SendMessage(Configuration.Channel, Translator.GetTranslation("gameClawCommandPlayQueueAdd1", Configuration.UserList.GetUserLocalization(username)));
-                        else
-                            ChatClient.SendMessage(Configuration.Channel, string.Format(Translator.GetTranslation("gameClawCommandPlayQueueAdd2", Configuration.UserList.GetUserLocalization(username)), pos));
-                    }
-
                     break;
             }
         }
 
         public override void HandleMessage(string username, string message)
         {
-
             var msg = message.ToLower();
             if (PlayerQueue.Count == 0)
             {
@@ -185,13 +185,12 @@ namespace InternetClawMachine.Games.GameHelpers
                 return;
             }
 
-
-            /* 
-                * 
+            /*
+                *
                 * DON'T SUPPORT THESE FOR NOW
-                * 
-                * 
-                * 
+                *
+                *
+                *
             //check if it's a stringed command, all commands have to be valid
             var regex = "((([fbrld]{1}|(fs)|(bs)|(rs)|(ls)){1})([ ]{1}))+?";
             msg += " "; //add a space to the end for the regex
@@ -230,8 +229,6 @@ namespace InternetClawMachine.Games.GameHelpers
                 }
             }
             */
-            
-            
         }
 
         private void HandleSingleCommand(string username, string message)
@@ -395,17 +392,17 @@ namespace InternetClawMachine.Games.GameHelpers
 
             Task.Run(async delegate ()
             {
-            //15 second timer to see if they're still active
-            var firstWait = Configuration.ClawSettings.SinglePlayerQueueNoCommandDuration * 1000;
-            //wait for their turn to end before ending
-            //using timers for this purpose can lead to issues,
-            //      mainly if there are lets say 2 players, the first player drops in quick mode,
-            //      it moves to second player, but this timer is going for the first player,
-            //      it then skips back to the first player but they're putting their commands in so slowly the first timer just finished
-            //      and the checks below this match their details it will end their turn early
-            var loopVal = GameLoopCounterValue;
-            //we need a check if they changed game mode or something weird happened
-            var args = new RoundEndedArgs() { Username = username, GameLoopCounterValue = loopVal, GameMode = GameMode };
+                //15 second timer to see if they're still active
+                var firstWait = Configuration.ClawSettings.SinglePlayerQueueNoCommandDuration * 1000;
+                //wait for their turn to end before ending
+                //using timers for this purpose can lead to issues,
+                //      mainly if there are lets say 2 players, the first player drops in quick mode,
+                //      it moves to second player, but this timer is going for the first player,
+                //      it then skips back to the first player but they're putting their commands in so slowly the first timer just finished
+                //      and the checks below this match their details it will end their turn early
+                var loopVal = GameLoopCounterValue;
+                //we need a check if they changed game mode or something weird happened
+                var args = new RoundEndedArgs() { Username = username, GameLoopCounterValue = loopVal, GameMode = GameMode };
 
                 await Task.Delay(firstWait);
 
@@ -424,27 +421,27 @@ namespace InternetClawMachine.Games.GameHelpers
                 }
                 else
                 {
-                //Waiting!!!
-                await Task.Delay(Configuration.ClawSettings.SinglePlayerDuration * 1000 - firstWait);
+                    //Waiting!!!
+                    await Task.Delay(Configuration.ClawSettings.SinglePlayerDuration * 1000 - firstWait);
 
-                //interesting bug because of the way this works using timers....
-                //if a person takes SO long to go that they finally drop with less than < _clawReturnHomeTime left this will skip to the next player
-                //but once the claw returns home it also skips to the next player
-                //check if we're dropping below and ignore the start next round function and exit cleanly
+                    //interesting bug because of the way this works using timers....
+                    //if a person takes SO long to go that they finally drop with less than < _clawReturnHomeTime left this will skip to the next player
+                    //but once the claw returns home it also skips to the next player
+                    //check if we're dropping below and ignore the start next round function and exit cleanly
 
-                //if after the second delay something skipped them, jump out
-                if (PlayerQueue.CurrentPlayer != args.Username || GameLoopCounterValue != args.GameLoopCounterValue)
+                    //if after the second delay something skipped them, jump out
+                    if (PlayerQueue.CurrentPlayer != args.Username || GameLoopCounterValue != args.GameLoopCounterValue)
                     {
                         return;
                     }
 
-                //if the claw is dropping then we can just let the claw return home event trigger the next player
-                if (!MachineControl.IsClawPlayActive) //otherwise cut their turn short and give the next person a chance
-                {
+                    //if the claw is dropping then we can just let the claw return home event trigger the next player
+                    if (!MachineControl.IsClawPlayActive) //otherwise cut their turn short and give the next person a chance
+                    {
                         base.OnTurnEnded(args);
 
-                    //if they never played, kick them
-                    if (!CurrentPlayerHasPlayed)
+                        //if they never played, kick them
+                        if (!CurrentPlayerHasPlayed)
                             PlayerQueue.RemoveSinglePlayer(username);
 
                         var nextPlayer = PlayerQueue.GetNextPlayer();

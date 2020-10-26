@@ -1,12 +1,12 @@
-﻿using InternetClawMachine.Games.GameHelpers;
+﻿using InternetClawMachine.Chat;
+using InternetClawMachine.Games.GameHelpers;
+using InternetClawMachine.Settings;
 using OBSWebsocketDotNet;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
-using InternetClawMachine.Chat;
-using InternetClawMachine.Settings;
 
-namespace InternetClawMachine.Games.GameHelpers
+namespace InternetClawMachine.Games.ClawGame
 {
     internal class ClawChaos : ClawGame
     {

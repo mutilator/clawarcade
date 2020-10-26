@@ -1,4 +1,5 @@
 ﻿using InternetClawMachine.Chat;
+using InternetClawMachine.Hardware.ClawControl;
 using InternetClawMachine.Settings;
 using OBSWebsocketDotNet;
 using System;
@@ -6,31 +7,142 @@ using System.Threading.Tasks;
 
 namespace InternetClawMachine.Games.ClawGame
 {
-    internal class ClawMarbles : ClawSingleQueue
+    internal class ClawPlinko : ClawSingleQueue
     {
-        public ClawMarbles(IChatApi client, BotConfiguration configuration, OBSWebsocket obs) : base(client, configuration, obs)
-        {
-            GameMode = GameModeType.MARBLES;
+        private int _lastScore;
+        private int _multiplier;
 
-            StartMessage = string.Format(Translator.GetTranslation("gameClawMarblesStartGame", Translator.DefaultLanguage), Configuration.CommandPrefix);
+        public ClawPlinko(IChatApi client, BotConfiguration configuration, OBSWebsocket obs) : base(client, configuration, obs)
+        {
+            GameMode = GameModeType.PLINKO;
+
+            StartMessage = string.Format(Translator.GetTranslation("gameClawPlinkoStartGame", Translator.DefaultLanguage), Configuration.CommandPrefix);
         }
 
-        public override void Init()
+        public override void Destroy()
         {
-            base.Init();
+            base.Destroy();
         }
 
         public override void EndGame()
         {
             if (HasEnded)
                 return;
+            ((ClawController)MachineControl).SendCommand("creset");
+            ((ClawController)MachineControl).EnableSensor(0, false);
+            ((ClawController)MachineControl).EnableSensor(1, false);
+            ((ClawController)MachineControl).EnableSensor(2, false);
+            ((ClawController)MachineControl).EnableSensor(3, false);
+            ((ClawController)MachineControl).EnableSensor(4, false);
+            ((ClawController)MachineControl).EnableSensor(5, false);
+            ((ClawController)MachineControl).EnableSensor(6, false);
+            ((ClawController)MachineControl).EnableSensor(7, false);
+            ((ClawController)MachineControl).EnableSensor(8, false);
+            ((ClawController)MachineControl).EnableSensor(9, false);
+            ((ClawController)MachineControl).EnableSensor(10, false);
+            ((ClawController)MachineControl).EnableSensor(11, false);
+            ((ClawController)MachineControl).EnableSensor(12, false);
+            ((ClawController)MachineControl).OnReturnedHome -= ClawSingleQuickQueue_OnReturnedHome;
+            ((ClawController)MachineControl).OnScoreSensorTripped -= ClawPlinko_OnScoreSensorTripped;
             StartRound(null); //starting a null round resets all the things
             base.EndGame();
         }
 
-        public override void Destroy()
+        public override void Init()
         {
-            base.Destroy();
+            base.Init();
+            ((ClawController)MachineControl).OnReturnedHome += ClawSingleQuickQueue_OnReturnedHome;
+            ((ClawController)MachineControl).OnScoreSensorTripped += ClawPlinko_OnScoreSensorTripped;
+            ((ClawController)MachineControl).EnableSensor(1, true);
+            ((ClawController)MachineControl).EnableSensor(2, true);
+            ((ClawController)MachineControl).EnableSensor(3, true);
+            ((ClawController)MachineControl).EnableSensor(4, true);
+            ((ClawController)MachineControl).EnableSensor(5, true);
+            ((ClawController)MachineControl).EnableSensor(6, true);
+            ((ClawController)MachineControl).EnableSensor(7, true);
+            ((ClawController)MachineControl).EnableSensor(8, true);
+            ((ClawController)MachineControl).EnableSensor(9, true);
+            ((ClawController)MachineControl).EnableSensor(10, true);
+            ((ClawController)MachineControl).EnableSensor(11, true);
+            ((ClawController)MachineControl).EnableSensor(12, true);
+        }
+
+        private void ClawPlinko_OnScoreSensorTripped(IMachineControl controller, string slotNumber)
+        {
+            Logger.WriteLog(Logger.MachineLog, "Slot " + slotNumber + " was tripped");
+
+            switch (slotNumber)
+            {
+                case "1":
+                    _lastScore = 100;
+                    break;
+
+                case "2":
+                    _lastScore = 50;
+                    break;
+
+                case "3":
+                    _lastScore = 1;
+                    break;
+
+                case "4":
+                    _lastScore = 1000;
+                    break;
+
+                case "5":
+                    _lastScore = 1;
+                    break;
+
+                case "6":
+                    _lastScore = 50;
+                    break;
+
+                case "7":
+                    _lastScore = 100;
+                    break;
+
+                case "8":
+                    _multiplier = -1;
+                    break;
+
+                case "9":
+                    _multiplier = 1;
+                    break;
+
+                case "10":
+                    _multiplier = 2;
+                    break;
+
+                case "11":
+                    _multiplier = 1;
+                    break;
+
+                case "12":
+                    _multiplier = -1;
+                    break;
+            }
+
+            if (_multiplier != 0 && _lastScore == 0)
+            {
+                _multiplier = 0;
+            }
+            if (_lastScore != 0 && _multiplier != 0)
+            {
+                var msg = String.Format("You got {0} points multiplied by {1} for a total of {2}", _lastScore,
+                    _multiplier, _lastScore * _multiplier);
+                ChatClient.SendMessage(Configuration.Channel, msg);
+                _lastScore = 0;
+                _multiplier = 0;
+            }
+        }
+
+        public override void StartGame(string username)
+        {
+            var debug = ((ClawController)MachineControl).SendCommand("debug");
+            var data = debug.Split(',');
+            var centerWidth = int.Parse(data[2]) + 100;
+            ((ClawController)MachineControl).SendCommandAsync("center " + centerWidth + " 0");
+            base.StartGame(username);
         }
 
         internal override void MachineControl_OnClawRecoiled(object sender, EventArgs e)
@@ -45,9 +157,24 @@ namespace InternetClawMachine.Games.ClawGame
         {
             //we check to see if the return home event was fired by the person that's currently playing
             //if it has we need to move to the next player, if not we've moved on already, perhaps bad design here
+            DropInCommandQueue = false;
+            Configuration.OverrideChat = false;
 
-            if (PlayerQueue.CurrentPlayer != null && PlayerQueue.CurrentPlayer == CurrentDroppingPlayer.Username && GameLoopCounterValue == CurrentDroppingPlayer.GameLoop)
+            var msg = string.Format(Translator.GetTranslation("gameClawPlinkoCentered", Configuration.UserList.GetUserLocalization(PlayerQueue.CurrentPlayer)), PlayerQueue.CurrentPlayer);
+
+            ChatClient.SendMessage(Configuration.Channel, msg);
+        }
+
+        private void ClawSingleQuickQueue_OnReturnedHome(object sender, EventArgs e)
+        {
+            //we check to see if the return home event was fired by the person that's currently playing
+            //if it has we need to move to the next player, if not we've moved on already, perhaps bad design here
+
+            if (PlayerQueue.CurrentPlayer != null && PlayerQueue.CurrentPlayer == CurrentDroppingPlayer.Username && GameLoopCounterValue == CurrentDroppingPlayer.GameLoop
+            && Configuration.EventMode.ClawMode == ClawMode.TARGETING)
             {
+                DropInCommandQueue = false;
+                Configuration.OverrideChat = false;
                 base.OnTurnEnded(new RoundEndedArgs() { Username = PlayerQueue.CurrentPlayer, GameMode = GameMode, GameLoopCounterValue = GameLoopCounterValue });
                 var nextPlayer = PlayerQueue.GetNextPlayer();
                 StartRound(nextPlayer);
@@ -73,11 +200,11 @@ namespace InternetClawMachine.Games.ClawGame
 
             GameRoundTimer.Start();
 
-            var msg = string.Format(Translator.GetTranslation("gameClawSingleQuickQueueStartRound", Configuration.UserList.GetUserLocalization(username)), PlayerQueue.CurrentPlayer, Configuration.ClawSettings.SinglePlayerQueueNoCommandDuration);
+            var msg = string.Format(Translator.GetTranslation("gameClawPlinkoStartRound", Configuration.UserList.GetUserLocalization(username)), PlayerQueue.CurrentPlayer, Configuration.ClawSettings.SinglePlayerQueueNoCommandDuration);
             var hasPlayedPlayer = SessionWinTracker.Find(itm => itm.Username.ToLower() == PlayerQueue.CurrentPlayer.ToLower());
 
             if (hasPlayedPlayer != null && hasPlayedPlayer.Drops > 1)
-                msg = string.Format(Translator.GetTranslation("gameClawSingleQuickQueueStartRoundShort", Configuration.UserList.GetUserLocalization(username)), PlayerQueue.CurrentPlayer);
+                msg = string.Format(Translator.GetTranslation("gameClawPlinkoStartRoundShort", Configuration.UserList.GetUserLocalization(username)), PlayerQueue.CurrentPlayer);
 
             ChatClient.SendMessage(Configuration.Channel, msg);
 

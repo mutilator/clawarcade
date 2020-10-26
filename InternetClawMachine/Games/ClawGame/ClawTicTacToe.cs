@@ -1,18 +1,19 @@
-﻿using OBSWebsocketDotNet;
+﻿using InternetClawMachine.Chat;
+using InternetClawMachine.Games.GameHelpers;
+using InternetClawMachine.Hardware.ClawControl;
+using InternetClawMachine.Settings;
+using OBSWebsocketDotNet;
 using System;
 using System.Threading.Tasks;
-using InternetClawMachine.Chat;
-using InternetClawMachine.Settings;
-using InternetClawMachine.Hardware.ClawControl;
 
-namespace InternetClawMachine.Games.GameHelpers
+namespace InternetClawMachine.Games.ClawGame
 {
     internal class ClawTicTacToe : ClawSingleQueue
     {
         public ClawTicTacToe(IChatApi client, BotConfiguration configuration, OBSWebsocket obs) : base(client, configuration, obs)
         {
             GameMode = GameModeType.TICTACTOE;
-            
+
             StartMessage = string.Format(Translator.GetTranslation("gameClawTicTacToeStartGame", Translator.DefaultLanguage), Configuration.CommandPrefix);
         }
 
@@ -22,6 +23,12 @@ namespace InternetClawMachine.Games.GameHelpers
             PlayerQueue.OnJoinedQueue += PlayerQueue_OnJoinedQueue;
             ((ClawController)MachineControl).OnClawCentered += ClawTicTacToe_OnClawCentered;
             ((ClawController)MachineControl).OnReturnedHome += ClawTicTacToe_OnReturnedHome;
+        }
+
+        ~ClawTicTacToe()
+        {
+            ((ClawController)MachineControl).OnClawCentered -= ClawTicTacToe_OnClawCentered;
+            ((ClawController)MachineControl).OnReturnedHome -= ClawTicTacToe_OnReturnedHome;
         }
 
         /// <summary>
@@ -41,6 +48,8 @@ namespace InternetClawMachine.Games.GameHelpers
 
             if (PlayerQueue.CurrentPlayer != null && PlayerQueue.CurrentPlayer == CurrentDroppingPlayer.Username && GameLoopCounterValue == CurrentDroppingPlayer.GameLoop)
             {
+                DropInCommandQueue = false;
+                Configuration.OverrideChat = false;
                 base.OnTurnEnded(new RoundEndedArgs() { Username = PlayerQueue.CurrentPlayer, GameMode = GameMode, GameLoopCounterValue = GameLoopCounterValue });
                 var nextPlayer = PlayerQueue.GetNextPlayer();
                 StartRound(nextPlayer);
@@ -49,18 +58,19 @@ namespace InternetClawMachine.Games.GameHelpers
 
         private void ClawTicTacToe_OnClawCentered(object sender, EventArgs e)
         {
+            DropInCommandQueue = false;
+            Configuration.OverrideChat = false;
             //Get the current players position in the queue
             if (PlayerQueue.Index == 0)
             {
                 //if first player, set home to back left (second players home)
                 ((ClawController)MachineControl).SetHomeLocation(ClawHomeLocation.BACKLEFT);
             }
-            else { //index = 1 hopefully
+            else
+            { //index = 1 hopefully
                 //if second player, set home to front left (first players home)
                 ((ClawController)MachineControl).SetHomeLocation(ClawHomeLocation.FRONTLEFT);
             }
-                
-                
         }
 
         private void PlayerQueue_OnJoinedQueue(object sender, QueueUpdateArgs e)
@@ -81,6 +91,7 @@ namespace InternetClawMachine.Games.GameHelpers
             PlayerQueue.Clear();
 
             //TODO change this time to a settable config option
+            ((ClawController)MachineControl).SetHomeLocation(ClawHomeLocation.FRONTLEFT);
             ((ClawController)MachineControl).SetGameMode(ClawMode.TARGETING);
             ((ClawController)MachineControl).SetFailsafe(FailsafeType.CLAWOPENED, 26000);
         }
@@ -89,17 +100,14 @@ namespace InternetClawMachine.Games.GameHelpers
         {
             //initialize home location for player 1, front left
             ((ClawController)MachineControl).SetHomeLocation(ClawHomeLocation.FRONTLEFT);
-            
+
             //disable more people from joining the queue
 
             StartRound(PlayerQueue.CurrentPlayer);
-
         }
 
         public override void StartRound(string username)
         {
-            
-
             DropInCommandQueue = false;
             MachineControl.InsertCoinAsync();
             GameRoundTimer.Reset();
@@ -150,15 +158,12 @@ namespace InternetClawMachine.Games.GameHelpers
 
                 await Task.Delay(firstWait);
 
-
-
                 //if after the first delay something skipped them, jump out
                 if (PlayerQueue.CurrentPlayer != args.Username || GameLoopCounterValue != args.GameLoopCounterValue)
                 {
                     Logger.WriteLog(Logger.DebugLog, string.Format("STARTROUND: [{0}] Exit after first wait for {1} in game loop {2}, current player {3} game loop {4}", sequence, args.Username, args.GameLoopCounterValue, PlayerQueue.CurrentPlayer, GameLoopCounterValue), Logger.LogLevel.DEBUG);
                     return;
                 }
-
 
                 if (!CurrentPlayerHasPlayed && PlayerQueue.Count > 1)
                 {
@@ -214,10 +219,7 @@ namespace InternetClawMachine.Games.GameHelpers
 
         public override void Destroy()
         {
-            
             base.Destroy();
         }
-
-        
     }
 }

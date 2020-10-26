@@ -17,6 +17,7 @@
         TEAMTRIVIA,
         TRIVIA,
         MARBLES,
-        TICTACTOE
+        TICTACTOE,
+        PLINKO
     }
 }

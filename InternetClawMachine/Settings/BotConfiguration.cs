@@ -1,10 +1,10 @@
-﻿using System;
+﻿using InternetClawMachine.Hardware.Gantry;
+using Newtonsoft.Json;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data.SQLite;
 using System.IO;
-using InternetClawMachine.Hardware.Gantry;
-using Newtonsoft.Json;
 
 namespace InternetClawMachine.Settings
 {
@@ -30,7 +30,6 @@ namespace InternetClawMachine.Settings
         public GolfGameSettings GolfSettings { set; get; }
         public ObsSettings ObsSettings { set; get; }
         public TwitchSettings TwitchSettings { set; get; }
-        public MixerSettings MixerSettings { set; get; }
         public GoodGameSettings GoodGameSettings { set; get; }
         public WaterGunSettings WaterGunSettings { set; get; }
         public DrawingSettings DrawingSettings { set; get; }
@@ -142,8 +141,6 @@ namespace InternetClawMachine.Settings
         //do we use goodgame.ru?
         public bool UsingGg { set; get; }
 
-        public bool UsingMixer { get; set; }
-
         /// <summary>
         /// Whether we record stats to the database
         /// </summary>
@@ -164,7 +161,6 @@ namespace InternetClawMachine.Settings
             ObsSettings = new ObsSettings();
             TwitchSettings = new TwitchSettings();
             GoodGameSettings = new GoodGameSettings();
-            MixerSettings = new MixerSettings();
             WaterGunSettings = new WaterGunSettings();
             DrawingSettings = new DrawingSettings();
             UserList = new UserList();
@@ -268,7 +264,7 @@ namespace InternetClawMachine.Settings
 
                     if (!File.Exists("createDB.sql"))
                         throw new Exception("Unable to create new database. createDB.sql not found.");
-                    
+
                     var data = File.ReadAllText("createDB.sql");
 
                     var command = new SQLiteCommand(data, RecordsDatabase);
@@ -285,8 +281,6 @@ namespace InternetClawMachine.Settings
                 Logger.WriteLog(Logger.ErrorLog, error);
             }
         }
-
-        
 
         public int GetStreamBuxCost(StreamBuxTypes reason)
         {

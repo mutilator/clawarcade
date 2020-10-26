@@ -1,5 +1,6 @@
 ﻿using InternetClawMachine.Chat;
 using InternetClawMachine.Games;
+using InternetClawMachine.Games.ClawGame;
 using InternetClawMachine.Games.GameHelpers;
 using InternetClawMachine.Games.GantryGame;
 using InternetClawMachine.Games.OtherGame;
@@ -25,7 +26,6 @@ using System.Timers;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
-using TwitchLib.Api;
 using TwitchLib.Client.Events;
 using TwitchLib.Client.Models;
 using static InternetClawMachine.Logger;
@@ -55,10 +55,10 @@ namespace InternetClawMachine
 
     public partial class MainWindow : Window
     {
-
-
         #region Fields
+
         private string _localizationPath = "localization.json";
+
         /// <summary>
         /// Timer to check if claw cam is responding
         /// </summary>
@@ -69,7 +69,6 @@ namespace InternetClawMachine
         /// </summary>
         private long _lastRefillRequest = 0;
 
-
         /// <summary>
         /// Time the hardware was last reset
         /// </summary>
@@ -78,7 +77,7 @@ namespace InternetClawMachine
         /// <summary>
         /// Random number source
         /// </summary>
-        private Random _rnd = new Random((int) DateTime.Now.Ticks);
+        private Random _rnd = new Random((int)DateTime.Now.Ticks);
 
         /// <summary>
         /// Time to wait between reconnect attempts, exponential increase
@@ -156,8 +155,8 @@ namespace InternetClawMachine
 
         public WebServer WebServer { get; private set; }
 
-        GridViewColumnHeader _lastHeaderClicked = null;
-        ListSortDirection _lastDirection = ListSortDirection.Ascending;
+        private GridViewColumnHeader _lastHeaderClicked = null;
+        private ListSortDirection _lastDirection = ListSortDirection.Ascending;
 
         /// <summary>
         /// Whether we're running the announcement messages already
@@ -199,17 +198,20 @@ namespace InternetClawMachine
                 if (userPrefs != null)
                 {
                     Configuration.UserList.Add(userPrefs);
+                    Game?.WriteDbMovementAction(e.Username, "NA", "JOINED");
                     //Dispatcher?.BeginInvoke(new Action(() => { if (!lstViewers.Items.Contains(userPrefs.Username)) { lstViewers.Items.Add(userPrefs.Username); } }));
                 }
-                    /*var add = true;
-                    foreach (var itm in lstViewers.Items)
-                        if ((string)itm == e.Username.ToLower())
-                            add = false;
-                    if (add)
-                    {
-                        //
-                    }*/
-            } catch (Exception ex)
+
+                /*var add = true;
+                foreach (var itm in lstViewers.Items)
+                    if ((string)itm == e.Username.ToLower())
+                        add = false;
+                if (add)
+                {
+                    //
+                }*/
+            }
+            catch (Exception ex)
             {
                 var error = string.Format("ERROR {0} {1}", ex.Message, ex);
                 Logger.WriteLog(Logger.ErrorLog, error, LogLevel.ERROR);
@@ -244,7 +246,7 @@ namespace InternetClawMachine
             try
             {
                 Dispatcher?.BeginInvoke(new Action(() => { Configuration.UserList.Clear(); }));
-                
+
                 AddDebugText("Connected: " + e.AutoJoinChannel);
                 _reconnectWaitDelay = _reconnectWaitDelayInitial;
                 StopChatConnectionWatchDog();
@@ -255,7 +257,6 @@ namespace InternetClawMachine
                 Logger.WriteLog(Logger.ErrorLog, error, LogLevel.ERROR);
             }
         }
-
 
         private void Client_OnJoinedChannel(object sender, OnJoinedChannelArgs e)
         {
@@ -281,8 +282,6 @@ namespace InternetClawMachine
                 LogChat(e.WhisperMessage.Username, message);
 
                 var username = e.WhisperMessage.Username;
-
-
 
                 if (Configuration.AdminUsers.Contains(e.WhisperMessage.Username))
                 {
@@ -330,9 +329,6 @@ namespace InternetClawMachine
                         Translator.GetTranslation("responseSub",
                             Configuration.UserList.GetUserLocalization(e.Subscriber.DisplayName)),
                         e.Subscriber.DisplayName, Configuration.CommandPrefix));
-
-
-
 
             var message = string.Format("NEW SUBSCRIBER {0}", e.Subscriber.DisplayName);
             LogChat("#" + e.Subscriber.RoomId, message);
@@ -400,7 +396,6 @@ namespace InternetClawMachine
 
         #endregion UI Direction Update Functions
 
-
         /// <summary>
         /// Stop the reconnect attempt
         /// </summary>
@@ -408,6 +403,7 @@ namespace InternetClawMachine
         {
             _runChatConnectionWatchDog = false;
         }
+
         /// <summary>
         /// Start a reconnection attempt, will retry at increasing intervals until successful
         /// </summary>
@@ -430,7 +426,7 @@ namespace InternetClawMachine
             });
         }
 
-        void ClientReconnect()
+        private void ClientReconnect()
         {
             try
             {
@@ -442,7 +438,6 @@ namespace InternetClawMachine
                 var error = string.Format("ERROR {0} {1}", ex.Message, ex);
                 Logger.WriteLog(Logger.ErrorLog, error, LogLevel.ERROR);
             }
-
         }
 
         private void HandleChatCommand(string channel, string username, string chatMessage, bool isSubscriber,
@@ -452,14 +447,11 @@ namespace InternetClawMachine
             var message = string.Format("<{0}> {1}", username, chatMessage);
             LogChat("#" + channel, message);
 
-
-
             var commandText = chatMessage.Substring(1);
             if (chatMessage.IndexOf(" ") >= 0)
                 commandText = chatMessage.Substring(1, chatMessage.IndexOf(" ") - 1);
 
             var translateCommand = Translator.FindWord(commandText, "en-US");
-
 
             var userPrefs = Configuration.UserList.GetUser(username);
 
@@ -474,7 +466,6 @@ namespace InternetClawMachine
                     DatabaseFunctions.WriteUserPrefs(Configuration, userPrefs);
                 }
             }
-
 
             //if they used a command then give them daily bucks
             try
@@ -514,14 +505,32 @@ namespace InternetClawMachine
             if (Game != null && !IsPaused)
                 Game.HandleCommand(channel, username, chatMessage, isSubscriber, customRewardId);
 
-            string[] param;
-
-
-
-
-
             switch (translateCommand.FinalWord)
             {
+                case "mgmt":
+
+                    if (!Configuration.AdminUsers.Contains(username))
+                        break; ;
+
+                    var cmd = chatMessage.Trim().ToLower().Split(' ');
+                    if (cmd.Length < 2)
+                        break;
+
+                    switch (cmd[0])
+                    {
+                        case "add":
+                            Configuration.AdminUsers.Add(cmd[1]);
+                            Client.SendMessage(Configuration.Channel, "User added to admins.");
+                            break;
+
+                        case "del":
+                            Configuration.AdminUsers.Remove(cmd[1]);
+                            Client.SendMessage(Configuration.Channel, "User remove from admins.");
+                            break;
+                    }
+
+                    break;
+
                 case "gamemode":
                     if (!Configuration.AdminUsers.Contains(username))
                         break; ;
@@ -530,37 +539,42 @@ namespace InternetClawMachine
                     if (mode.Trim().Length == 0)
                         break;
 
-                        
                     switch (mode)
                     {
                         case "chaos":
-                                StartGameModeRealTime();
+                            StartGameModeRealTime();
                             break;
+
                         case "team chaos":
-                                StartGameModeTeamChaos(null);
+                            StartGameModeTeamChaos(null);
                             break;
+
                         case "trivia":
-                                StartGameModeTrivia(null);
+                            StartGameModeTrivia(null);
                             break;
+
                         case "team trivia":
-                                StartGameModeTeamTrivia(null);
+                            StartGameModeTeamTrivia(null);
                             break;
+
                         case "quick":
 
                             StartGameModeSingleQuickQueue(null);
                             break;
+
                         case "queue":
                             StartGameModeSingleQueue(null);
                             break;
+
                         default:
                             Client.SendMessage(Configuration.Channel,
                                string.Format(Translator.GetTranslation("responseCommandGameModeNoParam",
                                         Configuration.UserList.GetUserLocalization(username))));
                             break;
-
                     }
 
                     break;
+
                 case "seen":
                     //auto update their localization if they use a command in another language
                     if (commandText != translateCommand.FinalWord ||
@@ -630,8 +644,8 @@ namespace InternetClawMachine
                         _lastHwReset = SessionTimer.ElapsedMilliseconds;
                         if (Game is ClawGame)
                         {
-                            ((ClawGame) Game).MachineControl.Init();
-                            ((ClawController) ((ClawGame) Game).MachineControl).SendCommandAsync("reset");
+                            ((ClawGame)Game).MachineControl.Init();
+                            ((ClawController)((ClawGame)Game).MachineControl).SendCommandAsync("reset");
                         }
                     }
 
@@ -722,10 +736,6 @@ namespace InternetClawMachine
                             Translator.GetTranslation("responseCommandBuxBalance",
                                 Configuration.UserList.GetUserLocalization(username)), user, clawBux));
                     break;
-
-                
-
-                
             }
         }
 
@@ -745,17 +755,18 @@ namespace InternetClawMachine
                 "_DEBUG");
 
             cmbGameModes.Items.Add(new GameModeSelections()
-                {GameMode = GameModeType.SINGLEQUICKQUEUE, Name = "QuickQueue"});
-            cmbGameModes.Items.Add(new GameModeSelections() {GameMode = GameModeType.SINGLEQUEUE, Name = "Queue"});
+            { GameMode = GameModeType.SINGLEQUICKQUEUE, Name = "QuickQueue" });
+            cmbGameModes.Items.Add(new GameModeSelections() { GameMode = GameModeType.SINGLEQUEUE, Name = "Queue" });
             //cmbGameModes.Items.Add(new GameModeSelections() { GameMode = GameModeType.WATERGUNQUEUE, Name = "WaterGunQueue" });
+            cmbGameModes.Items.Add(new GameModeSelections() { GameMode = GameModeType.TICTACTOE, Name = "TicTactoe" });
+            cmbGameModes.Items.Add(new GameModeSelections() { GameMode = GameModeType.PLINKO, Name = "Plinko" });
             cmbGameModes.Items.Add(new GameModeSelections() { GameMode = GameModeType.REALTIMETEAM, Name = "Team Chaos" });
             cmbGameModes.Items.Add(new GameModeSelections() { GameMode = GameModeType.TEAMTRIVIA, Name = "Team Trivia" });
             cmbGameModes.Items.Add(new GameModeSelections() { GameMode = GameModeType.TRIVIA, Name = "Trivia" });
-            cmbGameModes.Items.Add(new GameModeSelections() {GameMode = GameModeType.REALTIME, Name = "Chaos"});
-            cmbGameModes.Items.Add(new GameModeSelections() {GameMode = GameModeType.VOTING, Name = "Vote"});
-            cmbGameModes.Items.Add(new GameModeSelections() {GameMode = GameModeType.DRAWING, Name = "Drawing"});
-            cmbGameModes.Items.Add(new GameModeSelections() {GameMode = GameModeType.GOLF, Name = "Golf"});
-
+            cmbGameModes.Items.Add(new GameModeSelections() { GameMode = GameModeType.REALTIME, Name = "Chaos" });
+            cmbGameModes.Items.Add(new GameModeSelections() { GameMode = GameModeType.VOTING, Name = "Vote" });
+            cmbGameModes.Items.Add(new GameModeSelections() { GameMode = GameModeType.DRAWING, Name = "Drawing" });
+            cmbGameModes.Items.Add(new GameModeSelections() { GameMode = GameModeType.GOLF, Name = "Golf" });
 
             cmbGameModes.SelectedIndex = 0;
 
@@ -774,7 +785,7 @@ namespace InternetClawMachine
             ObsConnection.Connected += OBSConnection_Connected;
 
             Configuration.UserList = new UserList();
-
+            Configuration.UserList.OnAddedUser += UserList_OnAddedUser;
 
             //StartGame(null);
 
@@ -785,29 +796,19 @@ namespace InternetClawMachine
 
        System.ComponentModel.ListSortDirection.Ascending));
 
-
             //messing with other streaming services
-            if (Configuration.UsingMixer)
-            {
-                Configuration.Channel = Configuration.TwitchSettings.Channel;
-                Configuration.Username = Configuration.TwitchSettings.Username;
-
-                Client = new MixerChatApi();
-                ((MixerChatApi) Client).Initialize(null, null);
-            }
-            else if (Configuration.UsingTwitch)
+            if (Configuration.UsingTwitch)
             {
                 Configuration.Channel = Configuration.TwitchSettings.Channel;
                 Configuration.Username = Configuration.TwitchSettings.Username;
 
                 Client = new TwitchChatApi();
                 Credentials = new ConnectionCredentials(Configuration.Username, Configuration.TwitchSettings.ApiKey);
-                ((TwitchChatApi) Client).Initialize(Credentials, Configuration.Channel);
-                ((TwitchChatApi) Client).OnNewSubscriber += Client_OnNewSubscriber;
-                ((TwitchChatApi) Client).OnReSubscriber += Client_OnReSubscriber;
-                ((TwitchChatApi) Client).OnDisconnected += Client_OnDisconnected;
-                ((TwitchChatApi) Client).OnConnectionError += Client_OnConnectionError;
-
+                ((TwitchChatApi)Client).Initialize(Credentials, Configuration.Channel);
+                ((TwitchChatApi)Client).OnNewSubscriber += Client_OnNewSubscriber;
+                ((TwitchChatApi)Client).OnReSubscriber += Client_OnReSubscriber;
+                ((TwitchChatApi)Client).OnDisconnected += Client_OnDisconnected;
+                ((TwitchChatApi)Client).OnConnectionError += Client_OnConnectionError;
             }
             else if (Configuration.UsingGg)
             {
@@ -817,9 +818,9 @@ namespace InternetClawMachine
                 {
                     Username = Configuration.Username
                 };
-                ((GoodGameChatApi) Client).Channel = Configuration.Channel;
-                ((GoodGameChatApi) Client).AuthToken = Configuration.GoodGameSettings.AuthToken;
-                ((GoodGameChatApi) Client).UserId = Configuration.GoodGameSettings.UserId;
+                ((GoodGameChatApi)Client).Channel = Configuration.Channel;
+                ((GoodGameChatApi)Client).AuthToken = Configuration.GoodGameSettings.AuthToken;
+                ((GoodGameChatApi)Client).UserId = Configuration.GoodGameSettings.UserId;
 
                 Client.Init(Configuration.GoodGameSettings.Url);
             }
@@ -836,7 +837,7 @@ namespace InternetClawMachine
             SessionTimer.Start();
 
             //spawns a new thread to reset the camera all the time
-            Task.Run(delegate() { StartCameraResetTask(); });
+            Task.Run(delegate () { StartCameraResetTask(); });
 
             txtDump.Text = "";
 
@@ -888,7 +889,7 @@ namespace InternetClawMachine
                     Configuration.DataExchanger.Bounty = Game.Bounty;
                     if (Game is ClawGame)
                     {
-                        Configuration.DataExchanger.CurrentPlayerHasPlayed = ((ClawGame) Game).CurrentPlayerHasPlayed;
+                        Configuration.DataExchanger.CurrentPlayerHasPlayed = ((ClawGame)Game).CurrentPlayerHasPlayed;
                         Configuration.DataExchanger.SinglePlayerDuration =
                             Configuration.ClawSettings.SinglePlayerDuration;
                         Configuration.DataExchanger.SinglePlayerQueueNoCommandDuration =
@@ -912,6 +913,21 @@ namespace InternetClawMachine
             }
 
             Configuration.Load(_botConfigFile);
+        }
+
+        private void UserList_OnAddedUser(object sender, UserListEventArgs e)
+        {
+            var lastSeen = DatabaseFunctions.GetUserLastSeen(Configuration, e.Username);
+            if (lastSeen > 0)
+            {
+                var epoch = Helpers.GetEpoch();
+                //if over a month notify me
+                if (epoch - 2592000 > lastSeen)
+                {
+                    var seenTime = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc).AddSeconds(lastSeen);
+                    Notifier.SendDiscordMessage(Configuration.DiscordSettings.SpamWebhook, string.Format("{0} is back! The last time they played was {1}-{2}-{3}", e.Username, seenTime.Year, seenTime.Month, seenTime.Day));
+                }
+            }
         }
 
         private void SaveConfiguration()
@@ -964,13 +980,12 @@ namespace InternetClawMachine
             return pingable;
         }
 
-
         private void StartRunningAnnounceMessage()
         {
             if (!_runningAnnounceMessage)
             {
                 _runningAnnounceMessage = true;
-                Task.Run(async delegate()
+                Task.Run(async delegate ()
                 {
                     while (_runningAnnounceMessage)
                     {
@@ -1016,11 +1031,13 @@ namespace InternetClawMachine
             //hackidy hack hack
             //the join notification doesn't appear as soon as a person joins so we add them to the user list when we see them talk
 
-            try { 
+            try
+            {
                 if (!Configuration.UserList.Contains(username))
                 {
                     var userPrefs = DatabaseFunctions.GetUserPrefs(Configuration, username);
                     Configuration.UserList.Add(userPrefs);
+                    Game?.WriteDbMovementAction(username, "NA", "JOINED");
                     /*
                     Dispatcher?.BeginInvoke(new Action(() => {
                         if (!lstViewers.Items.Contains(userPrefs.Username)) {
@@ -1041,19 +1058,14 @@ namespace InternetClawMachine
                     return;
                 }
 
-
-
-            
-
                 LogChat("#" + e.ChatMessage.Channel, message);
                 RunCurrentGameMode(username, e.ChatMessage.Message, e.ChatMessage.Channel, e.ChatMessage.IsSubscriber);
-                
+
                 //do some bits notifications
                 if (e.ChatMessage.Bits > 0)
                 {
                     HandleBitsMessage(e);
                 }
-
 
                 if (e.ChatMessage.Message.ToLower().Contains(Translator.GetTranslation("actionWordRigged",
                     Configuration.UserList.GetUserLocalization(username))))
@@ -1204,14 +1216,14 @@ namespace InternetClawMachine
             }
         }
 
-
         private void Game_GameModeEnded(object sender, EventArgs e)
         {
             //do some cleanup of other variables here?
             if (Game.GameMode == GameModeType.VOTING)
             {
                 HandleEndOfVote();
-            } else if ((Game.GameMode == GameModeType.TRIVIA) || (Game.GameMode == GameModeType.TEAMTRIVIA))
+            }
+            else if ((Game.GameMode == GameModeType.TRIVIA) || (Game.GameMode == GameModeType.TEAMTRIVIA))
             {
                 StartGameModeSingleQuickQueue(null);
             }
@@ -1219,7 +1231,6 @@ namespace InternetClawMachine
 
         private void HandleEndOfVote()
         {
-
             if (Game.Votes.Count > 0)
             {
                 var grouped = Game.Votes.GroupBy(ccmd => ccmd.GameMode); //group all queued commands by direction
@@ -1231,24 +1242,28 @@ namespace InternetClawMachine
                     case GameModeType.REALTIME:
                         StartGameModeRealTime();
                         break;
+
                     case GameModeType.REALTIMETEAM:
                         StartGameModeTeamChaos(null);
                         break;
+
                     case GameModeType.TRIVIA:
                         StartGameModeTrivia(null);
                         break;
+
                     case GameModeType.TEAMTRIVIA:
                         StartGameModeTeamTrivia(null);
                         break;
+
                     case GameModeType.SINGLEQUICKQUEUE:
-                        var rand = new Random((int) DateTime.Now.Ticks);
+                        var rand = new Random((int)DateTime.Now.Ticks);
                         var user = Game.Votes[rand.Next(Game.Votes.Count)].Username;
 
                         StartGameModeSingleQuickQueue(user);
                         break;
 
                     case GameModeType.WATERGUNQUEUE:
-                        rand = new Random((int) DateTime.Now.Ticks);
+                        rand = new Random((int)DateTime.Now.Ticks);
                         user = Game.Votes[rand.Next(Game.Votes.Count)].Username;
                         WaterBot.PitchReturnHome();
                         WaterBot.YawReturnHome();
@@ -1257,7 +1272,7 @@ namespace InternetClawMachine
 
                     case GameModeType.SINGLEQUEUE:
                     default:
-                        rand = new Random((int) DateTime.Now.Ticks);
+                        rand = new Random((int)DateTime.Now.Ticks);
                         user = Game.Votes[rand.Next(Game.Votes.Count)].Username;
                         Dispatcher?.BeginInvoke(new Action(() =>
                         {
@@ -1281,8 +1296,6 @@ namespace InternetClawMachine
         {
             if (!(Game is ClawGame))
                 return;
-
-
         }
 
         private void StartGameModeRealTime()
@@ -1346,9 +1359,35 @@ namespace InternetClawMachine
 
             StartGame(username);
         }
+
+        private void StartGameModeTicTacToe(string username)
+        {
+            //if a game mode exists, end it
+            if (Game != null)
+            {
+                EndGame();
+            }
+
+            Game = new ClawTicTacToe(Client, Configuration, ObsConnection);
+
+            StartGame(username);
+        }
+
+        private void StartGameModePlinko(string username)
+        {
+            //if a game mode exists, end it
+            if (Game != null)
+            {
+                EndGame();
+            }
+
+            Game = new ClawPlinko(Client, Configuration, ObsConnection);
+
+            StartGame(username);
+        }
+
         private void StartGameModeTeamChaos(string username)
         {
-
             //if a game mode exists, end it
             if (Game != null)
             {
@@ -1363,7 +1402,6 @@ namespace InternetClawMachine
 
         private void StartGameModeTrivia(string username)
         {
-
             //if a game mode exists, end it
             if (Game != null)
             {
@@ -1378,7 +1416,6 @@ namespace InternetClawMachine
 
         private void StartGameModeTeamTrivia(string username)
         {
-
             //if a game mode exists, end it
             if (Game != null)
             {
@@ -1406,7 +1443,6 @@ namespace InternetClawMachine
                         txtPLushName.Text = existing.Name;
                     }
                 }
-
             }));
         }
 
@@ -1419,18 +1455,18 @@ namespace InternetClawMachine
             }
 
             Game = new Drawing(Client, Configuration, ObsConnection);
-            ((GantryGame) Game).Gantry = new GameGantry(Configuration.DrawingSettings.GantryIp,
+            ((GantryGame)Game).Gantry = new GameGantry(Configuration.DrawingSettings.GantryIp,
                 Configuration.DrawingSettings.GantryPort);
-            ((GantryGame) Game).Gantry.Connect();
-            ((GantryGame) Game).Gantry.ShortSteps = Configuration.DrawingSettings.ShortSteps;
-            ((GantryGame) Game).Gantry.NormalSteps = Configuration.DrawingSettings.NormalSteps;
-            ((GantryGame) Game).Gantry.SetAcceleration(GantryAxis.A, Configuration.DrawingSettings.AccelerationA);
-            ((GantryGame) Game).Gantry.SetUpperLimit(GantryAxis.X, Configuration.DrawingSettings.LimitUpperX);
-            ((GantryGame) Game).Gantry.SetUpperLimit(GantryAxis.Y, Configuration.DrawingSettings.LimitUpperY);
-            ((GantryGame) Game).Gantry.SetUpperLimit(GantryAxis.Z, Configuration.DrawingSettings.LimitUpperZ);
-            ((GantryGame) Game).Gantry.GetLocation(GantryAxis.X);
-            ((GantryGame) Game).Gantry.GetLocation(GantryAxis.Y);
-            ((GantryGame) Game).Gantry.GetLocation(GantryAxis.Z);
+            ((GantryGame)Game).Gantry.Connect();
+            ((GantryGame)Game).Gantry.ShortSteps = Configuration.DrawingSettings.ShortSteps;
+            ((GantryGame)Game).Gantry.NormalSteps = Configuration.DrawingSettings.NormalSteps;
+            ((GantryGame)Game).Gantry.SetAcceleration(GantryAxis.A, Configuration.DrawingSettings.AccelerationA);
+            ((GantryGame)Game).Gantry.SetUpperLimit(GantryAxis.X, Configuration.DrawingSettings.LimitUpperX);
+            ((GantryGame)Game).Gantry.SetUpperLimit(GantryAxis.Y, Configuration.DrawingSettings.LimitUpperY);
+            ((GantryGame)Game).Gantry.SetUpperLimit(GantryAxis.Z, Configuration.DrawingSettings.LimitUpperZ);
+            ((GantryGame)Game).Gantry.GetLocation(GantryAxis.X);
+            ((GantryGame)Game).Gantry.GetLocation(GantryAxis.Y);
+            ((GantryGame)Game).Gantry.GetLocation(GantryAxis.Z);
 
             StartGame(username);
         }
@@ -1461,7 +1497,7 @@ namespace InternetClawMachine
             Game.StartGame(username);
             if (Game is ClawGame)
             {
-                lstPlushes.ItemsSource = ((ClawGame) Game).PlushieTags;
+                lstPlushes.ItemsSource = ((ClawGame)Game).PlushieTags;
             }
         }
 
@@ -1557,11 +1593,13 @@ namespace InternetClawMachine
                     WaterBot.YawSetDirection(WaterYawDirection.UP);
                     WaterBot.YawStart();
                     break;
+
                 case GameModeType.DRAWING:
                 case GameModeType.GOLF:
-                    ((GantryGame) Game).Gantry.SetDirection(GantryAxis.X, MotorDirection.FORWARD);
-                    ((GantryGame) Game).Gantry.Go(GantryAxis.X);
+                    ((GantryGame)Game).Gantry.SetDirection(GantryAxis.X, MotorDirection.FORWARD);
+                    ((GantryGame)Game).Gantry.Go(GantryAxis.X);
                     break;
+
                 default:
                     (Game as ClawGame)?.MachineControl.MoveForward(-1);
                     break;
@@ -1577,10 +1615,12 @@ namespace InternetClawMachine
                     //_waterBot.YawSetDirection(WaterYawDirection.UP);
                     WaterBot.YawStop();
                     break;
+
                 case GameModeType.DRAWING:
                 case GameModeType.GOLF:
-                    ((GantryGame) Game).Gantry.Stop(GantryAxis.X);
+                    ((GantryGame)Game).Gantry.Stop(GantryAxis.X);
                     break;
+
                 default:
                     (Game as ClawGame)?.MachineControl.MoveForward(0);
                     break;
@@ -1596,10 +1636,12 @@ namespace InternetClawMachine
                     //_waterBot.YawSetDirection(WaterYawDirection.UP);
                     WaterBot.PitchStop();
                     break;
+
                 case GameModeType.DRAWING:
                 case GameModeType.GOLF:
-                    ((GantryGame) Game).Gantry.Stop(GantryAxis.Y);
+                    ((GantryGame)Game).Gantry.Stop(GantryAxis.Y);
                     break;
+
                 default:
                     (Game as ClawGame)?.MachineControl.MoveLeft(0);
                     break;
@@ -1615,11 +1657,13 @@ namespace InternetClawMachine
                     WaterBot.PitchSetDirection(WaterPitchDirection.LEFT);
                     WaterBot.PitchStart();
                     break;
+
                 case GameModeType.DRAWING:
                 case GameModeType.GOLF:
-                    ((GantryGame) Game).Gantry.SetDirection(GantryAxis.Y, MotorDirection.BACKWARD);
-                    ((GantryGame) Game).Gantry.Go(GantryAxis.Y);
+                    ((GantryGame)Game).Gantry.SetDirection(GantryAxis.Y, MotorDirection.BACKWARD);
+                    ((GantryGame)Game).Gantry.Go(GantryAxis.Y);
                     break;
+
                 default:
                     (Game as ClawGame)?.MachineControl.MoveLeft(-1);
                     break;
@@ -1635,11 +1679,13 @@ namespace InternetClawMachine
                     WaterBot.PitchSetDirection(WaterPitchDirection.RIGHT);
                     WaterBot.PitchStart();
                     break;
+
                 case GameModeType.DRAWING:
                 case GameModeType.GOLF:
-                    ((GantryGame) Game).Gantry.SetDirection(GantryAxis.Y, MotorDirection.FORWARD);
-                    ((GantryGame) Game).Gantry.Go(GantryAxis.Y);
+                    ((GantryGame)Game).Gantry.SetDirection(GantryAxis.Y, MotorDirection.FORWARD);
+                    ((GantryGame)Game).Gantry.Go(GantryAxis.Y);
                     break;
+
                 default:
                     (Game as ClawGame)?.MachineControl.MoveRight(-1);
                     break;
@@ -1655,10 +1701,12 @@ namespace InternetClawMachine
                     WaterBot.PitchSetDirection(WaterPitchDirection.LEFT);
                     WaterBot.PitchStop();
                     break;
+
                 case GameModeType.DRAWING:
                 case GameModeType.GOLF:
-                    ((GantryGame) Game).Gantry.Stop(GantryAxis.Y);
+                    ((GantryGame)Game).Gantry.Stop(GantryAxis.Y);
                     break;
+
                 default:
                     (Game as ClawGame)?.MachineControl.MoveRight(0);
                     break;
@@ -1674,11 +1722,13 @@ namespace InternetClawMachine
                     WaterBot.YawSetDirection(WaterYawDirection.DOWN);
                     WaterBot.YawStart();
                     break;
+
                 case GameModeType.DRAWING:
                 case GameModeType.GOLF:
-                    ((GantryGame) Game).Gantry.SetDirection(GantryAxis.X, MotorDirection.BACKWARD);
-                    ((GantryGame) Game).Gantry.Go(GantryAxis.X);
+                    ((GantryGame)Game).Gantry.SetDirection(GantryAxis.X, MotorDirection.BACKWARD);
+                    ((GantryGame)Game).Gantry.Go(GantryAxis.X);
                     break;
+
                 default:
                     (Game as ClawGame)?.MachineControl.MoveBackward(-1);
                     break;
@@ -1693,10 +1743,12 @@ namespace InternetClawMachine
                 case GameModeType.WATERGUNQUEUE:
                     WaterBot.YawStop();
                     break;
+
                 case GameModeType.DRAWING:
                 case GameModeType.GOLF:
-                    ((GantryGame) Game).Gantry.Stop(GantryAxis.X);
+                    ((GantryGame)Game).Gantry.Stop(GantryAxis.X);
                     break;
+
                 default:
                     (Game as ClawGame)?.MachineControl.MoveBackward(0);
                     break;
@@ -1711,11 +1763,13 @@ namespace InternetClawMachine
                 case GameModeType.WATERGUNQUEUE:
                     WaterBot.EnablePump(true);
                     break;
+
                 case GameModeType.DRAWING:
                 case GameModeType.GOLF:
-                    ((GantryGame) Game).Gantry.SetDirection(GantryAxis.Z, MotorDirection.FORWARD);
-                    ((GantryGame) Game).Gantry.Go(GantryAxis.Z);
+                    ((GantryGame)Game).Gantry.SetDirection(GantryAxis.Z, MotorDirection.FORWARD);
+                    ((GantryGame)Game).Gantry.Go(GantryAxis.Z);
                     break;
+
                 default:
                     (Game as ClawGame)?.MachineControl.PressDrop();
                     break;
@@ -1730,16 +1784,17 @@ namespace InternetClawMachine
                 case GameModeType.WATERGUNQUEUE:
                     WaterBot.EnablePump(false);
                     break;
+
                 case GameModeType.DRAWING:
                 case GameModeType.GOLF:
-                    ((GantryGame) Game).Gantry.Stop(GantryAxis.Z);
+                    ((GantryGame)Game).Gantry.Stop(GantryAxis.Z);
                     break;
+
                 default:
                     //(Game as ClawGame)?.MachineControl.StopMove();
                     break;
             }
         }
-
 
         private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
@@ -1750,7 +1805,6 @@ namespace InternetClawMachine
 
             Logger.CloseStreams();
         }
-
 
         private void btnReconnect_Click(object sender, RoutedEventArgs e)
         {
@@ -1770,16 +1824,16 @@ namespace InternetClawMachine
 
         private void chkLightsOn_Click(object sender, RoutedEventArgs e)
         {
-            (Game as ClawGame)?.MachineControl.LightSwitch((bool) chkLightsOn.IsChecked);
+            (Game as ClawGame)?.MachineControl.LightSwitch((bool)chkLightsOn.IsChecked);
         }
 
         private void ClawPower_Click(object sender, RoutedEventArgs e)
         {
             if (!(Game is ClawGame)) return;
-            if (ClawPower.IsChecked != null && (bool) ClawPower.IsChecked)
-                ((ClawGame) Game).MachineControl.ToggleLaser(true);
+            if (ClawPower.IsChecked != null && (bool)ClawPower.IsChecked)
+                ((ClawGame)Game).MachineControl.ToggleLaser(true);
             else
-                ((ClawGame) Game).MachineControl.ToggleLaser(false);
+                ((ClawGame)Game).MachineControl.ToggleLaser(false);
         }
 
         private void btnResetCam_Click(object sender, RoutedEventArgs e)
@@ -1814,8 +1868,7 @@ namespace InternetClawMachine
 
         private void btnStartChaos_Click(object sender, RoutedEventArgs e)
         {
-            
-            var gameMode = ((GameModeSelections) cmbGameModes.SelectedItem).GameMode;
+            var gameMode = ((GameModeSelections)cmbGameModes.SelectedItem).GameMode;
 
             if (cmbEventMode.SelectedItem != null)
             {
@@ -1843,12 +1896,15 @@ namespace InternetClawMachine
                 case GameModeType.WATERGUNQUEUE:
                     StartGameModeWaterGunQueue(null);
                     break;
+
                 case GameModeType.REALTIMETEAM:
                     StartGameModeTeamChaos(null);
                     break;
+
                 case GameModeType.TRIVIA:
                     StartGameModeTrivia(null);
                     break;
+
                 case GameModeType.TEAMTRIVIA:
                     StartGameModeTeamTrivia(null);
                     break;
@@ -1866,6 +1922,14 @@ namespace InternetClawMachine
 
                 case GameModeType.GOLF:
                     StartGameModeGolf(null);
+                    break;
+
+                case GameModeType.TICTACTOE:
+                    StartGameModeTicTacToe(null);
+                    break;
+
+                case GameModeType.PLINKO:
+                    StartGameModePlinko(null);
                     break;
 
                 case GameModeType.NA:
@@ -1900,9 +1964,9 @@ namespace InternetClawMachine
 
                 case GameModeType.DRAWING:
                 case GameModeType.GOLF:
-                    ((GantryGame) Game).Gantry.SetHome(GantryAxis.X);
-                    ((GantryGame) Game).Gantry.SetHome(GantryAxis.Y);
-                    ((GantryGame) Game).Gantry.SetHome(GantryAxis.Z);
+                    ((GantryGame)Game).Gantry.SetHome(GantryAxis.X);
+                    ((GantryGame)Game).Gantry.SetHome(GantryAxis.Y);
+                    ((GantryGame)Game).Gantry.SetHome(GantryAxis.Z);
                     break;
             }
         }
@@ -1918,9 +1982,9 @@ namespace InternetClawMachine
 
                 case GameModeType.DRAWING:
                 case GameModeType.GOLF:
-                    ((GantryGame) Game).Gantry.ReturnHome(GantryAxis.X);
-                    ((GantryGame) Game).Gantry.ReturnHome(GantryAxis.Y);
-                    ((GantryGame) Game).Gantry.ReturnHome(GantryAxis.Z);
+                    ((GantryGame)Game).Gantry.ReturnHome(GantryAxis.X);
+                    ((GantryGame)Game).Gantry.ReturnHome(GantryAxis.Y);
+                    ((GantryGame)Game).Gantry.ReturnHome(GantryAxis.Z);
                     break;
             }
         }
@@ -1955,9 +2019,6 @@ namespace InternetClawMachine
                     Client.Disconnect();
 
                 Client.Connect();
-
-
-                
             }
             catch (Exception ex)
             {
@@ -1965,7 +2026,6 @@ namespace InternetClawMachine
                 Logger.WriteLog(Logger.ErrorLog, error);
             }
         }
-        
 
         private void btnRFIDConnect_Click(object sender, RoutedEventArgs e)
         {
@@ -1979,7 +2039,6 @@ namespace InternetClawMachine
                 ObsConnection.Disconnect();
 
             ObsConnection.Connect(Configuration.ObsSettings.Url, Configuration.ObsSettings.Password);
-
         }
 
         private void btnScene1_Click(object sender, RoutedEventArgs e)
@@ -2001,7 +2060,7 @@ namespace InternetClawMachine
         {
             Dispatcher?.BeginInvoke(new Action(() =>
             {
-                Configuration.ClawSettings.ConveyorRunAfterDrop = (int) sldrconveyorRunAfterDrop.Value;
+                Configuration.ClawSettings.ConveyorRunAfterDrop = (int)sldrconveyorRunAfterDrop.Value;
             }));
         }
 
@@ -2031,61 +2090,61 @@ namespace InternetClawMachine
 
         private void btnGetLocation_Click(object sender, RoutedEventArgs e)
         {
-            if (!((GantryGame) Game).Gantry.IsConnected) return;
-            ((GantryGame) Game).Gantry.GetLocation(GantryAxis.X);
-            ((GantryGame) Game).Gantry.GetLocation(GantryAxis.Y);
-            ((GantryGame) Game).Gantry.GetLocation(GantryAxis.Z);
+            if (!((GantryGame)Game).Gantry.IsConnected) return;
+            ((GantryGame)Game).Gantry.GetLocation(GantryAxis.X);
+            ((GantryGame)Game).Gantry.GetLocation(GantryAxis.Y);
+            ((GantryGame)Game).Gantry.GetLocation(GantryAxis.Z);
         }
 
         private void btnAutoHome_Click(object sender, RoutedEventArgs e)
         {
-            ((GantryGame) Game).Gantry.AutoHome(GantryAxis.X);
-            ((GantryGame) Game).Gantry.AutoHome(GantryAxis.Y);
-            ((GantryGame) Game).Gantry.AutoHome(GantryAxis.Z);
+            ((GantryGame)Game).Gantry.AutoHome(GantryAxis.X);
+            ((GantryGame)Game).Gantry.AutoHome(GantryAxis.Y);
+            ((GantryGame)Game).Gantry.AutoHome(GantryAxis.Z);
         }
 
         private void btnRunToEnd_Click(object sender, RoutedEventArgs e)
         {
-            ((GantryGame) Game).Gantry.RunToEnd(GantryAxis.X);
-            ((GantryGame) Game).Gantry.RunToEnd(GantryAxis.Y);
+            ((GantryGame)Game).Gantry.RunToEnd(GantryAxis.X);
+            ((GantryGame)Game).Gantry.RunToEnd(GantryAxis.Y);
         }
 
         private void btnHit_Click(object sender, RoutedEventArgs e)
         {
-            if (!((GantryGame) Game).Gantry.IsConnected) return;
-            ((GantryGame) Game).Gantry.SetAcceleration(GantryAxis.A, 2);
-            ((GantryGame) Game).Gantry.SetSpeed(GantryAxis.A, 400);
-            ((GantryGame) Game).Gantry.Step(GantryAxis.A, 44);
+            if (!((GantryGame)Game).Gantry.IsConnected) return;
+            ((GantryGame)Game).Gantry.SetAcceleration(GantryAxis.A, 2);
+            ((GantryGame)Game).Gantry.SetSpeed(GantryAxis.A, 400);
+            ((GantryGame)Game).Gantry.Step(GantryAxis.A, 44);
         }
 
         private void btnSmallHit_Click(object sender, RoutedEventArgs e)
         {
-            if (!((GantryGame) Game).Gantry.IsConnected) return;
-            ((GantryGame) Game).Gantry.SetAcceleration(GantryAxis.A, 2);
-            ((GantryGame) Game).Gantry.SetSpeed(GantryAxis.A, 200);
-            ((GantryGame) Game).Gantry.Step(GantryAxis.A, 44);
+            if (!((GantryGame)Game).Gantry.IsConnected) return;
+            ((GantryGame)Game).Gantry.SetAcceleration(GantryAxis.A, 2);
+            ((GantryGame)Game).Gantry.SetSpeed(GantryAxis.A, 200);
+            ((GantryGame)Game).Gantry.Step(GantryAxis.A, 44);
         }
 
         private void btnSendGantryCommand_Click(object sender, RoutedEventArgs e)
         {
-            txtResult.Text = ((GantryGame) Game).Gantry.SendCommand(txtCommand.Text);
+            txtResult.Text = ((GantryGame)Game).Gantry.SendCommand(txtCommand.Text);
         }
 
         private void btnDiagonalMove_Click(object sender, RoutedEventArgs e)
         {
-            if (((GantryGame) Game).Gantry.IsConnected)
+            if (((GantryGame)Game).Gantry.IsConnected)
             {
                 var xdst = int.Parse(txtCoordX.Text);
                 var ydst = int.Parse(txtCoordY.Text);
-                ((GantryGame) Game).Gantry.XyMove(xdst, ydst);
+                ((GantryGame)Game).Gantry.XyMove(xdst, ydst);
             }
         }
 
         private void sldrPutterRotation_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
         {
-            if (((GantryGame) Game).Gantry.IsConnected)
+            if (((GantryGame)Game).Gantry.IsConnected)
             {
-                ((GantryGame) Game).Gantry.RotateAxis(GantryAxis.A, (decimal) sldrPutterRotation.Value);
+                ((GantryGame)Game).Gantry.RotateAxis(GantryAxis.A, (decimal)sldrPutterRotation.Value);
             }
         }
 
@@ -2093,19 +2152,19 @@ namespace InternetClawMachine
         {
             var coord = txtBattleCoord.Text;
             Game.PlayerQueue.AddSinglePlayer("clawarcade");
-            if ((bool) chkPhase.IsChecked)
-                ((Golf) Game).Phase = GamePhase.DISTANCE_MOVE;
+            if ((bool)chkPhase.IsChecked)
+                ((Golf)Game).Phase = GamePhase.DISTANCE_MOVE;
             else
-                ((Golf) Game).Phase = GamePhase.FINE_CONTROL;
+                ((Golf)Game).Phase = GamePhase.FINE_CONTROL;
             Game.HandleMessage("clawarcade", coord);
             Game.PlayerQueue.RemoveSinglePlayer("clawarcade");
         }
 
         private void btnRotatePutter_Click(object sender, RoutedEventArgs e)
         {
-            if (((GantryGame) Game).Gantry.IsConnected)
+            if (((GantryGame)Game).Gantry.IsConnected)
             {
-                ((GantryGame) Game).Gantry.RotateAxis(GantryAxis.A, (decimal) sldrPutterRotation.Value);
+                ((GantryGame)Game).Gantry.RotateAxis(GantryAxis.A, (decimal)sldrPutterRotation.Value);
             }
         }
 
@@ -2118,6 +2177,7 @@ namespace InternetClawMachine
             if (cmbEventMode.SelectedItem != null)
             {
                 Configuration.EventMode = (EventModeSettings)cmbEventMode.SelectedItem;
+
                 //hackity hack hack
                 DataContext = null;
                 DataContext = Configuration;
@@ -2145,8 +2205,8 @@ namespace InternetClawMachine
         {
             if (Game is ClawGame)
             {
-                ((ClawController) ((ClawGame) Game).MachineControl).Disconnect();
-                ((ClawController) ((ClawGame) Game).MachineControl).Connect();
+                ((ClawController)((ClawGame)Game).MachineControl).Disconnect();
+                ((ClawController)((ClawGame)Game).MachineControl).Connect();
             }
         }
 
@@ -2163,7 +2223,7 @@ namespace InternetClawMachine
                 return;
             }
 
-            ((ClawGame) Game).TriggerWin((PlushieObject)lstPlushes.SelectedItem,
+            ((ClawGame)Game).TriggerWin((PlushieObject)lstPlushes.SelectedItem,
                 lstViewers.SelectedItem.ToString(), false, 1);
             lstPlushes.Items.Refresh();
         }
@@ -2177,7 +2237,6 @@ namespace InternetClawMachine
         {
             if (Game != null)
             {
-                
                 EndGame();
                 StartGame(null);
             }
@@ -2186,7 +2245,6 @@ namespace InternetClawMachine
         private void btnStrobe_Click_2(object sender, RoutedEventArgs e)
         {
             ((ClawGame)Game).RunStrobe(Configuration.ClawSettings.StrobeRedChannel, Configuration.ClawSettings.StrobeBlueChannel, Configuration.ClawSettings.StrobeGreenChannel, Configuration.ClawSettings.StrobeCount, Configuration.ClawSettings.StrobeDelay);
-            
         }
 
         private void Button_Click_3(object sender, RoutedEventArgs e)
@@ -2205,7 +2263,6 @@ namespace InternetClawMachine
 
             try
             {
-
                 foreach (var filter in Configuration.ObsSettings.GreenScreenNormalFrontCamera)
                     ObsConnection.AddFilterToSource(filter.SourceName, filter.FilterName, filter.FilterType,
                         filter.Settings);
@@ -2260,7 +2317,7 @@ namespace InternetClawMachine
 
             //see if one exists
             var plushieObject =
-                ((ClawGame) Game).PlushieTags.FirstOrDefault(plush => plush.Name.ToLower() == strPlusheName.ToLower());
+                ((ClawGame)Game).PlushieTags.FirstOrDefault(plush => plush.Name.ToLower() == strPlusheName.ToLower());
 
             //check database for plush name, create placeholder plush data object
             if (plushieObject == null)
@@ -2269,13 +2326,13 @@ namespace InternetClawMachine
                 plushieObject = new PlushieObject()
                 {
                     Name = strPlusheName,
-                    EpcList = new List<string>() {strEpc}
+                    EpcList = new List<string>() { strEpc }
                 };
 
                 plushieObject = DatabaseFunctions.AddPlush(Configuration, plushieObject, strEpc);
 
                 //add it
-                ((ClawGame) Game).PlushieTags.Add(plushieObject);
+                ((ClawGame)Game).PlushieTags.Add(plushieObject);
             }
 
             //add the new tag to that plush, using the plush object
@@ -2330,7 +2387,7 @@ namespace InternetClawMachine
 
         private void Button_Click_5(object sender, RoutedEventArgs e)
         {
-            var dialog = new OAuthTokenRequestor() {ClientId = Configuration.TwitchSettings.ClientId};
+            var dialog = new OAuthTokenRequestor() { ClientId = Configuration.TwitchSettings.ClientId };
             if (dialog.ShowDialog() == true)
             {
                 Configuration.TwitchSettings.ApiKey = dialog.AccessToken;
@@ -2344,11 +2401,9 @@ namespace InternetClawMachine
 
         private void BtnDoh_Click(object sender, RoutedEventArgs e)
         {
-            
             var data = new JObject();
             data.Add("name", Configuration.ObsScreenSourceNames.SoundClipDoh.SourceName);
             Game.WsConnection.SendCommand(MediaWebSocketServer.CommandMedia, data);
-            
         }
 
         private void BtnTrombone_Click(object sender, RoutedEventArgs e)
@@ -2367,7 +2422,7 @@ namespace InternetClawMachine
         private void BtnSetClawPower_Click(object sender, RoutedEventArgs e)
         {
             if (Game == null) return;
-            ((ClawGame) Game).MachineControl.SetClawPower(int.Parse(txtClawPower.Text));
+            ((ClawGame)Game).MachineControl.SetClawPower(int.Parse(txtClawPower.Text));
         }
 
         private void btnClawSendCommand_Click(object sender, RoutedEventArgs e)
@@ -2376,7 +2431,7 @@ namespace InternetClawMachine
             if (Game is ClawGame)
             {
                 var cmd = txtClawSendCommand.Text;
-                var resp = ((ClawController) ((ClawGame) Game).MachineControl).SendCommand(cmd);
+                var resp = ((ClawController)((ClawGame)Game).MachineControl).SendCommand(cmd);
                 txtClawCommandResponse.Text = resp;
             }
         }
@@ -2392,7 +2447,6 @@ namespace InternetClawMachine
                     break;
             }
         }
-
 
         private void BtnDown_PreviewMouseUp(object sender, MouseButtonEventArgs e)
         {
@@ -2449,9 +2503,10 @@ namespace InternetClawMachine
             {
                 case GameModeType.GOLF:
                 case GameModeType.DRAWING:
-                    ((GantryGame) Game).Gantry.SetDirection(GantryAxis.Z, MotorDirection.BACKWARD);
-                    ((GantryGame) Game).Gantry.Go(GantryAxis.Z);
+                    ((GantryGame)Game).Gantry.SetDirection(GantryAxis.Z, MotorDirection.BACKWARD);
+                    ((GantryGame)Game).Gantry.Go(GantryAxis.Z);
                     break;
+
                 default:
                     (Game as ClawGame)?.MachineControl.MoveUp(-1);
                     break;
@@ -2465,8 +2520,9 @@ namespace InternetClawMachine
             {
                 case GameModeType.GOLF:
                 case GameModeType.DRAWING:
-                    ((GantryGame) Game).Gantry.Stop(GantryAxis.Z);
+                    ((GantryGame)Game).Gantry.Stop(GantryAxis.Z);
                     break;
+
                 default:
                     (Game as ClawGame)?.MachineControl.MoveUp(0);
                     break;
@@ -2475,7 +2531,6 @@ namespace InternetClawMachine
 
         private void ChkBlackLightsOn_Click(object sender, RoutedEventArgs e)
         {
-
         }
 
         private void btnClearPlushScan_Click(object sender, RoutedEventArgs e)
@@ -2541,7 +2596,7 @@ namespace InternetClawMachine
         {
             if (Game is ClawGame)
             {
-                ((ClawGame)Game).PlushieTags.Sort(delegate(PlushieObject p1, PlushieObject p2)
+                ((ClawGame)Game).PlushieTags.Sort(delegate (PlushieObject p1, PlushieObject p2)
                 {
                     switch (sortBy)
                     {
@@ -2550,15 +2605,17 @@ namespace InternetClawMachine
                             {
                                 case ListSortDirection.Ascending:
                                     return p1.Name.CompareTo(p2.Name);
+
                                 default:
                                     return p2.Name.CompareTo(p1.Name);
                             }
-                            
+
                         case "Grabbed":
                             switch (direction)
                             {
                                 case ListSortDirection.Ascending:
                                     return p1.WasGrabbed.CompareTo(p2.WasGrabbed);
+
                                 default:
                                     return p2.WasGrabbed.CompareTo(p1.WasGrabbed);
                             }
@@ -2567,6 +2624,7 @@ namespace InternetClawMachine
                             {
                                 case ListSortDirection.Ascending:
                                     return p1.ChangedBy.CompareTo(p2.ChangedBy);
+
                                 default:
                                     return p2.ChangedBy.CompareTo(p1.ChangedBy);
                             }
@@ -2575,6 +2633,7 @@ namespace InternetClawMachine
                             {
                                 case ListSortDirection.Ascending:
                                     return p1.ChangeDate.CompareTo(p2.ChangeDate);
+
                                 default:
                                     return p2.ChangeDate.CompareTo(p1.ChangeDate);
                             }
@@ -2583,6 +2642,7 @@ namespace InternetClawMachine
                             {
                                 case ListSortDirection.Ascending:
                                     return p1.PlushId.CompareTo(p2.PlushId);
+
                                 default:
                                     return p2.PlushId.CompareTo(p1.PlushId);
                             }
@@ -2591,18 +2651,18 @@ namespace InternetClawMachine
                             {
                                 case ListSortDirection.Ascending:
                                     return p1.Name.CompareTo(p2.Name);
+
                                 default:
                                     return p2.Name.CompareTo(p1.Name);
                             }
                     }
                 });
-
             }
         }
 
         private void CmbLogLevel_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            Logger.Level = ((LogLevelOption) cmbLogLevel.SelectedItem).Level;
+            Logger.Level = ((LogLevelOption)cmbLogLevel.SelectedItem).Level;
         }
 
         private void CmbBackgrounds_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -2642,7 +2702,6 @@ namespace InternetClawMachine
 
         private void CmbThemes_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            
             if (Game is ClawGame)
             {
                 ((ClawGame)Game).ChangeWireTheme((WireTheme)cmbThemes.SelectedItem);
@@ -2732,7 +2791,7 @@ namespace InternetClawMachine
                     return;
 
                 var username = lstPlayerQueue.SelectedItem.ToString();
-                
+
                 if (Game.PlayerQueue.CurrentPlayer.ToLower() != username.ToLower())
                 {
                     Game.PlayerQueue.RemoveSinglePlayer(username.ToLower()); //remove them from the queue if it's not their turn
@@ -2754,14 +2813,10 @@ namespace InternetClawMachine
         {
             var activeSource = ObsConnection.GetCurrentScene().Name;
             Console.WriteLine(JsonConvert.SerializeObject(ObsConnection.GetSourceFilters("Claw 2")));
-
-            var test = "{\"name\":\"Blur\",\"type\":\"obs-stream-effects-filter-blur\",\"settings\":{\"Commit\":\"ee225959\",\"Version\":34359934976}}";
             var obj = new JObject();
             obj.Add("Commit", "ee225959");
             obj.Add("Version", "34359934976");
             ObsConnection.AddFilterToSource(activeSource, "Blur", "obs-stream-effects-filter-blur", obj);
-
-
         }
 
         private void BtnTvEnable_Click(object sender, RoutedEventArgs e)
@@ -2776,7 +2831,6 @@ namespace InternetClawMachine
                 }
                 catch
                 {
-
                 }
             }
         }
@@ -2792,7 +2846,6 @@ namespace InternetClawMachine
                 }
                 catch
                 {
-
                 }
             }
         }
@@ -2823,13 +2876,33 @@ namespace InternetClawMachine
 
         private void BtnAddToQueue_Click(object sender, RoutedEventArgs e)
         {
-
             var res = InputBox.Show("Player Name");
             if (res.ReturnCode == System.Windows.Forms.DialogResult.OK)
             {
-                ((ClawGame)Game).PlayerQueue.AddSinglePlayer(res.Text);
-                refreshQueueList();
+                try
+                {
+                    ((ClawGame)Game).PlayerQueue.AddSinglePlayer(res.Text);
+                    refreshQueueList();
+                }
+                catch (PlayerQueueSizeExceeded)
+                {
+                    MessageBox.Show("Player queue exceeded", "Queue full", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
             }
+        }
+
+        private void BtnRefreshUserSettings_Click(object sender, RoutedEventArgs e)
+        {
+            //trigger a win based on the first EPC for a plush
+            if (lstViewers.SelectedItem == null)
+            {
+                MessageBox.Show("No one selected, idiot!");
+                return;
+            }
+
+            var username = lstViewers.SelectedItem.ToString();
+
+            Configuration.UserList.GetUser(username).ReloadUser(Configuration);
         }
     }
 

@@ -14,8 +14,13 @@ namespace InternetClawMachine.Settings
     public class UserList : ObservableCollection<UserPrefs>, INotifyPropertyChanged, INotifyCollectionChanged
     {
         private SynchronizationContext _synchronizationContext = SynchronizationContext.Current;
+
+        public event EventHandler<UserListEventArgs> OnAddedUser;
+
+        public event EventHandler<UserListEventArgs> OnRemovedUser;
+
         private bool _isUpdating = false;
-        
+
         public UserList()
         {
             //_users = new List<UserPrefs>();
@@ -58,6 +63,7 @@ namespace InternetClawMachine.Settings
             // We are in the creator thread, call the base implementation directly
             base.OnCollectionChanged((NotifyCollectionChangedEventArgs)e);
         }
+
         protected override void OnPropertyChanged(PropertyChangedEventArgs e)
         {
             if (_isUpdating)
@@ -84,11 +90,12 @@ namespace InternetClawMachine.Settings
         public void Remove(string username)
         {
             base.Remove(GetUser(username));
+            OnRemovedUser?.Invoke(this, new UserListEventArgs(username));
         }
 
         public bool Contains(string username)
         {
-            return base.Contains(new UserPrefs(){Username = username});
+            return base.Contains(new UserPrefs() { Username = username });
         }
 
         public new void Clear()
@@ -104,6 +111,7 @@ namespace InternetClawMachine.Settings
                 base.Add(userPrefs);
                 this.Sort();
                 _isUpdating = false;
+                OnAddedUser?.Invoke(this, new UserListEventArgs(userPrefs.Username, userPrefs));
                 OnCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Reset));
             }
         }
@@ -119,7 +127,6 @@ namespace InternetClawMachine.Settings
             }
         }
 
-
         /// <summary>
         /// Get a localization from a user
         /// </summary>
@@ -130,7 +137,25 @@ namespace InternetClawMachine.Settings
             if (!Contains(username))
                 return Translator.DefaultLanguage;
             var l = GetUser(username).Localization;
-            return string.IsNullOrEmpty(l)?Translator.DefaultLanguage:l;
+            return string.IsNullOrEmpty(l) ? Translator.DefaultLanguage : l;
         }
+    }
+
+    public class UserListEventArgs
+    {
+        public UserListEventArgs(string u)
+        {
+            Username = u;
+        }
+
+        public UserListEventArgs(string u, UserPrefs up)
+        {
+            Username = u;
+            UserPreferences = up;
+        }
+
+        public UserPrefs UserPreferences { get; set; }
+
+        public string Username { get; set; }
     }
 }

@@ -10,6 +10,7 @@
         EVENT_RECOILED_CLAW = 105,
         EVENT_RETURNED_HOME = 106,
         EVENT_RETURNED_CENTER = 107,
+        EVENT_SCORE_SENSOR = 108,
 
         EVENT_LIMIT_LEFT = 200,
         EVENT_LIMIT_RIGHT = 201,
@@ -22,10 +23,12 @@
         /// Flipper hit the forward limit
         /// </summary>
         EVENT_FLIPPER_FORWARD = 206,
+
         /// <summary>
         /// Flipper hit the backward limit
         /// </summary>
         EVENT_FLIPPER_HOME = 207,
+
         /// <summary>
         /// An error on the controller is preventing the flipper from moving
         /// </summary>

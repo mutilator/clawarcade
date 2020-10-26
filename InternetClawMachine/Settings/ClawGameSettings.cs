@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
-using InternetClawMachine.Hardware.ClawControl;
 
 namespace InternetClawMachine.Settings
 {
@@ -196,7 +195,7 @@ namespace InternetClawMachine.Settings
         /// Points options for redemption for custom win animations
         /// </summary>
         public List<WinRedemptionOption> WinRedemptionOptions { set; get; }
-        
+
         /// <summary>
         /// Claw machine event modes
         /// </summary>
@@ -246,6 +245,16 @@ namespace InternetClawMachine.Settings
         /// Minimum time we let people run the conveyor
         /// </summary>
         public int BeltRuntimeMin { get; set; }
+
+        /// <summary>
+        /// How many single commands in a row trigger the multiple command announcement
+        /// </summary>
+        public int SingleCommandUsageCounter { set; get; }
+
+        /// <summary>
+        /// How many commands can one string together in a single line?
+        /// </summary>
+        public int MaxCommandsPerLine { get; set; }
 
         public event PropertyChangedEventHandler PropertyChanged;
 

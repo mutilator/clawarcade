@@ -1,24 +1,22 @@
-﻿using InternetClawMachine.Games.GameHelpers;
+﻿using InternetClawMachine.Chat;
+using InternetClawMachine.Games.GameHelpers;
+using InternetClawMachine.Hardware.ClawControl;
+using InternetClawMachine.Settings;
+using Newtonsoft.Json.Linq;
 using OBSWebsocketDotNet;
 using System;
-using System.Linq;
-using System.Threading.Tasks;
-using InternetClawMachine.Chat;
-using InternetClawMachine.Settings;
-using InternetClawMachine.Hardware.ClawControl;
-using System.Threading;
-using System.Text.RegularExpressions;
-using Newtonsoft.Json.Linq;
-using System.IO;
-using static InternetClawMachine.Logger;
 using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Text.RegularExpressions;
+using System.Threading;
+using System.Threading.Tasks;
+using static InternetClawMachine.Logger;
 
-namespace InternetClawMachine.Games.GameHelpers
+namespace InternetClawMachine.Games.ClawGame
 {
     internal class ClawTeamTrivia : ClawTrivia
     {
-        
-
         public ClawTeamTrivia(IChatApi client, BotConfiguration configuration, OBSWebsocket obs) : base(client, configuration, obs)
         {
             GameMode = GameModeType.TEAMTRIVIA;
@@ -27,6 +25,25 @@ namespace InternetClawMachine.Games.GameHelpers
             ((ClawController)MachineControl).OnClawRecoiled += ClawSingleQueue_OnClawRecoiled;
             StartMessage = string.Format(Translator.GetTranslation("gameClawTriviaTeamStartGame", Translator.DefaultLanguage), Configuration.CommandPrefix);
             this.OnTeamJoined += ClawTriviaTeam_OnTeamJoined;
+            PlayerQueue.OnJoinedQueue += PlayerQueue_OnJoinedQueue;
+        }
+
+        private void PlayerQueue_OnJoinedQueue(object sender, QueueUpdateArgs e)
+        {
+            var pos = e.Index;
+            var username = e.Username;
+
+            if (pos == 0)
+            {
+                StartRound(username);
+            }
+            else
+            {
+                if (pos == 1)//lol i'm so lazy
+                    ChatClient.SendMessage(Configuration.Channel, Translator.GetTranslation("gameClawCommandPlayQueueAdd1", Configuration.UserList.GetUserLocalization(username)));
+                else
+                    ChatClient.SendMessage(Configuration.Channel, string.Format(Translator.GetTranslation("gameClawCommandPlayQueueAdd2", Configuration.UserList.GetUserLocalization(username)), pos));
+            }
         }
 
         public override void EndGame()
@@ -56,9 +73,8 @@ namespace InternetClawMachine.Games.GameHelpers
 
             ObsConnection.SetTextGDIPlusProperties(props);
 
-
             var hasEmptyTeam = false;
-            foreach(var t in Teams)
+            foreach (var t in Teams)
             {
                 var hasAny = Configuration.UserList.Any(u => u.EventTeamName == t.Name);
                 if (!hasAny)
@@ -67,7 +83,6 @@ namespace InternetClawMachine.Games.GameHelpers
 
             if (!hasEmptyTeam)
             {
-                
             }
         }
 
@@ -76,21 +91,21 @@ namespace InternetClawMachine.Games.GameHelpers
             base.Init();
 
             switch (Configuration.EventMode.TriviaSettings.TeamNameMode)
-            { 
+            {
                 case TeamNameMode.PREDEFINED:
                     TriviaMessageMode = TriviaMessageMode.TEAMSETUP;
                     //Teams are already loaded from the file
                     break;
+
                 case TeamNameMode.RANDOM:
                     CreateAndSetTeams();
                     TriviaMessageMode = TriviaMessageMode.TEAMSETUP;
                     break;
+
                 case TeamNameMode.VOTED:
                     TriviaMessageMode = TriviaMessageMode.TEAMNAMING;
                     break;
             }
-            
-            
         }
 
         private void CreateAndSetTeams()
@@ -115,14 +130,13 @@ namespace InternetClawMachine.Games.GameHelpers
 
             ObsConnection.SetTextGDIPlusProperties(props);
 
-            List<string> teamNames = new List<string> (File.ReadAllLines(Configuration.EventMode.TriviaSettings.TeamNamesSource));
+            List<string> teamNames = new List<string>(File.ReadAllLines(Configuration.EventMode.TriviaSettings.TeamNamesSource));
             teamNames.Shuffle();
             Configuration.EventMode.TriviaSettings.Teams = new string[] { teamNames[0], teamNames[1] };
         }
 
         public override void EndTrivia()
         {
-            
             //no qestions left, determine winner
             var winners = Teams.OrderByDescending(t => t.Wins).ThenByDescending(t => t.Drops).ToArray();
 
@@ -140,7 +154,7 @@ namespace InternetClawMachine.Games.GameHelpers
                         ObsConnection.SetSourceRender(Configuration.EventMode.TriviaSettings.OBSCheerTeam2.SourceName, true, Configuration.EventMode.TriviaSettings.OBSCheerTeam2.SourceName);
                         ObsConnection.SetSourceRender(Configuration.EventMode.TriviaSettings.OBSSadTeam1.SourceName, true, Configuration.EventMode.TriviaSettings.OBSSadTeam1.SceneName);
                     }
-                    else 
+                    else
                     {
                         ObsConnection.SetSourceRender(Configuration.EventMode.TriviaSettings.OBSCheerTeam1.SourceName, true, Configuration.EventMode.TriviaSettings.OBSCheerTeam1.SceneName);
                         ObsConnection.SetSourceRender(Configuration.EventMode.TriviaSettings.OBSSadTeam2.SourceName, true, Configuration.EventMode.TriviaSettings.OBSSadTeam2.SceneName);
@@ -156,10 +170,9 @@ namespace InternetClawMachine.Games.GameHelpers
                         DatabaseFunctions.AddStreamBuxBalance(Configuration, u.Username, StreamBuxTypes.WIN, 1000);
                     }
                     ChatClient.SendMessage(Configuration.Channel, string.Format(Translator.GetTranslation("gameClawTriviaTeamWinFinalWinner", Translator.DefaultLanguage), t.Name, allPlayers));
-
                 }
                 //spit out stats for the team
-                ChatClient.SendMessage(Configuration.Channel, string.Format(Translator.GetTranslation("gameClawTriviaTeamWinFinal", Translator.DefaultLanguage), t.Name, correctAnswers, t.Wins ));
+                ChatClient.SendMessage(Configuration.Channel, string.Format(Translator.GetTranslation("gameClawTriviaTeamWinFinal", Translator.DefaultLanguage), t.Name, correctAnswers, t.Wins));
             }
             Task.Run(async delegate ()
             {
@@ -167,9 +180,6 @@ namespace InternetClawMachine.Games.GameHelpers
                 EndGame();
             });
         }
-
-
-        
 
         private void MessageTeamSetup()
         {
@@ -203,9 +213,6 @@ namespace InternetClawMachine.Games.GameHelpers
                     props.Text = Configuration.EventMode.TriviaSettings.Teams[1];
                     ObsConnection.SetTextGDIPlusProperties(props);
                 }
-
-                
-                    
             }
             else
             {
@@ -215,7 +222,6 @@ namespace InternetClawMachine.Games.GameHelpers
 
         public override void StartQuestionAmountVote()
         {
-
             ChatClient.SendMessage(Configuration.Channel, string.Format(Translator.GetTranslation("gameClawTriviaSetupQuestions", Translator.DefaultLanguage)));
             Task.Run(async delegate ()
             {
@@ -239,9 +245,7 @@ namespace InternetClawMachine.Games.GameHelpers
                 TriviaMessageMode = TriviaMessageMode.ANSWERING;
                 QuestionCount = highestVote;
                 StartNewTriviaRound();
-
             });
-
         }
 
         public override void StartNewTriviaRound()
@@ -259,18 +263,14 @@ namespace InternetClawMachine.Games.GameHelpers
                 TriviaMessageMode = TriviaMessageMode.ANSWERING;
                 Task.Run(async delegate ()
                 {
-                    
-                        NextQuestion();
-                    
+                    NextQuestion();
                 });
             }
         }
 
-
         public override void HandleMessage(string username, string chatMessage)
         {
             var msg = chatMessage.ToLower();
-            
 
             //answering questions....
             switch (TriviaMessageMode)
@@ -292,7 +292,6 @@ namespace InternetClawMachine.Games.GameHelpers
 
                         if (ObsConnection.IsConnected)
                             ObsConnection.SetSourceRender("TriviaOverlay", false, null);
-                        
 
                         var data = new JObject();
                         data.Add("name", Configuration.EventMode.TriviaSettings.OBSCorrectAnswer.SourceName);
@@ -300,7 +299,6 @@ namespace InternetClawMachine.Games.GameHelpers
 
                         TriviaMessageMode = TriviaMessageMode.CLAW;
 
-                        
                         CurrentQuestion.AnsweredBy = userObect.EventTeamName;
                         PlayerQueue.AddSinglePlayer(userObect.EventTeamName);
 
@@ -308,12 +306,15 @@ namespace InternetClawMachine.Games.GameHelpers
                         StartRound(userObect.EventTeamName);
                     }
                     break;
+
                 case TriviaMessageMode.CLAW:
                     HandleClawCommand(username, chatMessage);
                     break;
+
                 case TriviaMessageMode.TEAMSETUP:
                     //maybe remind people to join a team?
                     break;
+
                 case TriviaMessageMode.TRIVIASETUP:
                     var user = Configuration.UserList.GetUser(username);
                     if (string.IsNullOrEmpty(user.EventTeamName))
@@ -328,16 +329,14 @@ namespace InternetClawMachine.Games.GameHelpers
                         if (_questionAmountVotes.ContainsKey(result))
                         {
                             _questionAmountVotes[result]++;
-                        } else
+                        }
+                        else
                         {
                             _questionAmountVotes.Add(result, 1);
                         }
                     }
                     break;
-                    
             }
-            
-
         }
 
         public override void HandleCommand(string channel, string username, string chatMessage, bool isSubscriber, string customRewardId)
@@ -349,8 +348,6 @@ namespace InternetClawMachine.Games.GameHelpers
             if (chatMessage.IndexOf(" ") >= 0)
                 commandText = chatMessage.Substring(Configuration.CommandPrefix.Length, chatMessage.IndexOf(" ") - 1).ToLower();
 
-            string[] param;
-
             //translate the word
             var translateCommand = Translator.FindWord(commandText, "en-US");
 
@@ -360,8 +357,6 @@ namespace InternetClawMachine.Games.GameHelpers
 
             //load user data
             var userPrefs = Configuration.UserList.GetUser(username);
-
-
 
             try
             {
@@ -447,54 +442,48 @@ namespace InternetClawMachine.Games.GameHelpers
             {
                 //5 second timer to get ready
                 if (Configuration.EventMode.TriviaSettings.QuestionWaitDelay > 0)
-            {
-                ChatClient.SendMessage(Configuration.Channel, string.Format(Translator.GetTranslation("gameClawTriviaTeamPleaseWait", Translator.DefaultLanguage), Configuration.EventMode.TriviaSettings.QuestionWaitDelay));
-
-                var firstWait = Configuration.EventMode.TriviaSettings.QuestionWaitDelay * 1000;
-
-                await Task.Delay(firstWait);
-            }
-
-
-            var answers = "";
-
-            if (CurrentQuestion.ShowAnswers)
-                CurrentQuestion.getAnswersAsCSV();
-
-            QuestionsAsked++;
-
-            var question = "[" + QuestionsAsked + "/" + QuestionCount + "] " + string.Format(Translator.GetTranslation("gameClawTriviaTeamStartTriviaRound", Translator.DefaultLanguage), CurrentQuestion.Question, answers);
-
-            ChatClient.SendMessage(Configuration.Channel, question);
-
-            var s = ObsConnection.GetTextGDIPlusProperties("TriviaQuestion");
-            s.Text = question;
-            ObsConnection.SetTextGDIPlusProperties(s);
-            ObsConnection.SetSourceRender("TriviaOverlay", true, null);
-
-            AnswerHint = Regex.Replace(CurrentQuestion.CorrectAnswer, "[a-zA-Z0-9]", "-");
-            HintCancelToken = new CancellationTokenSource();
-            var ct = HintCancelToken.Token;
-            Task.Run(async delegate ()
-            {
-                for (int i = 0; i < 10; i++)
                 {
-                    // Were we already canceled?
+                    ChatClient.SendMessage(Configuration.Channel, string.Format(Translator.GetTranslation("gameClawTriviaTeamPleaseWait", Translator.DefaultLanguage), Configuration.EventMode.TriviaSettings.QuestionWaitDelay));
 
+                    var firstWait = Configuration.EventMode.TriviaSettings.QuestionWaitDelay * 1000;
 
-
-
-                    await Task.Delay(Configuration.EventMode.TriviaSettings.AnswerHintDelay);
-                    ct.ThrowIfCancellationRequested();
-                    UpdateAnswerHint();
-                    ChatClient.SendMessage(Configuration.Channel, AnswerHint);
-                    if (CurrentQuestion.CorrectAnswer == AnswerHint)
-                        break;
+                    await Task.Delay(firstWait);
                 }
 
+                var answers = "";
 
-            }, ct);
-        }
+                if (CurrentQuestion.ShowAnswers)
+                    CurrentQuestion.getAnswersAsCSV();
+
+                QuestionsAsked++;
+
+                var question = "[" + QuestionsAsked + "/" + QuestionCount + "] " + string.Format(Translator.GetTranslation("gameClawTriviaTeamStartTriviaRound", Translator.DefaultLanguage), CurrentQuestion.Question, answers);
+
+                ChatClient.SendMessage(Configuration.Channel, question);
+
+                var s = ObsConnection.GetTextGDIPlusProperties("TriviaQuestion");
+                s.Text = question;
+                ObsConnection.SetTextGDIPlusProperties(s);
+                ObsConnection.SetSourceRender("TriviaOverlay", true, null);
+
+                AnswerHint = Regex.Replace(CurrentQuestion.CorrectAnswer, "[a-zA-Z0-9]", "-");
+                HintCancelToken = new CancellationTokenSource();
+                var ct = HintCancelToken.Token;
+                Task.Run(async delegate ()
+                {
+                    for (int i = 0; i < 10; i++)
+                    {
+                        // Were we already canceled?
+
+                        await Task.Delay(Configuration.EventMode.TriviaSettings.AnswerHintDelay);
+                        ct.ThrowIfCancellationRequested();
+                        UpdateAnswerHint();
+                        ChatClient.SendMessage(Configuration.Channel, AnswerHint);
+                        if (CurrentQuestion.CorrectAnswer == AnswerHint)
+                            break;
+                    }
+                }, ct);
+            }
         }
     }
 }

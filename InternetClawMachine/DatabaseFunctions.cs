@@ -1,9 +1,9 @@
-﻿using System;
+﻿using InternetClawMachine.Games.GameHelpers;
+using InternetClawMachine.Settings;
+using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.SQLite;
-using InternetClawMachine.Games.GameHelpers;
-using InternetClawMachine.Settings;
 
 namespace InternetClawMachine
 {
@@ -148,14 +148,14 @@ namespace InternetClawMachine
         public static UserPrefs GetUserPrefs(BotConfiguration configuration, string username)
         {
             var prefs = new UserPrefs() { Username = username };
-            if (configuration.RecordsDatabase == null) 
+            if (configuration.RecordsDatabase == null)
                 throw new Exception("Database not opened");
             lock (configuration.RecordsDatabase)
             {
                 configuration.RecordsDatabase.Open();
                 try
                 {
-                    var sql = "SELECT lights_on, scene, custom_win_clip, strobe_settings, localization, blacklightmode, greenscreen, wiretheme, teamid, reticlename, t.name FROM user_prefs LEFT JOIN teams t ON teamid = t.id WHERE lower(username) = @username";
+                    var sql = "SELECT lights_on, scene, custom_win_clip, strobe_settings, localization, blacklightmode, greenscreen, wiretheme, teamid, reticlename, t.name, knows_multiple  FROM user_prefs LEFT JOIN teams t ON teamid = t.id WHERE lower(username) = @username";
 
                     var command = new SQLiteCommand(sql, configuration.RecordsDatabase);
                     command.Parameters.Add(new SQLiteParameter("@username", prefs.Username));
@@ -175,15 +175,17 @@ namespace InternetClawMachine
                             prefs.WireTheme = users.GetValue(7).ToString();
                             prefs.ReticleName = users.GetValue(9).ToString();
 
-                            prefs.TeamId = !string.IsNullOrEmpty(tid)?int.Parse(tid):-1;
+                            prefs.TeamId = !string.IsNullOrEmpty(tid) ? int.Parse(tid) : -1;
                             prefs.TeamName = users.GetValue(10).ToString();
+                            prefs.KnowsMultiple = users.GetValue(10).ToString() == "1";
                             prefs.EventTeamId = -1;
 
                             prefs.FromDatabase = true;
                             break;
                         }
                     }
-                } catch (Exception e)
+                }
+                catch (Exception e)
                 {
                     Logger.WriteLog(Logger.DebugLog, string.Format("Error reading user: {0}", e.Message));
                 }
@@ -194,7 +196,6 @@ namespace InternetClawMachine
             }
             return prefs;
         }
-
 
         public static bool WriteUserPrefs(BotConfiguration configuration, UserPrefs prefs)
         {
@@ -207,12 +208,12 @@ namespace InternetClawMachine
                     if (prefs.FromDatabase)
                     {
                         sql =
-                            "UPDATE user_prefs SET localization = @localization, lights_on = @lightsOn, scene = @scene, strobe_settings = @strobe, blacklightmode = @blacklightmode, greenscreen = @greenscreen, custom_win_clip = @winclip, wiretheme = @wiretheme, teamid = @team_id, eventteamid = @event_team_id, reticlename = @reticlename WHERE lower(username) = @username";
+                            "UPDATE user_prefs SET localization = @localization, lights_on = @lightsOn, scene = @scene, strobe_settings = @strobe, blacklightmode = @blacklightmode, greenscreen = @greenscreen, custom_win_clip = @winclip, wiretheme = @wiretheme, teamid = @team_id, eventteamid = @event_team_id, reticlename = @reticlename, knows_multiple = @knowsmultiple WHERE lower(username) = @username";
                     }
                     else
                     {
                         sql =
-                            "INSERT INTO user_prefs (username, localization, lights_on, scene, strobe_settings, blacklightmode, greenscreen, custom_win_clip, wiretheme, teamid, eventteamid, reticlename) VALUES (@username, @localization, @lightsOn, @scene,@strobe, @blacklightmode, @greenscreen, @winclip, @wiretheme, @team_id, @event_team_id, @reticlename)";
+                            "INSERT INTO user_prefs (username, localization, lights_on, scene, strobe_settings, blacklightmode, greenscreen, custom_win_clip, wiretheme, teamid, eventteamid, reticlename, knows_multiple) VALUES (@username, @localization, @lightsOn, @scene,@strobe, @blacklightmode, @greenscreen, @winclip, @wiretheme, @team_id, @event_team_id, @reticlename, knowsmultiple)";
                     }
 
                     var command = configuration.RecordsDatabase.CreateCommand();
@@ -230,6 +231,7 @@ namespace InternetClawMachine
                     command.Parameters.Add(new SQLiteParameter("@team_id", prefs.TeamId));
                     command.Parameters.Add(new SQLiteParameter("@event_team_id", prefs.EventTeamId));
                     command.Parameters.Add(new SQLiteParameter("@reticlename", prefs.ReticleName));
+                    command.Parameters.Add(new SQLiteParameter("@knowsmultiple", prefs.KnowsMultiple));
                     prefs.FromDatabase = true; //it's written to db now
                     command.ExecuteNonQuery();
                 }
@@ -422,7 +424,6 @@ namespace InternetClawMachine
                                 SessionGuid = singleTeam.GetValue(2).ToString(),
                                 EventType = (EventMode)Enum.Parse(typeof(EventMode), singleTeam.GetValue(3).ToString()),
                                 EventName = singleTeam.GetValue(4).ToString()
-
                             };
                             teams.Add(team);
                         }
@@ -452,7 +453,7 @@ namespace InternetClawMachine
                     command.CommandType = CommandType.Text;
                     command.CommandText = sql;
                     command.Parameters.Add(new SQLiteParameter("@guid", guid));
-                    
+
                     using (var singleTeam = command.ExecuteReader())
                     {
                         while (singleTeam.Read())
@@ -464,7 +465,6 @@ namespace InternetClawMachine
                                 SessionGuid = singleTeam.GetValue(2).ToString(),
                                 EventType = (EventMode)Enum.Parse(typeof(EventMode), singleTeam.GetValue(3).ToString()),
                                 EventName = singleTeam.GetValue(4).ToString()
-
                             };
                             teams.Add(team);
                         }
@@ -478,7 +478,6 @@ namespace InternetClawMachine
             }
             throw new Exception("Unable to get teams");
         }
-
 
         internal static void WriteDbWinRecord(BotConfiguration configuration, UserPrefs user, int prize)
         {
@@ -509,7 +508,6 @@ namespace InternetClawMachine
                     else
                         command.Parameters.Add(new SQLiteParameter("@teamid", user.TeamId));
                     command.ExecuteNonQuery();
-                    
                 }
                 catch (Exception ex)
                 {
@@ -553,6 +551,5 @@ namespace InternetClawMachine
                 }
             }
         }
-
     }
 }
