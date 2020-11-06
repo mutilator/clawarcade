@@ -10,6 +10,8 @@ namespace InternetClawMachine.Settings
 {
     public class BotConfiguration : INotifyPropertyChanged
     {
+        public event EventHandler<EventModeArgs> EventModeChanging;
+
         public event EventHandler<EventModeArgs> EventModeChanged;
 
         private string _botConfigFile;// = "botconfig.json";
@@ -212,9 +214,10 @@ namespace InternetClawMachine.Settings
         {
             set
             {
+                EventModeChanging?.Invoke(this, new EventModeArgs() { Event = value }); //fire event changing
                 _eventMode = value;
-                EventModeChanged?.Invoke(this, new EventModeArgs() { Event = _eventMode });
-                OnPropertyChanged("EventMode");
+                EventModeChanged?.Invoke(this, new EventModeArgs() { Event = _eventMode }); //fire event changed
+                OnPropertyChanged("EventMode"); //fire generic property change
             }
             get
             {

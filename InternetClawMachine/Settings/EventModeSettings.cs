@@ -1,11 +1,8 @@
 ﻿using InternetClawMachine.Games;
 using InternetClawMachine.Hardware.ClawControl;
-using InternetClawMachine.Settings;
-using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using System.ComponentModel;
+using System.Diagnostics;
 
 namespace InternetClawMachine.Settings
 {
@@ -15,8 +12,23 @@ namespace InternetClawMachine.Settings
         SPECIAL
     }
 
-    public class EventModeSettings
+    public class EventModeSettings : INotifyPropertyChanged
     {
+        public event PropertyChangedEventHandler PropertyChanged;
+
+        protected void OnPropertyChanged([System.Runtime.CompilerServices.CallerMemberName] string propertyName = "")
+        {
+            if (this.PropertyChanged != null)
+            {
+                Debug.WriteLine("Property Changed:" + propertyName);
+                var e = new PropertyChangedEventArgs(propertyName);
+
+                this.PropertyChanged(this, e);
+            }
+        }
+
+        private int _queueSizeMax;
+
         /// <summary>
         /// Game mode for game operation type
         /// </summary>
@@ -50,12 +62,12 @@ namespace InternetClawMachine.Settings
         /// <summary>
         /// Display this animation instead of the confetti, override any other custom animation
         /// </summary>
-        public string WinAnimation { set; get; }
+        public List<ObsSceneSource> WinAnimation { set; get; }
 
         /// <summary>
         /// Display this animation when there is a negative point added
         /// </summary>
-        public string FailAnimation { set; get; }
+        public List<ObsSceneSource> FailAnimation { set; get; }
 
         /// <summary>
         /// What state do we want to leave the flipper in?
@@ -78,7 +90,7 @@ namespace InternetClawMachine.Settings
         public bool DisableRFScan { set; get; }
 
         /// <summary>
-        /// Belt doesn't run 
+        /// Belt doesn't run
         /// </summary>
         public bool DisableBelt { set; get; }
 
@@ -90,7 +102,7 @@ namespace InternetClawMachine.Settings
         /// <summary>
         /// Disable changing of bounty by anyone other than admins
         /// </summary>
-        public bool DisableBounty { get;  set; }
+        public bool DisableBounty { get; set; }
 
         /// <summary>
         /// If an IR scan triggers a win
@@ -105,7 +117,7 @@ namespace InternetClawMachine.Settings
         /// <summary>
         /// Custom saying when something is grabbed
         /// </summary>
-        public string CustomWinTextResource { get;  set; }
+        public string CustomWinTextResource { get; set; }
 
         /// <summary>
         /// Custom saying when something is grabbed incorrectly
@@ -132,7 +144,6 @@ namespace InternetClawMachine.Settings
         /// </summary>
         public bool AllowOverrideGreenscreen { set; get; }
 
-
         /// <summary>
         /// Allow users to override the win animation with their custom settings
         /// </summary>
@@ -151,7 +162,7 @@ namespace InternetClawMachine.Settings
         /// <summary>
         /// Disable strobe on win
         /// </summary>
-        public bool DisableStrobe { get;  set; }
+        public bool DisableStrobe { get; set; }
 
         /// <summary>
         /// Disable using the flipper
@@ -167,6 +178,7 @@ namespace InternetClawMachine.Settings
         /// Whether we force greenscreen off
         /// </summary>
         public bool GreenScreenOverrideOff { set; get; }
+
         /// <summary>
         /// Retcile to use
         /// </summary>
@@ -176,10 +188,21 @@ namespace InternetClawMachine.Settings
         /// Settings to use for trivia mode
         /// </summary>
         public TriviaSettings TriviaSettings { set; get; }
-        
+
         /// <summary>
         /// How large should we let the queue get?
         /// </summary>
-        public int QueueSizeMax { set; get; }
+        public int QueueSizeMax
+        {
+            set
+            {
+                _queueSizeMax = value;
+                OnPropertyChanged("QueueSizeMax");
+            }
+            get
+            {
+                return _queueSizeMax;
+            }
+        }
     }
 }

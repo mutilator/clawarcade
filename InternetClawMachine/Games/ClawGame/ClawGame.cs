@@ -119,6 +119,8 @@ namespace InternetClawMachine.Games.ClawGame
             MachineControl.OnClawDropping += MachineControl_ClawDropping;
             MachineControl.OnClawCentered += MachineControl_OnClawCentered;
             configuration.EventModeChanged += Configuration_EventModeChanged;
+            configuration.EventModeChanging += Configuration_EventModeChanging;
+            configuration.EventMode.PropertyChanged += EventMode_PropertyChanged;
 
             OnTeamJoined += ClawGame_OnTeamJoined;
 
@@ -277,7 +279,11 @@ namespace InternetClawMachine.Games.ClawGame
                     ((ClawController)MachineControl).OnFlipperTimeout -= ClawGame_OnFlipperTimeout;
                 }
             }
+
             Configuration.EventModeChanged -= Configuration_EventModeChanged;
+            Configuration.EventModeChanging -= Configuration_EventModeChanging;
+            Configuration.EventMode.PropertyChanged -= EventMode_PropertyChanged;
+
             if (ChatClient is TwitchChatApi)
             {
                 ((TwitchChatApi)ChatClient).OnNewSubscriber -= ClawGame_OnNewSubscriber;
@@ -1669,7 +1675,11 @@ namespace InternetClawMachine.Games.ClawGame
                         {
                             try
                             {
-                                ObsConnection.SetSourceRender(scene, ((eventConfig.GreenScreen != null && bg.Name == eventConfig.GreenScreen.Name) || (eventConfig.GreenScreen == null && Configuration.ClawSettings.ObsGreenScreenDefault.Name == bg.Name)));
+                                //commented out, if greenscreen is null or not found, then it puts a default in place
+                                //ObsConnection.SetSourceRender(scene, ((eventConfig.GreenScreen != null && bg.Name == eventConfig.GreenScreen.Name) || (eventConfig.GreenScreen == null && Configuration.ClawSettings.ObsGreenScreenDefault.Name == bg.Name)));
+
+                                //disables all greenscreens
+                                ObsConnection.SetSourceRender(scene, ((eventConfig.GreenScreen != null && bg.Name == eventConfig.GreenScreen.Name)));
                             }
                             catch (Exception ex) //skip over scenes that error out, log errors
                             {
@@ -1922,14 +1932,20 @@ namespace InternetClawMachine.Games.ClawGame
                     return; //don't play anything else if a bounty played
 
                 //events override custom settings so parse that first
-                // TODO - move this to a more dynamic action
-                if (Configuration.EventMode.WinAnimation == "THEME-HalloweenScare" && WinnersList.Count > 0)
+
+                ///grab the default win animation
+                var winAnimation = Configuration.ObsScreenSourceNames.WinAnimationDefault;
+
+                //see if there are custom animations for this event, if there is more than one choose one at random
+                if (Configuration.EventMode.WinAnimation != null && Configuration.EventMode.WinAnimation.Count > 0)
                 {
-                    // TODO - move this to a more dynamic action
-                    specialClip = true;
-                    RunScare();
+                    var rnd = new Random();
+                    var idx = rnd.Next(Configuration.EventMode.WinAnimation.Count);
+
+                    winAnimation = Configuration.EventMode.WinAnimation[idx];
                 }
-                else if (Configuration.EventMode.AllowOverrideWinAnimation && prefs != null && !string.IsNullOrEmpty(prefs.WinClipName)) //if we have a custom user animation and didn't define one for the event, use it
+
+                if (Configuration.EventMode.AllowOverrideWinAnimation && prefs != null && !string.IsNullOrEmpty(prefs.WinClipName)) //if we have a custom user animation and didn't define one for the event, use it
                 {
                     specialClip = true;
                     var data = new JObject();
@@ -1944,15 +1960,26 @@ namespace InternetClawMachine.Games.ClawGame
                     {
                         specialClip = true;
                         var data = new JObject();
-                        data.Add("name", Configuration.EventMode.WinAnimation);
+                        data.Add("name", winAnimation.SourceName);
+                        if (winAnimation.Duration > 0)
+                            data.Add("duration", winAnimation.Duration);
                         WsConnection.SendCommand(MediaWebSocketServer.CommandMedia, data);
                     }
                     else
                     {
-                        specialClip = true;
-                        var data = new JObject();
-                        data.Add("name", Configuration.EventMode.FailAnimation);
-                        WsConnection.SendCommand(MediaWebSocketServer.CommandMedia, data);
+                        if (Configuration.EventMode.FailAnimation != null && Configuration.EventMode.FailAnimation.Count > 0)
+                        {
+                            var rnd = new Random();
+                            var idx = rnd.Next(Configuration.EventMode.FailAnimation.Count);
+                            var failAnimation = Configuration.EventMode.FailAnimation[idx];
+
+                            specialClip = true;
+                            var data = new JObject();
+                            data.Add("name", failAnimation.SourceName);
+                            if (failAnimation.Duration > 0)
+                                data.Add("duration", failAnimation.Duration);
+                            WsConnection.SendCommand(MediaWebSocketServer.CommandMedia, data);
+                        }
                     }
                 }
                 else if (scannedPlush != null && scannedPlush.WinStream.Length > 0) //if there was no custom or event then check if the plush itself has a custom animation
@@ -2011,7 +2038,9 @@ namespace InternetClawMachine.Games.ClawGame
                 if (!specialClip) //default win notification if no other clip has played
                 {
                     var data = new JObject();
-                    data.Add("name", Configuration.ObsScreenSourceNames.WinAnimationDefault.SourceName);
+                    data.Add("name", winAnimation.SourceName);
+                    if (winAnimation.Duration > 0)
+                        data.Add("name", winAnimation.Duration);
                     WsConnection.SendCommand(MediaWebSocketServer.CommandMedia, data);
                 }
             }
@@ -2752,11 +2781,28 @@ namespace InternetClawMachine.Games.ClawGame
             }
         }
 
+        private void Configuration_EventModeChanging(object sender, EventModeArgs e)
+        {
+            Configuration.EventMode.PropertyChanged -= EventMode_PropertyChanged; //remove old handler
+        }
+
+        private void EventMode_PropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
+        {
+            switch (e.PropertyName)
+            {
+                case "QueueSizeMax":
+                    PlayerQueue.MaxQueueSize = Configuration.EventMode.QueueSizeMax;
+                    break;
+            }
+        }
+
         private void Configuration_EventModeChanged(object sender, EventModeArgs e)
         {
             //create new session
             Configuration.SessionGuid = Guid.NewGuid();
             DatabaseFunctions.WriteDbSessionRecord(Configuration, Configuration.SessionGuid.ToString(), (int)Configuration.EventMode.EventMode, Configuration.EventMode.DisplayName);
+
+            Configuration.EventMode.PropertyChanged += EventMode_PropertyChanged;
 
             InitializeEventSettings(e.Event);
         }

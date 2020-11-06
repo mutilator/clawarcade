@@ -2416,7 +2416,7 @@ namespace InternetClawMachine
         private void BtnScare_Click(object sender, RoutedEventArgs e)
         {
             if (Game == null) return;
-            (Game as ClawGame)?.RunScare();
+            (Game as ClawGame)?.RunScare(false, 0);
         }
 
         private void BtnSetClawPower_Click(object sender, RoutedEventArgs e)
@@ -2903,6 +2903,24 @@ namespace InternetClawMachine
             var username = lstViewers.SelectedItem.ToString();
 
             Configuration.UserList.GetUser(username).ReloadUser(Configuration);
+        }
+
+        private void BtnGhost1_Click(object sender, RoutedEventArgs e)
+        {
+            if (Game == null) return;
+            (Game as ClawGame)?.RunScare(false, 1);
+        }
+
+        private void BtnGhost2_Click(object sender, RoutedEventArgs e)
+        {
+            if (Game == null) return;
+            (Game as ClawGame)?.RunScare(false, 2);
+        }
+
+        private void BtnBat1_Click(object sender, RoutedEventArgs e)
+        {
+            if (Game == null) return;
+            (Game as ClawGame)?.RunScare(false, 3);
         }
     }
 

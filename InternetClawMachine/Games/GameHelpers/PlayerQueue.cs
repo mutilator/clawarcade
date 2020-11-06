@@ -220,7 +220,7 @@ namespace InternetClawMachine.Games.GameHelpers
         /// </summary>
         public List<string> Players { get; set; }
 
-        public int MaxQueueSize { get; private set; }
+        public int MaxQueueSize { get; set; }
     }
 
     public class QueueUpdateArgs
