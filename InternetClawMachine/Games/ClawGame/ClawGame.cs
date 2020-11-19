@@ -443,8 +443,17 @@ namespace InternetClawMachine.Games.ClawGame
                                 {
                                     userPrefs.WinClipName = opt.ClipName;
                                     DatabaseFunctions.WriteUserPrefs(Configuration, userPrefs);
+                                    var clip = opt.ClipName;
+                                    var duration = 8000;
+                                    if (clip.Contains(";"))
+                                    {
+                                        duration = int.Parse(clip.Substring(clip.IndexOf(";") + 1));
+                                        clip = clip.Substring(0, clip.IndexOf(";"));
+                                    }
                                     var data = new JObject();
-                                    data.Add("name", opt.ClipName);
+                                    data.Add("name", clip);
+
+                                    data.Add("duration", duration);
                                     WsConnection.SendCommand(MediaWebSocketServer.CommandMedia, data);
                                     break;
                                 }
@@ -1948,9 +1957,17 @@ namespace InternetClawMachine.Games.ClawGame
                 if (Configuration.EventMode.AllowOverrideWinAnimation && prefs != null && !string.IsNullOrEmpty(prefs.WinClipName)) //if we have a custom user animation and didn't define one for the event, use it
                 {
                     specialClip = true;
+                    var winclip = prefs.WinClipName;
+                    var duration = 8000;
+                    if (winclip.Contains(";"))
+                    {
+                        winclip = winclip.Substring(0, winclip.IndexOf(";"));
+
+                        duration = int.Parse(prefs.WinClipName.Substring(prefs.WinClipName.IndexOf(";") + 1));
+                    }
                     var data = new JObject();
-                    data.Add("name", prefs.WinClipName); //name of clip to play
-                    data.Add("duration", 8000); //max 8 seconds for a win animation
+                    data.Add("name", winclip); //name of clip to play
+                    data.Add("duration", duration); //max 8 seconds for a win animation
 
                     WsConnection.SendCommand(MediaWebSocketServer.CommandMedia, data);
                 }

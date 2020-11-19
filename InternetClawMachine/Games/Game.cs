@@ -2,6 +2,7 @@
 using InternetClawMachine.Games.GameHelpers;
 using InternetClawMachine.Games.OtherGame;
 using InternetClawMachine.Settings;
+using Newtonsoft.Json.Linq;
 using OBSWebsocketDotNet;
 using System;
 using System.Collections.Generic;
@@ -233,20 +234,23 @@ namespace InternetClawMachine.Games
 
         public void RunScare()
         {
-            RunScare(false);
+            var rnd = new Random();
+            var idx = rnd.Next(Configuration.ObsScreenSourceNames.ThemeHalloweenScares.Length);
+            RunScare(false, idx);
         }
 
-        public async void RunScare(bool delay)
+        public async void RunScare(bool delay, int idx)
         {
             if (delay)
             {
                 var rnd = _rnd.Next(120000);
                 await Task.Delay(20000 + rnd);
             }
-            ObsConnection.SetSourceRender(Configuration.ObsScreenSourceNames.ThemeHalloweenScare.SourceName, false, Configuration.ObsScreenSourceNames.ThemeHalloweenScare.SceneName);
-            ObsConnection.SetSourceRender(Configuration.ObsScreenSourceNames.ThemeHalloweenScare.SourceName, true, Configuration.ObsScreenSourceNames.ThemeHalloweenScare.SceneName);
-            await Task.Delay(4000);
-            ObsConnection.SetSourceRender(Configuration.ObsScreenSourceNames.ThemeHalloweenScare.SourceName, false, Configuration.ObsScreenSourceNames.ThemeHalloweenScare.SceneName);
+            var scare = Configuration.ObsScreenSourceNames.ThemeHalloweenScares[idx];
+            var data = new JObject();
+            data.Add("name", scare.SourceName);
+            data.Add("duration", scare.Duration);
+            WsConnection.SendCommand(MediaWebSocketServer.CommandMedia, data);
         }
 
         public void WriteDbMovementAction(string name, string direction)
@@ -319,7 +323,7 @@ namespace InternetClawMachine.Games
                             if (DatabaseFunctions.GetStreamBuxBalance(Configuration, username) + Configuration.GetStreamBuxCost(StreamBuxTypes.SCARE) >= 0)
                             {
                                 DatabaseFunctions.AddStreamBuxBalance(Configuration, username, StreamBuxTypes.SCARE, Configuration.GetStreamBuxCost(StreamBuxTypes.SCARE));
-                                RunScare(true);
+                                RunScare(true, 0);
                                 Thread.Sleep(100);
                                 ChatClient.SendWhisper(username, string.Format(Translator.GetTranslation("gameClawCommandBuxBal", Configuration.UserList.GetUserLocalization(username)), DatabaseFunctions.GetStreamBuxBalance(Configuration, username)));
                             }

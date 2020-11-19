@@ -507,24 +507,46 @@ namespace InternetClawMachine
 
             switch (translateCommand.FinalWord)
             {
-                case "mgmt":
-
+                case "volume":
                     if (!Configuration.AdminUsers.Contains(username))
-                        break; ;
+                        break;
 
                     var cmd = chatMessage.Trim().ToLower().Split(' ');
                     if (cmd.Length < 2)
                         break;
 
-                    switch (cmd[0])
+                    if (!ObsConnection.IsConnected)
+                        return;
+
+                    try
+                    {
+                        var vol = float.Parse(cmd[1]) / 100;
+                        ObsConnection.SetVolume("BackgroundMusic", vol);
+                    }
+                    catch
+                    {
+                        //you did it wrong
+                    }
+                    break;
+
+                case "mgmt":
+
+                    if (!Configuration.AdminUsers.Contains(username))
+                        break; ;
+
+                    cmd = chatMessage.Trim().ToLower().Split(' ');
+                    if (cmd.Length < 3)
+                        break;
+
+                    switch (cmd[1])
                     {
                         case "add":
-                            Configuration.AdminUsers.Add(cmd[1]);
+                            Configuration.AdminUsers.Add(cmd[2]);
                             Client.SendMessage(Configuration.Channel, "User added to admins.");
                             break;
 
                         case "del":
-                            Configuration.AdminUsers.Remove(cmd[1]);
+                            Configuration.AdminUsers.Remove(cmd[2]);
                             Client.SendMessage(Configuration.Channel, "User remove from admins.");
                             break;
                     }
@@ -2828,6 +2850,8 @@ namespace InternetClawMachine
                 try
                 {
                     ObsConnection.AddFilterToSource(activeSource, o.GetValue("name").ToString(), o.GetValue("type").ToString(), (JObject)o.GetValue("settings"));
+                    
+
                 }
                 catch
                 {
