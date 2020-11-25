@@ -136,7 +136,7 @@ namespace InternetClawMachine.Games.ClawGame
                     base.OnTurnEnded(args);
                     PlayerQueue.RemoveSinglePlayer(args.Username);
 
-                    var nextPlayer = PlayerQueue.GetNextPlayer();
+                    var nextPlayer = PlayerQueue.CurrentPlayer;
                     StartRound(nextPlayer);
                     Logger.WriteLog(Logger.DebugLog, string.Format("STARTROUND: [{0}] STEP 2 Player didn't play: {1} in game loop {2}, current player {3} game loop {4}", sequence, args.Username, args.GameLoopCounterValue, PlayerQueue.CurrentPlayer, GameLoopCounterValue), Logger.LogLevel.DEBUG);
                 }

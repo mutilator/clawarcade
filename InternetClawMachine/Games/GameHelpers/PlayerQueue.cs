@@ -163,9 +163,8 @@ namespace InternetClawMachine.Games.GameHelpers
                     RemoveSinglePlayer(nickname); //remove this person from the queue if they exist
                 }
                 //else the person doesnt already exist, just put them in place of user
-
                 RemoveSinglePlayer(user); //remove the gifter from the queue
-                AddSinglePlayer(nickname, repIdx);
+                Players.Insert(repIdx, nickname);
             }
             catch (Exception e)
             {

@@ -1166,16 +1166,20 @@ namespace InternetClawMachine.Games.ClawGame
 
                                 Configuration.RecordsDatabase.Open();
                                 plushName = plushName.Replace("*", "%");
-                                var sql = "SELECT p.name, count(*) FROM wins w INNER JOIN plushie p ON p.id = w.plushid WHERE lower(p.name) LIKE @user";
+                                var sql = "SELECT p.name, count(*) wins, (SELECT datetime FROM wins w2 WHERE w2.plushid = p.id ORDER BY datetime DESC LIMIT 1) latest, (SELECT guid FROM wins w3 WHERE w3.plushid = p.id ORDER BY datetime DESC LIMIT 1) guid FROM wins w INNER JOIN plushie p ON p.id = w.plushid WHERE lower(p.name) LIKE @plush GROUP BY w.plushid";
                                 var command = new SQLiteCommand(sql, Configuration.RecordsDatabase);
-                                command.Parameters.Add(new SQLiteParameter("@user", plushName));
+                                command.Parameters.Add(new SQLiteParameter("@plush", plushName));
                                 string wins = null;
+                                int latest = 0;
+                                string guid = null;
                                 using (var winners = command.ExecuteReader())
                                 {
                                     while (winners.Read())
                                     {
                                         plushName = winners.GetValue(0).ToString();
                                         wins = winners.GetValue(1).ToString();
+                                        latest = int.Parse(winners.GetValue(2).ToString());
+                                        guid = winners.GetValue(3).ToString();
                                         break;
                                     }
                                 }
@@ -1188,7 +1192,7 @@ namespace InternetClawMachine.Games.ClawGame
 
                                 var i = 0;
                                 var outputTop = "";
-
+                                
                                 sql = "select w.name, count(*) FROM wins w INNER JOIN plushie p ON w.PlushID = p.ID WHERE lower(p.name) LIKE @user GROUP BY w.name ORDER BY count(*) DESC";
                                 command = new SQLiteCommand(sql, Configuration.RecordsDatabase);
                                 command.Parameters.Add(new SQLiteParameter("@user", plushName));
@@ -1202,10 +1206,16 @@ namespace InternetClawMachine.Games.ClawGame
                                             break;
                                     }
                                 }
+                                var date = new DateTime(1970, 1, 1).AddSeconds(latest);
+                                var lastCaughtText = date.ToShortDateString();
+                                if (guid == Configuration.SessionGuid.ToString())
+                                {
+                                    lastCaughtText = "this session";
+                                }
 
                                 Configuration.RecordsDatabase.Close();
 
-                                ChatClient.SendMessage(Configuration.Channel, string.Format(Translator.GetTranslation("gameClawCommandPlushResp", Configuration.UserList.GetUserLocalization(username)), plushName, wins, i));
+                                ChatClient.SendMessage(Configuration.Channel, string.Format(Translator.GetTranslation("gameClawCommandPlushResp", Configuration.UserList.GetUserLocalization(username)), plushName, wins, i, lastCaughtText));
                                 ChatClient.SendMessage(Configuration.Channel, string.Format("{0}", outputTop));
                             }
                             catch (Exception ex)

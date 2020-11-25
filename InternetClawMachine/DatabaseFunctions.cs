@@ -213,7 +213,7 @@ namespace InternetClawMachine
                     else
                     {
                         sql =
-                            "INSERT INTO user_prefs (username, localization, lights_on, scene, strobe_settings, blacklightmode, greenscreen, custom_win_clip, wiretheme, teamid, eventteamid, reticlename, knows_multiple) VALUES (@username, @localization, @lightsOn, @scene,@strobe, @blacklightmode, @greenscreen, @winclip, @wiretheme, @team_id, @event_team_id, @reticlename, knowsmultiple)";
+                            "INSERT INTO user_prefs (username, localization, lights_on, scene, strobe_settings, blacklightmode, greenscreen, custom_win_clip, wiretheme, teamid, eventteamid, reticlename, knows_multiple) VALUES (@username, @localization, @lightsOn, @scene,@strobe, @blacklightmode, @greenscreen, @winclip, @wiretheme, @team_id, @event_team_id, @reticlename, @knowsmultiple)";
                     }
 
                     var command = configuration.RecordsDatabase.CreateCommand();
