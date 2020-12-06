@@ -29,19 +29,6 @@ namespace InternetClawMachine.Games.ClawGame
             if (HasEnded)
                 return;
             ((ClawController)MachineControl).SendCommand("creset");
-            ((ClawController)MachineControl).EnableSensor(0, false);
-            ((ClawController)MachineControl).EnableSensor(1, false);
-            ((ClawController)MachineControl).EnableSensor(2, false);
-            ((ClawController)MachineControl).EnableSensor(3, false);
-            ((ClawController)MachineControl).EnableSensor(4, false);
-            ((ClawController)MachineControl).EnableSensor(5, false);
-            ((ClawController)MachineControl).EnableSensor(6, false);
-            ((ClawController)MachineControl).EnableSensor(7, false);
-            ((ClawController)MachineControl).EnableSensor(8, false);
-            ((ClawController)MachineControl).EnableSensor(9, false);
-            ((ClawController)MachineControl).EnableSensor(10, false);
-            ((ClawController)MachineControl).EnableSensor(11, false);
-            ((ClawController)MachineControl).EnableSensor(12, false);
             ((ClawController)MachineControl).OnReturnedHome -= ClawSingleQuickQueue_OnReturnedHome;
             ((ClawController)MachineControl).OnScoreSensorTripped -= ClawPlinko_OnScoreSensorTripped;
             StartRound(null); //starting a null round resets all the things
@@ -53,18 +40,6 @@ namespace InternetClawMachine.Games.ClawGame
             base.Init();
             ((ClawController)MachineControl).OnReturnedHome += ClawSingleQuickQueue_OnReturnedHome;
             ((ClawController)MachineControl).OnScoreSensorTripped += ClawPlinko_OnScoreSensorTripped;
-            ((ClawController)MachineControl).EnableSensor(1, true);
-            ((ClawController)MachineControl).EnableSensor(2, true);
-            ((ClawController)MachineControl).EnableSensor(3, true);
-            ((ClawController)MachineControl).EnableSensor(4, true);
-            ((ClawController)MachineControl).EnableSensor(5, true);
-            ((ClawController)MachineControl).EnableSensor(6, true);
-            ((ClawController)MachineControl).EnableSensor(7, true);
-            ((ClawController)MachineControl).EnableSensor(8, true);
-            ((ClawController)MachineControl).EnableSensor(9, true);
-            ((ClawController)MachineControl).EnableSensor(10, true);
-            ((ClawController)MachineControl).EnableSensor(11, true);
-            ((ClawController)MachineControl).EnableSensor(12, true);
         }
 
         private void ClawPlinko_OnScoreSensorTripped(IMachineControl controller, string slotNumber)
@@ -200,7 +175,7 @@ namespace InternetClawMachine.Games.ClawGame
 
             GameRoundTimer.Start();
 
-            var msg = string.Format(Translator.GetTranslation("gameClawPlinkoStartRound", Configuration.UserList.GetUserLocalization(username)), PlayerQueue.CurrentPlayer, Configuration.ClawSettings.SinglePlayerQueueNoCommandDuration);
+            var msg = string.Format(Translator.GetTranslation("gameClawPlinkoStartRound", Configuration.UserList.GetUserLocalization(username)), PlayerQueue.CurrentPlayer, Configuration.ClawSettings.SinglePlayerDuration, Configuration.ClawSettings.SinglePlayerQueueNoCommandDuration);
             var hasPlayedPlayer = SessionWinTracker.Find(itm => itm.Username.ToLower() == PlayerQueue.CurrentPlayer.ToLower());
 
             if (hasPlayedPlayer != null && hasPlayedPlayer.Drops > 1)

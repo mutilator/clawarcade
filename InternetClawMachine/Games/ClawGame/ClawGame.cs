@@ -31,6 +31,7 @@ namespace InternetClawMachine.Games.ClawGame
         private long _lastSensorTrip;
         private int _reconnectCounter = 0;
         private Random _rnd = new Random();
+        private int _PINBlackLight = 9;
 
         #endregion Fields
 
@@ -3070,8 +3071,8 @@ namespace InternetClawMachine.Games.ClawGame
                 try
                 {
                     MachineControl.LightSwitch(false);
-                    ((ClawController)MachineControl).SendCommand("pm 16 1");
-                    ((ClawController)MachineControl).SendCommand("ps 16 1");
+                    ((ClawController)MachineControl).SendCommand(string.Format("pm {0} 1", _PINBlackLight));
+                    ((ClawController)MachineControl).SendCommand(string.Format("ps {0} 1", _PINBlackLight));
                 }
                 catch (Exception x)
                 {
@@ -3097,7 +3098,7 @@ namespace InternetClawMachine.Games.ClawGame
             {
                 try
                 {
-                    ((ClawController)MachineControl).SendCommand("ps 16 0");
+                    ((ClawController)MachineControl).SendCommand(string.Format("ps {0} 0", _PINBlackLight));
                     MachineControl.LightSwitch(true);
                 }
                 catch (Exception x)

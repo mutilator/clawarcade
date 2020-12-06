@@ -3,6 +3,9 @@
 #include <EthernetClient.h>
 #include <EthernetServer.h>
 
+HardwareSerial &conveyorController = Serial1;
+HardwareSerial &ledController = Serial3;
+HardwareSerial &plinkoController = Serial2;
 
 bool _isDebugMode = false; //if true, output stuff to serial
 
@@ -28,9 +31,11 @@ const int _PINLimitUp = 45;
 const int _PINLightsWhite = 2;
 
 const int _PINConveyorBelt = 3;
-const int _PINConveyorSensor = 14;
+const int _PINConveyorSensor = 8;
+const int _PINConveyorSensor2 = 11;
+const int _PINBlackLight = 9;
 
-const int _PINGameReset = 15;
+const int _PINGameReset = 53;
 
 const int _PINLed = 13;
 
@@ -40,7 +45,7 @@ const int _PINStickMoveForward = 24;
 const int _PINStickMoveBackward = 25;
 const int _PINStickMoveDown = 26;
 
-const int _PINConveyorFlipperError = 17;
+const int _PINConveyorFlipperError = 20;
 //_PINConveyorFlipperSerial PORT 18 & 19 = Serial1
 
 
@@ -80,7 +85,8 @@ const int EVENT_DROPPED_CLAW = 104; //finished drop and started recoil
 const int EVENT_RECOILED_CLAW = 105; //finished recoil
 const int EVENT_RETURNED_HOME = 106; //over win chute
 const int EVENT_RETURNED_CENTER = 107; //back in center
-
+const int EVENT_SCORE_SENSOR = 108; //plinko sensor
+const int EVENT_CONVEYOR2_TRIPPED = 109; //response when tripped
 
 
 const int EVENT_LIMIT_LEFT = 200; //hit a limit
@@ -142,6 +148,7 @@ const byte GAMEMODE_TARGET = 1; //start over home, drop to grab stuff, keep claw
 byte _gameMode = GAMEMODE_CLAW;
 
 
+
 /*
 
     HOME LOCATIONS
@@ -157,6 +164,7 @@ byte _homeLocation = HOME_LOCATION_FL; //Set home locaton front left - default
 
 //Storing times
 unsigned long _timestampConveyorSensorTripped = 0; //what time the sensor last saw movement
+unsigned long _timestampConveyor2SensorTripped = 0; //what time the sensor last saw movement
 unsigned long _timestampGameResetTrippedTime = 0; //Time the reset button was pressed
 unsigned long _timestampRunLeft = 0; //When did we start running right to left
 unsigned long _timestampRunBackward = 0; //When did we start running back to front
@@ -173,6 +181,8 @@ unsigned long _timestampMotorMoveBackward = 0; //motor movement failsafe stamp
 unsigned long _timestampMotorMoveFlipper = 0; //motor movement failsafe stamp
 unsigned long _timestampClawClosed = 0;
 unsigned long _timestampBeltRun = 0;
+
+
 
 
 int _timespanRunWidth = 0; //amount of time it took to run from right side to left side
@@ -258,10 +268,22 @@ int _conveyorBeltRunTime = 0;
 int _conveyorFlipperRunTime = 0; //how long to run the flipper in a direction before we call the stop command?
 byte _conveyorFlipperStatus = 0;
 int _flipperSpeed = 75;
+bool _autoDropTargeting = false; //If in targeting mode, setting this TRUE causes the claw to drop when over the home location
+bool _allowTargetingMoves = true; //When in tatrgeting mode, allow the player to move anywhere in the play area during their turn
 
-bool _hasQueuedCommand = false; //flag for speed if we have a command queued to go out
-char _queuedCommand[100]; //probly too big
 
+const char RTS = '}'; //request to send data
+const char CTS = '{'; //clear to send data
+
+char _lastPlinkoMessage[40]; //plinko message
+unsigned long _waitForAckTimestamp = 0; //time we sent last plinko message
+byte _waitForAckCount = 0; //retry counter
+
+char _lastLedMessage[40]; //led message
+unsigned long _waitForLedAckTimestamp = 0; //time we sent last led message
+byte _waitForLedAckCount = 0; //retry counter
+
+bool _hasQueuedCommand = false;
 bool _needsSecondaryInit = true; //true if we need to set GPIO during very first loop() rather than setup()
 
 
@@ -287,12 +309,15 @@ EthernetClient _clients[_clientCount]; //list of connections
 // buffers for receiving and sending data
 const byte _numChars = 64;
 char _incomingCommand[_numChars]; // an array to store the received data
-char _sincomingCommand[_numChars]; // an array to store the received data
+char _sPlinkoIncomingCommand[_numChars]; // an array to store the received data
+char _sLedIncomingCommand[_numChars]; // an array to store the received data
 char _commandDelimiter = '\n';
 
 
 void setup() {
     Serial.begin(115200);
+    ledController.begin(115200);
+    plinkoController.begin(250000);
 
     initGeneral();
     initEthernet();
@@ -305,7 +330,6 @@ void setup() {
 void loop() {
     if (_needsSecondaryInit)
     {
-
         initMovement();
         initLights();
         initConveyor();
@@ -314,7 +338,8 @@ void loop() {
     }
 
     handleTelnetConnectors();
-    handleSerialCommands();
+    handleLedSerialCommands();
+    handlePlinkoSerialCommands();
     checkConveyorSensor();
     checkBeltRuntime();
     
@@ -325,6 +350,7 @@ void loop() {
 
     checkLimits();
     checkStates();
+    
 }
 
 
@@ -380,8 +406,11 @@ void initMovement()
     pinMode(_PINStickMoveForward, INPUT_PULLUP);
     pinMode(_PINStickMoveBackward, INPUT_PULLUP);
     pinMode(_PINStickMoveDown, INPUT_PULLUP);
+    
 
 }
+
+
 
 void initLights()
 {
@@ -393,9 +422,10 @@ void initConveyor()
 {
     pinMode(_PINConveyorBelt, OUTPUT);
     pinMode(_PINConveyorFlipperError, INPUT);
-    Serial1.begin(19200); //talk to motor controller
+    conveyorController.begin(19200); //talk to motor controller
 
     pinMode(_PINConveyorSensor, INPUT_PULLUP);
+    pinMode(_PINConveyorSensor2, INPUT_PULLUP);
 
     digitalWrite(_PINConveyorBelt, RELAYPINOFF); //relay
 }
@@ -409,7 +439,6 @@ void handleJoystick()
     int val = digitalRead(_PINStickMoveDown);
     if (val == LOW)
     {
-        
         if ((_gameMode == GAMEMODE_CLAW) || 
             (_gameMode == GAMEMODE_TARGET && !_isClawClosed)) //when in target mode we're only allowed to drop if the claw isnt closed
             dropClawProcedure();
@@ -470,12 +499,6 @@ void handleJoystick()
 
 }
 
-/**
- *
- * Claw functionality
- *
- */
-
 void checkLimits()
 {
     static unsigned long curTime = 0;
@@ -483,7 +506,7 @@ void checkLimits()
 
     if (_isMotorRunningUp && (isLimitUp() || curTime - _timestampMotorMoveUp > _failsafeMotorLimit))
     {
-        debugLine("Hit Limit Up");
+        debugLine("H L U");
         //up and down events require a bit of extra pause when the limit sensor is hit just to make sure it's all the way there
         delay(200); //brief rest for the claw
 
@@ -504,7 +527,7 @@ void checkLimits()
 
     if (_isMotorRunningDown && (isLimitDown() || curTime - _timestampMotorMoveDown > _failsafeMotorLimit))
     {
-        debugLine("Hit Limit Down");
+        debugLine("H L D");
         //up and down events require a bit of extra pause when the limit sensor is hit just to make sure it's all the way there
         delay(200); //brief rest for the claw
         stopMotorDown();
@@ -520,7 +543,7 @@ void checkLimits()
 
     if (_isMotorRunningLeft && (isLimitLeft() || curTime - _timestampMotorMoveLeft > _failsafeMotorLimit))
     {
-        debugLine("Hit Limit Left");
+        debugLine("H L L");
         stopMotorLeft();
         if (curTime - _timestampMotorMoveLeft > _failsafeMotorLimit)
         {
@@ -534,7 +557,7 @@ void checkLimits()
 
     if (_isMotorRunningRight && (isLimitRight() || curTime - _timestampMotorMoveRight > _failsafeMotorLimit))
     {
-        debugLine("Hit Limit Right");
+        debugLine("H L R");
         stopMotorRight();
         if (curTime - _timestampMotorMoveRight > _failsafeMotorLimit)
         {
@@ -548,7 +571,7 @@ void checkLimits()
 
     if (_isMotorRunningForward && (isLimitForward() || curTime - _timestampMotorMoveForward > _failsafeMotorLimit))
     {
-        debugLine("Hit Limit Forward");
+        debugLine("H L F");
         stopMotorForward();
         if (curTime - _timestampMotorMoveForward > _failsafeMotorLimit)
         {
@@ -562,7 +585,7 @@ void checkLimits()
 
     if (_isMotorRunningBackward && (isLimitBackward() || curTime - _timestampMotorMoveBackward > _failsafeMotorLimit))
     {
-        debugLine("Hit Limit Backward");
+        debugLine("H L B");
         stopMotorBackward();
         if (curTime - _timestampMotorMoveBackward > _failsafeMotorLimit)
         {
@@ -576,7 +599,7 @@ void checkLimits()
 
     if (_isClawClosed && (curTime - _timestampClawClosed > _failsafeClawOpened))
     {
-        debugLine("Closed failsafe");
+        debugLine("C F");
         openClaw();
         if (_gameMode == GAMEMODE_CLAW)
             sendEvent(EVENT_FAILSAFE_CLAW);
@@ -614,30 +637,24 @@ void checkStates()
         case STATE_CHECK_STARTUP_RECOIL:
             if (isLimitUp())
             {
-                debugLine("hit recoil");
                 stopMotorUp();
                 startupMachine();
-                debugString("New State: ");
                 debugLine(_currentState);
             }
             else if (!_isMotorRunningUp) //a scenario where the motor was stopped but it's not at the limit
             {
-                debugLine("Startup recoil but motor not running");
                 runMotorUp(false);
             }
             break;
         case STATE_CHECK_STARTUP_RIGHT:
             if (isLimitRight())
             {
-                debugLine("hit right");
                 stopMotorRight();
                 startupMachine();
-                debugString("New State: ");
                 debugLine(_currentState);
             }
             else if (!_isMotorRunningRight) //a scenario where the motor was stopped but it's not at the limit
             {
-                debugLine("Startup right but motor not running");
                 runMotorRight(false);
             }
 
@@ -646,15 +663,12 @@ void checkStates()
         case STATE_CHECK_STARTUP_FORWARD:
             if (isLimitForward())
             {
-                debugLine("hit forward");
                 stopMotorForward();
                 startupMachine();
-                debugString("New State: ");
                 debugLine(_currentState);
             }
             else if (!_isMotorRunningForward) //a scenario where the motor was stopped but it's not at the limit
             {
-                debugLine("Startup forward but motor not running");
                 runMotorForward(false);
             }
 
@@ -663,14 +677,11 @@ void checkStates()
         case STATE_CHECK_HOMING_L:
             if (isLimitLeft())
             {
-                debugLine("hit left");
                 stopMotorLeft();
                 performHoming();
-                debugString("New State: ");
                 debugLine(_currentState);
             } else if (!_isMotorRunningLeft) //a scenario where the motor was stopped but it's not at the limit
             {
-                debugLine("Homing Left but motor not running");
                 runMotorLeft(false);
             }
 
@@ -679,15 +690,12 @@ void checkStates()
         case STATE_CHECK_HOMING_B:
             if (isLimitBackward())
             {
-                debugLine("hit back");
                 stopMotorBackward();
                 performHoming();
-                debugString("New State: ");
                 debugLine(_currentState);
             }
             else if (!_isMotorRunningBackward) //a scenario where the motor was stopped but it's not at the limit
             {
-                debugLine("Homing Backward but motor not running");
                 runMotorBackward(false);
             }
 
@@ -703,7 +711,6 @@ void checkStates()
                 
                         if (diffTime > _runToCenterDurationWidth)
                         {
-                            debugLine("width centered");
                             stopMotorRight();
                             stopMotorLeft();
                             isWidthReached = true;
@@ -712,7 +719,6 @@ void checkStates()
                     case GAMEMODE_TARGET:
                         if (diffTime > _runToCenterDurationWidth + 250)
                         {
-                            debugLine("width centered");
                             stopMotorRight();
                             stopMotorLeft();
                             isWidthReached = true;
@@ -722,7 +728,6 @@ void checkStates()
 
                 if (diffTime > _runToCenterDurationDepth)
                 {
-                    debugLine("depth centered");
                     stopMotorForward();
                     stopMotorBackward();
                     if (isWidthReached)
@@ -744,7 +749,6 @@ void checkStates()
             }
             else if (!_isMotorRunningDown) //a scenario where the motor was stopped but it's not at the limit
             {
-                debugLine("Drop tension check but motor not running");
                 runMotorDown(false);
             }
 
@@ -757,7 +761,6 @@ void checkStates()
             }
             else if (!_isMotorRunningUp) //a scenario where the motor was stopped but it's not at the limit
             {
-                debugLine("Drop recoil check but motor not running");
                 runMotorUp(false);
             }
 
@@ -771,7 +774,6 @@ void checkStates()
             }
             else if (!_isMotorRunningLeft) //a scenario where the motor was stopped but it's not at the limit
             {
-                debugLine("Run chute left check but motor not running");
                 runMotorLeft(false);
             }
 
@@ -785,7 +787,6 @@ void checkStates()
             }
             else if (!_isMotorRunningRight) //a scenario where the motor was stopped but it's not at the limit
             {
-                debugLine("Run chute right but motor not running");
                 runMotorRight(false);
             }
             break;
@@ -798,7 +799,6 @@ void checkStates()
             }
             else if (!_isMotorRunningForward) //a scenario where the motor was stopped but it's not at the limit
             {
-                debugLine("Run chute forward check but motor not running");
                 runMotorForward(false);
             }
 
@@ -812,7 +812,6 @@ void checkStates()
             }
             else if (!_isMotorRunningBackward) //a scenario where the motor was stopped but it's not at the limit
             {
-                debugLine("Run chute backward but motor not running");
                 runMotorBackward(false);
             }
             break;
@@ -830,10 +829,10 @@ void startupMachine()
     _gameMode = 0;
     _homeLocation = HOME_LOCATION_FL;
 
-    debugLine("startup called");
+    
     if (!isLimitUp())
     {
-        debugLine("check recoil");
+        
         changeState(STATE_CHECK_STARTUP_RECOIL);
         runMotorUp(false);
         return;
@@ -841,7 +840,6 @@ void startupMachine()
 
     if (!isLimitRight())
     {
-        debugLine("check right");
         changeState(STATE_CHECK_STARTUP_RIGHT);
         runMotorRight(false);
         return;
@@ -849,7 +847,6 @@ void startupMachine()
 
     if (!isLimitForward())
     {
-        debugLine("check forward");
         changeState(STATE_CHECK_STARTUP_FORWARD);
         runMotorForward(false);
         return;
@@ -872,7 +869,6 @@ void performHoming()
 
     if (_currentState == STATE_CHECK_HOMING)
     {
-        debugLine("check homing left");
         _timestampRunLeft = curTime;
         changeState(STATE_CHECK_HOMING_L);
         if (!isLimitLeft())
@@ -884,7 +880,6 @@ void performHoming()
 
     if (_currentState == STATE_CHECK_HOMING_L)
     {
-        debugLine("check homing back");
         _timespanRunWidth = curTime - _timestampRunLeft; //possibly re-use timestamprunleft if memory required
         _timestampRunBackward = curTime;
         changeState(STATE_CHECK_HOMING_B);
@@ -897,7 +892,6 @@ void performHoming()
 
     if (_currentState == STATE_CHECK_HOMING_B)
     {
-        debugLine("run to center");
         _timespanRunDepth = curTime - _timestampRunBackward; //possibly re-use _timestampRunBackward if memory required
 
         _halfTimespanRunWidth = _timespanRunWidth / 2;
@@ -1008,15 +1002,20 @@ void returnToWinChute()
             //grab some more stuff
             _clawRemoteMoveDurationDrop = 0;
             _clawRemoteMoveStartTimeDrop = millis();
-            dropClawProcedure();
+            if (_autoDropTargeting)
+                dropClawProcedure();
+            else
+                changeState(STATE_RUNNING);
         }
 
         return;
     } else
     {
+        
         //recoil claw with force when returning home
         _recoilLimitOverride = true;
         runMotorUp(true);
+        delay(200);
 
         if (_homeLocation == HOME_LOCATION_FR || _homeLocation == HOME_LOCATION_BR) //run right
         {
@@ -1040,7 +1039,7 @@ void returnToWinChute()
 void returnCenterFromChute()
 {
     _timestampRunCenter = millis();
-    debugLine("running centering");
+    
     changeState(STATE_CHECK_CENTERING);
 
     
@@ -1064,40 +1063,203 @@ void returnCenterFromChute()
  * EVENT HANDLING
  *
  */
-void handleSerialCommands()
+
+void notifyLedControllerMessage()
 {
+    _waitForLedAckTimestamp = millis();
+    ledController.print(RTS);
+    ledController.flush();
+}
+
+void sendLedControllerMessage(char message[])
+{
+    notifyLedControllerMessage();
+    strncpy(_lastLedMessage, message, strlen(message)+1);
+    
+}
+
+void sendLedControllerData(char message[])
+{
+    ledController.print(message);
+    ledController.print("!");
+}
+
+void handleLedSerialCommands()
+{
+    //if we sent a message but didn't receive an ACK then send again
+    if (_waitForLedAckTimestamp && millis() - _waitForLedAckTimestamp > 300)
+    {
+        _waitForLedAckCount++;
+        notifyLedControllerMessage();
+    }
+
+    if (_waitForLedAckCount > 5) //give up after 5 attempts
+    {
+        _waitForLedAckTimestamp = 0;
+        _waitForLedAckCount = 0;
+    }
+
     static byte sidx = 0; //serial cursor
+    static unsigned long startTime = 0; //memory placeholder
+
+    startTime = millis();
 
     //if we have data, read it
-    if (Serial.available())
+    while (ledController.available()) //burn through data waiting for start byte
     {
-        char thisChar = Serial.read();
-        if (thisChar == '\r' || thisChar == '\n')
+        char thisChar = ledController.read();
+        if (thisChar == RTS) //if the other end wants to send data, tell them it's OK
         {
-            _sincomingCommand[sidx] = '\0'; //terminate string
-            char command[10]= {0}; //holds the command
+            Serial.print(CTS);
+            Serial.flush();
 
-            sscanf(_sincomingCommand, "%s", command);
-            if (strcmp(command,".") == 0) { //ready to receive command
-                if (_hasQueuedCommand) //bool for speed
+            //reset the index
+            sidx = 0;
+            while (millis() - startTime < 300) //wait up to 300ms for next byte
+            {
+                if (!ledController.available())
+                    continue;
+
+                startTime = millis(); //update received timestamp, allows slow data to come in (manually typing)
+                thisChar = ledController.read();
+
+                if (thisChar == '!')
                 {
-                    Serial.println(_queuedCommand);
-                    Serial.flush();
-                    _hasQueuedCommand = false;
+                    while (ledController.available() > 0) //burns the buffer
+                        Serial.read();
+
+                    _sLedIncomingCommand[sidx] = '\0'; //terminate string
+
+                    int eventid = 0;
+                    char data[10];
+                    debugString("LED: ");
+                    debugLine(_sLedIncomingCommand);
+
+                    // example: 108 1
+                    broadcastToClients(_sLedIncomingCommand);
+
+                    break;
                 } else {
-                    Serial.println("a"); //print ack
-                    Serial.flush();
+                    //save our byte
+                    _sLedIncomingCommand[sidx] = thisChar;
+                    sidx++;
+                    //prevent overlfow and reset to our last byte
+                    if (sidx >= _numChars) {
+                        sidx = _numChars - 1;
+                    }
                 }
             }
+            //we either processed data from a successful command or the command timed out
+        }
+        else if (thisChar == CTS)
+        {
+            _waitForLedAckTimestamp = 0;
+            _waitForLedAckCount = 0;
+
+            sendLedControllerData(_lastLedMessage);
+        }
+    }
+}
+
+void notifyPlinkoControllerMessage()
+{
+    _waitForAckTimestamp = millis();
+    plinkoController.print(RTS);
+    plinkoController.flush();
+}
+
+void sendPlinkoControllerMessage(char message[])
+{
+    notifyPlinkoControllerMessage();
+    strncpy(_lastPlinkoMessage, message, strlen(message)+1);
+    
+}
+
+void sendPlinkoControllerData(char message[])
+{
+    plinkoController.print(message);
+    plinkoController.print("!");
+}
+
+
+//command from plinko is ".command args!"
+void handlePlinkoSerialCommands()
+{
+    //if we sent a message but didn't receive an ACK then send again
+    if (_waitForAckTimestamp && millis() - _waitForAckTimestamp > 300)
+    {
+        _waitForAckCount++;
+        notifyPlinkoControllerMessage();
+    }
+
+    if (_waitForAckCount > 5) //give up after 5 attempts
+    {
+        _waitForAckTimestamp = 0;
+        _waitForAckCount = 0;
+    }
+    
+    static byte sidx = 0; //serial cursor
+    static unsigned long startTime = 0; //memory placeholder
+
+    startTime = millis();
+
+    //if we have data, read it
+    while (plinkoController.available()) //burn through data waiting for start byte
+    {
+        char thisChar = plinkoController.read();
+        if (thisChar == RTS)
+        {
+            plinkoController.print(CTS);
+            plinkoController.flush();
+
+            //reset the index
             sidx = 0;
-        } else {
-            //save our byte
-            _sincomingCommand[sidx] = thisChar;
-            sidx++;
-            //prevent overlfow and reset to our last byte
-            if (sidx >= _numChars) {
-                sidx = _numChars - 1;
+
+            while (millis() - startTime < 300) //wait up to 300ms for next byte
+            {
+
+                if (!plinkoController.available())
+                    continue;
+
+                startTime = millis(); //update received timestamp, allows slow data to come in (manually typing)
+                thisChar = plinkoController.read();
+
+                if (thisChar == '!')
+                {
+
+                    while (plinkoController.available() > 0) //burns the buffer
+                        plinkoController.read();
+
+                    _sPlinkoIncomingCommand[sidx] = '\0'; //terminate string
+                    
+                    int eventid = 0;
+                    char data[10];
+                    debugString("Plinko: ");
+                    debugLine(_sPlinkoIncomingCommand);
+                    sscanf(_sPlinkoIncomingCommand, "%d %s", &eventid, data);
+
+                    // example: 108 1
+                    broadcastToClients(eventid, data);
+
+                    break;
+                } else {
+                    //save our byte
+                    _sPlinkoIncomingCommand[sidx] = thisChar;
+                    sidx++;
+                    //prevent overlfow and reset to our last byte
+                    if (sidx >= _numChars) {
+                        sidx = _numChars - 1;
+                    }
+                }
             }
+            //we either processed data from a successful command or the command timed out
+        }
+        else if (thisChar == CTS)
+        {
+            _waitForAckTimestamp = 0;
+            _waitForAckCount = 0;
+
+            sendPlinkoControllerData(_lastPlinkoMessage);
         }
     }
 }
@@ -1283,6 +1445,15 @@ void checkConveyorSensor()
 
         _timestampConveyorSensorTripped = curTime;
     }
+
+    sensorVal = digitalRead(_PINConveyorSensor2);
+    if (sensorVal == _conveyorSensorTripped)
+    {
+        if (curTime - _timestampConveyor2SensorTripped > _conveyorSensorTripDelay)
+            sendEvent(EVENT_CONVEYOR2_TRIPPED);
+
+        _timestampConveyor2SensorTripped = curTime;
+    }
 }
 
 void checkGameReset()
@@ -1316,7 +1487,7 @@ void sendEvent(int event)
  */
 void broadcastToClients(int event, char outputData[])
 {
-    debugString(event);
+    debugInt(event);
     debugString(":0 ");
     debugLine(outputData);
 
@@ -1326,6 +1497,20 @@ void broadcastToClients(int event, char outputData[])
             sendFormattedResponse(_clients[i], event, "0", outputData);
     }
 }
+
+void broadcastToClients(char outputData[])
+{
+    debugInt(EVENT_INFO);
+    debugString(":0 ");
+    debugLine(outputData);
+
+    for (byte i=0; i < _clientCount; i++)
+    {
+        if (_clients[i] && _clients[i].connected())
+            sendFormattedResponse(_clients[i], EVENT_INFO, "0", outputData);
+    }
+}
+
 void handleTelnetConnectors()
 {
     // see if someone said something
@@ -1412,8 +1597,8 @@ void handleClientComms(EthernetClient &client)
 
 void handleTelnetCommand(EthernetClient &client)
 {
-    static char outputData[400];
-    static char sequence[_numChars]= {0}; //holds the command
+    static char outputData[100];
+    static char sequence[10]= {0}; //holds the command
     static char command[_numChars]= {0}; //holds the command
     static char argument[_numChars]= {0}; //holds the axis
     static char argument2[_numChars]= {0}; //holds the setting
@@ -1463,7 +1648,7 @@ void handleTelnetCommand(EthernetClient &client)
 
     } else if (strcmp(command,"debug") == 0) { //some debug info
 
-        sprintf(outputData, "%i,%i,%i,%i,%i,%i,%i,%s", _currentState, _lastState, _halfTimespanRunWidth, _halfTimespanRunDepth, _wiggleTime, _failsafeMotorLimit, _homeLocation, _queuedCommand);
+        sprintf(outputData, "%i,%i,%i,%i,%i,%i,%i,%s", _currentState, _lastState, _halfTimespanRunWidth, _halfTimespanRunDepth, _wiggleTime, _failsafeMotorLimit, _homeLocation, _lastLedMessage);
         sendFormattedResponse(client, EVENT_INFO, sequence, outputData);
 
     } else if (strcmp(command,"state") == 0) { //set machine state manually
@@ -1494,15 +1679,8 @@ void handleTelnetCommand(EthernetClient &client)
         int pin = atoi(argument);
 
         sprintf(outputData, "%i", digitalRead(pin));
-        sendFormattedResponse(client, EVENT_INFO, argument, outputData);
+        sendFormattedResponse(client, EVENT_INFO, sequence, outputData);
 
-    } else if (strcmp(command,"pm") == 0) { //pin mode
-
-        sendFormattedResponse(client, EVENT_INFO, sequence, "");
-
-        int pin = atoi(argument);
-        int mode = atoi(argument2);
-        pinMode(pin, mode);
     } else if (strcmp(command, "sfs") == 0) { //set failsafes
         
         int type = atoi(argument);
@@ -1734,6 +1912,18 @@ void handleTelnetCommand(EthernetClient &client)
         sprintf(outputData, "mode set %i", _gameMode);
         sendFormattedResponse(client, EVENT_INFO, sequence, outputData);
 
+    } else if (strcmp(command,"tm") == 0) { //set targeting movement
+
+        _allowTargetingMoves = atoi(argument)==1;
+        sprintf(outputData, "auto drop %i", _allowTargetingMoves);
+        sendFormattedResponse(client, EVENT_INFO, sequence, outputData);
+
+    } else if (strcmp(command,"ad") == 0) { //set auto drop 
+
+        _autoDropTargeting = atoi(argument)==1;
+        sprintf(outputData, "auto drop %i", _autoDropTargeting);
+        sendFormattedResponse(client, EVENT_INFO, sequence, outputData);
+
     } else if (strcmp(command,"shome") == 0) { //set home location
 
         _homeLocation = atoi(argument);
@@ -1741,7 +1931,7 @@ void handleTelnetCommand(EthernetClient &client)
         sendFormattedResponse(client, EVENT_INFO, sequence, outputData);
 
     } else if (strcmp(command,"rhome") == 0) { //run to home location
-    
+
         returnToWinChute(); //runs to chute and stop
         sendFormattedResponse(client, EVENT_INFO, sequence, "");
 
@@ -1779,15 +1969,19 @@ void handleTelnetCommand(EthernetClient &client)
     } else if (strcmp(command,"strobe") == 0) { //strobe the lights
 
         sendFormattedResponse(client, EVENT_INFO, sequence, "");
-        sprintf(_queuedCommand, "s %s %s %s %s %s %s", argument, argument2, argument3, argument4, argument5, argument6);
-        _hasQueuedCommand = true;
+        sprintf(_lastLedMessage, "s %s %s %s %s %s %s", argument, argument2, argument3, argument4, argument5, argument6);
+        sendLedControllerMessage(_lastLedMessage);
 
     } else if (strcmp(command,"uno") == 0) { //send generic commands to uno
 
         sendFormattedResponse(client, EVENT_INFO, sequence, "");
-        sprintf(_queuedCommand, "%s %s %s %s %s %s", argument, argument2, argument3, argument4, argument5, argument6);
-        _hasQueuedCommand = true;
+        sprintf(_lastLedMessage, "%s %s %s %s %s %s", argument, argument2, argument3, argument4, argument5, argument6);
+        sendLedControllerMessage(_lastLedMessage);
+    } else if (strcmp(command,"plinko") == 0) { //send generic commands to uno
 
+        sendFormattedResponse(client, EVENT_INFO, sequence, "");
+        sprintf(outputData, "%s %s %s %s %s %s", argument, argument2, argument3, argument4, argument5, argument6);
+        sendPlinkoControllerMessage(outputData);
     } else if (strcmp(command,"ping") == 0) { //pinging
 
         sendFormattedResponse(client, EVENT_PONG, sequence, argument);
@@ -1801,6 +1995,9 @@ void handleTelnetCommand(EthernetClient &client)
         sendFormattedResponse(client, EVENT_INFO, sequence, "");
     }
 }
+
+
+
 void sendFormattedResponse(EthernetClient &client, int event, char sequence[], char response[])
 {
     client.print(event);
@@ -1875,7 +2072,7 @@ void moveFromRemote(byte direction, int duration)
             break;
     }
 
-    if (_gameMode == GAMEMODE_TARGET && !_isClawClosed) //don't allow joystick to move when it's over the chute, we need to drop & grab stuff first
+    if (_gameMode == GAMEMODE_TARGET && !_isClawClosed && !_allowTargetingMoves) //don't allow joystick to move when it's over the chute, we need to drop & grab stuff first
         return;
 
     //handle movement now
@@ -1943,86 +2140,68 @@ bool isLimitUp()
 
 void runMotorLeft(bool override)
 {
-    debugLine("Method: Run Left Stop Right");
     stopMotorRight();
     if (!isLimitLeft() || override)
     {
-        debugLine("Method: Run Left");
         _isMotorRunningLeft = true;
         _timestampMotorMoveLeft = millis();
         digitalWrite(_PINMoveLeft, RELAYPINON);
     }
-    debugLine("Method: Run Left Done");
 }
 
 void runMotorRight(bool override)
 {
-    debugLine("Method: Run Right Stop Left");
     stopMotorLeft();
     if (!isLimitRight() || override)
     {
-        debugLine("Method: Run Right");
         _isMotorRunningRight = true;
         _timestampMotorMoveRight = millis();
         digitalWrite(_PINMoveRight, RELAYPINON);
     }
-    debugLine("Method: Run Right Done");
 }
 
 void runMotorForward(bool override)
 {
-    debugLine("Method: Run Forward Stop Backward");
     stopMotorBackward();
     if (!isLimitForward() || override)
     {
-        debugLine("Method: Run Forward");
         _isMotorRunningForward = true;
         _timestampMotorMoveForward = millis();
         digitalWrite(_PINMoveForward, RELAYPINON);
     }
-    debugLine("Method: Run Forward Done");
 }
 
 void runMotorBackward(bool override)
 {
-    debugLine("Method: Run Backward Stop Forward");
     stopMotorForward();
     if (!isLimitBackward() || override)
     {
-        debugLine("Method: Run Backward");
         _isMotorRunningBackward = true;
         _timestampMotorMoveBackward = millis();
         digitalWrite(_PINMoveBackward, RELAYPINON);
     }
-    debugLine("Method: Run Backward Done");
 }
 
 void runMotorDown(bool override)
 {
-    debugLine("Method: Run Down Stop Up");
     stopMotorUp();
     if (!isLimitDown() || override)
     {
-        debugLine("Method: Run Down");
         _isMotorRunningDown = true;
         _timestampMotorMoveDown = millis();
         digitalWrite(_PINMoveDown, RELAYPINON);
     }
-    debugLine("Method: Run Down Done");
 }
 
 void runMotorUp(bool override)
 {
-    debugLine("Method: Run Up Stop Down");
     stopMotorDown();
     if (!isLimitUp() || override)
     {
-        debugLine("Method: Run Up");
         _isMotorRunningUp = true;
         _timestampMotorMoveUp = millis();
         digitalWrite(_PINMoveUp, RELAYPINON);
     }
-    debugLine("Method: Run Up Done");
 }
 
 void stopMotorLeft()
@@ -2030,7 +2209,6 @@ void stopMotorLeft()
     if (!_isMotorRunningLeft) //avoid useless writes
         return;
 
-    debugLine("Method: Stop Left");
     _isMotorRunningLeft = false;
     digitalWrite(_PINMoveLeft, RELAYPINOFF);
 }
@@ -2040,7 +2218,6 @@ void stopMotorRight()
     if (!_isMotorRunningRight) //avoid useless writes
         return;
 
-    debugLine("Method: Stop Right");
     _isMotorRunningRight = false;
     digitalWrite(_PINMoveRight, RELAYPINOFF);
 }
@@ -2050,7 +2227,6 @@ void stopMotorForward()
     if (!_isMotorRunningForward) //avoid useless writes
         return;
 
-    debugLine("Method: Stop Forward");
     _isMotorRunningForward = false;
     digitalWrite(_PINMoveForward, RELAYPINOFF);
 }
@@ -2060,21 +2236,18 @@ void stopMotorBackward()
     if (!_isMotorRunningBackward) //avoid useless writes
         return;
 
-    debugLine("Method: Stop Backward");
     _isMotorRunningBackward = false;
     digitalWrite(_PINMoveBackward, RELAYPINOFF);
 }
 
 void stopMotorDown()
 {
-    debugLine("Method: Stop Down");
     _isMotorRunningDown = false;
     digitalWrite(_PINMoveDown, RELAYPINOFF);
 }
 
 void stopMotorUp()
 {
-    debugLine("Method: Stop Up");
     _isMotorRunningUp = false;
     digitalWrite(_PINMoveUp, RELAYPINOFF);
 }
@@ -2087,6 +2260,22 @@ void debugLine(char* message)
     }
 }
 void debugString(char* message)
+{
+    if (_isDebugMode)
+    {
+        Serial.print(message);
+    }
+}
+
+void debugInt(int message)
+{
+    if (_isDebugMode)
+    {
+        Serial.print(message);
+    }
+}
+
+void debugByte(byte message)
 {
     if (_isDebugMode)
     {
@@ -2109,10 +2298,10 @@ void openClaw()
 }
 void changeState(int newState)
 {
-    debugString("Chg State - Old: ");
-    debugString(_currentState);
-    debugString("; New: ");
-    debugLine(newState);
+    debugString("C S - O: ");
+    debugByte(_currentState);
+    debugString("; N: ");
+    debugInt(newState);
 
     _lastState = _currentState;
     _currentState = newState;
@@ -2149,3 +2338,4 @@ void clapClaw()
     delay(_wiggleTime);
     openClaw();
 }
+

@@ -10,18 +10,19 @@ FASTLED_USING_NAMESPACE
 #define LED_TYPE    WS2811
 #define COLOR_ORDER GRB
 #define PSU_PIN     11
-#define NUM_LEDS 100
+#define NUM_LEDS 31
 CRGB leds[NUM_LEDS];
 
 
 #define BRIGHTNESS         128
 #define FRAMES_PER_SECOND  120
 
-const byte _numChars = 32;
+const byte _numChars = 64;
 char _incomingCommand[_numChars]; // an array to store the received data
-char _acknowledgement = '\n'; //acknowledgement
-unsigned long checkTime = 0;
 
+unsigned long checkTime = 0;
+const char RTS = '}'; //request to send data
+const char CTS = '{'; //clear to send data
 
 void setup() {
   delay(2000);
@@ -43,82 +44,127 @@ SimplePatternList gPatterns = { rainbow, rainbowWithGlitter, confetti, sinelon, 
 
 uint8_t gCurrentPatternNumber = 0; // Index number of which pattern is current
 uint8_t gHue = 0; // rotating "base color" used by many of the patterns
-  
+bool _lightsEnabled = true;
+
+char _lastLedMessage[40]; //led message
+unsigned long _waitForLedAckTimestamp = 0; //time we sent last led message
+byte _waitForLedAckCount = 0; //retry counter
+
 void loop()
 {
-  
-  
+
   // Call the current pattern function once, updating the 'leds' array
-  gPatterns[gCurrentPatternNumber]();
+  if (_lightsEnabled)
+    gPatterns[gCurrentPatternNumber]();
 
-  // send the 'leds' array out to the actual LED strip
-  FastLED.show();
 
-  // insert a delay to keep the framerate modest
-  FastLED.delay(1000/FRAMES_PER_SECOND);
 
   // do some periodic updates
   EVERY_N_MILLISECONDS( 20 ) { gHue++; } // slowly cycle the "base color" through the rainbow
 
   EVERY_N_SECONDS( 30 ) { nextPattern(); } // change patterns periodically
-  
-    // do some periodic updates
-  EVERY_N_MILLISECONDS( 100 ) { handleSerialCommands(); } // read from serial port
-  
+
+  handleSerialCommands();
+
+  // insert a delay to keep the framerate modest
+  FastLED.delay(8);
+}
+
+void notifySerialMessage()
+{
+    _waitForLedAckTimestamp = millis();
+    Serial.print(RTS);
+    Serial.flush();
+    
+}
+
+void sendSerialMessage(char message[])
+{
+    notifySerialMessage();
+    strncpy(_lastLedMessage, message, strlen(message)+1);
+}
+
+void sendSerialData(char message[])
+{
+    Serial.print(message);
+    Serial.print("!");
+    Serial.flush();
 }
 
 void handleSerialCommands()
 {
-  Serial.println(".");
-  Serial.flush();
-  checkTime = millis();
-  //wait for response
-  while (!Serial.available())
-  {
-    //only wait 2ms for response, not long enough?
-    if (millis() - checkTime > 2)
-      break;
-  }
-  checkTime = millis();
-  //read data til there is no more
-  static byte idx = 0;
-  while (true)
-  {
-    if (Serial.available())
+    //if we sent a message but didn't receive an ACK then send again
+    if (_waitForLedAckTimestamp && millis() - _waitForLedAckTimestamp > 300)
+    {
+        _waitForLedAckCount++;
+        notifySerialMessage();
+    }
+
+    if (_waitForLedAckCount > 5) //give up after 5 attempts
+    {
+        _waitForLedAckTimestamp = 0;
+        _waitForLedAckCount = 0;
+    }
+
+    static byte sidx = 0; //serial cursor
+    static unsigned long startTime = 0; //memory placeholder
+
+    startTime = millis();
+
+    //if we have data, read it
+    while (Serial.available() > 0) //burns through the buffer waiting for a start byte
     {
       char thisChar = Serial.read();
-      if (thisChar == '\n')
-      {
-        _incomingCommand[idx] = '\0'; //terminate string
-        handleCommand();
 
-        idx = 0;
-        if (Serial.available())
-          continue; //odd we have more data, restart loop, maybe the other controller got backed up
-        else
-          break; //ok no more data, break out and continue light show
-      } else {
-        if (thisChar != '\r') //ignore CR
+      if (thisChar == RTS) //if the other end wants to send data, tell them it's OK
+      {
+        Serial.print(CTS);
+        Serial.flush();
+
+        
+        //no we wait for data to come in
+        sidx = 0;
+        
+        while (millis() - startTime < 300) //wait up to 300ms for next byte
         {
-          //save our byte
-          _incomingCommand[idx] = thisChar;
-          idx++;
-          //prevent overlfow and overwrite our last byte
-          if (idx >= _numChars) {
-              idx = _numChars - 1;
-          }
-        }
+          if (!Serial.available()) //if nothing new.. continue
+              continue;
+
+          startTime = millis(); //update received timestamp, allows slow data to come in (manually typing)
+          thisChar = Serial.read();
+
+          if (thisChar == '!') //if we receive a proper ending, process the data
+          {
+            while (Serial.available() > 0) //burns the buffer
+              Serial.read();
+
+            _incomingCommand[sidx] = '\0'; //terminate string
+            handleCommand();
+            break;
+          } else {
+            //save our byte
+            _incomingCommand[sidx] = thisChar;
+            sidx++;
+            //prevent overlfow and reset to our last byte
+            if (sidx >= _numChars) {
+                sidx = _numChars - 1;
+            }
+          } 
+        } //end data while loop
+      } //end RTS check
+      else if (thisChar == CTS)
+      {
+          _waitForLedAckTimestamp = 0;
+          _waitForLedAckCount = 0;
+
+          sendSerialData(_lastLedMessage);
       }
-    } else if (millis() - checkTime > 10) {
-      idx = 0; //reset index to zero because the new data coming in should be a new command
-      break;
-    }
-  }
+    } //end initial while loop
 }
 
 void handleCommand()
 {
-  char outputData[400];
+  char outputData[100];
   char command[_numChars]= {0}; //holds the command
   char argument1[_numChars]= {0}; //holds the axis
   char argument2[_numChars]= {0}; //holds the setting
@@ -130,21 +176,19 @@ void handleCommand()
   //inefficient but safer, everything is a string then converted later
   sscanf(_incomingCommand, "%s %s %s %s %s %s %s", command, argument1, argument2, argument3, argument4, argument5, argument6);
 
-  if (strcmp(command,"a") == 0) { //ack, do nothing
+  if (strcmp(command,"s") == 0) //strobe
+  {
 
-  }
-  else if (strcmp(command,"s") == 0) { //strobe
-    
     byte red = (byte)atoi(argument1);
     byte green = (byte)atoi(argument2);
     byte blue = (byte)atoi(argument3);
 
-    int StrobeCount = atoi(argument4);
-    int FlashDelay = atoi(argument5);
-    int EndPause = atoi(argument6);
-    
-    strobe(red, green, blue, StrobeCount, FlashDelay, EndPause);
-    
+    int strobeCount = atoi(argument4);
+    int flashDelay = atoi(argument5);
+    int endPause = atoi(argument6);
+
+    strobe(red, green, blue, strobeCount, flashDelay, endPause);
+
    }
    else if (strcmp(command,"ds") == 0) { //police strobe
     char sred[_numChars]= {0}; //holds the setting
@@ -160,16 +204,24 @@ void handleCommand()
     byte green2 = (byte)atoi(sgreen);
     byte blue2 = (byte)atoi(sblue);
 
-    int StrobeCount = atoi(argument3);
-    int FlashDelay = atoi(argument4);
-    int EndPause = atoi(argument5);
-    
-    dualstrobe(red, green, blue, red2, green2, blue2, StrobeCount, FlashDelay, EndPause);
-    
+    int strobeCount = atoi(argument3);
+    int flashDelay = atoi(argument4);
+    int endPause = atoi(argument5);
+
+    dualstrobe(red, green, blue, red2, green2, blue2, strobeCount, flashDelay, endPause);
+
    } else if (strcmp(command,"p") == 0)
    {
      int power = atoi(argument1);
      analogWrite(PSU_PIN, power);
+   } else if (strcmp(command,"lm") == 0) //light mode
+   {
+      _lightsEnabled = atoi(argument1) == 1;
+      if (!_lightsEnabled)
+      {
+        setAll(0,0,0);
+        showStrip();
+      }
    }
 }
 
@@ -187,7 +239,6 @@ void setAll(byte red, byte green, byte blue) {
   for(int i = 0; i < NUM_LEDS; i++ ) {
     setPixel(i, red, green, blue); 
   }
-  showStrip();
 }
 
 
@@ -253,35 +304,30 @@ void juggle() {
     dothue += 32;
   }
 }
-void strobe(byte red, byte green, byte blue, int StrobeCount, int FlashDelay, int EndPause){
-  for(int j = 0; j < StrobeCount; j++) {
+
+void strobe(byte red, byte green, byte blue, int strobeCount, int flashDelay, int endPause){
+  for(int j = 0; j < strobeCount; j++) {
     setAll(red,green,blue);
-    showStrip();
-    delay(FlashDelay);
+    FastLED.delay(flashDelay);
     setAll(0,0,0);
-    showStrip();
-    delay(FlashDelay);
+    FastLED.delay(flashDelay);
   }
  
- delay(EndPause);
+ delay(endPause);
 }
 
-void dualstrobe(byte red, byte green, byte blue, byte red2, byte green2, byte blue2, int StrobeCount, int FlashDelay, int EndPause){
-  for(int j = 0; j < StrobeCount; j++) {
+void dualstrobe(byte red, byte green, byte blue, byte red2, byte green2, byte blue2, int strobeCount, int flashDelay, int endPause){
+  for(int j = 0; j < strobeCount; j++) {
     setAll(red,green,blue);
-    showStrip();
-    delay(FlashDelay);
+    FastLED.delay(flashDelay);
     setAll(0,0,0);
-    showStrip();
-    delay(FlashDelay);
+    FastLED.delay(flashDelay);
 
     setAll(red2,green2,blue2);
-    showStrip();
-    delay(FlashDelay);
+    FastLED.delay(flashDelay);
     setAll(0,0,0);
-    showStrip();
-    delay(FlashDelay);
+    FastLED.delay(flashDelay);
   }
  
- delay(EndPause);
+ delay(endPause);
 }
