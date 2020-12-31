@@ -42,7 +42,9 @@ namespace InternetClawMachine.Games.ClawGame
         //flag determines if a player played
         public bool CurrentPlayerHasPlayed { get; internal set; }
 
-        public CancellationTokenSource CurrentWinCancellationToken { get; private set; }
+        public CancellationTokenSource CurrentWinCancellationToken { get; set; }
+
+
 
         /// <summary>
         /// The time the claw was dropped
@@ -126,14 +128,17 @@ namespace InternetClawMachine.Games.ClawGame
             OnTeamJoined += ClawGame_OnTeamJoined;
 
             SessionWinTracker = new List<SessionWinTracker>();
-
+            SinglePlayerDuration = Configuration.ClawSettings.SinglePlayerDuration;
+            SinglePlayerQueueNoCommandDuration = configuration.ClawSettings.SinglePlayerQueueNoCommandDuration;
             //refresh the browser scene source, needs done better...
+            RefreshGameCancellationToken();
             Task.Run(async delegate ()
             {
                 ObsConnection.SetSourceRender("BrowserSounds", false, "VideosScene");
                 await Task.Delay(5000);
+                GameCancellationToken.Token.ThrowIfCancellationRequested();
                 ObsConnection.SetSourceRender("BrowserSounds", true, "VideosScene");
-            });
+            }, GameCancellationToken.Token);
         }
 
         ~ClawGame()
@@ -1848,6 +1853,7 @@ namespace InternetClawMachine.Games.ClawGame
         {
             try
             {
+                RefreshGameCancellationToken();
                 Task.Run(async delegate ()
                 {
                     InScanWindow = true; //disable scan acceptance
@@ -1856,16 +1862,21 @@ namespace InternetClawMachine.Games.ClawGame
 
                     ObsConnection.SetSourceRender(Configuration.ObsScreenSourceNames.CameraConveyor.SourceName, true);
                     await Task.Delay(Configuration.ClawSettings.CameraLagTime);
+                    GameCancellationToken.Token.ThrowIfCancellationRequested();
                     await MachineControl.RunConveyor(milliseconds);
+                    GameCancellationToken.Token.ThrowIfCancellationRequested();
                     await Task.Delay(Configuration.ClawSettings.ConveyorWaitBeforeFlipper);
+                    GameCancellationToken.Token.ThrowIfCancellationRequested();
                     if (!Configuration.EventMode.DisableFlipper)
                         MachineControl.Flipper(FlipperDirection.FLIPPER_FORWARD);
                     await MachineControl.RunConveyor(Configuration.ClawSettings.ConveyorRunDuringFlipper);
+                    GameCancellationToken.Token.ThrowIfCancellationRequested();
                     await Task.Delay(Configuration.ClawSettings.ConveyorWaitAfter);
+                    GameCancellationToken.Token.ThrowIfCancellationRequested();
                     ObsConnection.SetSourceRender(Configuration.ObsScreenSourceNames.CameraConveyor.SourceName, false);
 
                     InScanWindow = false; //disable scan acceptance
-                });
+                }, GameCancellationToken.Token);
             }
             catch (Exception ex)
             {
@@ -1926,11 +1937,13 @@ namespace InternetClawMachine.Games.ClawGame
 
                 if (scannedPlush == null && !Configuration.EventMode.DisableRFScan)
                 {
+                    RefreshGameCancellationToken();
                     Task.Run(async delegate
                     {
                         await Task.Delay(4000);
+                        GameCancellationToken.Token.ThrowIfCancellationRequested();
                         CreateClip();
-                    });
+                    }, GameCancellationToken.Token);
                 }
 
                 RunWinScenario(scannedPlush, winner, pointsToAdd);
@@ -2157,29 +2170,35 @@ namespace InternetClawMachine.Games.ClawGame
                 if (strobeDuration < cameraLagTime)
                 {
                     await Task.Delay(strobeDuration);
+                    GameCancellationToken.Token.ThrowIfCancellationRequested();
                     if (turnemon)
                         MachineControl.LightSwitch(true);
 
                     await Task.Delay(cameraLagTime - strobeDuration);
+                    GameCancellationToken.Token.ThrowIfCancellationRequested();
                     DisableGreenScreen(); //disable greenscreen
 
                     await Task.Delay(strobeDuration);
+                    GameCancellationToken.Token.ThrowIfCancellationRequested();
                     EnableGreenScreen();
                 }
                 else
                 {
                     //wait for camera sync
                     await Task.Delay(cameraLagTime);
+                    GameCancellationToken.Token.ThrowIfCancellationRequested();
                     DisableGreenScreen(); //disable greenscreen
 
                     //wait the duration of the strobe
                     await Task.Delay(strobeDuration - cameraLagTime);
+                    GameCancellationToken.Token.ThrowIfCancellationRequested();
                     //if the lights were off turnemon
                     if (turnemon)
                         MachineControl.LightSwitch(true);
 
                     //wait for camera sync again to re-enable greenscreen
                     await Task.Delay(cameraLagTime);
+                    GameCancellationToken.Token.ThrowIfCancellationRequested();
                     EnableGreenScreen(); //enable the screen
                 }
             }
@@ -2688,13 +2707,13 @@ namespace InternetClawMachine.Games.ClawGame
         {
             if (Configuration.EventMode.FlipperPosition == FlipperDirection.FLIPPER_FORWARD || Configuration.EventMode.DisableFlipper)
                 return;
-
+            RefreshGameCancellationToken();
             Task.Run(async delegate ()
             {
                 await ((ClawController)MachineControl).RunConveyor(1000);
-
+                GameCancellationToken.Token.ThrowIfCancellationRequested();
                 ((ClawController)MachineControl).Flipper(FlipperDirection.FLIPPER_HOME);
-            });
+            }, GameCancellationToken.Token);
         }
 
         private void ClawGame_OnFlipperHitHome(object sender, EventArgs e)
@@ -2756,38 +2775,44 @@ namespace InternetClawMachine.Games.ClawGame
 
         private void ClawGame_OnNewSubscriber(object sender, TwitchLib.Client.Events.OnNewSubscriberArgs e)
         {
+            RefreshGameCancellationToken();
             Task.Run(async () =>
             {
                 Configuration.IsPaused = true;
                 try
                 {
                     await PoliceStrobe();
+                    GameCancellationToken.Token.ThrowIfCancellationRequested();
                     ((ClawController)MachineControl).SendCommandAsync("wt 500");
                     ((ClawController)MachineControl).SendCommandAsync("clap " + int.Parse(e.Subscriber.MsgParamCumulativeMonths));
                     await Task.Delay(500 * int.Parse(e.Subscriber.MsgParamCumulativeMonths) * 2);
+                    GameCancellationToken.Token.ThrowIfCancellationRequested();
                 }
                 catch
                 { }
                 Configuration.IsPaused = false;
-            });
+            }, GameCancellationToken.Token);
         }
 
         private void ClawGame_OnReSubscriber(object sender, TwitchLib.Client.Events.OnReSubscriberArgs e)
         {
+            RefreshGameCancellationToken();
             Task.Run(async () =>
             {
                 Configuration.IsPaused = true;
                 try
                 {
                     await PoliceStrobe();
+                    GameCancellationToken.Token.ThrowIfCancellationRequested();
                     ((ClawController)MachineControl).SendCommandAsync("wt 500");
                     ((ClawController)MachineControl).SendCommandAsync("clap " + e.ReSubscriber.Months);
                     await Task.Delay(500 * e.ReSubscriber.Months * 2);
+                    GameCancellationToken.Token.ThrowIfCancellationRequested();
                 }
                 catch
                 { }
                 Configuration.IsPaused = false;
-            });
+            }, GameCancellationToken.Token);
         }
 
         private void ClawGame_OnReturnedHome(object sender, EventArgs e)
@@ -2863,10 +2888,14 @@ namespace InternetClawMachine.Games.ClawGame
             if (newPlush != null)
             {
                 //async task to start new bounty after 14 seconds
+                RefreshGameCancellationToken();
                 Task.Run(async delegate ()
                 {
                     if (withDelay)
+                    {
                         await Task.Delay(14000);
+                        GameCancellationToken.Token.ThrowIfCancellationRequested();
+                    }
 
                     RunBountyAnimation(newPlush);
                     //deduct it from their balance
@@ -2881,8 +2910,9 @@ namespace InternetClawMachine.Games.ClawGame
                     var bountyMessage = Translator.GetTranslation(saying, Configuration.UserList.GetUserLocalization(PlayerQueue.CurrentPlayer)).Replace("<<plush>>", Bounty.Name).Replace("<<bux>>", Bounty.Amount.ToString());
 
                     await Task.Delay(100);
+                    GameCancellationToken.Token.ThrowIfCancellationRequested();
                     ChatClient.SendMessage(Configuration.Channel, bountyMessage);
-                });
+                }, GameCancellationToken.Token);
             }
         }
 
@@ -3145,7 +3175,7 @@ namespace InternetClawMachine.Games.ClawGame
             }
         }
 
-        private void LoadPlushFromDb()
+        public void LoadPlushFromDb()
         {
             lock (Configuration.RecordsDatabase)
             {
@@ -3235,10 +3265,11 @@ namespace InternetClawMachine.Games.ClawGame
 
                 CurrentWinCancellationToken = winCancellationToken;
 
+                
                 Task.Run(async delegate ()
                 {
                     await Task.Delay(8000); //wait 8 seconds
-
+                    GameCancellationToken.Token.ThrowIfCancellationRequested();
                     if (winCancellationToken.IsCancellationRequested)
                         return;
 
@@ -3275,12 +3306,14 @@ namespace InternetClawMachine.Games.ClawGame
             Logger.WriteLog(Logger.MachineLog, message);
 
             //after a bit, clear the secondary list
+            RefreshGameCancellationToken();
             Task.Run(async delegate ()
             {
                 await Task.Delay(Configuration.ClawSettings.SecondaryListBufferTime);
+                GameCancellationToken.Token.ThrowIfCancellationRequested();
                 SecondaryWinnersList.Clear();
                 InScanWindow = false; //disable scan acceptance
-            });
+            }, GameCancellationToken.Token);
         }
 
         private void MachineControl_ResetButtonPressed(object sender, EventArgs e)
@@ -3306,6 +3339,7 @@ namespace InternetClawMachine.Games.ClawGame
                         ObsConnection.SetSourceRender(clipName.SourceName, true, clipName.SceneName);
                     }
                     await Task.Delay(ms);
+                    GameCancellationToken.Token.ThrowIfCancellationRequested();
                     lock (ObsConnection)
                     {
                         ObsConnection.SetSourceRender(clipName.SourceName, false, clipName.SceneName);
@@ -3337,9 +3371,11 @@ namespace InternetClawMachine.Games.ClawGame
             if (_failsafeCurrentResets < _failsafeMaxResets)
             {
                 _failsafeCurrentResets++;
+                RefreshGameCancellationToken();
                 Task.Run(async delegate
                 {
                     await Task.Delay(10000);
+                    GameCancellationToken.Token.ThrowIfCancellationRequested();
                     ((ClawController)MachineControl).SendCommand("state 0");
                     ((ClawController)MachineControl).SendCommand("reset");
                 });
@@ -3361,6 +3397,7 @@ namespace InternetClawMachine.Games.ClawGame
                 }
                 try
                 {
+                    
                     Task.Run(async delegate
                     {
                         //send to discord
@@ -3634,12 +3671,14 @@ namespace InternetClawMachine.Games.ClawGame
             Notifier.SendDiscordMessage(Configuration.DiscordSettings.SpamWebhook, winner + " won a prize: " + saying);
 
             //send message after a bit
+            RefreshGameCancellationToken();
             Task.Run(async delegate ()
             {
                 await Task.Delay(Configuration.WinNotificationDelay);
+                GameCancellationToken.Token.ThrowIfCancellationRequested();
                 ChatClient.SendMessage(Configuration.Channel, saying);
                 Logger.WriteLog(Configuration.Channel, saying);
-            });
+            }, GameCancellationToken.Token);
         }
 
         private void WriteMiss(string username, string plush)

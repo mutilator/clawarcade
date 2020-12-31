@@ -92,7 +92,6 @@ namespace InternetClawMachine.Games.ClawGame
         public int QuestionsAsked { get; set; }
         public Task HintPromise { get; set; }
         public CancellationTokenSource HintCancelToken { get; set; }
-        public CancellationTokenSource IsTriviaAliveCancelToken { get; set; }
 
         public string AnswerHint { get; set; }
         public int QuestionCount { set; get; }
@@ -159,8 +158,6 @@ namespace InternetClawMachine.Games.ClawGame
             if (HintCancelToken != null && !HintCancelToken.IsCancellationRequested)
                 HintCancelToken.Cancel();
 
-            if (IsTriviaAliveCancelToken != null && IsTriviaAliveCancelToken.IsCancellationRequested)
-                IsTriviaAliveCancelToken.Cancel();
 
             GameLoopCounterValue = -1;
             if (MachineControl != null)
@@ -206,7 +203,7 @@ namespace InternetClawMachine.Games.ClawGame
                     if (!Configuration.AdminUsers.Contains(username.ToLower()))
                         break;
 
-                    NextQuestion(new CancellationTokenSource());
+                    NextQuestion();
                     break;
             }
         }
@@ -591,15 +588,14 @@ namespace InternetClawMachine.Games.ClawGame
                     string.Format(Translator.GetTranslation("gameClawTriviaWinFinal", Translator.DefaultLanguage),
                         user.Username, correctAnswers, user.Wins));
             }
-            if (IsTriviaAliveCancelToken == null || IsTriviaAliveCancelToken.IsCancellationRequested)
-                IsTriviaAliveCancelToken = new CancellationTokenSource();
+            RefreshGameCancellationToken();
 
             Task.Run(async delegate ()
             {
                 await Task.Delay(Configuration.ClawSettings.TriviaEndRoundDelay); //wait a bit before we vote
-                IsTriviaAliveCancelToken.Token.ThrowIfCancellationRequested();
+                GameCancellationToken.Token.ThrowIfCancellationRequested();
                 await BeginRestartVote();
-            }, IsTriviaAliveCancelToken.Token);
+            }, GameCancellationToken.Token);
         }
 
         private async Task BeginRestartVote()
@@ -609,7 +605,7 @@ namespace InternetClawMachine.Games.ClawGame
             RestartVotes.Clear();
 
             await Task.Delay(Configuration.VoteSettings.VoteDuration * 1000);
-            IsTriviaAliveCancelToken.Token.ThrowIfCancellationRequested();
+            GameCancellationToken.Token.ThrowIfCancellationRequested();
             ThrowEndVoteRestart();
         }
 
@@ -666,6 +662,8 @@ namespace InternetClawMachine.Games.ClawGame
 
             ChatClient.SendMessage(Configuration.Channel, msg);
 
+            RefreshGameCancellationToken();
+
             Task.Run(async delegate
             {
                 //15 second timer to see if they're still active
@@ -682,6 +680,7 @@ namespace InternetClawMachine.Games.ClawGame
                 { Username = username, GameLoopCounterValue = loopVal, GameMode = GameMode };
 
                 await Task.Delay(firstWait);
+                GameCancellationToken.Token.ThrowIfCancellationRequested();
 
                 if (!CurrentPlayerHasPlayed && PlayerQueue.Count > 1)
                 {
@@ -698,6 +697,7 @@ namespace InternetClawMachine.Games.ClawGame
                 {
                     //Waiting!!!
                     await Task.Delay(Configuration.ClawSettings.SinglePlayerDuration * 1000 - firstWait);
+                    GameCancellationToken.Token.ThrowIfCancellationRequested();
 
                     //interesting bug because of the way this works using timers....
                     //if a person takes SO long to go that they finally drop with less than < _clawReturnHomeTime left this will skip to the next player
@@ -721,7 +721,7 @@ namespace InternetClawMachine.Games.ClawGame
                         StartNewTriviaRound();
                     }
                 }
-            }, IsTriviaAliveCancelToken.Token);
+            }, GameCancellationToken.Token);
 
             base.StartRound(username); //game start event
         }
@@ -730,11 +730,12 @@ namespace InternetClawMachine.Games.ClawGame
         {
             ChatClient.SendMessage(Configuration.Channel,
                 string.Format(Translator.GetTranslation("gameClawTriviaSetupQuestions", Translator.DefaultLanguage)));
+            RefreshGameCancellationToken();
             Task.Run(async delegate
             {
                 await Task.Delay(Configuration.VoteSettings.VoteDuration * 1000);
                 ThrowEndVoteQuestionAmount();
-            }, IsTriviaAliveCancelToken.Token);
+            }, GameCancellationToken.Token);
         }
 
         private void ThrowEndVoteQuestionAmount()
@@ -750,7 +751,7 @@ namespace InternetClawMachine.Games.ClawGame
                 //wait for plush to scan if they managed to grab one
                 await Task.Delay(Configuration.ClawSettings.ConveyorWaitAfter + Configuration.ClawSettings.ConveyorWaitFor + Configuration.ClawSettings.ConveyorWaitBeforeFlipper + Configuration.ClawSettings.ConveyorWaitUntil);
 
-                IsTriviaAliveCancelToken.Token.ThrowIfCancellationRequested();
+                GameCancellationToken.Token.ThrowIfCancellationRequested();
                 
                 EndTrivia();
             }
@@ -766,7 +767,7 @@ namespace InternetClawMachine.Games.ClawGame
                     var firstWait = Configuration.EventMode.TriviaSettings.QuestionWaitDelay * 1000;
 
                     await Task.Delay(firstWait);
-                    IsTriviaAliveCancelToken.Token.ThrowIfCancellationRequested();
+                    GameCancellationToken.Token.ThrowIfCancellationRequested();
                 }
 
                 var answers = "";
@@ -798,7 +799,7 @@ namespace InternetClawMachine.Games.ClawGame
                 {
                     // Were we already canceled?
                     await Task.Delay(Configuration.EventMode.TriviaSettings.AnswerHintDelay);
-                    IsTriviaAliveCancelToken.Token.ThrowIfCancellationRequested();
+                    GameCancellationToken.Token.ThrowIfCancellationRequested();
                     hintCt.ThrowIfCancellationRequested();
                     UpdateAnswerHint();
                     ChatClient.SendMessage(Configuration.Channel, AnswerHint);

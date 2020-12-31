@@ -907,11 +907,11 @@ namespace InternetClawMachine
                     if (Game is ClawGame)
                     {
                         Configuration.DataExchanger.CurrentPlayerHasPlayed = ((ClawGame)Game).CurrentPlayerHasPlayed;
-                        Configuration.DataExchanger.SinglePlayerDuration =
-                            Configuration.ClawSettings.SinglePlayerDuration;
-                        Configuration.DataExchanger.SinglePlayerQueueNoCommandDuration =
-                            Configuration.ClawSettings.SinglePlayerQueueNoCommandDuration;
+                        
                     }
+
+                    Configuration.DataExchanger.SinglePlayerDuration = Game.SinglePlayerDuration;
+                    Configuration.DataExchanger.SinglePlayerQueueNoCommandDuration = Game.SinglePlayerQueueNoCommandDuration;
 
                     Configuration.DataExchanger.RoundTimer = Game.GameRoundTimer.ElapsedMilliseconds / 1000;
                 }
@@ -1305,7 +1305,7 @@ namespace InternetClawMachine
                 //TODO - figure out how to respond in the most used language during vote
                 Client.SendMessage(Configuration.Channel,
                     Translator.GetTranslation("gameVoteNoVotes", Translator.DefaultLanguage));
-                StartGameModeRealTime();
+                StartGameModeSingleQueue(null);
             }
         }
 
@@ -2257,7 +2257,10 @@ namespace InternetClawMachine
                 return;
             }
 
-            ((ClawGame)Game).TriggerWin((PlushieObject)lstPlushes.SelectedItem,
+            var plush = (PlushieObject)lstPlushes.SelectedItem;
+            plush.WasGrabbed = false;
+
+            ((ClawGame)Game).TriggerWin(plush,
                 lstViewers.SelectedItem.ToString(), false, 1);
             lstPlushes.Items.Refresh();
         }
@@ -2890,7 +2893,7 @@ namespace InternetClawMachine
         {
             if (Game is ClawTrivia)
             {
-                ((ClawTrivia)Game).NextQuestion(new CancellationTokenSource());
+                ((ClawTrivia)Game).NextQuestion();
             }
         }
 
@@ -2957,6 +2960,11 @@ namespace InternetClawMachine
         {
             if (Game == null) return;
             (Game as ClawGame)?.RunScare(false, 3);
+        }
+
+        private void BtnReloadPlushDB_Click(object sender, RoutedEventArgs e)
+        {
+            ((ClawGame)Game)?.LoadPlushFromDb();
         }
     }
 

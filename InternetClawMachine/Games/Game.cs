@@ -47,6 +47,16 @@ namespace InternetClawMachine.Games
         #region Properties
 
         /// <summary>
+        /// How long is a round for a player?
+        /// </summary>
+        public int SinglePlayerDuration { set; get; }
+
+        /// <summary>
+        /// How long before we kick them out for not playing?
+        /// </summary>
+        public int SinglePlayerQueueNoCommandDuration { set; get; }
+
+        /// <summary>
         /// Simple container for the active bounty
         /// </summary>
         public Bounty Bounty { get; set; }
@@ -66,7 +76,14 @@ namespace InternetClawMachine.Games
         /// </summary>
         public Stopwatch CommandQueueTimer { get; set; }
 
-        ///
+        /// <summary>
+        /// Used as the cancellation token for events that need to end during the general execution of the game. e.g. cancel text we're waiting to display
+        /// </summary>
+        public CancellationTokenSource GameCancellationToken { get; set; }
+
+        /// <summary>
+        /// Reference to configuration
+        /// </summary>
         public BotConfiguration Configuration { get; set; }
 
         /// <summary>
@@ -195,6 +212,7 @@ namespace InternetClawMachine.Games
             GameModeTimer = new Stopwatch();
             GameRoundTimer = new Stopwatch();
             Votes = new List<GameModeVote>();
+            
         }
 
         ~Game()
@@ -267,8 +285,15 @@ namespace InternetClawMachine.Games
 
         public virtual void Init()
         {
+            RefreshGameCancellationToken();
             PlayerQueue.OnChangedQueue += PlayerQueue_ChangedPlayerQueue;
             Configuration.StreamBuxCosts = DatabaseFunctions.LoadStreamBux(Configuration);
+        }
+
+        internal void RefreshGameCancellationToken()
+        {
+            if (GameCancellationToken == null || GameCancellationToken.IsCancellationRequested)
+                GameCancellationToken = new CancellationTokenSource();
         }
 
         /// <summary>

@@ -183,6 +183,7 @@ namespace InternetClawMachine.Games.ClawGame
 
             ChatClient.SendMessage(Configuration.Channel, msg);
 
+            RefreshGameCancellationToken();
             Task.Run(async delegate ()
             {
                 var sequence = DateTime.Now.Ticks;
@@ -204,6 +205,7 @@ namespace InternetClawMachine.Games.ClawGame
                 { Username = username, GameLoopCounterValue = GameLoopCounterValue, GameMode = GameMode };
 
                 await Task.Delay(firstWait);
+                GameCancellationToken.Token.ThrowIfCancellationRequested();
 
                 //if after the first delay something skipped them, jump out
                 if (PlayerQueue.CurrentPlayer != args.Username || GameLoopCounterValue != args.GameLoopCounterValue)
@@ -225,6 +227,7 @@ namespace InternetClawMachine.Games.ClawGame
                 else
                 {
                     await Task.Delay(Configuration.ClawSettings.SinglePlayerDuration * 1000 - firstWait);
+                    GameCancellationToken.Token.ThrowIfCancellationRequested();
 
                     //if after the second delay something skipped them, jump out
                     if (PlayerQueue.CurrentPlayer != args.Username || GameLoopCounterValue != args.GameLoopCounterValue)
@@ -251,7 +254,7 @@ namespace InternetClawMachine.Games.ClawGame
                         Logger.WriteLog(Logger.DebugLog, string.Format("STARTROUND: [{0}] Exit after checking active claw play = TRUE for {1} in game loop {2}, current player {3} game loop {4}", sequence, args.Username, args.GameLoopCounterValue, PlayerQueue.CurrentPlayer, GameLoopCounterValue), Logger.LogLevel.DEBUG);
                     }
                 }
-            });
+            }, GameCancellationToken.Token);
 
             OnRoundStarted(new RoundStartedArgs() { Username = username, GameMode = GameMode });
         }

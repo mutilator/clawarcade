@@ -117,8 +117,6 @@ namespace InternetClawMachine.Games.ClawGame
         public override void Init()
         {
             base.Init();
-            if (IsTriviaAliveCancelToken == null || IsTriviaAliveCancelToken.IsCancellationRequested)
-                IsTriviaAliveCancelToken = new CancellationTokenSource();
 
             switch (Configuration.EventMode.TriviaSettings.TeamNameMode)
             {
@@ -210,15 +208,14 @@ namespace InternetClawMachine.Games.ClawGame
                 ChatClient.SendMessage(Configuration.Channel, string.Format(Translator.GetTranslation("gameClawTriviaTeamWinFinal", Translator.DefaultLanguage), t.Name, correctAnswers, t.Wins));
             }
 
-            if (IsTriviaAliveCancelToken == null || IsTriviaAliveCancelToken.IsCancellationRequested)
-                IsTriviaAliveCancelToken = new CancellationTokenSource();
+            RefreshGameCancellationToken();
 
             Task.Run(async delegate ()
             {
                 await Task.Delay(Configuration.ClawSettings.TriviaEndRoundDelay); //wait a bit before we vote
-                IsTriviaAliveCancelToken.Token.ThrowIfCancellationRequested();
+                GameCancellationToken.Token.ThrowIfCancellationRequested();
                 await BeginRestartVote();
-            }, IsTriviaAliveCancelToken.Token);
+            }, GameCancellationToken.Token);
         }
 
         private async Task BeginRestartVote()
@@ -227,7 +224,7 @@ namespace InternetClawMachine.Games.ClawGame
             ChatClient.SendMessage(Configuration.Channel, string.Format(Translator.GetTranslation("gameClawTriviaTeamRestartGameVote", Translator.DefaultLanguage)));
             RestartVotes.Clear();
             await Task.Delay(Configuration.VoteSettings.VoteDuration * 1000);
-            IsTriviaAliveCancelToken.Token.ThrowIfCancellationRequested();
+            GameCancellationToken.Token.ThrowIfCancellationRequested();
             ThrowEndVoteRestart();
         }
 
@@ -273,10 +270,11 @@ namespace InternetClawMachine.Games.ClawGame
         public override void StartQuestionAmountVote()
         {
             ChatClient.SendMessage(Configuration.Channel, string.Format(Translator.GetTranslation("gameClawTriviaSetupQuestions", Translator.DefaultLanguage)));
+            RefreshGameCancellationToken();
             Task.Run(async delegate ()
             {
                 await Task.Delay(Configuration.VoteSettings.VoteDuration * 1000);
-                IsTriviaAliveCancelToken.Token.ThrowIfCancellationRequested();
+                GameCancellationToken.Token.ThrowIfCancellationRequested();
                 if (TriviaMessageMode != TriviaMessageMode.TRIVIASETUP)
                     return;
 
@@ -296,7 +294,7 @@ namespace InternetClawMachine.Games.ClawGame
                 TriviaMessageMode = TriviaMessageMode.ANSWERING;
                 QuestionCount = highestVote;
                 StartNewTriviaRound();
-            }, IsTriviaAliveCancelToken.Token);
+            }, GameCancellationToken.Token);
         }
 
         public override void StartNewTriviaRound()
@@ -504,7 +502,7 @@ namespace InternetClawMachine.Games.ClawGame
             {
                 //wait for plush to scan if they managed to grab one
                 await Task.Delay(Configuration.ClawSettings.ConveyorWaitAfter + Configuration.ClawSettings.ConveyorWaitFor + Configuration.ClawSettings.ConveyorWaitBeforeFlipper + Configuration.ClawSettings.ConveyorWaitUntil);
-                IsTriviaAliveCancelToken.Token.ThrowIfCancellationRequested();
+                GameCancellationToken.Token.ThrowIfCancellationRequested();
                 EndTrivia();
             }
             else
@@ -517,7 +515,7 @@ namespace InternetClawMachine.Games.ClawGame
                     var firstWait = Configuration.EventMode.TriviaSettings.QuestionWaitDelay * 1000;
 
                     await Task.Delay(firstWait);
-                    IsTriviaAliveCancelToken.Token.ThrowIfCancellationRequested();
+                    GameCancellationToken.Token.ThrowIfCancellationRequested();
                 }
 
                 var answers = "";
@@ -544,7 +542,7 @@ namespace InternetClawMachine.Games.ClawGame
                     // Were we already canceled?
 
                     await Task.Delay(Configuration.EventMode.TriviaSettings.AnswerHintDelay);
-                    IsTriviaAliveCancelToken.Token.ThrowIfCancellationRequested();
+                    GameCancellationToken.Token.ThrowIfCancellationRequested();
                     ct.ThrowIfCancellationRequested();
                     UpdateAnswerHint();
                     ChatClient.SendMessage(Configuration.Channel, AnswerHint);

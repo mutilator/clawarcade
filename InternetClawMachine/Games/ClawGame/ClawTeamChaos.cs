@@ -390,6 +390,7 @@ namespace InternetClawMachine.Games.ClawGame
 
             ChatClient.SendMessage(Configuration.Channel, msg);
 
+            RefreshGameCancellationToken();
             Task.Run(async delegate ()
             {
                 //15 second timer to see if they're still active
@@ -405,7 +406,7 @@ namespace InternetClawMachine.Games.ClawGame
                 var args = new RoundEndedArgs() { Username = username, GameLoopCounterValue = loopVal, GameMode = GameMode };
 
                 await Task.Delay(firstWait);
-
+                GameCancellationToken.Token.ThrowIfCancellationRequested();
                 if (!CurrentPlayerHasPlayed && PlayerQueue.Count > 1)
                 {
                     if (PlayerQueue.CurrentPlayer.ToLower() == username.ToLower())
@@ -423,7 +424,7 @@ namespace InternetClawMachine.Games.ClawGame
                 {
                     //Waiting!!!
                     await Task.Delay(Configuration.ClawSettings.SinglePlayerDuration * 1000 - firstWait);
-
+                    GameCancellationToken.Token.ThrowIfCancellationRequested();
                     //interesting bug because of the way this works using timers....
                     //if a person takes SO long to go that they finally drop with less than < _clawReturnHomeTime left this will skip to the next player
                     //but once the claw returns home it also skips to the next player

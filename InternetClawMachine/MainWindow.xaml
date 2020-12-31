@@ -182,6 +182,7 @@
                         <Button x:Name="btnPlushAddNew" Content="Add" HorizontalAlignment="Left" Margin="551,319,0,0" VerticalAlignment="Top" Width="81" Click="BtnPlushAddNew_Click" />
                         <Button x:Name="btnClearPlushScan" Content="Clear" HorizontalAlignment="Left" Margin="551,356,0,0" VerticalAlignment="Top" Width="81" Click="btnClearPlushScan_Click" />
                         <Button x:Name="btnIRScanned" Content="IR Scan" HorizontalAlignment="Left" Margin="10,356,0,0" VerticalAlignment="Top" Width="88" Click="BtnIRScanned_Click" />
+                        <Button x:Name="btnReloadPlushDB" Content="Reload DB" Height="Auto" Margin="637,319,10,45" Click="BtnReloadPlushDB_Click"/>
                     </Grid>
                 </TabItem>
                 <TabItem Header="Game Controls" Padding="20,2">
@@ -562,6 +563,7 @@
                         </TabControl>
                     </Grid>
                 </TabItem>
+
             </TabControl>
             <Label Content="Event Mode" HorizontalAlignment="Left" Margin="629,281,0,0" VerticalAlignment="Top" Height="26" Width="79" />
             <Button Content="Reload Configuration" Margin="0,0,188,18" Click="Button_Click" Grid.Row="1" HorizontalAlignment="Right" Width="176" Height="32" VerticalAlignment="Bottom" />

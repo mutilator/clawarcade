@@ -12,6 +12,9 @@ namespace InternetClawMachine.Games.OtherGame
         public Voting(IChatApi client, BotConfiguration configuration, OBSWebsocket obs) : base(client, configuration, obs)
         {
             GameMode = GameModeType.VOTING;
+
+            SinglePlayerDuration = Configuration.VoteSettings.VoteDuration;
+            SinglePlayerQueueNoCommandDuration = configuration.VoteSettings.VoteDuration;
         }
 
         public override void EndGame()
