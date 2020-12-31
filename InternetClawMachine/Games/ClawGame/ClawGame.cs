@@ -128,8 +128,8 @@ namespace InternetClawMachine.Games.ClawGame
             OnTeamJoined += ClawGame_OnTeamJoined;
 
             SessionWinTracker = new List<SessionWinTracker>();
-            SinglePlayerDuration = Configuration.ClawSettings.SinglePlayerDuration;
-            SinglePlayerQueueNoCommandDuration = configuration.ClawSettings.SinglePlayerQueueNoCommandDuration;
+            DurationSinglePlayer = Configuration.ClawSettings.SinglePlayerDuration;
+            DurationSinglePlayerQueueNoCommand = configuration.ClawSettings.SinglePlayerQueueNoCommandDuration;
             //refresh the browser scene source, needs done better...
             RefreshGameCancellationToken();
             Task.Run(async delegate ()

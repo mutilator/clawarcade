@@ -214,12 +214,16 @@ namespace InternetClawMachine.Games.ClawGame
             {
                 await Task.Delay(Configuration.ClawSettings.TriviaEndRoundDelay); //wait a bit before we vote
                 GameCancellationToken.Token.ThrowIfCancellationRequested();
-                await BeginRestartVote();
+                await StartVoteRestart();
             }, GameCancellationToken.Token);
         }
 
-        private async Task BeginRestartVote()
+        private async Task StartVoteRestart()
         {
+            //set the timer
+            DurationSinglePlayer = Configuration.VoteSettings.VoteDuration;
+            DurationSinglePlayerQueueNoCommand = Configuration.VoteSettings.VoteDuration;
+
             TriviaMessageMode = TriviaMessageMode.VOTERESTART;
             ChatClient.SendMessage(Configuration.Channel, string.Format(Translator.GetTranslation("gameClawTriviaTeamRestartGameVote", Translator.DefaultLanguage)));
             RestartVotes.Clear();
@@ -267,33 +271,20 @@ namespace InternetClawMachine.Games.ClawGame
             }
         }
 
-        public override void StartQuestionAmountVote()
+        public override void StartVoteQuestionAmount()
         {
+            //set the timer
+            DurationSinglePlayer = Configuration.VoteSettings.VoteDuration;
+            DurationSinglePlayerQueueNoCommand = Configuration.VoteSettings.VoteDuration;
+
             ChatClient.SendMessage(Configuration.Channel, string.Format(Translator.GetTranslation("gameClawTriviaSetupQuestions", Translator.DefaultLanguage)));
             RefreshGameCancellationToken();
             Task.Run(async delegate ()
             {
                 await Task.Delay(Configuration.VoteSettings.VoteDuration * 1000);
                 GameCancellationToken.Token.ThrowIfCancellationRequested();
-                if (TriviaMessageMode != TriviaMessageMode.TRIVIASETUP)
-                    return;
-
-                var highestTotal = 0;
-                var highestVote = 10;
-                foreach (var vote in _questionAmountVotes)
-                {
-                    if (vote.Value > highestTotal)
-                    {
-                        highestVote = vote.Key;
-                        highestTotal = vote.Value;
-                    }
-                }
-
-                ChatClient.SendMessage(Configuration.Channel, string.Format(Translator.GetTranslation("gameClawTriviaSetupQuestionsComplete", Translator.DefaultLanguage), highestVote, highestTotal));
-
-                TriviaMessageMode = TriviaMessageMode.ANSWERING;
-                QuestionCount = highestVote;
-                StartNewTriviaRound();
+                ThrowEndVoteQuestionAmount();
+               
             }, GameCancellationToken.Token);
         }
 
@@ -305,7 +296,7 @@ namespace InternetClawMachine.Games.ClawGame
             }
             else if (TriviaMessageMode == TriviaMessageMode.TRIVIASETUP)
             {
-                StartQuestionAmountVote();
+                StartVoteQuestionAmount();
             }
             else
             {
@@ -500,8 +491,19 @@ namespace InternetClawMachine.Games.ClawGame
 
             if (CurrentQuestion == null || QuestionsAsked >= QuestionCount)
             {
+                var duration = Configuration.ClawSettings.ConveyorWaitAfter + Configuration.ClawSettings.ConveyorWaitFor + Configuration.ClawSettings.ConveyorWaitBeforeFlipper + Configuration.ClawSettings.ConveyorWaitUntil;
+
+                //set the timer
+                DurationSinglePlayer = duration / 1000;
+                DurationSinglePlayerQueueNoCommand = duration / 1000;
+
                 //wait for plush to scan if they managed to grab one
-                await Task.Delay(Configuration.ClawSettings.ConveyorWaitAfter + Configuration.ClawSettings.ConveyorWaitFor + Configuration.ClawSettings.ConveyorWaitBeforeFlipper + Configuration.ClawSettings.ConveyorWaitUntil);
+                await Task.Delay(duration);
+
+                //set the times for queue
+                DurationSinglePlayer = Configuration.ClawSettings.SinglePlayerDuration;
+                DurationSinglePlayerQueueNoCommand = Configuration.ClawSettings.SinglePlayerQueueNoCommandDuration;
+
                 GameCancellationToken.Token.ThrowIfCancellationRequested();
                 EndTrivia();
             }

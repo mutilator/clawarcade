@@ -13,8 +13,8 @@ namespace InternetClawMachine.Games.OtherGame
         {
             GameMode = GameModeType.VOTING;
 
-            SinglePlayerDuration = Configuration.VoteSettings.VoteDuration;
-            SinglePlayerQueueNoCommandDuration = configuration.VoteSettings.VoteDuration;
+            DurationSinglePlayer = Configuration.VoteSettings.VoteDuration;
+            DurationSinglePlayerQueueNoCommand = configuration.VoteSettings.VoteDuration;
         }
 
         public override void EndGame()

@@ -910,8 +910,8 @@ namespace InternetClawMachine
                         
                     }
 
-                    Configuration.DataExchanger.SinglePlayerDuration = Game.SinglePlayerDuration;
-                    Configuration.DataExchanger.SinglePlayerQueueNoCommandDuration = Game.SinglePlayerQueueNoCommandDuration;
+                    Configuration.DataExchanger.SinglePlayerDuration = Game.DurationSinglePlayer;
+                    Configuration.DataExchanger.SinglePlayerQueueNoCommandDuration = Game.DurationSinglePlayerQueueNoCommand;
 
                     Configuration.DataExchanger.RoundTimer = Game.GameRoundTimer.ElapsedMilliseconds / 1000;
                 }
@@ -1028,18 +1028,16 @@ namespace InternetClawMachine
         {
             Client.SendMessage(Configuration.Channel,
                 string.Format(
-                    Translator.GetTranslation("announceTwitter",
-                        Translator.GetTranslation("gameVoteNoVotes",
-                            Configuration.UserList.GetUserLocalization(username))), Configuration.TwitterUrl));
+                    Translator.GetTranslation("announceTwitter", Configuration.UserList.GetUserLocalization(username)),
+                    Configuration.TwitterUrl));
         }
 
         private void ShowDiscordMessage(string username)
         {
             Client.SendMessage(Configuration.Channel,
                 string.Format(
-                    Translator.GetTranslation("announceDiscord",
-                        Translator.GetTranslation("gameVoteNoVotes",
-                            Configuration.UserList.GetUserLocalization(username))), Configuration.DiscordUrl));
+                    Translator.GetTranslation("announceDiscord", Configuration.UserList.GetUserLocalization(username)),
+                    Configuration.DiscordUrl));
         }
 
         private void Client_OnMessageReceived(object sender, OnMessageReceivedArgs e)

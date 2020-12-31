@@ -49,12 +49,12 @@ namespace InternetClawMachine.Games
         /// <summary>
         /// How long is a round for a player?
         /// </summary>
-        public int SinglePlayerDuration { set; get; }
+        public int DurationSinglePlayer { set; get; }
 
         /// <summary>
         /// How long before we kick them out for not playing?
         /// </summary>
-        public int SinglePlayerQueueNoCommandDuration { set; get; }
+        public int DurationSinglePlayerQueueNoCommand { set; get; }
 
         /// <summary>
         /// Simple container for the active bounty
