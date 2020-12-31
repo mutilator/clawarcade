@@ -116,6 +116,8 @@ namespace InternetClawMachine.Games.ClawGame
             switch (translateCommand.FinalWord)
             {
                 case "play":
+                    if (Configuration.IsPaused)
+                        return;
                     var userPrefs = Configuration.UserList.GetUser(username);
 
                     //TODO - Fix this so it doesn't rely on event name
@@ -196,6 +198,9 @@ namespace InternetClawMachine.Games.ClawGame
 
         public override void HandleMessage(string username, string message)
         {
+            if (Configuration.IsPaused)
+                return;
+
             var msg = message.ToLower();
             if (PlayerQueue.Count == 0)
             {

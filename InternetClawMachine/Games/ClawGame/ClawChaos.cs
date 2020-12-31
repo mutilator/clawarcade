@@ -23,6 +23,9 @@ namespace InternetClawMachine.Games.ClawGame
 
         public override void HandleMessage(string username, string message)
         {
+            if (Configuration.IsPaused)
+                return;
+
             var cmd = ClawDirection.NA;
             switch (message.ToLower())
             {

@@ -497,7 +497,7 @@ namespace InternetClawMachine
             {
             }
 
-            if (Game != null && !Configuration.IsPaused)
+            if (Game != null)
                 Game.HandleCommand(channel, username, chatMessage, isSubscriber, customRewardId);
 
             switch (translateCommand.FinalWord)

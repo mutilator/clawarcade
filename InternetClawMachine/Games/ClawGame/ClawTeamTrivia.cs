@@ -307,6 +307,9 @@ namespace InternetClawMachine.Games.ClawGame
 
         public override void HandleMessage(string username, string chatMessage)
         {
+            if (Configuration.IsPaused)
+                return;
+
             var msg = chatMessage.ToLower();
 
             //answering questions....

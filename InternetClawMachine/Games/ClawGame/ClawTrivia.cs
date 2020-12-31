@@ -219,6 +219,9 @@ namespace InternetClawMachine.Games.ClawGame
 
         public override void HandleMessage(string username, string message)
         {
+            if (Configuration.IsPaused)
+                return;
+
             var msg = message.ToLower();
 
             //answering questions....

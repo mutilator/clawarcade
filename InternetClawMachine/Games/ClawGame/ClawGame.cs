@@ -527,6 +527,8 @@ namespace InternetClawMachine.Games.ClawGame
                         break;
 
                     case "join": //join a team
+                        if (Configuration.IsPaused)
+                            return;
 
                         //no team chosen
                         if (!chatMessage.Contains(" "))
