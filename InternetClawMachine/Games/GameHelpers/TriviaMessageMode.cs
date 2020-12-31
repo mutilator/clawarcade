@@ -6,6 +6,7 @@
         CLAW,
         TEAMSETUP,
         TEAMNAMING,
-        TRIVIASETUP
+        TRIVIASETUP,
+        VOTERESTART
     }
 }

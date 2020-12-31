@@ -133,7 +133,7 @@ namespace InternetClawMachine.Games.ClawGame
 
             Votes.Clear();
             GameRoundTimer.Reset();
-            GameRoundTimer.Start();
+            GameRoundTimer.Stop();
         }
     }
 }

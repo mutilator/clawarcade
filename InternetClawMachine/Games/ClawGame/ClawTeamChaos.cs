@@ -347,7 +347,7 @@ namespace InternetClawMachine.Games.ClawGame
 
         public override void StartGame(string username)
         {
-            MachineControl.SetClawPower(50);
+            MachineControl.SetClawPower(90);
             MachineControl.InsertCoinAsync();
             GameModeTimer.Reset();
             GameModeTimer.Start();

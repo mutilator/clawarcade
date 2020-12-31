@@ -42,8 +42,14 @@ namespace InternetClawMachine.Hardware.ClawControl
 
         void InsertCoinAsync();
 
+        /// <summary>
+        /// Fired when claw returns to center of machine
+        /// </summary>
         event EventHandler OnClawCentered;
 
+        /// <summary>
+        /// Fired when the claw starts dropping
+        /// </summary>
         event EventHandler OnClawDropping;
 
         event EventHandler OnBreakSensorTripped;

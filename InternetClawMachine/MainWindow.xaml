@@ -266,7 +266,7 @@
                         <Slider x:Name="sldrcameraResetDelay" HorizontalAlignment="Left" Margin="347,120,0,0" VerticalAlignment="Top" Width="113" Maximum="5000" Minimum="1" SmallChange="250" LargeChange="250" Value="{Binding ClawSettings.CameraResetDelay, Mode=TwoWay}" IsSnapToTickEnabled="True" TickFrequency="250" />
                         <Label Content="cameraResetDelay" HorizontalAlignment="Left" Margin="347,89,0,0" VerticalAlignment="Top" RenderTransformOrigin="-0.026,-0.077" />
                         <Label x:Name="lblcameraResetDelay" HorizontalAlignment="Left" Margin="487,89,0,0" VerticalAlignment="Top" RenderTransformOrigin="0.368,-0.308" Content="{Binding Value, ElementName=sldrcameraResetDelay}" />
-                        <CheckBox x:Name="chkAutoBountyMode" Content="Auto Bounty" HorizontalAlignment="Left" Margin="553,243,0,0" VerticalAlignment="Top" IsChecked="{Binding ClawSettings.AutoBountyMode, Mode=TwoWay}" />
+                        <CheckBox x:Name="chkAutoBountyMode" Content="Auto Bounty" HorizontalAlignment="Left" Margin="636,34,0,0" VerticalAlignment="Top" IsChecked="{Binding ClawSettings.AutoBountyMode, Mode=TwoWay}" />
                         <Slider x:Name="sldrAutoBountyAmount" HorizontalAlignment="Left" Margin="12,272,0,0" VerticalAlignment="Top" Width="114" Maximum="5000" Value="{Binding ClawSettings.AutoBountyAmount, Mode=TwoWay}" SmallChange="100" LargeChange="100" IsSnapToTickEnabled="True" TickFrequency="100" />
                         <Label Content="AutoBountyAmount" HorizontalAlignment="Left" Margin="12,245,0,0" VerticalAlignment="Top" RenderTransformOrigin="-0.026,-0.077" />
                         <Label x:Name="lblconveyorRunAfterDrop_Copy" HorizontalAlignment="Left" Margin="147,246,0,0" VerticalAlignment="Top" RenderTransformOrigin="0.368,-0.308" Content="{Binding Value, ElementName=sldrAutoBountyAmount}" />
@@ -282,12 +282,12 @@
                         <Slider x:Name="sldrsinglePlayerQueueNoCommandDuration" HorizontalAlignment="Left" Margin="10,222,0,0" VerticalAlignment="Top" Width="112" Maximum="60" Minimum="1" Value="{Binding ClawSettings.SinglePlayerQueueNoCommandDuration, Mode=TwoWay}" IsSnapToTickEnabled="True" />
                         <Label Content="NoCommandDuration" HorizontalAlignment="Left" Margin="10,196,0,0" VerticalAlignment="Top" RenderTransformOrigin="-0.026,-0.077" />
                         <Label x:Name="lblsinglePlayerQueueNoCommandDuration" HorizontalAlignment="Left" Margin="147,196,0,0" VerticalAlignment="Top" RenderTransformOrigin="0.368,-0.308" Content="{Binding Value, ElementName=sldrsinglePlayerQueueNoCommandDuration}" />
-                        <Button Content="Reset Cam" HorizontalAlignment="Left" Margin="553,206,0,0" VerticalAlignment="Top" Width="109" x:Name="btnResetCam" RenderTransformOrigin="0.573,0.35" Click="btnResetCam_Click" />
-                        <Button x:Name="btnScene1" Content="Scene 1" HorizontalAlignment="Left" Margin="551,31,0,0" VerticalAlignment="Top" Width="109" Click="btnScene1_Click" />
-                        <Button x:Name="btnScene2" Content="Scene 2" HorizontalAlignment="Left" Margin="551,68,0,0" VerticalAlignment="Top" Width="111" Click="btnScene2_Click" />
-                        <Button x:Name="btnScene3" Content="Scene 3" HorizontalAlignment="Left" Margin="551,105,0,0" VerticalAlignment="Top" Width="111" Click="btnScene3_Click" />
-                        <CheckBox x:Name="chkAttractMode" Content="Attract Mode" HorizontalAlignment="Left" Margin="553,263,0,0" VerticalAlignment="Top" Checked="chkAttractMode_Checked" Click="chkAttractMode_Click" />
-                        <CheckBox x:Name="ClawPower" Content="Enable Lasers" HorizontalAlignment="Left" Margin="553,281,0,0" VerticalAlignment="Top" Click="ClawPower_Click" IsEnabled="False" />
+                        <Button Content="Reset" HorizontalAlignment="Left" Margin="678,168,0,0" VerticalAlignment="Top" Width="74" x:Name="btnResetCam" RenderTransformOrigin="0.573,0.35" Click="btnResetCam_Click" />
+                        <Button x:Name="btnScene1" Content="Scene 1" HorizontalAlignment="Left" Margin="551,31,0,0" VerticalAlignment="Top" Width="80" Click="btnScene1_Click" />
+                        <Button x:Name="btnScene2" Content="Scene 2" HorizontalAlignment="Left" Margin="551,68,0,0" VerticalAlignment="Top" Width="80" Click="btnScene2_Click" />
+                        <Button x:Name="btnScene3" Content="Scene 3" HorizontalAlignment="Left" Margin="551,105,0,0" VerticalAlignment="Top" Width="80" Click="btnScene3_Click" />
+                        <CheckBox x:Name="chkAttractMode" Content="Attract Mode" HorizontalAlignment="Left" Margin="636,54,0,0" VerticalAlignment="Top" Checked="chkAttractMode_Checked" Click="chkAttractMode_Click" />
+                        <CheckBox x:Name="ClawPower" Content="Enable Lasers" HorizontalAlignment="Left" Margin="636,72,0,0" VerticalAlignment="Top" Click="ClawPower_Click" IsEnabled="False" />
 
                         <Label Content="Claw Camera IP" HorizontalAlignment="Left" Margin="551,146,0,0" VerticalAlignment="Top" />
                         <TextBox HorizontalAlignment="Left" Height="23" Margin="551,177,0,0" Text="{Binding ClawSettings.ClawCameraAddress}" VerticalAlignment="Top" Width="120" />
@@ -298,9 +298,9 @@
                         <Label Content="BreakSensorWaitTime" HorizontalAlignment="Left" Margin="193,336,0,0" VerticalAlignment="Top" RenderTransformOrigin="-0.026,-0.077" />
                         <Label x:Name="lblconveyorBreakSensorWait" HorizontalAlignment="Left" Margin="325,336,0,0" VerticalAlignment="Top" RenderTransformOrigin="0.368,-0.308" Content="{Binding Value, ElementName=sldrBreakSensorWaitTime}" />
                         <Slider x:Name="sldrConveyorWaitBeforeFlipper" HorizontalAlignment="Left" Margin="193,222,0,0" VerticalAlignment="Top" Width="113" Maximum="5000" Value="{Binding ClawSettings.ConveyorWaitBeforeFlipper, Mode=TwoWay}" SmallChange="100" LargeChange="100" IsSnapToTickEnabled="True" TickFrequency="100" />
-                        <Label Content="ConveyorWaitBeforeFlipper" HorizontalAlignment="Left" Margin="193,196,0,0" VerticalAlignment="Top" RenderTransformOrigin="-0.026,-0.077" />
-                        <Label x:Name="lblConveyorWaitBeforeFlipper" HorizontalAlignment="Left" Margin="360,196,0,0" VerticalAlignment="Top" RenderTransformOrigin="0.368,-0.308" Content="{Binding Value, ElementName=sldrConveyorWaitBeforeFlipper}" />
-                        <CheckBox x:Name="chkClipRFIDMisses" Content="Clip RFID Misses" HorizontalAlignment="Left" Margin="553,299,0,0" VerticalAlignment="Top" IsChecked="{Binding ClawSettings.ClipMissedPlush, Mode=TwoWay}" />
+                        <Label Content="ConveyWaitBfrFlipper" HorizontalAlignment="Left" Margin="193,196,0,0" VerticalAlignment="Top" RenderTransformOrigin="-0.026,-0.077" />
+                        <Label x:Name="lblConveyorWaitBeforeFlipper" HorizontalAlignment="Left" Margin="325,196,0,0" VerticalAlignment="Top" RenderTransformOrigin="0.368,-0.308" Content="{Binding Value, ElementName=sldrConveyorWaitBeforeFlipper}" />
+                        <CheckBox x:Name="chkClipRFIDMisses" Content="Clip RFID Misses" HorizontalAlignment="Left" Margin="636,90,0,0" VerticalAlignment="Top" IsChecked="{Binding ClawSettings.ClipMissedPlush, Mode=TwoWay}" />
                         <Slider x:Name="sldrconveyorRuntimeMin" HorizontalAlignment="Left" Margin="355,272,0,0" VerticalAlignment="Top" Width="113" Maximum="5000" Minimum="1" Value="{Binding ClawSettings.BeltRuntimeMin, Mode=TwoWay}" SmallChange="100" LargeChange="100" IsSnapToTickEnabled="True" TickFrequency="100" />
                         <Label Content="beltRuntimeMin" HorizontalAlignment="Left" Margin="355,246,0,0" VerticalAlignment="Top" RenderTransformOrigin="-0.026,-0.077" />
                         <Label x:Name="lblconveyorRuntimeMin" HorizontalAlignment="Left" Margin="487,246,0,0" VerticalAlignment="Top" RenderTransformOrigin="0.368,-0.308" Content="{Binding Value, ElementName=sldrconveyorRuntimeMin}" />
@@ -313,6 +313,12 @@
                         <Slider x:Name="sldrmaxCommandsPerLine" HorizontalAlignment="Left" Margin="347,174,0,0" VerticalAlignment="Top" Width="113" Maximum="40" Minimum="1" SmallChange="1" Value="{Binding ClawSettings.MaxCommandsPerLine, Mode=TwoWay}" IsSnapToTickEnabled="True" />
                         <Label Content="maxCommandsPerLine" HorizontalAlignment="Left" Margin="347,143,0,0" VerticalAlignment="Top" RenderTransformOrigin="-0.026,-0.077" />
                         <Label x:Name="lblmaxCommandsPerLine" HorizontalAlignment="Left" Margin="487,143,0,0" VerticalAlignment="Top" RenderTransformOrigin="0.368,-0.308" Content="{Binding Value, ElementName=sldrmaxCommandsPerLine}" />
+                        <Slider x:Name="sldrmaxDropCameraHideDelay" HorizontalAlignment="Left" Margin="348,227,0,0" VerticalAlignment="Top" Width="113" Maximum="20000" Minimum="1" SmallChange="1" Value="{Binding ClawSettings.DropCameraHideDelay, Mode=TwoWay}" IsSnapToTickEnabled="True" />
+                        <Label Content="DropCameraHideDelay" HorizontalAlignment="Left" Margin="356,196,0,0" VerticalAlignment="Top" RenderTransformOrigin="-0.026,-0.077" />
+                        <Label x:Name="lblmaxDropCameraHideDelay" HorizontalAlignment="Left" Margin="488,196,0,0" VerticalAlignment="Top" RenderTransformOrigin="0.368,-0.308" Content="{Binding Value, ElementName=sldrmaxDropCameraHideDelay}" />
+                        <Slider x:Name="sldrTriviaEndRoundDelay" HorizontalAlignment="Left" Margin="545,362,0,0" VerticalAlignment="Top" Width="113" Maximum="50" Minimum="1" Value="{Binding ClawSettings.TriviaEndRoundDelay, Mode=TwoWay}" SmallChange="1" IsSnapToTickEnabled="True" />
+                        <Label Content="TriviaEndRoundDelay" HorizontalAlignment="Left" Margin="545,336,0,0" VerticalAlignment="Top" RenderTransformOrigin="-0.026,-0.077" />
+                        <Label x:Name="lblTriviaEndRoundDelay" HorizontalAlignment="Left" Margin="677,336,0,0" VerticalAlignment="Top" RenderTransformOrigin="0.368,-0.308" Content="{Binding Value, ElementName=sldrTriviaEndRoundDelay}" />
                     </Grid>
                 </TabItem>
                 <TabItem Header="Golf" Padding="20,2">

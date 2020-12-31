@@ -18,6 +18,16 @@ namespace InternetClawMachine.Games.ClawGame
 {
     internal class ClawTrivia : ClawGame
     {
+        /// <summary>
+        /// Thrown when the game restart vote ends
+        /// </summary>
+        public event EventHandler<EventArgs> OnRestartVoteEnd;
+
+        /// <summary>
+        /// Thrown when the question vote ends
+        /// </summary>
+        public event EventHandler<EventArgs> OnQuestionAmountVoteEnd;
+
         internal Dictionary<int, int> _questionAmountVotes = new Dictionary<int, int>();
 
         public ClawTrivia(IChatApi client, BotConfiguration configuration, OBSWebsocket obs) : base(client,
@@ -30,6 +40,49 @@ namespace InternetClawMachine.Games.ClawGame
             StartMessage =
                 string.Format(Translator.GetTranslation("gameClawTriviaStartGame", Translator.DefaultLanguage),
                     Configuration.CommandPrefix);
+
+            OnRestartVoteEnd += ClawTrivia_OnRestartVoteEnd;
+            OnQuestionAmountVoteEnd += ClawTrivia_OnQuestionAmountVoteEnd;
+            
+        }
+
+        internal virtual void ClawTrivia_OnQuestionAmountVoteEnd(object sender, EventArgs e)
+        {
+            if (TriviaMessageMode != TriviaMessageMode.TRIVIASETUP)
+                return;
+
+            var highestTotal = 0;
+            var highestVote = 10;
+            foreach (var vote in _questionAmountVotes)
+                if (vote.Value > highestTotal)
+                {
+                    highestVote = vote.Key;
+                    highestTotal = vote.Value;
+                }
+
+            ChatClient.SendMessage(Configuration.Channel,
+                string.Format(
+                    Translator.GetTranslation("gameClawTriviaSetupQuestionsComplete", Translator.DefaultLanguage),
+                    highestVote, highestTotal));
+
+            TriviaMessageMode = TriviaMessageMode.ANSWERING;
+            QuestionCount = highestVote;
+            StartNewTriviaRound();
+        }
+
+        internal virtual void ClawTrivia_OnRestartVoteEnd(object sender, EventArgs e)
+        {
+            var yes = RestartVotes.Count(v => v.Value == VoteValue.YES);
+            var no = RestartVotes.Count(v => v.Value == VoteValue.NO);
+            if (yes > no)
+            {
+                Init();
+                StartGame(null);
+            }
+            else
+            {
+                EndGame();
+            }
         }
 
         internal TriviaMessageMode TriviaMessageMode { set; get; }
@@ -43,6 +96,12 @@ namespace InternetClawMachine.Games.ClawGame
 
         public string AnswerHint { get; set; }
         public int QuestionCount { set; get; }
+
+        /// <summary>
+        /// Holds a list of all votes for restarting mode
+        /// </summary>
+        public List<RestartVote> RestartVotes { set; get; } = new List<RestartVote>();
+
 
         internal void ClawSingleQueue_OnClawRecoiled(object sender, EventArgs e)
         {
@@ -91,6 +150,9 @@ namespace InternetClawMachine.Games.ClawGame
 
         public override void EndGame()
         {
+            OnRestartVoteEnd -= ClawTrivia_OnRestartVoteEnd;
+            OnQuestionAmountVoteEnd -= ClawTrivia_OnQuestionAmountVoteEnd;
+
             if (ObsConnection.IsConnected)
                 ObsConnection.SetSourceRender("TriviaOverlay", false);
 
@@ -144,7 +206,7 @@ namespace InternetClawMachine.Games.ClawGame
                     if (!Configuration.AdminUsers.Contains(username.ToLower()))
                         break;
 
-                    NextQuestion();
+                    NextQuestion(new CancellationTokenSource());
                     break;
             }
         }
@@ -204,6 +266,25 @@ namespace InternetClawMachine.Games.ClawGame
                             _questionAmountVotes.Add(result, 1);
                     }
 
+                    break;
+                case TriviaMessageMode.VOTERESTART:
+                    switch (msg)
+                    {
+                        case "!yes":
+                        case "!y":
+                        case "yes":
+                        case "y":
+                            if (!RestartVotes.Any(v => v.Username == username))
+                                RestartVotes.Add(new RestartVote() { Username = username, Value = VoteValue.YES });
+                            break;
+                        case "!no":
+                        case "!n":
+                        case "no":
+                        case "n":
+                            if (!RestartVotes.Any(v => v.Username == username))
+                                RestartVotes.Add(new RestartVote() { Username = username, Value = VoteValue.NO });
+                            break;
+                    }
                     break;
             }
         }
@@ -409,9 +490,7 @@ namespace InternetClawMachine.Games.ClawGame
             }
             else
             {
-                QuestionCount =
-                    Configuration.EventMode.TriviaSettings
-                        .AvailableQuestions; //if we define an amount of questions in the config then use that
+                QuestionCount = Configuration.EventMode.TriviaSettings.AvailableQuestions; //if we define an amount of questions in the config then use that
 
                 TriviaMessageMode = TriviaMessageMode.ANSWERING;
             }
@@ -419,7 +498,7 @@ namespace InternetClawMachine.Games.ClawGame
 
         public override void StartGame(string username)
         {
-            MachineControl.SetClawPower(50);
+            MachineControl.SetClawPower(90);
             MachineControl.InsertCoinAsync();
             GameModeTimer.Reset();
             GameModeTimer.Start();
@@ -440,14 +519,16 @@ namespace InternetClawMachine.Games.ClawGame
 
         public virtual void StartNewTriviaRound()
         {
-            if (TriviaMessageMode == TriviaMessageMode.TRIVIASETUP)
+            switch (TriviaMessageMode)
             {
-                StartQuestionAmountVote();
-            }
-            else
-            {
-                TriviaMessageMode = TriviaMessageMode.ANSWERING;
-                NextQuestion();
+                case TriviaMessageMode.TRIVIASETUP:
+            
+                    StartQuestionAmountVote();
+                    break;
+                default:
+                    TriviaMessageMode = TriviaMessageMode.ANSWERING;
+                    NextQuestion();
+                    break;
             }
         }
 
@@ -510,13 +591,33 @@ namespace InternetClawMachine.Games.ClawGame
                     string.Format(Translator.GetTranslation("gameClawTriviaWinFinal", Translator.DefaultLanguage),
                         user.Username, correctAnswers, user.Wins));
             }
+            if (IsTriviaAliveCancelToken == null || IsTriviaAliveCancelToken.IsCancellationRequested)
+                IsTriviaAliveCancelToken = new CancellationTokenSource();
 
-            Task.Run(async delegate
+            Task.Run(async delegate ()
             {
-                await Task.Delay(15000);
-                EndGame();
-            });
+                await Task.Delay(Configuration.ClawSettings.TriviaEndRoundDelay); //wait a bit before we vote
+                IsTriviaAliveCancelToken.Token.ThrowIfCancellationRequested();
+                await BeginRestartVote();
+            }, IsTriviaAliveCancelToken.Token);
         }
+
+        private async Task BeginRestartVote()
+        {
+            TriviaMessageMode = TriviaMessageMode.VOTERESTART;
+            ChatClient.SendMessage(Configuration.Channel, string.Format(Translator.GetTranslation("gameClawTriviaRestartGameVote", Translator.DefaultLanguage)));
+            RestartVotes.Clear();
+
+            await Task.Delay(Configuration.VoteSettings.VoteDuration * 1000);
+            IsTriviaAliveCancelToken.Token.ThrowIfCancellationRequested();
+            ThrowEndVoteRestart();
+        }
+
+        internal virtual void ThrowEndVoteRestart()
+        {
+            OnRestartVoteEnd?.Invoke(this, new EventArgs());
+        }
+
 
         internal TriviaQuestion GetRandomQuestion()
         {
@@ -620,7 +721,7 @@ namespace InternetClawMachine.Games.ClawGame
                         StartNewTriviaRound();
                     }
                 }
-            });
+            }, IsTriviaAliveCancelToken.Token);
 
             base.StartRound(username); //game start event
         }
@@ -631,35 +732,26 @@ namespace InternetClawMachine.Games.ClawGame
                 string.Format(Translator.GetTranslation("gameClawTriviaSetupQuestions", Translator.DefaultLanguage)));
             Task.Run(async delegate
             {
-                await Task.Delay(20000);
-                if (TriviaMessageMode != TriviaMessageMode.TRIVIASETUP)
-                    return;
-
-                var highestTotal = 0;
-                var highestVote = 10;
-                foreach (var vote in _questionAmountVotes)
-                    if (vote.Value > highestTotal)
-                    {
-                        highestVote = vote.Key;
-                        highestTotal = vote.Value;
-                    }
-
-                ChatClient.SendMessage(Configuration.Channel,
-                    string.Format(
-                        Translator.GetTranslation("gameClawTriviaSetupQuestionsComplete", Translator.DefaultLanguage),
-                        highestVote, highestTotal));
-
-                TriviaMessageMode = TriviaMessageMode.ANSWERING;
-                QuestionCount = highestVote;
-                StartNewTriviaRound();
-            });
+                await Task.Delay(Configuration.VoteSettings.VoteDuration * 1000);
+                ThrowEndVoteQuestionAmount();
+            }, IsTriviaAliveCancelToken.Token);
         }
 
-        internal virtual async void NextQuestion()
+        private void ThrowEndVoteQuestionAmount()
         {
-            CurrentQuestion = GetRandomQuestion();
-            if (CurrentQuestion == null || QuestionsAsked >= QuestionCount)
+            OnQuestionAmountVoteEnd?.Invoke(this, new EventArgs());
+        }
+
+        internal virtual async Task NextQuestion()
+        {
+            CurrentQuestion = GetRandomQuestion(); //grab a new question
+            if (CurrentQuestion == null || QuestionsAsked >= QuestionCount) //if there are no questions remaining or we've asked the limit, end it
             {
+                //wait for plush to scan if they managed to grab one
+                await Task.Delay(Configuration.ClawSettings.ConveyorWaitAfter + Configuration.ClawSettings.ConveyorWaitFor + Configuration.ClawSettings.ConveyorWaitBeforeFlipper + Configuration.ClawSettings.ConveyorWaitUntil);
+
+                IsTriviaAliveCancelToken.Token.ThrowIfCancellationRequested();
+                
                 EndTrivia();
             }
             else
@@ -674,6 +766,7 @@ namespace InternetClawMachine.Games.ClawGame
                     var firstWait = Configuration.EventMode.TriviaSettings.QuestionWaitDelay * 1000;
 
                     await Task.Delay(firstWait);
+                    IsTriviaAliveCancelToken.Token.ThrowIfCancellationRequested();
                 }
 
                 var answers = "";
@@ -700,21 +793,18 @@ namespace InternetClawMachine.Games.ClawGame
 
                 AnswerHint = Regex.Replace(CurrentQuestion.CorrectAnswer, "[a-zA-Z0-9]", "-");
                 HintCancelToken = new CancellationTokenSource();
-                var ct = HintCancelToken.Token;
-                Task.Run(async delegate
+                var hintCt = HintCancelToken.Token;
+                for (var i = 0; i < 10; i++)
                 {
-                    for (var i = 0; i < 10; i++)
-                    {
-                        // Were we already canceled?
-
-                        await Task.Delay(Configuration.EventMode.TriviaSettings.AnswerHintDelay);
-                        ct.ThrowIfCancellationRequested();
-                        UpdateAnswerHint();
-                        ChatClient.SendMessage(Configuration.Channel, AnswerHint);
-                        if (CurrentQuestion.CorrectAnswer == AnswerHint)
-                            break;
-                    }
-                }, ct);
+                    // Were we already canceled?
+                    await Task.Delay(Configuration.EventMode.TriviaSettings.AnswerHintDelay);
+                    IsTriviaAliveCancelToken.Token.ThrowIfCancellationRequested();
+                    hintCt.ThrowIfCancellationRequested();
+                    UpdateAnswerHint();
+                    ChatClient.SendMessage(Configuration.Channel, AnswerHint);
+                    if (CurrentQuestion.CorrectAnswer == AnswerHint)
+                        break;
+                }
             }
         }
     }

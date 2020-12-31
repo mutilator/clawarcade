@@ -177,7 +177,8 @@ namespace InternetClawMachine
 
                             prefs.TeamId = !string.IsNullOrEmpty(tid) ? int.Parse(tid) : -1;
                             prefs.TeamName = users.GetValue(10).ToString();
-                            prefs.KnowsMultiple = users.GetValue(10).ToString() == "1";
+
+                            prefs.KnowsMultiple = users.GetValue(11).ToString() == "1";
                             prefs.EventTeamId = -1;
 
                             prefs.FromDatabase = true;

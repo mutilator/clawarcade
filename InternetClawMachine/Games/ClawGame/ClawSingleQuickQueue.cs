@@ -35,6 +35,12 @@ namespace InternetClawMachine.Games.ClawGame
             ((ClawController)MachineControl).OnReturnedHome += ClawSingleQuickQueue_OnReturnedHome;
         }
 
+        internal override void ClawSingleQueue_OnClawDropped(object sender, EventArgs e)
+        {
+            if ((ObsConnection.IsConnected) && (Configuration.EventMode.DropScene != null))
+                ObsConnection.SetSourceRender(Configuration.EventMode.DropScene.SourceName, true, Configuration.EventMode.DropScene.SceneName);
+        }
+
         internal override void MachineControl_OnClawRecoiled(object sender, EventArgs e)
         {
             if (Configuration.EventMode.DisableReturnHome)
@@ -45,6 +51,14 @@ namespace InternetClawMachine.Games.ClawGame
 
         internal override void MachineControl_OnClawCentered(object sender, EventArgs e)
         {
+            if ((ObsConnection.IsConnected) && (Configuration.EventMode.DropScene != null))
+            {
+                Task.Run(async () => {
+                    await Task.Delay(Configuration.ClawSettings.DropCameraHideDelay);
+                    ObsConnection.SetSourceRender(Configuration.EventMode.DropScene.SourceName, false, Configuration.EventMode.DropScene.SceneName);
+                });
+            }
+
             //we check to see if the return home event was fired by the person that's currently playing
             //if it has we need to move to the next player, if not we've moved on already, perhaps bad design here
             DropInCommandQueue = false;
@@ -56,6 +70,7 @@ namespace InternetClawMachine.Games.ClawGame
                 var nextPlayer = PlayerQueue.GetNextPlayer();
                 StartRound(nextPlayer);
             }
+
         }
 
         private void ClawSingleQuickQueue_OnReturnedHome(object sender, EventArgs e)

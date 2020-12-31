@@ -2134,7 +2134,7 @@ namespace InternetClawMachine.Games.ClawGame
             }
         }
 
-        internal async void PoliceStrobe()
+        internal async Task PoliceStrobe()
         {
             //STROBE CODE
             try
@@ -2756,16 +2756,38 @@ namespace InternetClawMachine.Games.ClawGame
 
         private void ClawGame_OnNewSubscriber(object sender, TwitchLib.Client.Events.OnNewSubscriberArgs e)
         {
-            PoliceStrobe();
-            ((ClawController)MachineControl).SendCommandAsync("wt 200");
-            ((ClawController)MachineControl).SendCommandAsync("clap");
+            Task.Run(async () =>
+            {
+                Configuration.IsPaused = true;
+                try
+                {
+                    await PoliceStrobe();
+                    ((ClawController)MachineControl).SendCommandAsync("wt 500");
+                    ((ClawController)MachineControl).SendCommandAsync("clap " + int.Parse(e.Subscriber.MsgParamCumulativeMonths));
+                    await Task.Delay(500 * int.Parse(e.Subscriber.MsgParamCumulativeMonths) * 2);
+                }
+                catch
+                { }
+                Configuration.IsPaused = false;
+            });
         }
 
         private void ClawGame_OnReSubscriber(object sender, TwitchLib.Client.Events.OnReSubscriberArgs e)
         {
-            PoliceStrobe();
-            ((ClawController)MachineControl).SendCommandAsync("wt 200");
-            ((ClawController)MachineControl).SendCommandAsync("clap");
+            Task.Run(async () =>
+            {
+                Configuration.IsPaused = true;
+                try
+                {
+                    await PoliceStrobe();
+                    ((ClawController)MachineControl).SendCommandAsync("wt 500");
+                    ((ClawController)MachineControl).SendCommandAsync("clap " + e.ReSubscriber.Months);
+                    await Task.Delay(500 * e.ReSubscriber.Months * 2);
+                }
+                catch
+                { }
+                Configuration.IsPaused = false;
+            });
         }
 
         private void ClawGame_OnReturnedHome(object sender, EventArgs e)

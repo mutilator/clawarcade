@@ -39,16 +39,32 @@ namespace InternetClawMachine.Hardware.ClawControl
 
         public event EventHandler OnPingTimeout;
 
+
         public event EventHandler OnPingSuccess;
 
+        /// <summary>
+        /// Fired when claw is cover the chute
+        /// </summary>
         public event EventHandler OnReturnedHome;
 
+        /// <summary>
+        /// Fired when claw returns to center of machine
+        /// </summary>
         public event EventHandler OnClawCentered;
 
+        /// <summary>
+        /// Fired when the claw is first let go
+        /// </summary>
         public event EventHandler OnClawDropping;
 
+        /// <summary>
+        /// Fired when the claw reaches the bottom of the drop
+        /// </summary>
         public event EventHandler OnClawDropped;
 
+        /// <summary>
+        /// Fired when the claw is fully recoiled
+        /// </summary>
         public event EventHandler OnClawRecoiled;
 
         public event EventHandler OnResetButtonPressed;
@@ -349,6 +365,8 @@ namespace InternetClawMachine.Hardware.ClawControl
 
                 for (i = 0; i < e.BytesTransferred; i++)
                 {
+                    if (_receiveIdx >= _receiveBuffer.Length)
+                        _receiveIdx = _receiveBuffer.Length - 1; //rewrite the last byte
                     _receiveBuffer[_receiveIdx] = e.Buffer[i];
                     _receiveIdx++;
                     if (e.Buffer[i] != '\n') continue; //read until a newline
@@ -840,7 +858,7 @@ namespace InternetClawMachine.Hardware.ClawControl
         {
             if (!IsConnected)
                 return;
-            var power = (int)((double)percent / 100 * 255);
+            var power = (int)((double)(100 - percent) / 100 * 255);
             var str = string.Format("uno p {0}", power);
             SendCommandAsync(str);
         }

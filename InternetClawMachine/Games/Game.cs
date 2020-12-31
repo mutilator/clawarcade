@@ -16,15 +16,12 @@ namespace InternetClawMachine.Games
 {
     public class Game
     {
-        /// <summary>
-        /// Random number source
-        /// </summary>
-        private Random _rnd = new Random((int)DateTime.Now.Ticks);
+        #region Fields
 
         /// <summary>
-        /// Teams for players to join
+        /// flag for command queue checks
         /// </summary>
-        public List<GameTeam> Teams { set; get; }
+        internal bool ProcessingQueue;
 
         /// <summary>
         /// flag for updating the player queue file
@@ -32,14 +29,131 @@ namespace InternetClawMachine.Games
         internal bool RunUpdateTimer;
 
         /// <summary>
+        /// Set when StartGame starts and false when StartGame execution is over
+        /// This allows other functions to ignore specific command sequences when initializing a game
+        /// </summary>
+        internal bool StartupSequence;
+
+        //flag to set we've thrownt he game end event, it may be called more than once, ignore further calls
+        private bool _isEnding = false;
+
+        /// <summary>
+        /// Random number source
+        /// </summary>
+        private Random _rnd = new Random((int)DateTime.Now.Ticks);
+
+        #endregion Fields
+
+        #region Properties
+
+        /// <summary>
         /// Simple container for the active bounty
         /// </summary>
         public Bounty Bounty { get; set; }
 
         /// <summary>
+        /// Reference to the chat client
+        /// </summary>
+        public IChatApi ChatClient { get; private set; }
+
+        /// <summary>
+        /// Running list of all commands being sent from chat
+        /// </summary>
+        public List<ClawCommand> CommandQueue { get; set; }
+
+        /// <summary>
+        /// Timer for the command queue to record timings when events occur
+        /// </summary>
+        public Stopwatch CommandQueueTimer { get; set; }
+
+        ///
+        public BotConfiguration Configuration { get; set; }
+
+        /// <summary>
+        /// Simple flag to tell the game that there is an upcoming drop command and not allow further drop commands
+        /// </summary>
+        public bool DropInCommandQueue { set; get; }
+
+        /// <summary>
+        /// A counter to provide a unique ID number for each user play
+        /// </summary>
+        public long GameLoopCounterValue { set; get; }
+
+        //Which type of game is this, used for identifying what's going on in other code
+        public GameModeType GameMode { set; get; }
+
+        /// <summary>
+        /// Used for determining when events happen during a specific game mode, when a mode starts it's set to 0
+        /// </summary>
+        public Stopwatch GameModeTimer { get; set; }
+
+        /// <summary>
+        /// Used for determining when events happen during a specific game round, when a round starts it's set to 0
+        /// </summary>
+        public Stopwatch GameRoundTimer { get; set; }
+
+        /// <summary>
         /// Whether the game has ended
         /// </summary>
         public bool HasEnded { set; get; } = false;
+
+        /// <summary>
+        /// This flag is TRUE when the RFID scanner is allowed to pick up a winning scan
+        /// </summary>
+        public bool InScanWindow { set; get; }
+
+        /// <summary>
+        /// Connection object to OBS
+        /// </summary>
+        public OBSWebsocket ObsConnection { set; get; }
+
+        /// <summary>
+        /// Players that are wanting to play the game
+        /// </summary>
+        public PlayerQueue PlayerQueue { get; }
+
+        /// <summary>
+        /// This is a list that gives people an extra few seconds to grab a win scan
+        /// </summary>
+        public List<string> SecondaryWinnersList { get; set; }
+
+        /// <summary>
+        /// Message displayed when StartGame is called
+        /// </summary>
+        public string StartMessage { get; set; }
+
+        /// <summary>
+        /// Time this game mode was started according to the GameModeStopwatch, usually 0
+        /// </summary>
+        public long StartTime { get; set; }
+
+        /// <summary>
+        /// Teams for players to join
+        /// </summary>
+        public List<GameTeam> Teams { set; get; }
+        /// <summary>
+        /// Tally of all votes cast in this voting round
+        /// </summary>
+        public List<GameModeVote> Votes { set; get; }
+
+        /// <summary>
+        /// Votes needed before entering into voting mode
+        /// </summary>
+        public int VotesNeeded { get; internal set; }
+
+        /// <summary>
+        /// List of users who called for the drop, also could be called PossibleWinnersList because this is the pool of people drawn from when a prize is won
+        /// </summary>
+        public List<string> WinnersList { get; set; }
+
+        /// <summary>
+        /// Websocket server
+        /// </summary>
+        public MediaWebSocketServer WsConnection { set; get; }
+
+        #endregion Properties
+
+        #region Events
 
         /// <summary>
         /// Thrown when the game ends
@@ -61,110 +175,9 @@ namespace InternetClawMachine.Games
         /// </summary>
         public event EventHandler<RoundStartedArgs> RoundStarted;
 
-        ///
-        public BotConfiguration Configuration { get; set; }
+        #endregion Events
 
-        /// <summary>
-        /// Connection object to OBS
-        /// </summary>
-        public OBSWebsocket ObsConnection { set; get; }
-
-        //Which type of game is this, used for identifying what's going on in other code
-        public GameModeType GameMode { set; get; }
-
-        /// <summary>
-        /// Players that are wanting to play the game
-        /// </summary>
-        public PlayerQueue PlayerQueue { set; get; }
-
-        /// <summary>
-        /// flag for command queue checks
-        /// </summary>
-        internal bool ProcessingQueue;
-
-        /// <summary>
-        /// Set when StartGame starts and false when StartGame execution is over
-        /// This allows other functions to ignore specific command sequences when initializing a game
-        /// </summary>
-        internal bool StartupSequence;
-
-        /// <summary>
-        /// Simple flag to tell the game that there is an upcoming drop command and not allow further drop commands
-        /// </summary>
-        public bool DropInCommandQueue { set; get; }
-
-        /// <summary>
-        /// A counter to provide a unique ID number for each user play
-        /// </summary>
-        public long GameLoopCounterValue { set; get; }
-
-        /// <summary>
-        /// Used for determining when events happen during a specific game round, when a round starts it's set to 0
-        /// </summary>
-        public Stopwatch GameRoundTimer { get; set; }
-
-        /// <summary>
-        /// Used for determining when events happen during a specific game mode, when a mode starts it's set to 0
-        /// </summary>
-        public Stopwatch GameModeTimer { get; set; }
-
-        /// <summary>
-        /// Timer for the command queue to record timings when events occur
-        /// </summary>
-        public Stopwatch CommandQueueTimer { get; set; }
-
-        /// <summary>
-        /// Running list of all commands being sent from chat
-        /// </summary>
-        public List<ClawCommand> CommandQueue { get; set; }
-
-        /// <summary>
-        /// Time this game mode was started according to the GameModeStopwatch, usually 0
-        /// </summary>
-        public long StartTime { get; set; }
-
-        /// <summary>
-        /// Tally of all votes cast in this voting round
-        /// </summary>
-        public List<GameModeVote> Votes { set; get; }
-
-        /// <summary>
-        /// Votes needed before entering into voting mode
-        /// </summary>
-        public int VotesNeeded { get; internal set; }
-
-        /// <summary>
-        /// This flag is TRUE when the RFID scanner is allowed to pick up a winning scan
-        /// </summary>
-        public bool InScanWindow { set; get; }
-
-        //flag to set we've thrownt he game end event, it may be called more than once, ignore further calls
-        private bool _isEnding = false;
-
-        /// <summary>
-        /// List of users who called for the drop, also could be called PossibleWinnersList because this is the pool of people drawn from when a prize is won
-        /// </summary>
-        public List<string> WinnersList { get; set; }
-
-        /// <summary>
-        /// This is a list that gives people an extra few seconds to grab a win scan
-        /// </summary>
-        public List<string> SecondaryWinnersList { get; set; }
-
-        /// <summary>
-        /// Reference to the chat client
-        /// </summary>
-        public IChatApi ChatClient { get; private set; }
-
-        /// <summary>
-        /// Websocket server
-        /// </summary>
-        public MediaWebSocketServer WsConnection { set; get; }
-
-        /// <summary>
-        /// Message displayed when StartGame is called
-        /// </summary>
-        public string StartMessage { get; set; }
+        #region Constructors + Destructors
 
         public Game(IChatApi client, BotConfiguration configuration, OBSWebsocket obs)
         {
@@ -190,31 +203,66 @@ namespace InternetClawMachine.Games
             RunUpdateTimer = false;
         }
 
-        protected virtual void OnGameEnded(EventArgs e)
+        #endregion Constructors + Destructors
+
+        #region Methods
+
+        /// <summary>
+        /// Run when you stop the game completely
+        /// </summary>
+        public virtual void Destroy()
         {
-            var handler = GameEnded;
-            if (handler != null && !_isEnding)
+        }
+
+        public virtual void EndGame()
+        {
+            if (HasEnded)
+                return;
+
+            HasEnded = true;
+            PlayerQueue.Clear();
+
+            OnGameEnded(new EventArgs());
+        }
+
+        public virtual void HandleCommand(string channel, string username, string chatMessage, bool isSubscriber, string customRewardId)
+        {
+            var commandText = chatMessage.Substring(Configuration.CommandPrefix.Length);
+            if (chatMessage.IndexOf(" ") >= 0)
+                commandText = chatMessage.Substring(Configuration.CommandPrefix.Length, chatMessage.IndexOf(" ") - 1);
+
+            switch (commandText.ToLower())
             {
-                _isEnding = true;
-                RunUpdateTimer = false;
-                PlayerQueue.OnChangedQueue -= PlayerQueue_ChangedPlayerQueue;
-                handler(this, e);
+                case "redeem":
+                    var args = chatMessage.Split(' ');
+                    if (args.Length < 2)
+                    {
+                        break;
+                    }
+
+                    switch (args[1])
+                    {
+                        case "scare":
+                            //runs scare with random delay
+                            if (DatabaseFunctions.GetStreamBuxBalance(Configuration, username) + Configuration.GetStreamBuxCost(StreamBuxTypes.SCARE) >= 0)
+                            {
+                                DatabaseFunctions.AddStreamBuxBalance(Configuration, username, StreamBuxTypes.SCARE, Configuration.GetStreamBuxCost(StreamBuxTypes.SCARE));
+                                RunScare(true, 0);
+                                Thread.Sleep(100);
+                                ChatClient.SendWhisper(username, string.Format(Translator.GetTranslation("gameClawCommandBuxBal", Configuration.UserList.GetUserLocalization(username)), DatabaseFunctions.GetStreamBuxBalance(Configuration, username)));
+                            }
+                            else
+                            {
+                                ChatClient.SendMessage(Configuration.Channel, string.Format(Translator.GetTranslation("gameClawCommandBuxInsuffBal", Configuration.UserList.GetUserLocalization(username)), DatabaseFunctions.GetStreamBuxBalance(Configuration, username)));
+                            }
+                            break;
+                    }
+                    break;
             }
         }
 
-        protected virtual void OnTurnEnded(RoundEndedArgs e)
+        public virtual void HandleMessage(string username, string message)
         {
-            RoundEnded?.Invoke(this, e);
-        }
-
-        protected virtual void OnPhaseChanged(PhaseChangeEventArgs phaseChangeEventArgs)
-        {
-            PhaseChanged?.Invoke(this, phaseChangeEventArgs);
-        }
-
-        protected virtual void OnRoundStarted(RoundStartedArgs e)
-        {
-            RoundStarted?.Invoke(this, e);
         }
 
         public virtual void Init()
@@ -223,12 +271,39 @@ namespace InternetClawMachine.Games
             Configuration.StreamBuxCosts = DatabaseFunctions.LoadStreamBux(Configuration);
         }
 
-        private void PlayerQueue_ChangedPlayerQueue(object sender, QueueUpdateArgs e)
+        /// <summary>
+        /// Processes the current command queue and returns when empty
+        /// </summary>
+        public virtual Task ProcessCommands()
         {
-            UpdateObsQueueDisplay();
+            return null;
         }
 
-        protected virtual void UpdateObsQueueDisplay()
+        public virtual Task ProcessQueue()
+        {
+            if (!ProcessingQueue)
+            {
+                ProcessingQueue = true;
+
+                Console.WriteLine("processing queue: " + Thread.CurrentThread.ManagedThreadId);
+                try
+                {
+                    ProcessCommands();
+                }
+                catch (Exception ex)
+                {
+                    var error = string.Format("ERROR {0} {1}", ex.Message, ex);
+                    Logger.WriteLog(Logger.ErrorLog, error);
+                }
+                finally
+                {
+                    ProcessingQueue = false;
+                }
+            }
+            return Task.CompletedTask;
+        }
+
+        public virtual void Run()
         {
         }
 
@@ -251,6 +326,31 @@ namespace InternetClawMachine.Games
             data.Add("name", scare.SourceName);
             data.Add("duration", scare.Duration);
             WsConnection.SendCommand(MediaWebSocketServer.CommandMedia, data);
+        }
+
+        public virtual void ShowHelp(string username)
+        {
+        }
+
+        public virtual void ShowHelpSub(string username)
+        {
+            ChatClient.SendMessage(Configuration.Channel, Configuration.CommandPrefix + Translator.GetTranslation("gameHelpSub1", Configuration.UserList.GetUserLocalization(username)));
+            ChatClient.SendMessage(Configuration.Channel, Configuration.CommandPrefix + Translator.GetTranslation("gameHelpSub2", Configuration.UserList.GetUserLocalization(username)));
+            ChatClient.SendMessage(Configuration.Channel, Configuration.CommandPrefix + Translator.GetTranslation("gameHelpSub3", Configuration.UserList.GetUserLocalization(username)));
+            ChatClient.SendMessage(Configuration.Channel, Configuration.CommandPrefix + Translator.GetTranslation("gameHelpSub4", Configuration.UserList.GetUserLocalization(username)));
+            ChatClient.SendMessage(Configuration.Channel, Configuration.CommandPrefix + Translator.GetTranslation("gameHelpSub5", Configuration.UserList.GetUserLocalization(username)));
+        }
+
+        public virtual void StartGame(string user)
+        {
+            //create new session
+            Configuration.SessionGuid = Guid.NewGuid();
+            DatabaseFunctions.WriteDbSessionRecord(Configuration, Configuration.SessionGuid.ToString(), (int)Configuration.EventMode.EventMode, Configuration.EventMode.DisplayName);
+        }
+
+        public virtual void StartRound(string user)
+        {
+            OnRoundStarted(new RoundStartedArgs() { Username = user, GameMode = GameMode });
         }
 
         public void WriteDbMovementAction(string name, string direction)
@@ -297,146 +397,79 @@ namespace InternetClawMachine.Games
             }
         }
 
-        public virtual void HandleMessage(string username, string message)
+        protected virtual void OnGameEnded(EventArgs e)
         {
-        }
-
-        public virtual void HandleCommand(string channel, string username, string chatMessage, bool isSubscriber, string customRewardId)
-        {
-            var commandText = chatMessage.Substring(Configuration.CommandPrefix.Length);
-            if (chatMessage.IndexOf(" ") >= 0)
-                commandText = chatMessage.Substring(Configuration.CommandPrefix.Length, chatMessage.IndexOf(" ") - 1);
-
-            switch (commandText.ToLower())
+            var handler = GameEnded;
+            if (handler != null && !_isEnding)
             {
-                case "redeem":
-                    var args = chatMessage.Split(' ');
-                    if (args.Length < 2)
-                    {
-                        break;
-                    }
-
-                    switch (args[1])
-                    {
-                        case "scare":
-                            //runs scare with random delay
-                            if (DatabaseFunctions.GetStreamBuxBalance(Configuration, username) + Configuration.GetStreamBuxCost(StreamBuxTypes.SCARE) >= 0)
-                            {
-                                DatabaseFunctions.AddStreamBuxBalance(Configuration, username, StreamBuxTypes.SCARE, Configuration.GetStreamBuxCost(StreamBuxTypes.SCARE));
-                                RunScare(true, 0);
-                                Thread.Sleep(100);
-                                ChatClient.SendWhisper(username, string.Format(Translator.GetTranslation("gameClawCommandBuxBal", Configuration.UserList.GetUserLocalization(username)), DatabaseFunctions.GetStreamBuxBalance(Configuration, username)));
-                            }
-                            else
-                            {
-                                ChatClient.SendMessage(Configuration.Channel, string.Format(Translator.GetTranslation("gameClawCommandBuxInsuffBal", Configuration.UserList.GetUserLocalization(username)), DatabaseFunctions.GetStreamBuxBalance(Configuration, username)));
-                            }
-                            break;
-                    }
-                    break;
+                _isEnding = true;
+                RunUpdateTimer = false;
+                PlayerQueue.OnChangedQueue -= PlayerQueue_ChangedPlayerQueue;
+                handler(this, e);
             }
         }
 
-        /// <summary>
-        /// Run when you stop the game completely
-        /// </summary>
-        public virtual void Destroy()
+        protected virtual void OnPhaseChanged(PhaseChangeEventArgs phaseChangeEventArgs)
+        {
+            PhaseChanged?.Invoke(this, phaseChangeEventArgs);
+        }
+
+        protected virtual void OnRoundStarted(RoundStartedArgs e)
+        {
+            RoundStarted?.Invoke(this, e);
+        }
+
+        protected virtual void OnTurnEnded(RoundEndedArgs e)
+        {
+            RoundEnded?.Invoke(this, e);
+        }
+        protected virtual void UpdateObsQueueDisplay()
         {
         }
 
-        public virtual void EndGame()
+        private void PlayerQueue_ChangedPlayerQueue(object sender, QueueUpdateArgs e)
         {
-            if (HasEnded)
-                return;
-
-            HasEnded = true;
-            PlayerQueue.Clear();
-
-            OnGameEnded(new EventArgs());
+            UpdateObsQueueDisplay();
         }
 
-        public virtual void StartGame(string user)
-        {
-            //create new session
-            Configuration.SessionGuid = Guid.NewGuid();
-            DatabaseFunctions.WriteDbSessionRecord(Configuration, Configuration.SessionGuid.ToString(), (int)Configuration.EventMode.EventMode, Configuration.EventMode.DisplayName);
-        }
-
-        public virtual void StartRound(string user)
-        {
-            OnRoundStarted(new RoundStartedArgs() { Username = user, GameMode = GameMode });
-        }
-
-        public virtual void Run()
-        {
-        }
-
-        public virtual void ShowHelp(string username)
-        {
-        }
-
-        public virtual void ShowHelpSub(string username)
-        {
-            ChatClient.SendMessage(Configuration.Channel, Configuration.CommandPrefix + Translator.GetTranslation("gameHelpSub1", Configuration.UserList.GetUserLocalization(username)));
-            ChatClient.SendMessage(Configuration.Channel, Configuration.CommandPrefix + Translator.GetTranslation("gameHelpSub2", Configuration.UserList.GetUserLocalization(username)));
-            ChatClient.SendMessage(Configuration.Channel, Configuration.CommandPrefix + Translator.GetTranslation("gameHelpSub3", Configuration.UserList.GetUserLocalization(username)));
-            ChatClient.SendMessage(Configuration.Channel, Configuration.CommandPrefix + Translator.GetTranslation("gameHelpSub4", Configuration.UserList.GetUserLocalization(username)));
-            ChatClient.SendMessage(Configuration.Channel, Configuration.CommandPrefix + Translator.GetTranslation("gameHelpSub5", Configuration.UserList.GetUserLocalization(username)));
-        }
-
-        public virtual Task ProcessQueue()
-        {
-            if (!ProcessingQueue)
-            {
-                ProcessingQueue = true;
-
-                Console.WriteLine("processing queue: " + Thread.CurrentThread.ManagedThreadId);
-                try
-                {
-                    ProcessCommands();
-                }
-                catch (Exception ex)
-                {
-                    var error = string.Format("ERROR {0} {1}", ex.Message, ex);
-                    Logger.WriteLog(Logger.ErrorLog, error);
-                }
-                finally
-                {
-                    ProcessingQueue = false;
-                }
-            }
-            return Task.CompletedTask;
-        }
-
-        /// <summary>
-        /// Processes the current command queue and returns when empty
-        /// </summary>
-        public virtual Task ProcessCommands()
-        {
-            return null;
-        }
-    }
-
-    public class RoundEndedArgs
-    {
-        public string Username { set; get; }
-        public GameModeType GameMode { set; get; }
-        public long GameLoopCounterValue { set; get; }
+        #endregion Methods
     }
 
     public class PhaseChangeEventArgs
     {
+        #region Properties
+
+        public GamePhase NewPhase { set; get; }
+
+        #endregion Properties
+
+        #region Constructors + Destructors
+
         public PhaseChangeEventArgs(GamePhase value)
         {
             NewPhase = value;
         }
 
-        public GamePhase NewPhase { set; get; }
+        #endregion Constructors + Destructors
     }
 
+    public class RoundEndedArgs
+    {
+        #region Properties
+
+        public long GameLoopCounterValue { set; get; }
+        public GameModeType GameMode { set; get; }
+        public string Username { set; get; }
+
+        #endregion Properties
+    }
     public class RoundStartedArgs
     {
-        public string Username { set; get; }
+        #region Properties
+
         public GameModeType GameMode { set; get; }
+        public string Username { set; get; }
+
+        #endregion Properties
     }
 }

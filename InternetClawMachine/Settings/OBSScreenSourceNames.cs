@@ -2,7 +2,7 @@
 {
     public class ObsScreenSourceNames
     {
-        public ObsSceneSource Paused = new ObsSceneSource() { SourceName = "Paused", Type = ObsSceneSourceType.TEXT, SceneName = "VideosScene" };
+        public ObsSceneSource Paused { set; get; }
         public ObsSceneSource Construction = new ObsSceneSource() { SourceName = "Construction", Type = ObsSceneSourceType.TEXT, SceneName = "VideosScene" };
 
         public ObsSceneSource SceneGolfGrid = new ObsSceneSource() { SceneName = "GolfGrid" };

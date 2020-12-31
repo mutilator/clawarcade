@@ -1,0 +1,557 @@
+#include <SPI.h>
+#include <WiFi.h>
+
+
+const int _PINMoveLeft = 16;
+const int _PINMoveRight = 17;
+const int _PINMoveForward = 18;
+const int _PINMoveBackward = 23;
+const int _PINDropClaw = 19;
+
+const int _PINLightsWhite = 22;//up
+const int _PINLightsColor = 4;
+
+const int _PINConveyorBelt = 21;
+const int _PINConveyorFlipper = 26;
+const int _PINConveyorSensor = 34;
+
+const int _PINLED = 25;
+const int _PINCoinInsert = 4;
+const int _PINGameReset = 35;
+
+int _conveyorSensorTripDelay = 1000; //amount of time to wait before looking for another sensor event
+int _gameResetTripDelay = 4000; //amount of time to wait before looking for another sensor event
+
+const int EVENT_CONVEYOR_TRIPPED = 100; //response when tripped
+const int EVENT_PONG = 101; //ping reply
+const int EVENT_GAME_RESET = 102; //send a reset event from the machine
+
+const int CLAW_FORWARD = 1;
+const int CLAW_BACKWARD = 2;
+const int CLAW_LEFT = 3;
+const int CLAW_RIGHT = 4;
+const int CLAW_DROP = 5;
+
+unsigned long _clawForwardMoveStart = 0;
+unsigned long _clawBackwardMoveStart = 0;
+unsigned long _clawLeftMoveStart = 0;
+unsigned long _clawRightMoveStart = 0;
+unsigned long _clawDropMoveStart = 0;
+
+int _clawForwardDuration = 0;
+int _clawBackwardDuration = 0;
+int _clawLeftDuration = 0;
+int _clawRightDuration = 0;
+int _clawDropDuration = 0;
+
+unsigned long _conveyorBeltStart = 0;
+int _conveyorBeltRunTime = 0;
+
+unsigned long _conveyorFlipperStart = 0;
+int _conveyorFlipperRunTime = 3000;
+
+unsigned long _conveyorSensorTrippedTime = 0; //what time the sensor last saw movement
+unsigned long _gameResetTrippedTime = 0;
+
+bool _hasQueuedCommand = false; //flag for speed if we have a command queued to go out
+char _queuedCommand[100]; //probly too big
+
+bool _needsSecondaryInit = true;
+/*
+
+  WiFi DEFINITIONS
+*/
+
+// Replace with your network credentials
+const char* ssid     = "mut";
+const char* password = "302 w page st";
+
+/*
+      SERVER DEFINITIONS
+
+*/
+// the media access control (ethernet hardware) address for the shield:
+byte mac[] = { 0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xE1 };
+//the IP address for the shield:
+IPAddress ip (10, 1, 2, 196 );
+
+/// etherserver on 23
+const int _clientCount = 8; //how many clients do we allow to connect
+WiFiServer _server(23);
+WiFiClient _clients[_clientCount]; //list of connections
+
+
+//MISC for handling commands
+// buffers for receiving and sending data
+const byte _numChars = 64;
+char _incomingCommand[_numChars]; // an array to store the received data
+char _sincomingCommand[_numChars]; // an array to store the received data
+char _acknowledgement = '\n'; //acknowledgement
+char _commandDelimiter = '\n';
+
+
+void setup() {
+    Serial.begin(115200);
+
+    initGeneral();
+    connectWiFi();
+    
+    initMovement();
+    initLights();
+    initConveyor();
+
+    //init server
+    
+    _server.begin();
+}
+
+void loop() {
+    checkWiFi();
+    if (_needsSecondaryInit)
+    {
+        
+        pinMode(_PINCoinInsert, OUTPUT);
+        digitalWrite(_PINCoinInsert, HIGH);
+        _needsSecondaryInit = false;
+    }
+    
+    handleTelnetConnectors();
+    handleSerialCommands();
+    checkConveyorSensor();
+    checkBeltRuntime();
+    checkFlipperRuntime();
+    checkMovements();
+    checkGameReset();
+}
+
+
+/**
+ * 
+ * INITIALIZATION FUNCTIONS
+ * 
+ */
+void initGeneral()
+{
+    pinMode(_PINLED, OUTPUT);
+    digitalWrite(_PINLED, LOW);
+    pinMode(_PINGameReset, INPUT);
+}
+
+void connectWiFi()
+{
+    WiFi.disconnect();
+    //WiFi.config(ip);
+    WiFi.begin(ssid, password);
+
+    //we dont boot unless wifi is connected
+    while (WiFi.status() != WL_CONNECTED) {
+        delay(500);
+    }
+    digitalWrite(_PINLED, HIGH);
+    
+}
+void checkWiFi()
+{
+    if (WiFi.status() != WL_CONNECTED) {
+        digitalWrite(_PINLED, LOW);
+        connectWiFi();
+    }
+}
+void initMovement()
+{
+    pinMode(_PINMoveLeft, OUTPUT);
+    pinMode(_PINMoveRight, OUTPUT);
+    pinMode(_PINMoveForward, OUTPUT);
+    pinMode(_PINMoveBackward, OUTPUT);
+    pinMode(_PINDropClaw, OUTPUT);
+    pinMode(_PINCoinInsert, OUTPUT);
+    pinMode(25, OUTPUT);
+
+    digitalWrite(_PINMoveLeft, HIGH);
+    digitalWrite(_PINMoveRight, HIGH);
+    digitalWrite(_PINMoveForward, HIGH);
+    digitalWrite(_PINMoveBackward, HIGH);
+    digitalWrite(_PINDropClaw, HIGH);
+
+}
+
+void initLights()
+{
+    pinMode(_PINLightsWhite, OUTPUT);
+    pinMode(_PINLightsColor, OUTPUT);
+
+    digitalWrite(_PINLightsWhite, LOW); //turns lights on
+    digitalWrite(_PINLightsColor, LOW); //not hooked up yet
+}
+
+void initConveyor()
+{
+    pinMode(_PINConveyorBelt, OUTPUT);
+    pinMode(_PINConveyorFlipper, OUTPUT);
+    pinMode(_PINConveyorSensor, INPUT);
+
+    digitalWrite(_PINConveyorBelt, HIGH);
+    digitalWrite(_PINConveyorFlipper, LOW);
+}
+
+
+
+
+/**
+ * 
+ * EVENT HANDLING
+ * 
+ */
+void handleSerialCommands()
+{
+    static byte sidx = 0; //serial cursor
+
+    //if we have data, read it
+    if (Serial.available())
+    {
+        
+        char thisChar = Serial.read();
+        if (thisChar == '\r' || thisChar == '\n')
+        {
+            _sincomingCommand[sidx] = '\0'; //terminate string
+            char command[10]= {0}; //holds the command
+
+            sscanf(_sincomingCommand, "%s", command);
+            if (strcmp(command,".") == 0) { //ready to receive command
+                if (_hasQueuedCommand) //bool for speed
+                {
+                    Serial.println(_queuedCommand);
+                    Serial.flush();
+                    _hasQueuedCommand = false;
+                } else {
+                    Serial.println("a"); //print ack
+                    Serial.flush();
+                }
+            }
+            sidx = 0;
+        } else {
+            //save our byte
+            _sincomingCommand[sidx] = thisChar;
+            sidx++;
+            //prevent overlfow and reset to our last byte
+            if (sidx >= _numChars) {
+                sidx = _numChars - 1;
+            }
+        }
+    }
+}
+
+void checkMovements()
+{
+    int curTime = millis();
+    //if duration is negative, we may have started movign the claw but it requires a stop command to stop it
+    //we verify there is also a start time
+    //then check if we've waited long enough
+    if (_clawForwardDuration > 0 && _clawForwardMoveStart > 0 && curTime - _clawForwardMoveStart >= _clawForwardDuration)
+    {
+        digitalWrite(_PINMoveForward, HIGH);
+        _clawForwardMoveStart = 0;
+    }
+    if (_clawBackwardDuration > 0 && _clawBackwardMoveStart > 0 && curTime - _clawBackwardMoveStart >= _clawBackwardDuration)
+    {
+        digitalWrite(_PINMoveBackward, HIGH);
+        _clawBackwardMoveStart = 0;
+    }
+    if (_clawLeftDuration > 0 && _clawLeftMoveStart > 0 && curTime - _clawLeftMoveStart >= _clawLeftDuration)
+    {
+        digitalWrite(_PINMoveLeft, HIGH);
+        _clawLeftMoveStart = 0;
+    }
+    if (_clawRightDuration > 0 && _clawRightMoveStart > 0 && curTime - _clawRightMoveStart >= _clawRightDuration)
+    {
+        digitalWrite(_PINMoveRight, HIGH);
+        _clawRightMoveStart = 0;
+    }
+    if (_clawDropDuration > 0 && _clawDropMoveStart > 0 && curTime - _clawDropMoveStart >= _clawDropDuration)
+    {
+        digitalWrite(_PINDropClaw, HIGH);
+        _clawDropMoveStart = 0;
+    }
+}
+void checkFlipperRuntime()
+{
+    if (_conveyorFlipperStart > 0 && millis() - _conveyorFlipperStart >= _conveyorFlipperRunTime)
+    {
+        digitalWrite(_PINConveyorFlipper, LOW);
+        _conveyorFlipperStart = 0;
+    }
+}
+void checkBeltRuntime()
+{
+    if (_conveyorBeltStart > 0 && millis() - _conveyorBeltStart >= _conveyorBeltRunTime)
+    {
+        digitalWrite(_PINConveyorBelt, HIGH);
+        _conveyorBeltStart = 0;
+        _conveyorBeltRunTime = 0;
+    }
+}
+void checkConveyorSensor()
+{
+    int sensorVal = digitalRead(_PINConveyorSensor);
+    if (sensorVal == HIGH)
+    {
+        if (millis() - _conveyorSensorTrippedTime > _conveyorSensorTripDelay)
+            sendEvent(EVENT_CONVEYOR_TRIPPED);
+        
+        _conveyorSensorTrippedTime = millis();
+    }
+}
+
+void checkGameReset()
+{
+    int sensorVal = digitalRead(_PINGameReset);
+    if (sensorVal == HIGH)
+    {
+        if (millis() - _gameResetTrippedTime > _gameResetTripDelay)
+            sendEvent(EVENT_GAME_RESET);
+        
+        _gameResetTrippedTime = millis();
+    }
+}
+
+// Generates event text and sends it to the connected client
+void sendEvent(int event)
+{
+    if (event > 0)
+    {
+        char outputData[400];
+        if (event == EVENT_CONVEYOR_TRIPPED)
+        {
+            sprintf(outputData, "%i", EVENT_CONVEYOR_TRIPPED);
+            broadcastToClients(outputData);
+        } else if (event == EVENT_GAME_RESET)
+        {
+            sprintf(outputData, "%i", EVENT_GAME_RESET);
+            broadcastToClients(outputData);
+        }
+    }
+}
+
+/**
+ * 
+ * 
+ * 
+ *  NETWORK COMMUNICATION
+ * 
+ * 
+ */
+void broadcastToClients(char outputData[])
+{
+    for (byte i=0; i < _clientCount; i++)
+    {
+        if (_clients[i] && _clients[i].connected())
+            _clients[i].println(outputData);
+    }
+}
+void handleTelnetConnectors()
+{
+    // see if someone said something
+    WiFiClient client = _server.available();
+
+    //check for disconnected clients
+    for (byte i=0; i < _clientCount; i++)
+    {
+        if (_clients[i] &&  !_clients[i].connected())
+            _clients[i].stop();
+    }
+
+    //new client connected
+    if (client) {
+        for (byte i=0; i < _clientCount; i++)
+        {
+            if (!_clients[i] || !_clients[i].connected()) {
+                //add this person to the list of clients
+                _clients[i] = client;
+                client.flush();
+                break;
+            }
+        }
+    }
+
+    //check for new data from everyone
+    for (byte i=0; i < _clientCount; i++)
+    {
+        //read all data in buffer
+        while(_clients[i] && _clients[i].available())
+        {
+            //handle next byte of data
+            handleClientComms(_clients[i]);
+        }
+    }
+
+}
+
+void handleClientComms(WiFiClient &client)
+{
+    static byte idx = 0; //index for socket cursor, if multi connection this will b0rk
+    // read the bytes incoming from the client:
+    char thisChar = client.read();
+    if (thisChar == _commandDelimiter)
+    {
+
+        _incomingCommand[idx] = '\0'; //terminate string
+        handleTelnetCommand(client);
+        idx = 0;
+    } else {
+        if (thisChar != '\r') //ignore CR
+        {
+            //save our byte
+            _incomingCommand[idx] = thisChar;
+            idx++;
+            //prevent overlfow and reset to our last byte
+            if (idx >= _numChars) {
+                idx = _numChars - 1;
+            }
+        }
+    }
+}
+
+/**
+ * 
+ * 
+ * 
+ * NETWORK COMMANDS
+ * 
+ * 
+ * 
+ */
+
+
+void handleTelnetCommand(WiFiClient &client)
+{
+    char outputData[400];
+    char command[_numChars]= {0}; //holds the command
+    char arguement[_numChars]= {0}; //holds the axis
+    char arguement2[_numChars]= {0}; //holds the setting
+    char arguement3[_numChars]= {0}; //holds the setting
+    char arguement4[_numChars]= {0}; //holds the setting
+    char arguement5[_numChars]= {0}; //holds the setting
+    char arguement6[_numChars]= {0}; //holds the setting
+
+    sscanf(_incomingCommand, "%s %s %s %s %s %s %s", command, arguement, arguement2, arguement3, arguement4, arguement5, arguement6);
+
+    /*
+    
+    */
+    if (strcmp(command,"ps") == 0) { //ping setting
+        int pin = atoi(arguement);
+        int val = atoi(arguement2);
+        digitalWrite(pin, val);
+    } else if (strcmp(command,"pm") == 0) { //pin mode
+        int pin = atoi(arguement);
+        int mode = atoi(arguement2);
+        pinMode(pin, mode);
+    } else if (strcmp(command,"f") == 0) { //forward
+        int duration = atoi(arguement);
+        move(CLAW_FORWARD, duration);
+    } else if (strcmp(command, "b") == 0) { //backward
+        int duration = atoi(arguement);
+        move(CLAW_BACKWARD, duration);
+    } else if (strcmp(command, "l") == 0) { //left
+        int duration = atoi(arguement);
+        move(CLAW_LEFT, duration);
+    } else if (strcmp(command,"r") == 0) { //right
+        int duration = atoi(arguement);
+        move(CLAW_RIGHT, duration);
+    } else if (strcmp(command,"d") == 0) { //drop
+        int duration = atoi(arguement);
+        move(CLAW_DROP, duration);
+    } else if (strcmp(command,"s") == 0) { //stop movement
+        digitalWrite(_PINMoveForward, HIGH);
+        digitalWrite(_PINMoveBackward, HIGH);
+        digitalWrite(_PINMoveLeft, HIGH);
+        digitalWrite(_PINMoveRight, HIGH);
+        digitalWrite(_PINDropClaw, HIGH);
+        digitalWrite(_PINCoinInsert, HIGH);
+    } else if (strcmp(command,"belt") == 0) { //move belt for # milliseconds
+        int val = atoi(arguement);
+        moveConveyorBelt(val);
+    } else if (strcmp(command,"sbelt") == 0) { //sticky belt, turn on/off and leave it
+        int val = atoi(arguement);
+        if (val == 1)
+            digitalWrite(_PINConveyorBelt, LOW);
+        else
+            digitalWrite(_PINConveyorBelt, HIGH);
+    } else if (strcmp(command,"flip") == 0) { //move flipper out and back
+        startFlipper();
+    } else if (strcmp(command,"light") == 0) { //lights on or off
+        if (strcmp(arguement,"on") == 0)
+        {
+            digitalWrite(_PINLightsWhite, LOW);
+        } else {
+            digitalWrite(_PINLightsWhite, HIGH);
+        }
+    } else if (strcmp(command,"strobe") == 0) { //strobe the lights
+        sprintf(_queuedCommand, "s %s %s %s %s %s %s", arguement, arguement2, arguement3, arguement4, arguement5, arguement6);
+        _hasQueuedCommand = true;
+    } else if (strcmp(command,"uno") == 0) { //send generic commands to uno
+        sprintf(_queuedCommand, "%s %s %s %s %s %s", arguement, arguement2, arguement3, arguement4, arguement5, arguement6);
+        _hasQueuedCommand = true;
+    } else if (strcmp(command,"coin") == 0) { //insert a coin
+        digitalWrite(_PINCoinInsert, LOW);
+        delay(500);
+        digitalWrite(_PINCoinInsert, HIGH);
+    } else if (strcmp(command,"ping") == 0) { //pinging
+        long val = atol(arguement);
+        sprintf(outputData, "%i %ld", EVENT_PONG, val);
+        client.println(outputData);
+    } else {
+        //always send an acknowledgement that as processed a command, even if nothing fired, it means we cleared the command
+        client.println("");
+    }
+}
+
+void moveConveyorBelt(int runTime)
+{
+    if (runTime > 0)
+    {
+        digitalWrite(_PINConveyorBelt, LOW);
+        _conveyorBeltStart = millis();
+        _conveyorBeltRunTime = runTime;
+    }
+}
+
+void startFlipper()
+{
+    digitalWrite(_PINConveyorFlipper, HIGH);
+    _conveyorFlipperStart = millis();
+    _conveyorFlipperRunTime = 3000;
+}
+
+void move(int direction, int duration)
+{
+    unsigned long curTime = millis();
+    switch (direction)
+    {
+        case CLAW_FORWARD:
+            _clawForwardDuration = duration;
+            _clawForwardMoveStart = curTime;
+            digitalWrite(_PINMoveForward, LOW);
+            break;
+        case CLAW_BACKWARD:
+            _clawBackwardDuration = duration;
+            _clawBackwardMoveStart = curTime;
+            digitalWrite(_PINMoveBackward, LOW);
+            break;
+        case CLAW_LEFT:
+            _clawLeftDuration = duration;
+            _clawLeftMoveStart = curTime;
+            digitalWrite(_PINMoveLeft, LOW);
+            break;
+        case CLAW_RIGHT:
+            _clawRightDuration = duration;
+            _clawRightMoveStart = curTime;
+            digitalWrite(_PINMoveRight, LOW);
+            break;
+        case CLAW_DROP:
+            _clawDropDuration = duration;
+            _clawDropMoveStart = curTime;
+            digitalWrite(_PINDropClaw, LOW);
+            break;
+    }
+}

@@ -23,46 +23,51 @@ namespace InternetClawMachine.Games.OtherGame
         {
             base.HandleMessage(username, message);
 
+            var vote = message.ToLower();
+            if (vote.StartsWith("!"))
+                vote = vote.Substring(1);
+
             //record all votes in a list
             //highest wins...
-            if (!Votes.Any(v => v.Username == username))
+            //new votes from same user override old votes
+            if (Votes.Any(v => v.Username == username))
+                Votes.Remove(Votes.Find(itm => itm.Username == username));
+            
+            switch (vote)
             {
-                switch (message.ToLower())
-                {
-                    case "teams":
-                        Votes.Add(new GameModeVote(username, GameModeType.REALTIMETEAM, GameRoundTimer.ElapsedMilliseconds));
-                        break;
-                    case "chaos":
-                        Votes.Add(new GameModeVote(username, GameModeType.REALTIME, GameRoundTimer.ElapsedMilliseconds));
-                        break;
+                case "teams":
+                    Votes.Add(new GameModeVote(username, GameModeType.REALTIMETEAM, GameRoundTimer.ElapsedMilliseconds));
+                    break;
+                case "chaos":
+                    Votes.Add(new GameModeVote(username, GameModeType.REALTIME, GameRoundTimer.ElapsedMilliseconds));
+                    break;
 
-                    case "queue":
-                        Votes.Add(new GameModeVote(username, GameModeType.SINGLEQUEUE, GameRoundTimer.ElapsedMilliseconds));
-                        break;
+                case "queue":
+                    Votes.Add(new GameModeVote(username, GameModeType.SINGLEQUEUE, GameRoundTimer.ElapsedMilliseconds));
+                    break;
 
-                    case "quick":
-                        Votes.Add(new GameModeVote(username, GameModeType.SINGLEQUICKQUEUE, GameRoundTimer.ElapsedMilliseconds));
-                        break;
+                case "quick":
+                    Votes.Add(new GameModeVote(username, GameModeType.SINGLEQUICKQUEUE, GameRoundTimer.ElapsedMilliseconds));
+                    break;
 
-                    case "planned":
-                        Votes.Add(new GameModeVote(username, GameModeType.PLANNED, GameRoundTimer.ElapsedMilliseconds));
-                        break;
-                    case "trivia":
-                        Votes.Add(new GameModeVote(username, GameModeType.TRIVIA, GameRoundTimer.ElapsedMilliseconds));
-                        break;
-                    case "team trivia":
-                        Votes.Add(new GameModeVote(username, GameModeType.TEAMTRIVIA, GameRoundTimer.ElapsedMilliseconds));
-                        break;
-                        /*
-                    case "single":
-                        Votes.Add(new GameModeVote(Username, GameModeType.SINGLEPLAYER, GameModeTimer.ElapsedMilliseconds));
-                        break;
+                case "planned":
+                    Votes.Add(new GameModeVote(username, GameModeType.PLANNED, GameRoundTimer.ElapsedMilliseconds));
+                    break;
+                case "trivia":
+                    Votes.Add(new GameModeVote(username, GameModeType.TRIVIA, GameRoundTimer.ElapsedMilliseconds));
+                    break;
+                case "team trivia":
+                    Votes.Add(new GameModeVote(username, GameModeType.TEAMTRIVIA, GameRoundTimer.ElapsedMilliseconds));
+                    break;
+                    /*
+                case "single":
+                    Votes.Add(new GameModeVote(Username, GameModeType.SINGLEPLAYER, GameModeTimer.ElapsedMilliseconds));
+                    break;
 
-                    case "water":
-                        Votes.Add(new GameModeVote(Username, GameModeType.WATERGUNQUEUE, GameModeTimer.ElapsedMilliseconds));
-                        break;
-                        */
-                }
+                case "water":
+                    Votes.Add(new GameModeVote(Username, GameModeType.WATERGUNQUEUE, GameModeTimer.ElapsedMilliseconds));
+                    break;
+                    */
             }
         }
 

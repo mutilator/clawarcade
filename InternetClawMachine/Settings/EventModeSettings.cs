@@ -1,5 +1,6 @@
 ﻿using InternetClawMachine.Games;
 using InternetClawMachine.Hardware.ClawControl;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
@@ -188,6 +189,13 @@ namespace InternetClawMachine.Settings
         /// Settings to use for trivia mode
         /// </summary>
         public TriviaSettings TriviaSettings { set; get; }
+
+        /// <summary>
+        /// Scene to switch to when the claw is dropped
+        /// </summary>
+        public ObsSceneSource DropScene { set; get; }
+
+        
 
         /// <summary>
         /// How large should we let the queue get?

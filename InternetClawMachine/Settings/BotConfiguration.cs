@@ -178,7 +178,7 @@ namespace InternetClawMachine.Settings
             if (DataExchanger == null)
                 DataExchanger = new JsonDataExchange();
 
-            ObsScreenSourceNames = new ObsScreenSourceNames();
+            //ObsScreenSourceNames = new ObsScreenSourceNames();
             Coords = new Coordinates();
             OverrideChat = false;
             ReconnectAttempts = 0;
@@ -251,6 +251,7 @@ namespace InternetClawMachine.Settings
         /// Holds slack settings
         /// </summary>
         public SlackSettings SlackSettings { set; get; }
+        public bool IsPaused { get; internal set; }
 
         #endregion Properties
 

@@ -148,11 +148,6 @@ namespace InternetClawMachine
         /// </summary>
         public IChatApi Client { get; set; }
 
-        /// <summary>
-        /// Whether the game is paused
-        /// </summary>
-        public bool IsPaused { get; private set; }
-
         public WebServer WebServer { get; private set; }
 
         private GridViewColumnHeader _lastHeaderClicked = null;
@@ -502,7 +497,7 @@ namespace InternetClawMachine
             {
             }
 
-            if (Game != null && !IsPaused)
+            if (Game != null && !Configuration.IsPaused)
                 Game.HandleCommand(channel, username, chatMessage, isSubscriber, customRewardId);
 
             switch (translateCommand.FinalWord)
@@ -1521,6 +1516,19 @@ namespace InternetClawMachine
             {
                 lstPlushes.ItemsSource = ((ClawGame)Game).PlushieTags;
             }
+            Configuration.IsPaused = false;
+            if (!(Game is ClawChaos))
+            {
+                Game.PlayerQueue.OnJoinedQueue += PlayerQueue_OnJoinedQueue; //this is unsafe but playerqueue is never reset
+            }
+        }
+
+        private void PlayerQueue_OnJoinedQueue(object sender, QueueUpdateArgs e)
+        {
+            if (Game.PlayerQueue.Count > 20)
+            {
+                StartGameModeRealTime();
+            }
         }
 
         private void Game_PhaseChanged(object sender, PhaseChangeEventArgs e)
@@ -1553,6 +1561,10 @@ namespace InternetClawMachine
         /// </summary>
         private void EndGame()
         {
+            if (!(Game is ClawChaos))
+            {
+                Game.PlayerQueue.OnJoinedQueue -= PlayerQueue_OnJoinedQueue; //this is unsafe but playerqueue is never reset
+            }
             //if the game is in a specialy mode that requires an event configuration and a game type then reset to normal event mode
             if (Game.GameMode == GameModeType.REALTIMETEAM || Game.GameMode == GameModeType.TRIVIA || Game.GameMode == GameModeType.TEAMTRIVIA)
             {
@@ -1569,7 +1581,7 @@ namespace InternetClawMachine
         private void RunCurrentGameMode(string username, string message, string channel, bool isSubscriber)
         {
             //game modes
-            if (IsPaused)
+            if (Configuration.IsPaused)
                 return;
             if (Game != null)
                 Game.HandleMessage(username, message);
@@ -1873,8 +1885,8 @@ namespace InternetClawMachine
 
         private void btnPause_Click(object sender, RoutedEventArgs e)
         {
-            IsPaused = !IsPaused;
-            if (IsPaused)
+            Configuration.IsPaused = !Configuration.IsPaused;
+            if (Configuration.IsPaused)
             {
                 ObsConnection.SetSourceRender(Configuration.ObsScreenSourceNames.Paused.SourceName, true,
                     Configuration.ObsScreenSourceNames.Paused.SceneName);
@@ -2878,7 +2890,7 @@ namespace InternetClawMachine
         {
             if (Game is ClawTrivia)
             {
-                ((ClawTrivia)Game).NextQuestion();
+                ((ClawTrivia)Game).NextQuestion(new CancellationTokenSource());
             }
         }
 

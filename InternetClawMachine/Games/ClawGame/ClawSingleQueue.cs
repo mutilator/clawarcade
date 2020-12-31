@@ -20,16 +20,25 @@ namespace InternetClawMachine.Games.ClawGame
             GameMode = GameModeType.SINGLEQUEUE;
             CurrentDroppingPlayer = new DroppingPlayer();
             MachineControl.OnClawCentered += MachineControl_OnClawCentered;
+
             ((ClawController)MachineControl).OnClawRecoiled += MachineControl_OnClawRecoiled;
+            ((ClawController)MachineControl).OnClawDropped += ClawSingleQueue_OnClawDropped;
             StartMessage = string.Format(Translator.GetTranslation("gameClawSingleQueueStartGame", Translator.DefaultLanguage), Configuration.CommandPrefix);
 
             PlayerQueue.OnJoinedQueue += PlayerQueue_OnJoinedQueue;
+        }
+
+        internal virtual void ClawSingleQueue_OnClawDropped(object sender, EventArgs e)
+        {
+            if ((ObsConnection.IsConnected) && (Configuration.EventMode.DropScene != null))
+                ObsConnection.SetSourceRender(Configuration.EventMode.DropScene.SourceName, true, Configuration.EventMode.DropScene.SceneName);
         }
 
         private void PlayerQueue_OnJoinedQueue(object sender, QueueUpdateArgs e)
         {
             var pos = e.Index;
             var username = e.Username;
+
 
             if (pos == 0)
             {
@@ -50,6 +59,7 @@ namespace InternetClawMachine.Games.ClawGame
             {
                 MachineControl_OnClawCentered(sender, e);
             }
+            
         }
 
         internal virtual void MachineControl_OnClawCentered(object sender, EventArgs e)
@@ -57,22 +67,33 @@ namespace InternetClawMachine.Games.ClawGame
             DropInCommandQueue = false;
             var msg = string.Format(Translator.GetTranslation("gameClawSingleQueueStartRoundShort", Configuration.UserList.GetUserLocalization(PlayerQueue.CurrentPlayer)), PlayerQueue.CurrentPlayer);
             ChatClient.SendMessage(Configuration.Channel, msg);
+
+            if ((ObsConnection.IsConnected) && (Configuration.EventMode.DropScene != null))
+            {
+                Task.Run(async () => {
+                    await Task.Delay(Configuration.ClawSettings.DropCameraHideDelay);
+                    ObsConnection.SetSourceRender(Configuration.EventMode.DropScene.SourceName, false, Configuration.EventMode.DropScene.SceneName);
+                });
+            }
         }
 
         public override void EndGame()
         {
             if (HasEnded)
                 return;
-            if (MachineControl != null)
-                MachineControl.OnClawCentered -= MachineControl_OnClawCentered;
-            PlayerQueue.OnJoinedQueue -= PlayerQueue_OnJoinedQueue;
+
             base.EndGame();
+            Destroy();
         }
 
         public override void Destroy()
         {
             if (MachineControl != null)
+            {
                 MachineControl.OnClawCentered -= MachineControl_OnClawCentered;
+                ((ClawController)MachineControl).OnClawRecoiled -= MachineControl_OnClawRecoiled;
+                ((ClawController)MachineControl).OnClawDropped -= ClawSingleQueue_OnClawDropped;
+            }
             PlayerQueue.OnJoinedQueue -= PlayerQueue_OnJoinedQueue;
             base.Destroy();
         }
@@ -416,7 +437,7 @@ namespace InternetClawMachine.Games.ClawGame
 
         public override void StartGame(string username)
         {
-            MachineControl.SetClawPower(50);
+            MachineControl.SetClawPower(90);
             MachineControl.InsertCoinAsync();
             GameModeTimer.Reset();
             GameModeTimer.Start();

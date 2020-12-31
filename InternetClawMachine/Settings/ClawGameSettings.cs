@@ -47,6 +47,17 @@ namespace InternetClawMachine.Settings
         public string ClawControllerIpAddress { get; set; }
 
         /// <summary>
+        /// How long do we wait after the game is over to start a new game?
+        /// </summary>
+        public int TriviaEndRoundDelay { set; get; }
+
+
+        /// <summary>
+        /// How long do we wait after centering to we hide drop camera?
+        /// </summary>
+        public int DropCameraHideDelay { set; get; }
+
+        /// <summary>
         /// For claw machine bounty mode, auto start bounties
         /// </summary>
         public bool AutoBountyMode { set; get; }
@@ -255,6 +266,8 @@ namespace InternetClawMachine.Settings
         /// How many commands can one string together in a single line?
         /// </summary>
         public int MaxCommandsPerLine { get; set; }
+
+       
 
         public event PropertyChangedEventHandler PropertyChanged;
 
