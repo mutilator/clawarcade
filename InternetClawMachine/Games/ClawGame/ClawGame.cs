@@ -1067,7 +1067,8 @@ namespace InternetClawMachine.Games.ClawGame
                                     daysToGo = Configuration.ClawSettings.TimePassedForRename - (curTime - plushLastRenameDate) / 60 / 60 / 24;
                                     if (daysToGo <= 0)
                                     {
-                                        WriteDbNewPushName(oldName, newName, username);
+                                        DatabaseFunctions.WriteNewPushName(Configuration, oldName, newName, username);
+                                        
                                         foreach (var plush in PlushieTags)
                                             if (plush.Name == oldName)
                                                 plush.Name = newName;
@@ -1520,7 +1521,8 @@ namespace InternetClawMachine.Games.ClawGame
                                             var daysToGo = Configuration.ClawSettings.TimePassedForRename - (curTime - plushLastRenameDate) / 60 / 60 / 24;
                                             if (daysToGo <= 0)
                                             {
-                                                WriteDbNewPushName(oldName, newName, username);
+                                                DatabaseFunctions.WriteNewPushName(Configuration, oldName, newName, username);
+
                                                 foreach (var plush in PlushieTags)
                                                     if (plush.Name == oldName)
                                                         plush.Name = newName;
@@ -2348,44 +2350,7 @@ namespace InternetClawMachine.Games.ClawGame
             RunStrobe(red, green, blue, strobeCount, strobeDelay);
         }
 
-        internal void WriteDbNewPushName(string oldName, string newName, string user)
-        {
-            lock (Configuration.RecordsDatabase)
-            {
-                try
-                {
-                    Configuration.RecordsDatabase.Open();
-
-                    var sql = "UPDATE plushie SET Name = @newName, ChangedBy = @user, ChangeDate = @epoch WHERE Name = @oldName";
-                    var command = Configuration.RecordsDatabase.CreateCommand();
-                    command.CommandType = CommandType.Text;
-                    command.CommandText = sql;
-                    command.Parameters.Add(new SQLiteParameter("@newName", newName));
-                    command.Parameters.Add(new SQLiteParameter("@oldName", oldName));
-                    command.Parameters.Add(new SQLiteParameter("@user", user));
-                    command.Parameters.Add(new SQLiteParameter("@epoch", Helpers.GetEpoch()));
-                    command.ExecuteNonQuery();
-                    for (var i = 0; i < PlushieTags.Count; i++)
-                    {
-                        if (PlushieTags[i].Name.ToLower() == oldName.ToLower())
-                        {
-                            PlushieTags[i].Name = newName;
-                            break;
-                        }
-                    }
-                }
-                catch (Exception ex)
-                {
-                    var error = string.Format("ERROR {0} {1}", ex.Message, ex);
-                    Logger.WriteLog(Logger.ErrorLog, error);
-                    Configuration.LoadDatebase();
-                }
-                finally
-                {
-                    Configuration.RecordsDatabase.Close();
-                }
-            }
-        }
+        
 
         protected override void OnRoundStarted(RoundStartedArgs e)
         {

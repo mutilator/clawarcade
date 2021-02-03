@@ -325,6 +325,7 @@ namespace InternetClawMachine
                         command.Parameters.Add(new SQLiteParameter("@name", plushObject.Name));
                         command.ExecuteNonQuery();
 
+
                         sql = "SELECT p.Name, p.ID, p.ChangedBy, p.ChangeDate, p.WinStream, p.BountyStream, p.BonusBux FROM plushie p LEFT JOIN plushie_codes c ON p.ID = c.PlushID WHERE p.Name = @name";
                         command = new SQLiteCommand(sql, configuration.RecordsDatabase);
                         command.Parameters.Add(new SQLiteParameter("@name", plushObject.Name));
@@ -352,6 +353,17 @@ namespace InternetClawMachine
                                 plushObject.EpcList = new List<string>() { strEpc };
                             }
                         }
+                        //add to history
+                        sql = "INSERT INTO plush_history (timestamp, plushid, name) VALUES (@timestamp, @plushid, @name)";
+
+                        command = configuration.RecordsDatabase.CreateCommand();
+                        command.CommandType = CommandType.Text;
+                        command.CommandText = sql;
+                        
+                        command.Parameters.Add(new SQLiteParameter("@timestamp", Helpers.GetEpoch()));
+                        command.Parameters.Add(new SQLiteParameter("@plushid", plushObject.PlushId));
+                        command.Parameters.Add(new SQLiteParameter("@name", plushObject.Name));
+                        command.ExecuteNonQuery();
                     } //end fromdatabase
                 }
                 finally
@@ -360,6 +372,55 @@ namespace InternetClawMachine
                 }
             }
             return plushObject;
+        }
+
+        internal static bool WriteNewPushName(BotConfiguration configuration, string oldName, string newName, string user)
+        {
+            lock (configuration.RecordsDatabase)
+            {
+                var returnvalue = true;
+                try
+                {
+                    
+                    configuration.RecordsDatabase.Open();
+
+                    var sql = "UPDATE plushie SET Name = @newName, ChangedBy = @user, ChangeDate = @epoch WHERE Name = @oldName";
+                    var command = configuration.RecordsDatabase.CreateCommand();
+                    command.CommandType = CommandType.Text;
+                    command.CommandText = sql;
+                    command.Parameters.Add(new SQLiteParameter("@newName", newName));
+                    command.Parameters.Add(new SQLiteParameter("@oldName", oldName));
+                    command.Parameters.Add(new SQLiteParameter("@user", user));
+                    command.Parameters.Add(new SQLiteParameter("@epoch", Helpers.GetEpoch()));
+                    command.ExecuteNonQuery();
+                    
+
+                    //add to history
+                    sql = "INSERT INTO plush_history (timestamp, plushid, name) VALUES (@timestamp, (select id from plushie WHERE Name = @newName), @newName)";
+
+                    command = configuration.RecordsDatabase.CreateCommand();
+                    command.CommandType = CommandType.Text;
+                    command.CommandText = sql;
+
+                    command.Parameters.Add(new SQLiteParameter("@timestamp", Helpers.GetEpoch()));
+                    command.Parameters.Add(new SQLiteParameter("@newName", newName));
+                    command.ExecuteNonQuery();
+                    
+                }
+                catch (Exception ex)
+                {
+                    var error = string.Format("ERROR {0} {1}", ex.Message, ex);
+                    Logger.WriteLog(Logger.ErrorLog, error);
+                    configuration.LoadDatebase();
+                    returnvalue = false;
+                }
+                finally
+                {
+                    configuration.RecordsDatabase.Close();
+                    
+                }
+                return returnvalue;
+            }
         }
 
         internal static int CreateTeam(BotConfiguration configuration, string teamName, string guid)

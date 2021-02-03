@@ -800,6 +800,7 @@ namespace InternetClawMachine
 
             ObsConnection = new OBSWebsocket();
             ObsConnection.Connected += OBSConnection_Connected;
+            ObsConnection.SourceMuteStateChanged += ObsConnection_SourceMuteStateChanged;
 
             Configuration.UserList = new UserList();
             Configuration.UserList.OnAddedUser += UserList_OnAddedUser;
@@ -1311,6 +1312,43 @@ namespace InternetClawMachine
         {
             if (!(Game is ClawGame))
                 return;
+
+            
+        }
+
+        private void ObsConnection_SourceMuteStateChanged(OBSWebsocket sender, string sourceName, bool muted)
+        {
+            if ((sourceName == "DesktopUSBMic" || sourceName == "BoomMic") && muted)
+            {
+                try
+                {
+                    Task.Run(async delegate 
+                    {
+                        var vol = 9.0f / 100.0f;
+                        ObsConnection.SetVolume("BackgroundMusic", vol);
+                    });
+                }
+                catch
+                {
+                    //you did it wrong
+                }
+                
+            } else if ((sourceName == "DesktopUSBMic" || sourceName == "BoomMic") && !muted)
+            {
+                try
+                {
+                    Task.Run(async delegate
+                    {
+                        var vol = 0f;
+                        ObsConnection.SetVolume("BackgroundMusic", vol);
+                    });
+                }
+                catch
+                {
+                    //you did it wrong
+                }
+
+            }
         }
 
         private void StartGameModeRealTime()
@@ -2846,12 +2884,15 @@ namespace InternetClawMachine
 
         private void Button_Click_2(object sender, RoutedEventArgs e)
         {
-            var activeSource = ObsConnection.GetCurrentScene().Name;
-            Console.WriteLine(JsonConvert.SerializeObject(ObsConnection.GetSourceFilters("Claw 2")));
-            var obj = new JObject();
-            obj.Add("Commit", "ee225959");
-            obj.Add("Version", "34359934976");
-            ObsConnection.AddFilterToSource(activeSource, "Blur", "obs-stream-effects-filter-blur", obj);
+            var activeSource = ObsConnection.GetSourceSettings("Fireworks");
+            
+            //activeSource.sourceSettings["visible"] = (string)activeSource.sourceSettings["visible"] != "true";
+            var setting = ObsConnection.GetSceneItemProperties("Fireworks", "VideosScene");
+            setting.Visible = !setting.Visible;
+            setting.Item = setting.ItemName;
+            ObsConnection.SetSceneItemProperties(setting, "VideosScene");
+            ObsConnection.SetSourceSettings(activeSource.sourceName, activeSource.sourceSettings);
+
         }
 
         private void BtnTvEnable_Click(object sender, RoutedEventArgs e)
