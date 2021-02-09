@@ -1,4 +1,5 @@
 ﻿using InternetClawMachine.Games.GameHelpers;
+using InternetClawMachine.Settings;
 using System;
 using System.Threading.Tasks;
 
@@ -43,6 +44,7 @@ namespace InternetClawMachine.Hardware.ClawControl
         public event EventHandler OnClawDropping;
 
         public event EventHandler OnResetButtonPressed;
+        public event EventHandler OnReturnedHome;
 
         private bool _lightsOn = true;
         private bool _fullClawPower;
@@ -423,6 +425,7 @@ namespace InternetClawMachine.Hardware.ClawControl
 
         public bool IsLit => _lightsOn;
         public bool IsConnected { get; set; }
+        public ClawMachine Machine { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
 
         #endregion MachineControl Members
 

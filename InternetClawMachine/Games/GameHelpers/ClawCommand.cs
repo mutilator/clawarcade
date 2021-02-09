@@ -1,7 +1,10 @@
-﻿namespace InternetClawMachine.Games.GameHelpers
+﻿using InternetClawMachine.Hardware.ClawControl;
+
+namespace InternetClawMachine.Games.GameHelpers
 {
     public class ClawCommand
     {
+        public IMachineControl MachineControl { set; get; }
         public ClawDirection Direction { set; get; }
         public int Duration { set; get; }
         public string Username { set; get; }

@@ -28,9 +28,12 @@ namespace InternetClawMachine.Games.ClawGame
         {
             if (HasEnded)
                 return;
-            ((ClawController)MachineControl).SendCommand("creset");
-            ((ClawController)MachineControl).OnReturnedHome -= ClawSingleQuickQueue_OnReturnedHome;
-            ((ClawController)MachineControl).OnScoreSensorTripped -= ClawPlinko_OnScoreSensorTripped;
+            foreach (var MachineControl in MachineList)
+            {
+                ((ClawController)MachineControl).SendCommand("creset");
+                ((ClawController)MachineControl).OnReturnedHome -= ClawSingleQuickQueue_OnReturnedHome;
+                ((ClawController)MachineControl).OnScoreSensorTripped -= ClawPlinko_OnScoreSensorTripped;
+            }
             StartRound(null); //starting a null round resets all the things
             base.EndGame();
         }
@@ -38,8 +41,11 @@ namespace InternetClawMachine.Games.ClawGame
         public override void Init()
         {
             base.Init();
-            ((ClawController)MachineControl).OnReturnedHome += ClawSingleQuickQueue_OnReturnedHome;
-            ((ClawController)MachineControl).OnScoreSensorTripped += ClawPlinko_OnScoreSensorTripped;
+            foreach (var MachineControl in MachineList)
+            {
+                ((ClawController)MachineControl).OnReturnedHome += ClawSingleQuickQueue_OnReturnedHome;
+                ((ClawController)MachineControl).OnScoreSensorTripped += ClawPlinko_OnScoreSensorTripped;
+            }
         }
 
         private void ClawPlinko_OnScoreSensorTripped(IMachineControl controller, string slotNumber)
@@ -113,10 +119,13 @@ namespace InternetClawMachine.Games.ClawGame
 
         public override void StartGame(string username)
         {
-            var debug = ((ClawController)MachineControl).SendCommand("debug");
-            var data = debug.Split(',');
-            var centerWidth = int.Parse(data[2]) + 100;
-            ((ClawController)MachineControl).SendCommandAsync("center " + centerWidth + " 0");
+            foreach (var MachineControl in MachineList)
+            {
+                var debug = ((ClawController)MachineControl).SendCommand("debug");
+                var data = debug.Split(',');
+                var centerWidth = int.Parse(data[2]) + 100;
+                ((ClawController)MachineControl).SendCommandAsync("center " + centerWidth + " 0");
+            }
             base.StartGame(username);
         }
 
@@ -159,7 +168,7 @@ namespace InternetClawMachine.Games.ClawGame
         public override void StartRound(string username)
         {
             DropInCommandQueue = false;
-            MachineControl.InsertCoinAsync();
+            
             GameRoundTimer.Reset();
             GameLoopCounterValue++; //increment the counter for this persons turn
             CommandQueue.Clear();
@@ -172,6 +181,8 @@ namespace InternetClawMachine.Games.ClawGame
                 OnRoundStarted(new RoundStartedArgs() { Username = username, GameMode = GameMode });
                 return;
             }
+
+
 
             GameRoundTimer.Start();
 
@@ -235,6 +246,10 @@ namespace InternetClawMachine.Games.ClawGame
                         Logger.WriteLog(Logger.DebugLog, string.Format("STARTROUND: [{0}] Exit after second wait and new player started for {1} in game loop {2}, current player {3} game loop {4}", sequence, args.Username, args.GameLoopCounterValue, PlayerQueue.CurrentPlayer, GameLoopCounterValue), Logger.LogLevel.DEBUG);
                         return;
                     }
+
+                    var userPrefs = Configuration.UserList.GetUser(username);
+                    var MachineControl = GetProperMachine(userPrefs);
+                    
 
                     //if the claw is dropping then we can just let the claw return home event trigger the next player
                     if (!MachineControl.IsClawPlayActive) //otherwise cut their turn short and give the next person a chance

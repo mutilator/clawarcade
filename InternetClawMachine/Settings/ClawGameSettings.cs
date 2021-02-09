@@ -42,9 +42,12 @@ namespace InternetClawMachine.Settings
         public int RfidReaderPort { set; get; }
         public int RfidAntennaPower { set; get; }
 
+
+        public ClawMachine ActiveMachine { set; get; }
+        public List<ClawMachine> ClawMachines { set; get; }
+
         public bool UseNewClawController { get; set; }
-        public int ClawControllerPort { get; set; }
-        public string ClawControllerIpAddress { get; set; }
+
 
         /// <summary>
         /// How long do we wait after the game is over to start a new game?

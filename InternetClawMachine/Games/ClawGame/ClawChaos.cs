@@ -25,7 +25,7 @@ namespace InternetClawMachine.Games.ClawGame
         {
             if (Configuration.IsPaused)
                 return;
-
+            var userPrefs = Configuration.UserList.GetUser(username);
             var cmd = ClawDirection.NA;
             switch (message.ToLower())
             {
@@ -64,7 +64,7 @@ namespace InternetClawMachine.Games.ClawGame
                 case "down":
                 case "drop":
                     cmd = ClawDirection.DOWN;
-                    var usr = Configuration.UserList.GetUser(username);
+                    
 
                     var user = SessionWinTracker.FirstOrDefault(u => u.Username == username);
                     if (user != null)
@@ -75,9 +75,9 @@ namespace InternetClawMachine.Games.ClawGame
                         SessionWinTracker.Add(user);
                     }
 
-                    var teamid = usr.TeamId;
+                    var teamid = userPrefs.TeamId;
                     if (Configuration.EventMode.TeamRequired)
-                        teamid = usr.EventTeamId;
+                        teamid = userPrefs.EventTeamId;
 
                     var team = Teams.FirstOrDefault(t => t.Id == teamid);
                     if (team != null)
@@ -109,7 +109,7 @@ namespace InternetClawMachine.Games.ClawGame
             lock (CommandQueue)
             {
                 if (cmd != ClawDirection.NA)
-                    CommandQueue.Add(new ClawCommand() { Direction = cmd, Duration = Configuration.ClawSettings.ClawMovementTime, Timestamp = GameModeTimer.ElapsedMilliseconds, Username = username });
+                    CommandQueue.Add(new ClawCommand() { Direction = cmd, Duration = Configuration.ClawSettings.ClawMovementTime, Timestamp = GameModeTimer.ElapsedMilliseconds, Username = username, MachineControl = GetProperMachine(userPrefs) });
             }
             Task.Run(async delegate { await ProcessQueue(); });
         }

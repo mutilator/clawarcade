@@ -32,7 +32,8 @@ namespace InternetClawMachine.Games.ClawGame
         public override void Init()
         {
             base.Init();
-            ((ClawController)MachineControl).OnReturnedHome += ClawSingleQuickQueue_OnReturnedHome;
+            foreach (var MachineControl in MachineList)
+                ((ClawController)MachineControl).OnReturnedHome += ClawSingleQuickQueue_OnReturnedHome;
         }
 
         internal override void ClawSingleQueue_OnClawDropped(object sender, EventArgs e)
@@ -92,7 +93,7 @@ namespace InternetClawMachine.Games.ClawGame
         public override void StartRound(string username)
         {
             DropInCommandQueue = false;
-            MachineControl.InsertCoinAsync();
+            
             GameRoundTimer.Reset();
             GameLoopCounterValue++; //increment the counter for this persons turn
             CommandQueue.Clear();
@@ -105,6 +106,11 @@ namespace InternetClawMachine.Games.ClawGame
                 OnRoundStarted(new RoundStartedArgs() { Username = username, GameMode = GameMode });
                 return;
             }
+
+            var userPrefs = Configuration.UserList.GetUser(username);
+
+            var MachineControl = GetProperMachine(userPrefs);
+            MachineControl.InsertCoinAsync();
 
             GameRoundTimer.Start();
 

@@ -21,14 +21,20 @@ namespace InternetClawMachine.Games.ClawGame
         {
             base.Init();
             PlayerQueue.OnJoinedQueue += PlayerQueue_OnJoinedQueue;
-            ((ClawController)MachineControl).OnClawCentered += ClawTicTacToe_OnClawCentered;
-            ((ClawController)MachineControl).OnReturnedHome += ClawTicTacToe_OnReturnedHome;
+            foreach (var MachineControl in MachineList)
+            {
+                MachineControl.OnClawCentered += ClawTicTacToe_OnClawCentered;
+                MachineControl.OnReturnedHome += ClawTicTacToe_OnReturnedHome;
+            }
         }
 
         ~ClawTicTacToe()
         {
-            ((ClawController)MachineControl).OnClawCentered -= ClawTicTacToe_OnClawCentered;
-            ((ClawController)MachineControl).OnReturnedHome -= ClawTicTacToe_OnReturnedHome;
+            foreach (var MachineControl in MachineList)
+            {
+                ((ClawController)MachineControl).OnClawCentered -= ClawTicTacToe_OnClawCentered;
+                ((ClawController)MachineControl).OnReturnedHome -= ClawTicTacToe_OnReturnedHome;
+            }
         }
 
         /// <summary>
@@ -61,15 +67,19 @@ namespace InternetClawMachine.Games.ClawGame
             DropInCommandQueue = false;
             Configuration.OverrideChat = false;
             //Get the current players position in the queue
-            if (PlayerQueue.Index == 0)
+
+            foreach (var MachineControl in MachineList)
             {
-                //if first player, set home to back left (second players home)
-                ((ClawController)MachineControl).SetHomeLocation(ClawHomeLocation.BACKLEFT);
-            }
-            else
-            { //index = 1 hopefully
-                //if second player, set home to front left (first players home)
-                ((ClawController)MachineControl).SetHomeLocation(ClawHomeLocation.FRONTLEFT);
+                if (PlayerQueue.Index == 0)
+                {
+                    //if first player, set home to back left (second players home)
+                    ((ClawController)MachineControl).SetHomeLocation(ClawHomeLocation.BACKLEFT);
+                }
+                else
+                { //index = 1 hopefully
+                  //if second player, set home to front left (first players home)
+                    ((ClawController)MachineControl).SetHomeLocation(ClawHomeLocation.FRONTLEFT);
+                }
             }
         }
 
@@ -90,17 +100,22 @@ namespace InternetClawMachine.Games.ClawGame
             //to start the game we need to get 2 people in the queue
             PlayerQueue.Clear();
 
-            //TODO change this time to a settable config option
-            ((ClawController)MachineControl).SetHomeLocation(ClawHomeLocation.FRONTLEFT);
-            ((ClawController)MachineControl).SetGameMode(ClawMode.TARGETING);
-            ((ClawController)MachineControl).SetFailsafe(FailsafeType.CLAWOPENED, 26000);
+            foreach (var MachineControl in MachineList)
+            {
+                //TODO change this time to a settable config option
+                ((ClawController)MachineControl).SetHomeLocation(ClawHomeLocation.FRONTLEFT);
+                ((ClawController)MachineControl).SetGameMode(ClawMode.TARGETING);
+                ((ClawController)MachineControl).SetFailsafe(FailsafeType.CLAWOPENED, 26000);
+            }
         }
 
         public void StartTicTacToe()
         {
-            //initialize home location for player 1, front left
-            ((ClawController)MachineControl).SetHomeLocation(ClawHomeLocation.FRONTLEFT);
-
+            foreach (var MachineControl in MachineList)
+            {
+                //initialize home location for player 1, front left
+                ((ClawController)MachineControl).SetHomeLocation(ClawHomeLocation.FRONTLEFT);
+            }
             //disable more people from joining the queue
 
             StartRound(PlayerQueue.CurrentPlayer);
@@ -109,7 +124,7 @@ namespace InternetClawMachine.Games.ClawGame
         public override void StartRound(string username)
         {
             DropInCommandQueue = false;
-            MachineControl.InsertCoinAsync();
+            
             GameRoundTimer.Reset();
             GameLoopCounterValue++; //increment the counter for this persons turn
             CommandQueue.Clear();
@@ -127,6 +142,10 @@ namespace InternetClawMachine.Games.ClawGame
                 return;
 
             GameRoundTimer.Start();
+
+            var userPrefs = Configuration.UserList.GetUser(username);
+            var MachineControl = GetProperMachine(userPrefs);
+            MachineControl.InsertCoinAsync();
 
             var msg = string.Format(Translator.GetTranslation("gameClawTicTacToeStartRound", Configuration.UserList.GetUserLocalization(username)), PlayerQueue.CurrentPlayer, Configuration.ClawSettings.SinglePlayerQueueNoCommandDuration);
             var hasPlayedPlayer = SessionWinTracker.Find(itm => itm.Username.ToLower() == PlayerQueue.CurrentPlayer.ToLower());

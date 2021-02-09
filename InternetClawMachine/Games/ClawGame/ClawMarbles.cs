@@ -57,7 +57,7 @@ namespace InternetClawMachine.Games.ClawGame
         public override void StartRound(string username)
         {
             DropInCommandQueue = false;
-            MachineControl.InsertCoinAsync();
+            
             GameRoundTimer.Reset();
             GameLoopCounterValue++; //increment the counter for this persons turn
             CommandQueue.Clear();
@@ -70,6 +70,10 @@ namespace InternetClawMachine.Games.ClawGame
                 OnRoundStarted(new RoundStartedArgs() { Username = username, GameMode = GameMode });
                 return;
             }
+
+            var userPrefs = Configuration.UserList.GetUser(username);
+            var MachineControl = GetProperMachine(userPrefs);
+            MachineControl.InsertCoinAsync();
 
             GameRoundTimer.Start();
 

@@ -35,8 +35,11 @@ namespace InternetClawMachine.Games.ClawGame
         {
             GameMode = GameModeType.TRIVIA;
             CurrentDroppingPlayer = new DroppingPlayer();
-            MachineControl.OnClawCentered += MachineControl_OnClawCentered;
-            ((ClawController)MachineControl).OnClawRecoiled += ClawSingleQueue_OnClawRecoiled;
+            foreach (var MachineControl in MachineList)
+            {
+                MachineControl.OnClawCentered += MachineControl_OnClawCentered;
+                ((ClawController)MachineControl).OnClawRecoiled += ClawSingleQueue_OnClawRecoiled;
+            }
             StartMessage =
                 string.Format(Translator.GetTranslation("gameClawTriviaStartGame", Translator.DefaultLanguage),
                     Configuration.CommandPrefix);
@@ -169,25 +172,29 @@ namespace InternetClawMachine.Games.ClawGame
 
 
             GameLoopCounterValue = -1;
-            if (MachineControl != null)
+            foreach (var MachineControl in MachineList)
             {
-                MachineControl.OnClawCentered -= MachineControl_OnClawCentered;
-                if (MachineControl is ClawController)
-                    ((ClawController)MachineControl).OnClawRecoiled -= ClawSingleQueue_OnClawRecoiled;
+                if (MachineControl != null)
+                {
+                    MachineControl.OnClawCentered -= MachineControl_OnClawCentered;
+                    if (MachineControl is ClawController)
+                        ((ClawController)MachineControl).OnClawRecoiled -= ClawSingleQueue_OnClawRecoiled;
+                }
             }
-
             base.EndGame();
         }
 
         public override void Destroy()
         {
-            if (MachineControl != null)
+            foreach (var MachineControl in MachineList)
             {
-                MachineControl.OnClawCentered -= MachineControl_OnClawCentered;
-                if (MachineControl is ClawController)
-                    ((ClawController)MachineControl).OnClawRecoiled -= ClawSingleQueue_OnClawRecoiled;
+                if (MachineControl != null)
+                {
+                    MachineControl.OnClawCentered -= MachineControl_OnClawCentered;
+                    if (MachineControl is ClawController)
+                        ((ClawController)MachineControl).OnClawRecoiled -= ClawSingleQueue_OnClawRecoiled;
+                }
             }
-
             base.Destroy();
         }
 
@@ -367,6 +374,7 @@ namespace InternetClawMachine.Games.ClawGame
         {
             var cmd = ClawDirection.NA;
             var moveTime = Configuration.ClawSettings.ClawMovementTime;
+            var userPrefs = Configuration.UserList.GetUser(username);
             switch (message.ToLower())
             {
                 case "stop":
@@ -418,7 +426,7 @@ namespace InternetClawMachine.Games.ClawGame
                     CurrentDroppingPlayer.Username = PlayerQueue.CurrentPlayer;
                     CurrentDroppingPlayer.GameLoop = GameLoopCounterValue;
                     cmd = ClawDirection.DOWN;
-                    var usr = Configuration.UserList.GetUser(username);
+                    
 
                     var user = SessionWinTracker.FirstOrDefault(u => u.Username == username);
                     if (user != null)
@@ -431,9 +439,9 @@ namespace InternetClawMachine.Games.ClawGame
                         SessionWinTracker.Add(user);
                     }
 
-                    var teamid = usr.TeamId;
+                    var teamid = userPrefs.TeamId;
                     if (Configuration.EventMode.TeamRequired)
-                        teamid = usr.EventTeamId;
+                        teamid = userPrefs.EventTeamId;
 
                     var team = Teams.FirstOrDefault(t => t.Id == teamid);
                     if (team != null) team.Drops++;
@@ -466,7 +474,8 @@ namespace InternetClawMachine.Games.ClawGame
                         Direction = cmd,
                         Duration = moveTime,
                         Timestamp = GameModeTimer.ElapsedMilliseconds,
-                        Username = username
+                        Username = username,
+                        MachineControl = GetProperMachine(userPrefs)
                     });
             }
 
@@ -507,8 +516,11 @@ namespace InternetClawMachine.Games.ClawGame
 
         public override void StartGame(string username)
         {
-            MachineControl.SetClawPower(90);
-            MachineControl.InsertCoinAsync();
+            foreach (var MachineControl in MachineList)
+            {
+                MachineControl.SetClawPower(90);
+                MachineControl.InsertCoinAsync();
+            }
             GameModeTimer.Reset();
             GameModeTimer.Start();
             base.StartGame(username);
@@ -644,7 +656,7 @@ namespace InternetClawMachine.Games.ClawGame
         public override void StartRound(string username)
         {
             DropInCommandQueue = false;
-            MachineControl.InsertCoinAsync();
+            
             GameRoundTimer.Reset();
             CommandQueue.Clear();
             GameLoopCounterValue++; //increment the counter for this persons turn
@@ -658,6 +670,10 @@ namespace InternetClawMachine.Games.ClawGame
                 OnRoundStarted(new RoundStartedArgs { Username = null, GameMode = GameMode });
                 return;
             }
+
+            var userPrefs = Configuration.UserList.GetUser(username);
+            var MachineControl = GetProperMachine(userPrefs);
+            MachineControl.InsertCoinAsync();
 
             //take everyone that voted and add them to the queue? -- nope
             GameRoundTimer.Start();

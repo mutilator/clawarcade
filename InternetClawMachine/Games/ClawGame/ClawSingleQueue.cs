@@ -19,10 +19,14 @@ namespace InternetClawMachine.Games.ClawGame
         {
             GameMode = GameModeType.SINGLEQUEUE;
             CurrentDroppingPlayer = new DroppingPlayer();
-            MachineControl.OnClawCentered += MachineControl_OnClawCentered;
+            foreach (var MachineControl in MachineList)
+            {
 
-            ((ClawController)MachineControl).OnClawRecoiled += MachineControl_OnClawRecoiled;
-            ((ClawController)MachineControl).OnClawDropped += ClawSingleQueue_OnClawDropped;
+                MachineControl.OnClawCentered += MachineControl_OnClawCentered;
+
+                ((ClawController)MachineControl).OnClawRecoiled += MachineControl_OnClawRecoiled;
+                ((ClawController)MachineControl).OnClawDropped += ClawSingleQueue_OnClawDropped;
+            }
             StartMessage = string.Format(Translator.GetTranslation("gameClawSingleQueueStartGame", Translator.DefaultLanguage), Configuration.CommandPrefix);
 
             PlayerQueue.OnJoinedQueue += PlayerQueue_OnJoinedQueue;
@@ -89,11 +93,15 @@ namespace InternetClawMachine.Games.ClawGame
 
         public override void Destroy()
         {
-            if (MachineControl != null)
+            foreach (var MachineControl in MachineList)
             {
-                MachineControl.OnClawCentered -= MachineControl_OnClawCentered;
-                ((ClawController)MachineControl).OnClawRecoiled -= MachineControl_OnClawRecoiled;
-                ((ClawController)MachineControl).OnClawDropped -= ClawSingleQueue_OnClawDropped;
+
+                if (MachineControl != null)
+                {
+                    MachineControl.OnClawCentered -= MachineControl_OnClawCentered;
+                    ((ClawController)MachineControl).OnClawRecoiled -= MachineControl_OnClawRecoiled;
+                    ((ClawController)MachineControl).OnClawDropped -= ClawSingleQueue_OnClawDropped;
+                }
             }
             PlayerQueue.OnJoinedQueue -= PlayerQueue_OnJoinedQueue;
             base.Destroy();
@@ -329,6 +337,7 @@ namespace InternetClawMachine.Games.ClawGame
         {
             var cmd = ClawDirection.NA;
             var moveTime = Configuration.ClawSettings.ClawMovementTime;
+            var userPrefs = Configuration.UserList.GetUser(username);
             switch (message.ToLower())
             {
                 case "stop":
@@ -426,7 +435,7 @@ namespace InternetClawMachine.Games.ClawGame
             {
                 Console.WriteLine("added command: " + Thread.CurrentThread.ManagedThreadId);
                 if (cmd != ClawDirection.NA)
-                    CommandQueue.Add(new ClawCommand() { Direction = cmd, Duration = moveTime, Timestamp = GameModeTimer.ElapsedMilliseconds, Username = username });
+                    CommandQueue.Add(new ClawCommand() { Direction = cmd, Duration = moveTime, Timestamp = GameModeTimer.ElapsedMilliseconds, Username = username, MachineControl = GetProperMachine(userPrefs) });
             }
             //try processing queue
             Task.Run(async delegate { await ProcessQueue(); });
@@ -443,8 +452,12 @@ namespace InternetClawMachine.Games.ClawGame
 
         public override void StartGame(string username)
         {
-            MachineControl.SetClawPower(90);
-            MachineControl.InsertCoinAsync();
+            foreach (var MachineControl in MachineList)
+            {
+
+                MachineControl.SetClawPower(90);
+                MachineControl.InsertCoinAsync();
+            }
             GameModeTimer.Reset();
             GameModeTimer.Start();
             base.StartGame(username);
@@ -466,7 +479,7 @@ namespace InternetClawMachine.Games.ClawGame
         public override void StartRound(string username)
         {
             DropInCommandQueue = false;
-            MachineControl.InsertCoinAsync();
+            
             GameRoundTimer.Reset();
             CommandQueue.Clear();
             GameLoopCounterValue++; //increment the counter for this persons turn
@@ -480,6 +493,10 @@ namespace InternetClawMachine.Games.ClawGame
                 OnRoundStarted(new RoundStartedArgs() { Username = username, GameMode = GameMode });
                 return;
             }
+
+            var userPrefs = Configuration.UserList.GetUser(username);
+            var MachineControl = GetProperMachine(userPrefs);
+            MachineControl.InsertCoinAsync();
 
             //take everyone that voted and add them to the queue? -- nope
             GameRoundTimer.Start();

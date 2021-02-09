@@ -1,4 +1,5 @@
 ﻿using InternetClawMachine.Games.GameHelpers;
+using InternetClawMachine.Settings;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -30,15 +31,11 @@ namespace InternetClawMachine.Hardware.ClawControl
 
     internal class ClawController : IMachineControl
     {
-        /// <summary>
-        /// Task token to cancel pings
-        /// </summary>
-        private CancellationTokenSource PingToken;
+        
 
         public event EventHandler OnDisconnected;
 
         public event EventHandler OnPingTimeout;
-
 
         public event EventHandler OnPingSuccess;
 
@@ -112,16 +109,20 @@ namespace InternetClawMachine.Hardware.ClawControl
         public string IpAddress { set; get; }
         public int Port { get; set; }
 
+        internal int _currentWaitSequenceNumberCommand;
+        internal string _lastCommandResponse;
+        internal string _lastDirection = "s";
+
         private Socket _workSocket = null;
         private SocketAsyncEventArgs _socketReader;
         private byte[] _receiveBuffer = new byte[2048];
         private int _receiveIdx;
-        private int _currentWaitSequenceNumberCommand;
-        private string _lastCommandResponse;
-        private string _lastDirection = "s";
+        
+        
+        
         private int _sequence = 0;
         private const int _maximumPingTime = 5000; //ping timeout threshold in ms
-        private Stopwatch PingTimer { get; } = new Stopwatch();
+        internal Stopwatch PingTimer { get; } = new Stopwatch();
         private List<ClawPing> _pingQueue = new List<ClawPing>();
         private FlipperDirection _lastFlipperDirection;
 
@@ -140,6 +141,14 @@ namespace InternetClawMachine.Hardware.ClawControl
 
                 return nextVal;
             }
+        }
+
+        public ClawMachine Machine { set; get; }
+
+        internal void FireCenteredEvent()
+        {
+            IsClawPlayActive = false;
+            OnClawCentered?.Invoke(this, new EventArgs());
         }
 
         /// <summary>
@@ -231,9 +240,9 @@ namespace InternetClawMachine.Hardware.ClawControl
             }
         }
 
-        public ClawController()
+        public ClawController(ClawMachine c)
         {
-            PingTimer.Start();
+            Machine = c;
         }
 
         public bool Connect()
@@ -385,7 +394,7 @@ namespace InternetClawMachine.Hardware.ClawControl
             return commands.ToArray();
         }
 
-        private void HandleMessage(string response)
+        virtual internal void HandleMessage(string response)
         {
             try
             {
@@ -539,8 +548,7 @@ namespace InternetClawMachine.Hardware.ClawControl
                             break;
 
                         case ClawEvents.EVENT_RETURNED_CENTER: //Home in the case of the bot is the center
-                            IsClawPlayActive = false;
-                            OnClawCentered?.Invoke(this, new EventArgs());
+                            FireCenteredEvent();
                             break;
 
                         case ClawEvents.EVENT_DROPPED_CLAW:
@@ -714,17 +722,16 @@ namespace InternetClawMachine.Hardware.ClawControl
 
         public bool Init()
         {
+            PingTimer.Start();
             return true;
         }
 
-        public void InsertCoinAsync()
+        virtual public void InsertCoinAsync()
         {
-            /*
             Task.Run(async delegate
             {
-                await Move(MovementDirection.COIN, 200);
+                await Move(MovementDirection.COIN, 0);
             });
-            */
         }
 
         public void LightSwitch(bool on)
@@ -737,7 +744,7 @@ namespace InternetClawMachine.Hardware.ClawControl
                 SendCommandAsync("light off");
         }
 
-        public async Task Move(MovementDirection enumDir, int duration, bool force = false)
+        virtual internal async Task Move(MovementDirection enumDir, int duration, bool force = false)
         {
             if (IsConnected)
             {
@@ -811,27 +818,27 @@ namespace InternetClawMachine.Hardware.ClawControl
             await Move(MovementDirection.CLAWCLOSE, 1);
         }
 
-        public async Task MoveBackward(int duration)
+        virtual public async Task MoveBackward(int duration)
         {
             await Move(MovementDirection.BACKWARD, duration);
         }
 
-        public async Task MoveDown(int duration)
+        virtual public async Task MoveDown(int duration)
         {
             await Move(MovementDirection.DOWN, duration);
         }
 
-        public async Task MoveForward(int duration)
+        virtual public async Task MoveForward(int duration)
         {
             await Move(MovementDirection.FORWARD, duration);
         }
 
-        public async Task MoveLeft(int duration)
+        virtual public async Task MoveLeft(int duration)
         {
             await Move(MovementDirection.LEFT, duration);
         }
 
-        public async Task MoveRight(int duration)
+        virtual public async Task MoveRight(int duration)
         {
             await Move(MovementDirection.RIGHT, duration);
         }
@@ -841,12 +848,12 @@ namespace InternetClawMachine.Hardware.ClawControl
             await Move(MovementDirection.UP, duration);
         }
 
-        public async Task PressDrop()
+        virtual public async Task PressDrop()
         {
             await Move(MovementDirection.DROP, 0);
         }
 
-        public async Task RunConveyor(int runtime)
+        virtual public async Task RunConveyor(int runtime)
         {
             if (!IsConnected)
                 return;
@@ -854,7 +861,7 @@ namespace InternetClawMachine.Hardware.ClawControl
             await Task.Delay(runtime);
         }
 
-        public void SetClawPower(int percent)
+        virtual public void SetClawPower(int percent)
         {
             if (!IsConnected)
                 return;
@@ -939,7 +946,7 @@ namespace InternetClawMachine.Hardware.ClawControl
             return int.Parse(res);
         }
 
-        public async Task StopMove()
+        virtual public async Task StopMove()
         {
             await Move(MovementDirection.STOP, 0);
         }
@@ -957,59 +964,14 @@ namespace InternetClawMachine.Hardware.ClawControl
             //not implemented
         }
 
-        public void Strobe(int red, int blue, int green, int strobeCount, int strobeDelay)
+        virtual public void Strobe(int red, int blue, int green, int strobeCount, int strobeDelay)
         {
             SendCommandAsync($"strobe {red} {blue} {green} {strobeCount} {strobeDelay} 0");
         }
 
-        public void DualStrobe(int red, int blue, int green, int red2, int blue2, int green2, int strobeCount, int strobeDelay)
+        virtual public void DualStrobe(int red, int blue, int green, int red2, int blue2, int green2, int strobeCount, int strobeDelay)
         {
             SendCommandAsync($"uno ds {red}:{blue}:{green} {red2}:{blue2}:{green2} {strobeCount} {strobeDelay} 0");
         }
-    }
-
-    internal class ClawPing
-    {
-        /// <summary>
-        /// Sequence number sent for this ping
-        /// </summary>
-        public int Sequence { set; get; }
-
-        /// <summary>
-        /// Whether it was successful
-        /// </summary>
-        public bool Success { set; get; }
-
-        /// <summary>
-        /// When did this ping start?
-        /// </summary>
-        public long StartTime { get; internal set; }
-
-        /// <summary>
-        /// Cancellation token for the Task
-        /// </summary>
-        public CancellationTokenSource CancelToken { get; internal set; }
-    }
-
-    public enum ClawHomeLocation
-    {
-        FRONTLEFT,
-        FRONTRIGHT,
-        BACKLEFT,
-        BACKRIGHT
-    }
-
-    public enum ClawMode
-    {
-        NORMAL,
-        TARGETING
-    }
-
-    public enum FailsafeType
-    {
-        MOTORLIMIT, //second limit for how long a motor can move before it should hit a limit
-        CLAWOPENED,//limit for how long the claw can be closed
-        BELTLIMIT, //limit for running conveyor belt
-        FLIPPERLIMIT //limit for flipper in ONE direction
     }
 }

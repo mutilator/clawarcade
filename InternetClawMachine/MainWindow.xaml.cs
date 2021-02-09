@@ -661,8 +661,8 @@ namespace InternetClawMachine
                         _lastHwReset = SessionTimer.ElapsedMilliseconds;
                         if (Game is ClawGame)
                         {
-                            ((ClawGame)Game).MachineControl.Init();
-                            ((ClawController)((ClawGame)Game).MachineControl).SendCommandAsync("reset");
+                            ((ClawGame)Game).GetActiveMachine().Init();
+                            ((ClawController)((ClawGame)Game).GetActiveMachine()).SendCommandAsync("reset");
                         }
                     }
 
@@ -1671,7 +1671,7 @@ namespace InternetClawMachine
                     break;
 
                 default:
-                    (Game as ClawGame)?.MachineControl.MoveForward(-1);
+                    (Game as ClawGame)?.GetActiveMachine().MoveForward(-1);
                     break;
             }
         }
@@ -1692,7 +1692,7 @@ namespace InternetClawMachine
                     break;
 
                 default:
-                    (Game as ClawGame)?.MachineControl.MoveForward(0);
+                    (Game as ClawGame)?.GetActiveMachine().MoveForward(0);
                     break;
             }
         }
@@ -1713,7 +1713,7 @@ namespace InternetClawMachine
                     break;
 
                 default:
-                    (Game as ClawGame)?.MachineControl.MoveLeft(0);
+                    (Game as ClawGame)?.GetActiveMachine().MoveLeft(0);
                     break;
             }
         }
@@ -1735,7 +1735,7 @@ namespace InternetClawMachine
                     break;
 
                 default:
-                    (Game as ClawGame)?.MachineControl.MoveLeft(-1);
+                    (Game as ClawGame)?.GetActiveMachine().MoveLeft(-1);
                     break;
             }
         }
@@ -1757,7 +1757,7 @@ namespace InternetClawMachine
                     break;
 
                 default:
-                    (Game as ClawGame)?.MachineControl.MoveRight(-1);
+                    (Game as ClawGame)?.GetActiveMachine().MoveRight(-1);
                     break;
             }
         }
@@ -1778,7 +1778,7 @@ namespace InternetClawMachine
                     break;
 
                 default:
-                    (Game as ClawGame)?.MachineControl.MoveRight(0);
+                    (Game as ClawGame)?.GetActiveMachine().MoveRight(0);
                     break;
             }
         }
@@ -1800,7 +1800,7 @@ namespace InternetClawMachine
                     break;
 
                 default:
-                    (Game as ClawGame)?.MachineControl.MoveBackward(-1);
+                    (Game as ClawGame)?.GetActiveMachine().MoveBackward(-1);
                     break;
             }
         }
@@ -1820,7 +1820,7 @@ namespace InternetClawMachine
                     break;
 
                 default:
-                    (Game as ClawGame)?.MachineControl.MoveBackward(0);
+                    (Game as ClawGame)?.GetActiveMachine().MoveBackward(0);
                     break;
             }
         }
@@ -1841,7 +1841,7 @@ namespace InternetClawMachine
                     break;
 
                 default:
-                    (Game as ClawGame)?.MachineControl.PressDrop();
+                    (Game as ClawGame)?.GetActiveMachine().PressDrop();
                     break;
             }
         }
@@ -1894,16 +1894,16 @@ namespace InternetClawMachine
 
         private void chkLightsOn_Click(object sender, RoutedEventArgs e)
         {
-            (Game as ClawGame)?.MachineControl.LightSwitch((bool)chkLightsOn.IsChecked);
+            (Game as ClawGame)?.GetActiveMachine().LightSwitch((bool)chkLightsOn.IsChecked);
         }
 
         private void ClawPower_Click(object sender, RoutedEventArgs e)
         {
             if (!(Game is ClawGame)) return;
             if (ClawPower.IsChecked != null && (bool)ClawPower.IsChecked)
-                ((ClawGame)Game).MachineControl.ToggleLaser(true);
+                ((ClawGame)Game).GetActiveMachine().ToggleLaser(true);
             else
-                ((ClawGame)Game).MachineControl.ToggleLaser(false);
+                ((ClawGame)Game).GetActiveMachine().ToggleLaser(false);
         }
 
         private void btnResetCam_Click(object sender, RoutedEventArgs e)
@@ -2009,7 +2009,7 @@ namespace InternetClawMachine
 
         private void btnCoin_Click(object sender, RoutedEventArgs e)
         {
-            (Game as ClawGame)?.MachineControl.InsertCoinAsync();
+            (Game as ClawGame)?.GetActiveMachine().InsertCoinAsync();
         }
 
         private void btnRFIDReset_Click(object sender, RoutedEventArgs e)
@@ -2073,12 +2073,12 @@ namespace InternetClawMachine
 
         private void btnBeltOn_PreviewMouseDown(object sender, MouseButtonEventArgs e)
         {
-            (Game as ClawGame)?.MachineControl.RunConveyor(-1);
+            (Game as ClawGame)?.GetActiveMachine().RunConveyor(-1);
         }
 
         private void btnBeltOn_PreviewMouseUp(object sender, MouseButtonEventArgs e)
         {
-            (Game as ClawGame)?.MachineControl.RunConveyor(0);
+            (Game as ClawGame)?.GetActiveMachine().RunConveyor(0);
         }
 
         private void btnChatConnect_Click(object sender, RoutedEventArgs e)
@@ -2268,15 +2268,15 @@ namespace InternetClawMachine
 
         private void btnFlipper_Click(object sender, RoutedEventArgs e)
         {
-            (Game as ClawGame)?.MachineControl.Flipper(FlipperDirection.FLIPPER_FORWARD);
+            (Game as ClawGame)?.GetActiveMachine().Flipper(FlipperDirection.FLIPPER_FORWARD);
         }
 
         private void BtnClawConnect_Click(object sender, RoutedEventArgs e)
         {
             if (Game is ClawGame)
             {
-                ((ClawController)((ClawGame)Game).MachineControl).Disconnect();
-                ((ClawController)((ClawGame)Game).MachineControl).Connect();
+                ((ClawController)((ClawGame)Game).GetActiveMachine()).Disconnect();
+                ((ClawController)((ClawGame)Game).GetActiveMachine()).Connect();
             }
         }
 
@@ -2317,7 +2317,7 @@ namespace InternetClawMachine
 
         private void btnStrobe_Click_2(object sender, RoutedEventArgs e)
         {
-            ((ClawGame)Game).RunStrobe(Configuration.ClawSettings.StrobeRedChannel, Configuration.ClawSettings.StrobeBlueChannel, Configuration.ClawSettings.StrobeGreenChannel, Configuration.ClawSettings.StrobeCount, Configuration.ClawSettings.StrobeDelay);
+            ((ClawGame)Game).RunStrobe(((ClawGame)Game).GetActiveMachine(), Configuration.ClawSettings.StrobeRedChannel, Configuration.ClawSettings.StrobeBlueChannel, Configuration.ClawSettings.StrobeGreenChannel, Configuration.ClawSettings.StrobeCount, Configuration.ClawSettings.StrobeDelay);
         }
 
         private void Button_Click_3(object sender, RoutedEventArgs e)
@@ -2469,7 +2469,7 @@ namespace InternetClawMachine
 
         private void BtnDualStrobe_Click(object sender, RoutedEventArgs e)
         {
-            ((ClawGame)Game).PoliceStrobe();
+            ((ClawGame)Game).PoliceStrobe(((ClawGame)Game).GetActiveMachine());
         }
 
         private void BtnDoh_Click(object sender, RoutedEventArgs e)
@@ -2495,7 +2495,7 @@ namespace InternetClawMachine
         private void BtnSetClawPower_Click(object sender, RoutedEventArgs e)
         {
             if (Game == null) return;
-            ((ClawGame)Game).MachineControl.SetClawPower(int.Parse(txtClawPower.Text));
+            ((ClawGame)Game).GetActiveMachine().SetClawPower(int.Parse(txtClawPower.Text));
         }
 
         private void btnClawSendCommand_Click(object sender, RoutedEventArgs e)
@@ -2504,7 +2504,7 @@ namespace InternetClawMachine
             if (Game is ClawGame)
             {
                 var cmd = txtClawSendCommand.Text;
-                var resp = ((ClawController)((ClawGame)Game).MachineControl).SendCommand(cmd);
+                var resp = ((ClawController)((ClawGame)Game).GetActiveMachine()).SendCommand(cmd);
                 txtClawCommandResponse.Text = resp;
             }
         }
@@ -2516,7 +2516,7 @@ namespace InternetClawMachine
             switch (Game.GameMode)
             {
                 default:
-                    (Game as ClawGame)?.MachineControl.MoveUp(-1);
+                    (Game as ClawGame)?.GetActiveMachine().MoveUp(-1);
                     break;
             }
         }
@@ -2528,7 +2528,7 @@ namespace InternetClawMachine
             switch (Game.GameMode)
             {
                 default:
-                    (Game as ClawGame)?.MachineControl.StopMove();
+                    (Game as ClawGame)?.GetActiveMachine().StopMove();
                     break;
             }
         }
@@ -2540,7 +2540,7 @@ namespace InternetClawMachine
             switch (Game.GameMode)
             {
                 default:
-                    (Game as ClawGame)?.MachineControl.MoveDown(-1);
+                    (Game as ClawGame)?.GetActiveMachine().MoveDown(-1);
                     break;
             }
         }
@@ -2552,7 +2552,7 @@ namespace InternetClawMachine
             switch (Game.GameMode)
             {
                 default:
-                    (Game as ClawGame)?.MachineControl.CloseClaw();
+                    (Game as ClawGame)?.GetActiveMachine().CloseClaw();
                     break;
             }
         }
@@ -2564,7 +2564,7 @@ namespace InternetClawMachine
             switch (Game.GameMode)
             {
                 default:
-                    (Game as ClawGame)?.MachineControl.OpenClaw();
+                    (Game as ClawGame)?.GetActiveMachine().OpenClaw();
                     break;
             }
         }
@@ -2581,7 +2581,7 @@ namespace InternetClawMachine
                     break;
 
                 default:
-                    (Game as ClawGame)?.MachineControl.MoveUp(-1);
+                    (Game as ClawGame)?.GetActiveMachine().MoveUp(-1);
                     break;
             }
         }
@@ -2597,7 +2597,7 @@ namespace InternetClawMachine
                     break;
 
                 default:
-                    (Game as ClawGame)?.MachineControl.MoveUp(0);
+                    (Game as ClawGame)?.GetActiveMachine().MoveUp(0);
                     break;
             }
         }

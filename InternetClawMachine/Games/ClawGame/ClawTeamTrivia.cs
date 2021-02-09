@@ -23,8 +23,11 @@ namespace InternetClawMachine.Games.ClawGame
         {
             GameMode = GameModeType.TEAMTRIVIA;
             CurrentDroppingPlayer = new DroppingPlayer();
-            MachineControl.OnClawCentered += MachineControl_OnClawCentered;
-            ((ClawController)MachineControl).OnClawRecoiled += ClawSingleQueue_OnClawRecoiled;
+            foreach (var MachineControl in MachineList)
+            {
+                MachineControl.OnClawCentered += MachineControl_OnClawCentered;
+                ((ClawController)MachineControl).OnClawRecoiled += ClawSingleQueue_OnClawRecoiled;
+            }
             StartMessage = string.Format(Translator.GetTranslation("gameClawTriviaTeamStartGame", Translator.DefaultLanguage), Configuration.CommandPrefix);
             this.OnTeamJoined += ClawTriviaTeam_OnTeamJoined;
             PlayerQueue.OnJoinedQueue += PlayerQueue_OnJoinedQueue;

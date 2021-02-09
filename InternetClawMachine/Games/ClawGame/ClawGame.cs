@@ -54,7 +54,7 @@ namespace InternetClawMachine.Games.ClawGame
         /// <summary>
         /// Claw machine control interface
         /// </summary>
-        public IMachineControl MachineControl { get; set; }
+        public List<IMachineControl> MachineList { get; set; }
 
         public List<PlushieObject> PlushieTags { set; get; } = new List<PlushieObject>();
 
@@ -86,9 +86,25 @@ namespace InternetClawMachine.Games.ClawGame
             WsConnection.AddWebSocketService<AudioManager>(Configuration.ObsSettings.AudioManagerEndpoint, () => new AudioManager(this));
             WsConnection.Start();
 
-            if (Configuration.ClawSettings.UseNewClawController)
+            MachineList = new List<IMachineControl>();
+            foreach(ClawMachine m in Configuration.ClawSettings.ClawMachines)
             {
-                MachineControl = new ClawController();
+                if (!m.IsAvailable)
+                    continue;
+
+
+                IMachineControl MachineControl;
+                
+                switch (m.Controller)
+                {
+                    case ClawControllerType.TWO:
+                        MachineControl = new ClawController2(m);
+                        break;
+                    default:
+                        MachineControl = new ClawController(m);
+                        break;
+                }
+
                 ((ClawController)MachineControl).OnPingSuccess += ClawGame_PingSuccess;
                 ((ClawController)MachineControl).OnPingTimeout += ClawGame_PingTimeout;
                 ((ClawController)MachineControl).OnDisconnected += ClawGame_Disconnected;
@@ -105,22 +121,23 @@ namespace InternetClawMachine.Games.ClawGame
                 ((ClawController)MachineControl).OnFlipperHitForward += ClawGame_OnFlipperHitForward;
                 ((ClawController)MachineControl).OnFlipperHitHome += ClawGame_OnFlipperHitHome;
                 ((ClawController)MachineControl).OnFlipperTimeout += ClawGame_OnFlipperTimeout;
-                Configuration.ClawSettings.PropertyChanged += ClawSettings_PropertyChanged;
+                MachineControl.OnBreakSensorTripped += MachineControl_OnBreakSensorTripped;
+                MachineControl.OnResetButtonPressed += MachineControl_ResetButtonPressed;
+                MachineControl.OnClawDropping += MachineControl_ClawDropping;
+                MachineControl.OnClawCentered += MachineControl_OnClawCentered;
+
+
+                MachineList.Add(MachineControl);
             }
-            else
-            {
-                MachineControl = new U421Module();
-            }
+
+            Configuration.ClawSettings.PropertyChanged += ClawSettings_PropertyChanged;
 
             if (client is TwitchChatApi)
             {
                 ((TwitchChatApi)client).OnNewSubscriber += ClawGame_OnNewSubscriber;
                 ((TwitchChatApi)client).OnReSubscriber += ClawGame_OnReSubscriber;
             }
-            MachineControl.OnBreakSensorTripped += MachineControl_OnBreakSensorTripped;
-            MachineControl.OnResetButtonPressed += MachineControl_ResetButtonPressed;
-            MachineControl.OnClawDropping += MachineControl_ClawDropping;
-            MachineControl.OnClawCentered += MachineControl_OnClawCentered;
+            
             configuration.EventModeChanged += Configuration_EventModeChanged;
             configuration.EventModeChanging += Configuration_EventModeChanging;
             configuration.EventMode.PropertyChanged += EventMode_PropertyChanged;
@@ -257,32 +274,36 @@ namespace InternetClawMachine.Games.ClawGame
             base.Destroy();
             if (WsConnection != null && WsConnection.IsListening)
                 WsConnection.Stop();
-            if (MachineControl != null)
+
+            if (MachineList != null)
             {
-                if (MachineControl.IsConnected)
-                    MachineControl.Disconnect();
-                MachineControl.OnBreakSensorTripped -= MachineControl_OnBreakSensorTripped;
-                MachineControl.OnResetButtonPressed -= MachineControl_ResetButtonPressed;
-                MachineControl.OnClawDropping -= MachineControl_ClawDropping;
-                MachineControl.OnClawCentered -= MachineControl_OnClawCentered;
-                if (MachineControl is ClawController)
+                foreach(var MachineControl in MachineList)
                 {
-                    ((ClawController)MachineControl).OnPingSuccess -= ClawGame_PingSuccess;
-                    ((ClawController)MachineControl).OnPingTimeout -= ClawGame_PingTimeout;
-                    ((ClawController)MachineControl).OnDisconnected -= ClawGame_Disconnected;
-                    ((ClawController)MachineControl).OnReturnedHome -= ClawGame_OnReturnedHome;
-                    ((ClawController)MachineControl).OnInfoMessage -= ClawGame_OnInfoMessage;
-                    ((ClawController)MachineControl).OnMotorTimeoutBackward -= ClawGame_OnMotorTimeoutBackward;
-                    ((ClawController)MachineControl).OnMotorTimeoutDown -= ClawGame_OnMotorTimeoutDown;
-                    ((ClawController)MachineControl).OnMotorTimeoutForward -= ClawGame_OnMotorTimeoutForward;
-                    ((ClawController)MachineControl).OnMotorTimeoutLeft -= ClawGame_OnMotorTimeoutLeft;
-                    ((ClawController)MachineControl).OnMotorTimeoutRight -= ClawGame_OnMotorTimeoutRight;
-                    ((ClawController)MachineControl).OnMotorTimeoutUp -= ClawGame_OnMotorTimeoutUp;
-                    ((ClawController)MachineControl).OnClawTimeout -= ClawGame_OnClawTimeout;
-                    ((ClawController)MachineControl).OnClawRecoiled -= ClawGame_OnClawRecoiled;
-                    ((ClawController)MachineControl).OnFlipperHitForward -= ClawGame_OnFlipperHitForward;
-                    ((ClawController)MachineControl).OnFlipperHitHome -= ClawGame_OnFlipperHitHome;
-                    ((ClawController)MachineControl).OnFlipperTimeout -= ClawGame_OnFlipperTimeout;
+                    if (MachineControl.IsConnected)
+                        MachineControl.Disconnect();
+                    MachineControl.OnBreakSensorTripped -= MachineControl_OnBreakSensorTripped;
+                    MachineControl.OnResetButtonPressed -= MachineControl_ResetButtonPressed;
+                    MachineControl.OnClawDropping -= MachineControl_ClawDropping;
+                    MachineControl.OnClawCentered -= MachineControl_OnClawCentered;
+                    if (MachineControl is ClawController)
+                    {
+                        ((ClawController)MachineControl).OnPingSuccess -= ClawGame_PingSuccess;
+                        ((ClawController)MachineControl).OnPingTimeout -= ClawGame_PingTimeout;
+                        ((ClawController)MachineControl).OnDisconnected -= ClawGame_Disconnected;
+                        ((ClawController)MachineControl).OnReturnedHome -= ClawGame_OnReturnedHome;
+                        ((ClawController)MachineControl).OnInfoMessage -= ClawGame_OnInfoMessage;
+                        ((ClawController)MachineControl).OnMotorTimeoutBackward -= ClawGame_OnMotorTimeoutBackward;
+                        ((ClawController)MachineControl).OnMotorTimeoutDown -= ClawGame_OnMotorTimeoutDown;
+                        ((ClawController)MachineControl).OnMotorTimeoutForward -= ClawGame_OnMotorTimeoutForward;
+                        ((ClawController)MachineControl).OnMotorTimeoutLeft -= ClawGame_OnMotorTimeoutLeft;
+                        ((ClawController)MachineControl).OnMotorTimeoutRight -= ClawGame_OnMotorTimeoutRight;
+                        ((ClawController)MachineControl).OnMotorTimeoutUp -= ClawGame_OnMotorTimeoutUp;
+                        ((ClawController)MachineControl).OnClawTimeout -= ClawGame_OnClawTimeout;
+                        ((ClawController)MachineControl).OnClawRecoiled -= ClawGame_OnClawRecoiled;
+                        ((ClawController)MachineControl).OnFlipperHitForward -= ClawGame_OnFlipperHitForward;
+                        ((ClawController)MachineControl).OnFlipperHitHome -= ClawGame_OnFlipperHitHome;
+                        ((ClawController)MachineControl).OnFlipperTimeout -= ClawGame_OnFlipperTimeout;
+                    }
                 }
             }
 
@@ -301,33 +322,39 @@ namespace InternetClawMachine.Games.ClawGame
         {
             if (HasEnded)
                 return;
-
-            if (MachineControl is ClawController)
+            if (MachineList != null)
             {
-                ((ClawController)MachineControl).OnPingSuccess -= ClawGame_PingSuccess;
-                ((ClawController)MachineControl).OnPingTimeout -= ClawGame_PingTimeout;
-                ((ClawController)MachineControl).OnDisconnected -= ClawGame_Disconnected;
-                ((ClawController)MachineControl).OnReturnedHome -= ClawGame_OnReturnedHome;
-                ((ClawController)MachineControl).OnInfoMessage -= ClawGame_OnInfoMessage;
-                ((ClawController)MachineControl).OnMotorTimeoutBackward -= ClawGame_OnMotorTimeoutBackward;
-                ((ClawController)MachineControl).OnMotorTimeoutDown -= ClawGame_OnMotorTimeoutDown;
-                ((ClawController)MachineControl).OnMotorTimeoutForward -= ClawGame_OnMotorTimeoutForward;
-                ((ClawController)MachineControl).OnMotorTimeoutLeft -= ClawGame_OnMotorTimeoutLeft;
-                ((ClawController)MachineControl).OnMotorTimeoutRight -= ClawGame_OnMotorTimeoutRight;
-                ((ClawController)MachineControl).OnMotorTimeoutUp -= ClawGame_OnMotorTimeoutUp;
-                ((ClawController)MachineControl).OnClawTimeout -= ClawGame_OnClawTimeout;
-                ((ClawController)MachineControl).OnClawRecoiled -= ClawGame_OnClawRecoiled;
-                ((ClawController)MachineControl).OnFlipperHitForward -= ClawGame_OnFlipperHitForward;
-                ((ClawController)MachineControl).OnFlipperHitHome -= ClawGame_OnFlipperHitHome;
-                ((ClawController)MachineControl).OnFlipperTimeout -= ClawGame_OnFlipperTimeout;
+                foreach (var MachineControl in MachineList)
+                {
+                    if (MachineControl is ClawController)
+                    {
+                        ((ClawController)MachineControl).OnPingSuccess -= ClawGame_PingSuccess;
+                        ((ClawController)MachineControl).OnPingTimeout -= ClawGame_PingTimeout;
+                        ((ClawController)MachineControl).OnDisconnected -= ClawGame_Disconnected;
+                        ((ClawController)MachineControl).OnReturnedHome -= ClawGame_OnReturnedHome;
+                        ((ClawController)MachineControl).OnInfoMessage -= ClawGame_OnInfoMessage;
+                        ((ClawController)MachineControl).OnMotorTimeoutBackward -= ClawGame_OnMotorTimeoutBackward;
+                        ((ClawController)MachineControl).OnMotorTimeoutDown -= ClawGame_OnMotorTimeoutDown;
+                        ((ClawController)MachineControl).OnMotorTimeoutForward -= ClawGame_OnMotorTimeoutForward;
+                        ((ClawController)MachineControl).OnMotorTimeoutLeft -= ClawGame_OnMotorTimeoutLeft;
+                        ((ClawController)MachineControl).OnMotorTimeoutRight -= ClawGame_OnMotorTimeoutRight;
+                        ((ClawController)MachineControl).OnMotorTimeoutUp -= ClawGame_OnMotorTimeoutUp;
+                        ((ClawController)MachineControl).OnClawTimeout -= ClawGame_OnClawTimeout;
+                        ((ClawController)MachineControl).OnClawRecoiled -= ClawGame_OnClawRecoiled;
+                        ((ClawController)MachineControl).OnFlipperHitForward -= ClawGame_OnFlipperHitForward;
+                        ((ClawController)MachineControl).OnFlipperHitHome -= ClawGame_OnFlipperHitHome;
+                        ((ClawController)MachineControl).OnFlipperTimeout -= ClawGame_OnFlipperTimeout;
+                    }
+                    MachineControl.OnBreakSensorTripped -= MachineControl_OnBreakSensorTripped;
+                    MachineControl.OnResetButtonPressed -= MachineControl_ResetButtonPressed;
+                    MachineControl.OnClawDropping -= MachineControl_ClawDropping;
+                    MachineControl.OnClawCentered -= MachineControl_OnClawCentered;
+                    MachineControl.Disconnect();
+                }
             }
 
             RfidReader.NewTagFound -= RFIDReader_NewTagFound;
-            MachineControl.OnBreakSensorTripped -= MachineControl_OnBreakSensorTripped;
-            MachineControl.OnResetButtonPressed -= MachineControl_ResetButtonPressed;
-            MachineControl.OnClawDropping -= MachineControl_ClawDropping;
-            MachineControl.OnClawCentered -= MachineControl_OnClawCentered;
-            MachineControl.Disconnect();
+            
             Configuration.PropertyChanged -= ClawSettings_PropertyChanged;
 
             base.EndGame();
@@ -945,6 +972,7 @@ namespace InternetClawMachine.Games.ClawGame
                             //lights can turn lights on and off, blacklights always off
                             Configuration.ClawSettings.BlackLightMode = false;
                             userPrefs.BlackLightsOn = false;
+                            var MachineControl = GetProperMachine(userPrefs);
                             MachineControl.LightSwitch(!MachineControl.IsLit);
                             userPrefs.LightsOn = MachineControl.IsLit;
                             DatabaseFunctions.WriteUserPrefs(Configuration, userPrefs);
@@ -1397,7 +1425,9 @@ namespace InternetClawMachine.Games.ClawGame
                         param = chatMessage.Split(' ');
                         if (param.Length != 2)
                             break;
-                        RunBelt(param[1]);
+                        
+                        RunBelt(GetActiveMachine(), param[1]);
+                        
 
                         break;
 
@@ -1481,7 +1511,8 @@ namespace InternetClawMachine.Games.ClawGame
                                     if (DatabaseFunctions.GetStreamBuxBalance(Configuration, username) + Configuration.GetStreamBuxCost(StreamBuxTypes.BELT) >= 0)
                                     {
                                         DatabaseFunctions.AddStreamBuxBalance(Configuration, username, StreamBuxTypes.BELT, Configuration.GetStreamBuxCost(StreamBuxTypes.BELT));
-                                        RunBelt(args[2]);
+
+                                        RunBelt(GetActiveMachine(), args[2]);
                                         Thread.Sleep(100);
                                         ChatClient.SendWhisper(username, string.Format(Translator.GetTranslation("gameClawCommandBuxBal", Configuration.UserList.GetUserLocalization(username)), DatabaseFunctions.GetStreamBuxBalance(Configuration, username)));
                                     }
@@ -1568,6 +1599,17 @@ namespace InternetClawMachine.Games.ClawGame
             }
         }
 
+        internal IMachineControl GetProperMachine(UserPrefs userPrefs)
+        {
+            foreach (var MachineControl in MachineList)
+            {
+                if (userPrefs.ActiveMachine == MachineControl.Machine.Name)
+                    return MachineControl;
+            }
+            userPrefs.ActiveMachine = GetActiveMachine().Machine.Name;
+            return GetActiveMachine();
+        }
+
         public override void Init()
         {
             base.Init();
@@ -1580,25 +1622,29 @@ namespace InternetClawMachine.Games.ClawGame
 
             try
             {
-                if (!MachineControl.IsConnected)
+                foreach (var MachineControl in MachineList)
                 {
-                    if (Configuration.ClawSettings.UseNewClawController)
+                    
+                    if (!MachineControl.IsConnected)
                     {
-                        ((ClawController)MachineControl).Connect(Configuration.ClawSettings.ClawControllerIpAddress, Configuration.ClawSettings.ClawControllerPort);
-                        if (Configuration.ClawSettings.WiggleMode)
+                        if (Configuration.ClawSettings.UseNewClawController)
                         {
-                            ((ClawController)MachineControl).SendCommandAsync("w on");
-                        }
-                        else
-                        {
-                            ((ClawController)MachineControl).SendCommandAsync("w off");
-                        }
+                            ((ClawController)MachineControl).Connect(MachineControl.Machine.IpAddress, MachineControl.Machine.Port);
+                            if (Configuration.ClawSettings.WiggleMode)
+                            {
+                                ((ClawController)MachineControl).SendCommandAsync("w on");
+                            }
+                            else
+                            {
+                                ((ClawController)MachineControl).SendCommandAsync("w off");
+                            }
 
-                        HandleBlackLightMode();
+                            HandleBlackLightMode(MachineControl);
+                        }
+                        MachineControl.Init();
+
+                        Configuration.ReconnectAttempts++;
                     }
-                    MachineControl.Init();
-
-                    Configuration.ReconnectAttempts++;
                 }
             }
             catch (Exception ex)
@@ -1636,16 +1682,19 @@ namespace InternetClawMachine.Games.ClawGame
             //home location
             if (Configuration.ClawSettings.UseNewClawController)
             {
-                try
+                foreach (var MachineControl in MachineList)
                 {
-                    ((ClawController)MachineControl).SendCommandAsync("shome " + (int)Configuration.EventMode.ClawHomeLocation);
+                    try
+                    {
+                        ((ClawController)MachineControl).SendCommandAsync("shome " + (int)Configuration.EventMode.ClawHomeLocation);
+                    }
+                    catch { }
+                    try
+                    {
+                        ((ClawController)MachineControl).SendCommandAsync("mode " + (int)Configuration.EventMode.ClawMode);
+                    }
+                    catch { }
                 }
-                catch { }
-                try
-                {
-                    ((ClawController)MachineControl).SendCommandAsync("mode " + (int)Configuration.EventMode.ClawMode);
-                }
-                catch { }
             }
 
             //set the greenscreen override
@@ -1666,8 +1715,11 @@ namespace InternetClawMachine.Games.ClawGame
             }
 
             //Lights
-            if (eventConfig.LightsOff && MachineControl.IsLit)
-                MachineControl.LightSwitch(false);
+            foreach (var MachineControl in MachineList)
+            {
+                if (eventConfig.LightsOff && MachineControl.IsLit)
+                    MachineControl.LightSwitch(false);
+            }
 
             //Black lights
             if (eventConfig.BlacklightsOn && !Configuration.ClawSettings.BlackLightMode)
@@ -1762,11 +1814,12 @@ namespace InternetClawMachine.Games.ClawGame
                     CommandQueue.RemoveAt(0);
                 }
                 Console.WriteLine(guid + "Start processing: " + Thread.CurrentThread.ManagedThreadId);
+                var MachineControl = currentCommand.MachineControl;
                 //do actual direction moves
                 switch (currentCommand.Direction)
                 {
                     case ClawDirection.FORWARD:
-
+                        
                         if (MachineControl.CurrentDirection != MovementDirection.FORWARD)
                             Logger.WriteLog(Logger.MachineLog, "MOVE FORWARD");
                         await MachineControl.MoveForward(currentCommand.Duration);
@@ -1853,7 +1906,7 @@ namespace InternetClawMachine.Games.ClawGame
             }
         }
 
-        public void RunBelt(int milliseconds)
+        public void RunBelt(IMachineControl MachineControl, int milliseconds)
         {
             try
             {
@@ -1889,7 +1942,7 @@ namespace InternetClawMachine.Games.ClawGame
             }
         }
 
-        public void RunBelt(string seconds)
+        public void RunBelt(IMachineControl MachineControl, string seconds)
         {
             if (!int.TryParse(seconds, out var secs))
                 return;
@@ -1897,7 +1950,7 @@ namespace InternetClawMachine.Games.ClawGame
             if (secs > Configuration.ClawSettings.BeltRuntimeMax || secs < Configuration.ClawSettings.BeltRuntimeMin)
                 secs = 2;
 
-            RunBelt(secs * 1000);
+            RunBelt(MachineControl, secs * 1000);
         }
 
         public override void StartGame(string user)
@@ -2151,7 +2204,7 @@ namespace InternetClawMachine.Games.ClawGame
             }
         }
 
-        internal async Task PoliceStrobe()
+        internal async Task PoliceStrobe(IMachineControl MachineControl)
         {
             //STROBE CODE
             try
@@ -2266,8 +2319,11 @@ namespace InternetClawMachine.Games.ClawGame
             }
         }
 
-        internal async void RunStrobe(int red, int blue, int green, int strobeCount, int strobeDelay)
+        internal async void RunStrobe(IMachineControl MachineControl, int red, int blue, int green, int strobeCount, int strobeDelay)
         {
+            if (MachineControl == null)
+                return;
+
             //STROBE CODE
             try
             {
@@ -2347,7 +2403,8 @@ namespace InternetClawMachine.Games.ClawGame
                 if (channels.Length > 4)
                     strobeDelay = int.Parse(channels[4].Trim());
             }
-            RunStrobe(red, green, blue, strobeCount, strobeDelay);
+            
+            RunStrobe(GetProperMachine(prefs), red, green, blue, strobeCount, strobeDelay);
         }
 
         
@@ -2361,6 +2418,8 @@ namespace InternetClawMachine.Games.ClawGame
                 return;
 
             var userPrefs = Configuration.UserList.GetUser(e.Username);
+            
+            Configuration.ClawSettings.ActiveMachine = GetProperMachine(userPrefs).Machine;
             //if no user prefs, then we just load defaults here, generally this is the end of a users turn so we set back to defaults
             if (userPrefs == null && Configuration.EventMode.EventMode == EventMode.NORMAL)
             {
@@ -2426,7 +2485,9 @@ namespace InternetClawMachine.Games.ClawGame
                             newScene = Configuration.ObsScreenSourceNames.SceneClaw1.SceneName;
                         }
 
-                        ChangeScene(newScene);
+
+
+                        ChangeScene(GetProperMachine(userPrefs).Machine.ObsScenePrefix + newScene);
                     }
                 }
                 catch (Exception ex)
@@ -2455,6 +2516,7 @@ namespace InternetClawMachine.Games.ClawGame
 
                 try
                 {
+                    var MachineControl = GetProperMachine(userPrefs);
                     if (!Configuration.ClawSettings.BlackLightMode && userPrefs.LightsOn)
                     {
                         MachineControl.LightSwitch(true);
@@ -2544,9 +2606,9 @@ namespace InternetClawMachine.Games.ClawGame
             {
                 var scene = ObsConnection.GetCurrentScene().Name;
 
-                if (prefs.Scene != scene && scene.StartsWith("Claw"))
+                if (prefs.Scene != scene && scene.Contains("Claw"))
                 {
-                    prefs.Scene = scene;
+                    prefs.Scene = scene.Substring(scene.IndexOf("Claw"), 6);
                     //prefs.LightsOn = MachineControl.IsLit;
                     DatabaseFunctions.WriteUserPrefs(Configuration, prefs);
                 }
@@ -2642,6 +2704,7 @@ namespace InternetClawMachine.Games.ClawGame
 
             try
             {
+
                 ObsConnection.SetCurrentScene(scene);
             }
             catch (Exception ex)
@@ -2677,9 +2740,13 @@ namespace InternetClawMachine.Games.ClawGame
             RefreshGameCancellationToken();
             Task.Run(async delegate ()
             {
-                await ((ClawController)MachineControl).RunConveyor(1000);
-                GameCancellationToken.Token.ThrowIfCancellationRequested();
-                ((ClawController)MachineControl).Flipper(FlipperDirection.FLIPPER_HOME);
+                if (sender is ClawController)
+                {
+
+                    await ((ClawController)sender).RunConveyor(1000);
+                    GameCancellationToken.Token.ThrowIfCancellationRequested();
+                    ((ClawController)sender).Flipper(FlipperDirection.FLIPPER_HOME);
+                }
             }, GameCancellationToken.Token);
         }
 
@@ -2702,42 +2769,42 @@ namespace InternetClawMachine.Games.ClawGame
         {
             //Emailer.SendEmail(Configuration.EmailAddress, "Claw machine timeout back", "Claw Timeout");
             Notifier.SendDiscordMessage(Configuration.DiscordSettings.SpamWebhook, "Claw machine timeout back");
-            ResetMachine();
+            ResetMachine((ClawController)sender);
         }
 
         private void ClawGame_OnMotorTimeoutDown(object sender, EventArgs e)
         {
             //Emailer.SendEmail(Configuration.EmailAddress, "Claw machine timeout dropping", "Claw Timeout");
             Notifier.SendDiscordMessage(Configuration.DiscordSettings.SpamWebhook, "Claw machine timeout dropping");
-            ResetMachine();
+            ResetMachine((ClawController)sender);
         }
 
         private void ClawGame_OnMotorTimeoutForward(object sender, EventArgs e)
         {
             //Emailer.SendEmail(Configuration.EmailAddress, "Claw machine timeout forward", "Claw Timeout");
             Notifier.SendDiscordMessage(Configuration.DiscordSettings.SpamWebhook, "Claw machine timeout forward");
-            ResetMachine();
+            ResetMachine((ClawController)sender);
         }
 
         private void ClawGame_OnMotorTimeoutLeft(object sender, EventArgs e)
         {
             //Emailer.SendEmail(Configuration.EmailAddress, "Claw machine timeout left", "Claw Timeout");
             Notifier.SendDiscordMessage(Configuration.DiscordSettings.SpamWebhook, "Claw machine timeout left");
-            ResetMachine();
+            ResetMachine((ClawController)sender);
         }
 
         private void ClawGame_OnMotorTimeoutRight(object sender, EventArgs e)
         {
             //Emailer.SendEmail(Configuration.EmailAddress, "Claw machine timeout right", "Claw Timeout");
             Notifier.SendDiscordMessage(Configuration.DiscordSettings.SpamWebhook, "Claw machine timeout right");
-            ResetMachine();
+            ResetMachine((ClawController)sender);
         }
 
         private void ClawGame_OnMotorTimeoutUp(object sender, EventArgs e)
         {
             //Emailer.SendEmail(Configuration.EmailAddress, "Claw machine timeout recoiling", "Claw Timeout");
             Notifier.SendDiscordMessage(Configuration.DiscordSettings.SpamWebhook, "Claw machine timeout recoiling");
-            ResetMachine();
+            ResetMachine((ClawController)sender);
         }
 
         private void ClawGame_OnNewSubscriber(object sender, TwitchLib.Client.Events.OnNewSubscriberArgs e)
@@ -2748,12 +2815,14 @@ namespace InternetClawMachine.Games.ClawGame
                 Configuration.IsPaused = true;
                 try
                 {
-                    await PoliceStrobe();
+                    var MachineControl = GetActiveMachine();
                     GameCancellationToken.Token.ThrowIfCancellationRequested();
                     ((ClawController)MachineControl).SendCommandAsync("wt 500");
                     ((ClawController)MachineControl).SendCommandAsync("clap " + int.Parse(e.Subscriber.MsgParamCumulativeMonths));
                     await Task.Delay(500 * int.Parse(e.Subscriber.MsgParamCumulativeMonths) * 2);
                     GameCancellationToken.Token.ThrowIfCancellationRequested();
+                        
+                    
                 }
                 catch
                 { }
@@ -2769,12 +2838,14 @@ namespace InternetClawMachine.Games.ClawGame
                 Configuration.IsPaused = true;
                 try
                 {
-                    await PoliceStrobe();
+                    var MachineControl = GetActiveMachine();
+                    await PoliceStrobe(MachineControl);
                     GameCancellationToken.Token.ThrowIfCancellationRequested();
                     ((ClawController)MachineControl).SendCommandAsync("wt 500");
                     ((ClawController)MachineControl).SendCommandAsync("clap " + e.ReSubscriber.Months);
                     await Task.Delay(500 * e.ReSubscriber.Months * 2);
                     GameCancellationToken.Token.ThrowIfCancellationRequested();
+                        
                 }
                 catch
                 { }
@@ -2786,7 +2857,8 @@ namespace InternetClawMachine.Games.ClawGame
         {
             Logger.WriteLog(Logger.DebugLog, string.Format("WIN CHUTE: Current player {0} in game loop {1}", PlayerQueue.CurrentPlayer, GameLoopCounterValue), Logger.LogLevel.DEBUG);
             InScanWindow = true; //allows RFID reader to accept scans
-            MachineControl.RunConveyor(Configuration.ClawSettings.ConveyorRunAfterDrop); //start running belt so it's in motion when/if something drops
+            if (sender is ClawController)
+                ((ClawController)sender).RunConveyor(Configuration.ClawSettings.ConveyorRunAfterDrop); //start running belt so it's in motion when/if something drops
         }
 
         private void ClawGame_OnTeamJoined(object sender, TeamJoinedArgs e)
@@ -2795,31 +2867,39 @@ namespace InternetClawMachine.Games.ClawGame
 
         private void ClawGame_PingSuccess(object sender, EventArgs e)
         {
-            Configuration.Latency = ((ClawController)MachineControl).Latency;
+            if (sender is ClawController)
+                Configuration.Latency = ((ClawController)sender).Latency;
             _reconnectCounter = 0;
         }
 
         private void ClawGame_PingTimeout(object sender, EventArgs e)
         {
-            ReconnectClawController();
+            ReconnectClawController((ClawController)sender);
         }
 
         private void ClawSettings_PropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
         {
             if (e.PropertyName == "WiggleMode")
             {
-                if (Configuration.ClawSettings.WiggleMode)
+                foreach (var MachineControl in MachineList)
                 {
-                    ((ClawController)MachineControl).SendCommandAsync("w on");
-                }
-                else
-                {
-                    ((ClawController)MachineControl).SendCommandAsync("w off");
+                    if (Configuration.ClawSettings.WiggleMode)
+                    {
+                        ((ClawController)MachineControl).SendCommandAsync("w on");
+                    }
+                    else
+                    {
+                        ((ClawController)MachineControl).SendCommandAsync("w off");
+                    }
                 }
             }
             else if (e.PropertyName == "BlackLightMode")
             {
-                HandleBlackLightMode();
+                foreach(var m in MachineList)
+                {
+                    HandleBlackLightMode(m);
+                }
+                
             }
         }
 
@@ -3082,7 +3162,7 @@ namespace InternetClawMachine.Games.ClawGame
             return null;
         }
 
-        private void HandleBlackLightMode()
+        private void HandleBlackLightMode(IMachineControl MachineControl)
         {
             //adjust settings on load for game
             if (Configuration.ClawSettings.BlackLightMode)
@@ -3221,7 +3301,7 @@ namespace InternetClawMachine.Games.ClawGame
 
             //async task to run conveyor
             if (!Configuration.EventMode.DisableBelt)
-                RunBelt(Configuration.ClawSettings.ConveyorWaitFor);
+                RunBelt((ClawController)sender, Configuration.ClawSettings.ConveyorWaitFor);
 
             if (Configuration.EventMode.IRTriggersWin)
             {
@@ -3253,12 +3333,18 @@ namespace InternetClawMachine.Games.ClawGame
         /// <param name="e"></param>
         private void MachineControl_OnClawCentered(object sender, EventArgs e)
         {
+            if (sender is ClawController)
+            {
+                var MachineControl = (ClawController)sender;
+                MachineControl.Init();
+            }
+
             _failsafeCurrentResets = 0;
             Logger.WriteLog(Logger.DebugLog, string.Format("RETURN HOME: Current player {0} in game loop {1}", PlayerQueue.CurrentPlayer, GameLoopCounterValue), Logger.LogLevel.DEBUG);
 
             RefreshWinList();
 
-            MachineControl.Init();
+            
 
             //listen for chat input again
             Configuration.OverrideChat = false;
@@ -3320,20 +3406,20 @@ namespace InternetClawMachine.Games.ClawGame
             }
         }
 
-        private void ReconnectClawController()
+        private void ReconnectClawController(IMachineControl MachineControl)
         {
             var connected = false;
             while (_reconnectCounter < 10000 && !connected)
             {
                 _reconnectCounter++;
                 Configuration.ReconnectAttempts++;
-                connected = ((ClawController)MachineControl).Connect(Configuration.ClawSettings.ClawControllerIpAddress, Configuration.ClawSettings.ClawControllerPort);
+                connected = ((ClawController)MachineControl).Connect();
                 if (!connected)
                     Thread.Sleep(20000);
             }
         }
 
-        private void ResetMachine()
+        private void ResetMachine(IMachineControl MachineControl)
         {
             if (_failsafeCurrentResets < _failsafeMaxResets)
             {
@@ -3490,7 +3576,18 @@ namespace InternetClawMachine.Games.ClawGame
             }
             PlayClipAsync(Configuration.OBSScreenSourceNames.BountyWantedText, 9500);
             */
-            PoliceStrobe();
+            
+            PoliceStrobe(GetActiveMachine());
+        }
+
+        public IMachineControl GetActiveMachine()
+        {
+            foreach(var MachineControl in MachineList)
+            {
+                if (MachineControl.Machine.Name == Configuration.ClawSettings.ActiveMachine.Name)
+                    return MachineControl;
+            }
+            return null;
         }
 
         /// <summary>

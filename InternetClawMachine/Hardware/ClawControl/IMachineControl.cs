@@ -1,4 +1,5 @@
 ﻿using InternetClawMachine.Games.GameHelpers;
+using InternetClawMachine.Settings;
 using System;
 using System.Threading.Tasks;
 
@@ -6,6 +7,8 @@ namespace InternetClawMachine.Hardware.ClawControl
 {
     public interface IMachineControl
     {
+        ClawMachine Machine { set; get; }
+
         bool IsConnected { get; }
 
         bool Init();
@@ -43,17 +46,29 @@ namespace InternetClawMachine.Hardware.ClawControl
         void InsertCoinAsync();
 
         /// <summary>
+        /// Fired when claw is cover the chute
+        /// </summary>
+        event EventHandler OnReturnedHome;
+
+        /// <summary>
         /// Fired when claw returns to center of machine
         /// </summary>
         event EventHandler OnClawCentered;
+
 
         /// <summary>
         /// Fired when the claw starts dropping
         /// </summary>
         event EventHandler OnClawDropping;
 
+        /// <summary>
+        /// When the belt sensor sees a plush
+        /// </summary>
         event EventHandler OnBreakSensorTripped;
 
+        /// <summary>
+        /// Reset button on the machine is pressed to restart the game mode
+        /// </summary>
         event EventHandler OnResetButtonPressed;
 
         MovementDirection CurrentDirection { set; get; }

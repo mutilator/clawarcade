@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data.SQLite;
 using System.IO;
+using System.Linq;
 
 namespace InternetClawMachine.Settings
 {
@@ -27,6 +28,7 @@ namespace InternetClawMachine.Settings
 
         public string MailServer { set; get; }
         public string MailFrom { set; get; }
+
         public VoteSettings VoteSettings { set; get; }
         public ClawGameSettings ClawSettings { set; get; }
         public GolfGameSettings GolfSettings { set; get; }
@@ -187,6 +189,9 @@ namespace InternetClawMachine.Settings
             GolfSettings.HasHomed = false;
             DrawingSettings.HasHomed = false;
             SessionGuid = Guid.NewGuid();
+            ClawSettings.ActiveMachine = ClawSettings.ClawMachines.FirstOrDefault(itm => itm.IsAvailable);
+            if (ClawSettings.ActiveMachine == null)
+                throw new Exception("No claw machines available");
         }
 
         #region Properties

@@ -42,6 +42,11 @@ namespace InternetClawMachine
         /// </summary>
         public int SingleCommandUsageCounter { set; get; }
 
+        /// <summary>
+        /// Which machine the user is currently interacting with
+        /// </summary>
+        public string ActiveMachine { set; get; }
+
         public UserPrefs()
         {
             LightsOn = true;

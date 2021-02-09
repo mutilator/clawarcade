@@ -423,11 +423,7 @@
                                     <Label Content="cameraLagTime" HorizontalAlignment="Left" VerticalAlignment="Top" RenderTransformOrigin="-0.026,-0.077" Margin="219,272,0,0" />
                                     <Label x:Name="lblcameraLagTime" HorizontalAlignment="Left" VerticalAlignment="Top" RenderTransformOrigin="0.368,-0.308" Content="{Binding Value, ElementName=sldrcameraLagTime}" Margin="343,272,0,0" />
                                     <CheckBox x:Name="chkLightsOn" Content="Lights On" HorizontalAlignment="Left" Margin="219,89,0,0" VerticalAlignment="Top" Click="chkLightsOn_Click" IsChecked="True" />
-                                    <CheckBox x:Name="chkNewController" Content="New Controller" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top" IsChecked="{Binding ClawSettings.UseNewClawController, Mode=TwoWay}" />
-                                    <TextBox HorizontalAlignment="Left" Height="23" Margin="85,53,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="120" Text="{Binding ClawSettings.ClawControllerIpAddress, Mode=TwoWay}" />
-                                    <TextBox HorizontalAlignment="Left" Height="23" Margin="85,84,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="120" Text="{Binding ClawSettings.ClawControllerPort, Mode=TwoWay}" />
-                                    <Label Content="IP Address" HorizontalAlignment="Left" Margin="10,52,0,0" VerticalAlignment="Top" />
-                                    <Label Content="Port" HorizontalAlignment="Left" Margin="10,83,0,0" VerticalAlignment="Top" />
+                                    <CheckBox x:Name="chkNewController" Content="New Controller" HorizontalAlignment="Left" Margin="10,13,0,0" VerticalAlignment="Top" IsChecked="{Binding ClawSettings.UseNewClawController, Mode=TwoWay}" />
                                     <Button x:Name="btnClawConnect" Content="Connect" HorizontalAlignment="Left" VerticalAlignment="Top" Width="92" Margin="85,112,0,0" Click="BtnClawConnect_Click" />
                                     <Label Content="Latency (ms):" HorizontalAlignment="Left" Margin="219,10,0,0" VerticalAlignment="Top" />
                                     <Label x:Name="lblLatency" Content="{Binding Latency}" HorizontalAlignment="Left" Margin="350,10,0,0" VerticalAlignment="Top" />
@@ -461,6 +457,7 @@
                                     <TextBlock x:Name="txtClawCommandResponse" HorizontalAlignment="Left" TextWrapping="Wrap" Text="Response..." VerticalAlignment="Top" Margin="415,64,0,0" Height="105" Width="285" />
                                     <CheckBox x:Name="chkWiggleMode" Content="Wiggle Mode" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="219,69,0,0" IsChecked="{Binding ClawSettings.WiggleMode, Mode=TwoWay}" />
                                     <CheckBox x:Name="chkBlackLightsOn" Content="Black Lights" HorizontalAlignment="Left" Margin="219,107,0,0" VerticalAlignment="Top" IsChecked="{Binding ClawSettings.BlackLightMode, Mode=TwoWay}" Click="ChkBlackLightsOn_Click" />
+                                    <ComboBox HorizontalAlignment="Left" VerticalAlignment="Top" Width="120" Margin="10,41,0,0" ItemsSource="{Binding ClawSettings.ClawMachines}" DisplayMemberPath="Name"/>
                                 </Grid>
                             </TabItem>
                             <TabItem Header="Golf Controller" HorizontalAlignment="Left" Height="20" VerticalAlignment="Top" Width="129" Margin="18,0,-18,0">
