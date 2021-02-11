@@ -108,8 +108,15 @@ namespace InternetClawMachine.Games.ClawGame
             }
 
             var userPrefs = Configuration.UserList.GetUser(username);
-
+            if (userPrefs == null)
+            {
+                PlayerQueue.RemoveSinglePlayer(username);
+                return;
+            }
             var MachineControl = GetProperMachine(userPrefs);
+
+
+                
             MachineControl.InsertCoinAsync();
 
             GameRoundTimer.Start();

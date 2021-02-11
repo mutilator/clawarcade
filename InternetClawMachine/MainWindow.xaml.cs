@@ -1924,16 +1924,30 @@ namespace InternetClawMachine
             Configuration.IsPaused = !Configuration.IsPaused;
             if (Configuration.IsPaused)
             {
-                ObsConnection.SetSourceRender(Configuration.ObsScreenSourceNames.Paused.SourceName, true,
-                    Configuration.ObsScreenSourceNames.Paused.SceneName);
-                btnPause.Content = "Resume";
+                try
+                {
+                    btnPause.Content = "Resume";
+                    ObsConnection.SetSourceRender(Configuration.ObsScreenSourceNames.Paused.SourceName, true,
+                        Configuration.ObsScreenSourceNames.Paused.SceneName);
+                    
+                } catch
+                {
+
+                }
             }
             else
             {
-                ObsConnection.SetSourceRender(Configuration.ObsScreenSourceNames.Paused.SourceName, false,
+                try
+                {
+                    btnPause.Content = "Pause";
+                    ObsConnection.SetSourceRender(Configuration.ObsScreenSourceNames.Paused.SourceName, false,
                     Configuration.ObsScreenSourceNames.Paused.SceneName);
-                btnPause.Content = "Pause";
-            }
+                    
+                } catch
+                {
+
+                }
+        }
         }
 
         private void btnStartChaos_Click(object sender, RoutedEventArgs e)
@@ -3004,6 +3018,24 @@ namespace InternetClawMachine
         private void BtnReloadPlushDB_Click(object sender, RoutedEventArgs e)
         {
             ((ClawGame)Game)?.LoadPlushFromDb();
+        }
+
+        private void Button_Click_6(object sender, RoutedEventArgs e)
+        {
+
+        }
+
+        private void BtnControllerSwitchTo_Click(object sender, RoutedEventArgs e)
+        {
+            if (cmbClawMachineList.SelectedItem == null)
+                return;
+
+            if (!(Game is ClawGame))
+                return;
+
+            var machine = (ClawMachine)cmbClawMachineList.SelectedItem;
+
+            ((ClawGame)Game).SwitchMachine(machine.Name);
         }
     }
 

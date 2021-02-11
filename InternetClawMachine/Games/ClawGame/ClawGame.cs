@@ -166,7 +166,7 @@ namespace InternetClawMachine.Games.ClawGame
         #endregion Constructors + Destructors
 
         #region Methods
-
+        
         /// <summary>
         /// Change to a specific claw machine scene
         /// </summary>
@@ -552,7 +552,45 @@ namespace InternetClawMachine.Games.ClawGame
                             }
                         }
                         break;
+                    case "machine":
 
+                        //if (!isSubscriber)
+                        //    return;
+
+
+                        //no team chosen
+                        if (!chatMessage.Contains(" "))
+                        {
+                            ChatClient.SendMessage(Configuration.Channel, string.Format(Translator.GetTranslation("gameClawCommandMachineHelp", Configuration.UserList.GetUserLocalization(username)), Configuration.CommandPrefix, MachineList.Count));
+                            return;
+                        }
+
+                        var machine = 1;
+                        int.TryParse(chatMessage.Substring(chatMessage.IndexOf(" ")).Trim(), out machine);
+
+                        if (MachineList.Count < machine || machine < 1) //not enough machines
+                            return;
+
+                        machine--;
+                        userPrefs.ActiveMachine = MachineList[machine].Machine.Name;
+
+                        if (PlayerQueue.CurrentPlayer == username)
+                        {
+                            var curScene = ObsConnection.GetCurrentScene();
+                            var myScene = GetProperMachine(userPrefs).Machine.ObsScenePrefix + userPrefs.Scene;
+                            if (curScene.Name != myScene)
+                            {
+                                var newScene2 = userPrefs.Scene;
+                                if (userPrefs.Scene.Length == 0)
+                                {
+                                    newScene2 = Configuration.ObsScreenSourceNames.SceneClaw1.SceneName;
+                                }
+
+                                ChangeScene(GetProperMachine(userPrefs).Machine.ObsScenePrefix + newScene2);
+                            }
+                        }
+
+                        break;
                     case "join": //join a team
                         if (Configuration.IsPaused)
                             return;
@@ -719,7 +757,7 @@ namespace InternetClawMachine.Games.ClawGame
                             }
                         }
                         break;
-
+                    
                     case "createteams":
                         if (!Configuration.AdminUsers.Contains(username))
                             return;
@@ -1601,6 +1639,9 @@ namespace InternetClawMachine.Games.ClawGame
 
         internal IMachineControl GetProperMachine(UserPrefs userPrefs)
         {
+            if (userPrefs == null)
+                return GetActiveMachine();
+
             foreach (var MachineControl in MachineList)
             {
                 if (userPrefs.ActiveMachine == MachineControl.Machine.Name)
@@ -1627,20 +1668,18 @@ namespace InternetClawMachine.Games.ClawGame
                     
                     if (!MachineControl.IsConnected)
                     {
-                        if (Configuration.ClawSettings.UseNewClawController)
+                        ((ClawController)MachineControl).Connect(MachineControl.Machine.IpAddress, MachineControl.Machine.Port);
+                        if (Configuration.ClawSettings.WiggleMode)
                         {
-                            ((ClawController)MachineControl).Connect(MachineControl.Machine.IpAddress, MachineControl.Machine.Port);
-                            if (Configuration.ClawSettings.WiggleMode)
-                            {
-                                ((ClawController)MachineControl).SendCommandAsync("w on");
-                            }
-                            else
-                            {
-                                ((ClawController)MachineControl).SendCommandAsync("w off");
-                            }
-
-                            HandleBlackLightMode(MachineControl);
+                            ((ClawController)MachineControl).SendCommandAsync("w on");
                         }
+                        else
+                        {
+                            ((ClawController)MachineControl).SendCommandAsync("w off");
+                        }
+
+                        HandleBlackLightMode(MachineControl);
+                        
                         MachineControl.Init();
 
                         Configuration.ReconnectAttempts++;
@@ -1680,22 +1719,20 @@ namespace InternetClawMachine.Games.ClawGame
         public void InitializeEventSettings(EventModeSettings eventConfig)
         {
             //home location
-            if (Configuration.ClawSettings.UseNewClawController)
+            foreach (var MachineControl in MachineList)
             {
-                foreach (var MachineControl in MachineList)
+                try
                 {
-                    try
-                    {
-                        ((ClawController)MachineControl).SendCommandAsync("shome " + (int)Configuration.EventMode.ClawHomeLocation);
-                    }
-                    catch { }
-                    try
-                    {
-                        ((ClawController)MachineControl).SendCommandAsync("mode " + (int)Configuration.EventMode.ClawMode);
-                    }
-                    catch { }
+                    ((ClawController)MachineControl).SendCommandAsync("shome " + (int)Configuration.EventMode.ClawHomeLocation);
                 }
+                catch { }
+                try
+                {
+                    ((ClawController)MachineControl).SendCommandAsync("mode " + (int)Configuration.EventMode.ClawMode);
+                }
+                catch { }
             }
+            
 
             //set the greenscreen override
             Configuration.ClawSettings.GreenScreenOverrideOff = eventConfig.GreenScreenOverrideOff;
@@ -1742,7 +1779,7 @@ namespace InternetClawMachine.Games.ClawGame
             {
                 var currentscene = ObsConnection.GetCurrentScene().Name;
 
-                //TODO - pull this from config
+                // TODO - pull this from config
                 var scenes = new string[] { "Claw 1", "Claw 2", "Claw 3" };
 
                 //skin all scenes
@@ -2149,6 +2186,44 @@ namespace InternetClawMachine.Games.ClawGame
             }
         }
 
+        internal void SwitchMachine(string name)
+        {
+            var machine = MachineList.FirstOrDefault(itm => itm.Machine.Name == name);
+            if (machine == null)
+                return;
+
+            Configuration.ClawSettings.ActiveMachine = machine.Machine;
+            try
+            {
+                if (PlayerQueue.CurrentPlayer != null)
+                {
+                    var userPrefs = Configuration.UserList.GetUser(PlayerQueue.CurrentPlayer);
+                    var curScene = ObsConnection.GetCurrentScene();
+                    if (curScene.Name != machine.Machine.ObsScenePrefix + userPrefs.Scene)
+                    {
+                        var newScene = userPrefs.Scene;
+                        if (userPrefs.Scene.Length == 0)
+                        {
+                            newScene = Configuration.ObsScreenSourceNames.SceneClaw1.SceneName;
+                        }
+
+                        ChangeScene(machine.Machine.ObsScenePrefix + newScene);
+                    }
+                }
+                else
+                {
+                    ChangeScene(machine.Machine.ObsScenePrefix + "Claw 1");
+                }
+                
+            }
+            catch (Exception ex)
+            {
+                var error = string.Format("ERROR {0} {1}", ex.Message, ex);
+                Logger.WriteLog(Logger.ErrorLog, error);
+            }
+            
+        }
+
         internal int GetDbLastRename(string username)
         {
             lock (Configuration.RecordsDatabase)
@@ -2419,7 +2494,7 @@ namespace InternetClawMachine.Games.ClawGame
 
             var userPrefs = Configuration.UserList.GetUser(e.Username);
             
-            Configuration.ClawSettings.ActiveMachine = GetProperMachine(userPrefs).Machine;
+            
             //if no user prefs, then we just load defaults here, generally this is the end of a users turn so we set back to defaults
             if (userPrefs == null && Configuration.EventMode.EventMode == EventMode.NORMAL)
             {
@@ -2464,7 +2539,7 @@ namespace InternetClawMachine.Games.ClawGame
                     }
                     catch (Exception ex)
                     {
-                        var error = string.Format("ERROR {0} {1}", ex.Message, ex);
+                        var error = string.Format("ERROR 100 {0} {1}", ex.Message, ex);
                         Logger.WriteLog(Logger.ErrorLog, error);
                     }
                 }
@@ -2474,27 +2549,29 @@ namespace InternetClawMachine.Games.ClawGame
             //handler for event modes
             if (Configuration.EventMode.EventMode == EventMode.NORMAL || Configuration.EventMode.AllowOverrideScene)
             {
+                var newScene = "";
                 try
                 {
                     var curScene = ObsConnection.GetCurrentScene();
-                    if (curScene.Name != userPrefs.Scene)
+                    if (curScene.Name != (GetProperMachine(userPrefs).Machine.ObsScenePrefix + userPrefs.Scene))
                     {
-                        var newScene = userPrefs.Scene;
+                        newScene = userPrefs.Scene;
                         if (userPrefs.Scene.Length == 0)
                         {
                             newScene = Configuration.ObsScreenSourceNames.SceneClaw1.SceneName;
                         }
+                        newScene = GetProperMachine(userPrefs).Machine.ObsScenePrefix + newScene;
 
 
-
-                        ChangeScene(GetProperMachine(userPrefs).Machine.ObsScenePrefix + newScene);
+                        ChangeScene(newScene);
                     }
                 }
                 catch (Exception ex)
                 {
-                    var error = string.Format("ERROR {0} {1}", ex.Message, ex);
+                    var error = string.Format("ERROR 200 Scene: newScene - {0} {1}", ex.Message, ex);
                     Logger.WriteLog(Logger.ErrorLog, error);
                 }
+                Configuration.ClawSettings.ActiveMachine = GetProperMachine(userPrefs).Machine;
             }
 
             //now, if they need it enabled, enable it so set the background and filters and other related things
@@ -2507,7 +2584,7 @@ namespace InternetClawMachine.Games.ClawGame
                 }
                 catch (Exception ex)
                 {
-                    var error = string.Format("ERROR {0} {1}", ex.Message, ex);
+                    var error = string.Format("ERROR 300 {0} {1}", ex.Message, ex);
                     Logger.WriteLog(Logger.ErrorLog, error);
                 }
 
@@ -2528,7 +2605,7 @@ namespace InternetClawMachine.Games.ClawGame
                 }
                 catch (Exception ex)
                 {
-                    var error = string.Format("ERROR {0} {1}", ex.Message, ex);
+                    var error = string.Format("ERROR 400 {0} {1}", ex.Message, ex);
                     Logger.WriteLog(Logger.ErrorLog, error);
                 }
             }
@@ -2538,27 +2615,32 @@ namespace InternetClawMachine.Games.ClawGame
             {
                 try
                 {
+                    var gs = Configuration.ClawSettings.ObsGreenScreenActive.Name;
                     //check if they have a custom greenscreen defined
                     if (!string.IsNullOrEmpty(userPrefs.GreenScreen))
-                    {
-                        foreach (var bg in Configuration.ClawSettings.ObsGreenScreenOptions)
-                            foreach (var scene in bg.Scenes)
-                                ObsConnection.SetSourceRender(scene, bg.Name == userPrefs.GreenScreen);
-                    }
-                    else
-                    {
-                        //if the background override was set check if we need to revert it
-                        if (Configuration.ClawSettings.ObsGreenScreenActive.TimeActivated > 0 && Helpers.GetEpoch() - Configuration.ClawSettings.ObsGreenScreenActive.TimeActivated >= 86400)
-                            Configuration.ClawSettings.ObsGreenScreenActive = Configuration.ClawSettings.ObsGreenScreenDefault;
+                        gs = userPrefs.GreenScreen;
 
+                    //if the background override was set check if we need to revert it
+                    if (Configuration.ClawSettings.ObsGreenScreenActive.TimeActivated > 0 && Helpers.GetEpoch() - Configuration.ClawSettings.ObsGreenScreenActive.TimeActivated >= 86400)
+                        Configuration.ClawSettings.ObsGreenScreenActive = Configuration.ClawSettings.ObsGreenScreenDefault;
+
+                    try
+                    {
                         foreach (var bg in Configuration.ClawSettings.ObsGreenScreenOptions)
                             foreach (var scene in bg.Scenes)
-                                ObsConnection.SetSourceRender(scene, bg.Name == Configuration.ClawSettings.ObsGreenScreenActive.Name);
+                                ObsConnection.SetSourceRender(scene, bg.Name == gs);
                     }
+                    catch (Exception ex)
+                    {
+                        var error = string.Format("ERROR 600 {0} {1}", ex.Message, ex);
+                        Logger.WriteLog(Logger.ErrorLog, error);
+                    }
+                    
+            
                 }
                 catch (Exception ex)
                 {
-                    var error = string.Format("ERROR {0} {1}", ex.Message, ex);
+                    var error = string.Format("ERROR 700 {0} {1}", ex.Message, ex);
                     Logger.WriteLog(Logger.ErrorLog, error);
                 }
             }
@@ -3405,6 +3487,7 @@ namespace InternetClawMachine.Games.ClawGame
                 }
             }
         }
+        
 
         private void ReconnectClawController(IMachineControl MachineControl)
         {
