@@ -168,7 +168,7 @@ namespace InternetClawMachine.Games.GameHelpers
             }
             catch (Exception e)
             {
-                Logger.WriteLog(Logger.ErrorLog, e.Message + e);
+                Logger.WriteLog(Logger._errorLog, e.Message + e);
             }
         }
 

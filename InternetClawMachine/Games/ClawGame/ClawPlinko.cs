@@ -1,9 +1,9 @@
-﻿using InternetClawMachine.Chat;
+﻿using System;
+using System.Threading.Tasks;
+using InternetClawMachine.Chat;
 using InternetClawMachine.Hardware.ClawControl;
 using InternetClawMachine.Settings;
 using OBSWebsocketDotNet;
-using System;
-using System.Threading.Tasks;
 
 namespace InternetClawMachine.Games.ClawGame
 {
@@ -16,23 +16,18 @@ namespace InternetClawMachine.Games.ClawGame
         {
             GameMode = GameModeType.PLINKO;
 
-            StartMessage = string.Format(Translator.GetTranslation("gameClawPlinkoStartGame", Translator.DefaultLanguage), Configuration.CommandPrefix);
-        }
-
-        public override void Destroy()
-        {
-            base.Destroy();
+            StartMessage = string.Format(Translator.GetTranslation("gameClawPlinkoStartGame", Translator._defaultLanguage), Configuration.CommandPrefix);
         }
 
         public override void EndGame()
         {
             if (HasEnded)
                 return;
-            foreach (var MachineControl in MachineList)
+            foreach (var machineControl in MachineList)
             {
-                ((ClawController)MachineControl).SendCommand("creset");
-                ((ClawController)MachineControl).OnReturnedHome -= ClawSingleQuickQueue_OnReturnedHome;
-                ((ClawController)MachineControl).OnScoreSensorTripped -= ClawPlinko_OnScoreSensorTripped;
+                ((ClawController)machineControl).SendCommand("creset");
+                ((ClawController)machineControl).OnReturnedHome -= ClawSingleQuickQueue_OnReturnedHome;
+                ((ClawController)machineControl).OnScoreSensorTripped -= ClawPlinko_OnScoreSensorTripped;
             }
             StartRound(null); //starting a null round resets all the things
             base.EndGame();
@@ -41,16 +36,16 @@ namespace InternetClawMachine.Games.ClawGame
         public override void Init()
         {
             base.Init();
-            foreach (var MachineControl in MachineList)
+            foreach (var machineControl in MachineList)
             {
-                ((ClawController)MachineControl).OnReturnedHome += ClawSingleQuickQueue_OnReturnedHome;
-                ((ClawController)MachineControl).OnScoreSensorTripped += ClawPlinko_OnScoreSensorTripped;
+                ((ClawController)machineControl).OnReturnedHome += ClawSingleQuickQueue_OnReturnedHome;
+                ((ClawController)machineControl).OnScoreSensorTripped += ClawPlinko_OnScoreSensorTripped;
             }
         }
 
         private void ClawPlinko_OnScoreSensorTripped(IMachineControl controller, string slotNumber)
         {
-            Logger.WriteLog(Logger.MachineLog, "Slot " + slotNumber + " was tripped");
+            Logger.WriteLog(Logger._machineLog, "Slot " + slotNumber + " was tripped");
 
             switch (slotNumber)
             {
@@ -109,7 +104,7 @@ namespace InternetClawMachine.Games.ClawGame
             }
             if (_lastScore != 0 && _multiplier != 0)
             {
-                var msg = String.Format("You got {0} points multiplied by {1} for a total of {2}", _lastScore,
+                var msg = string.Format("You got {0} points multiplied by {1} for a total of {2}", _lastScore,
                     _multiplier, _lastScore * _multiplier);
                 ChatClient.SendMessage(Configuration.Channel, msg);
                 _lastScore = 0;
@@ -119,12 +114,12 @@ namespace InternetClawMachine.Games.ClawGame
 
         public override void StartGame(string username)
         {
-            foreach (var MachineControl in MachineList)
+            foreach (var machineControl in MachineList)
             {
-                var debug = ((ClawController)MachineControl).SendCommand("debug");
+                var debug = ((ClawController)machineControl).SendCommand("debug");
                 var data = debug.Split(',');
                 var centerWidth = int.Parse(data[2]) + 100;
-                ((ClawController)MachineControl).SendCommandAsync("center " + centerWidth + " 0");
+                ((ClawController)machineControl).SendCommandAsync("center " + centerWidth + " 0");
             }
             base.StartGame(username);
         }
@@ -159,7 +154,7 @@ namespace InternetClawMachine.Games.ClawGame
             {
                 DropInCommandQueue = false;
                 Configuration.OverrideChat = false;
-                base.OnTurnEnded(new RoundEndedArgs() { Username = PlayerQueue.CurrentPlayer, GameMode = GameMode, GameLoopCounterValue = GameLoopCounterValue });
+                base.OnTurnEnded(new RoundEndedArgs { Username = PlayerQueue.CurrentPlayer, GameMode = GameMode, GameLoopCounterValue = GameLoopCounterValue });
                 var nextPlayer = PlayerQueue.GetNextPlayer();
                 StartRound(nextPlayer);
             }
@@ -178,7 +173,7 @@ namespace InternetClawMachine.Games.ClawGame
             if (username == null)
             {
                 PlayerQueue.Clear();
-                OnRoundStarted(new RoundStartedArgs() { Username = username, GameMode = GameMode });
+                OnRoundStarted(new RoundStartedArgs { GameMode = GameMode });
                 return;
             }
 
@@ -187,18 +182,18 @@ namespace InternetClawMachine.Games.ClawGame
             GameRoundTimer.Start();
 
             var msg = string.Format(Translator.GetTranslation("gameClawPlinkoStartRound", Configuration.UserList.GetUserLocalization(username)), PlayerQueue.CurrentPlayer, Configuration.ClawSettings.SinglePlayerDuration, Configuration.ClawSettings.SinglePlayerQueueNoCommandDuration);
-            var hasPlayedPlayer = SessionWinTracker.Find(itm => itm.Username.ToLower() == PlayerQueue.CurrentPlayer.ToLower());
+            var hasPlayedPlayer = SessionWinTracker.Find(itm => itm._username.ToLower() == PlayerQueue.CurrentPlayer.ToLower());
 
-            if (hasPlayedPlayer != null && hasPlayedPlayer.Drops > 1)
+            if (hasPlayedPlayer != null && hasPlayedPlayer._drops > 1)
                 msg = string.Format(Translator.GetTranslation("gameClawPlinkoStartRoundShort", Configuration.UserList.GetUserLocalization(username)), PlayerQueue.CurrentPlayer);
 
             ChatClient.SendMessage(Configuration.Channel, msg);
 
             RefreshGameCancellationToken();
-            Task.Run(async delegate ()
+            Task.Run(async delegate
             {
                 var sequence = DateTime.Now.Ticks;
-                Logger.WriteLog(Logger.DebugLog,
+                Logger.WriteLog(Logger._debugLog,
                     string.Format("STARTROUND: [{0}] Waiting for {1} in game loop {2}", sequence, username,
                         GameLoopCounterValue), Logger.LogLevel.DEBUG);
 
@@ -212,8 +207,7 @@ namespace InternetClawMachine.Games.ClawGame
                 //      and the checks below this match their details it will end their turn early
 
                 //we need a check if they changed game mode or something weird happened
-                var args = new RoundEndedArgs()
-                { Username = username, GameLoopCounterValue = GameLoopCounterValue, GameMode = GameMode };
+                var args = new RoundEndedArgs { Username = username, GameLoopCounterValue = GameLoopCounterValue, GameMode = GameMode };
 
                 await Task.Delay(firstWait);
                 GameCancellationToken.Token.ThrowIfCancellationRequested();
@@ -221,19 +215,19 @@ namespace InternetClawMachine.Games.ClawGame
                 //if after the first delay something skipped them, jump out
                 if (PlayerQueue.CurrentPlayer != args.Username || GameLoopCounterValue != args.GameLoopCounterValue)
                 {
-                    Logger.WriteLog(Logger.DebugLog, string.Format("STARTROUND: [{0}] Exit after first wait for {1} in game loop {2}, current player {3} game loop {4}", sequence, args.Username, args.GameLoopCounterValue, PlayerQueue.CurrentPlayer, GameLoopCounterValue), Logger.LogLevel.DEBUG);
+                    Logger.WriteLog(Logger._debugLog, string.Format("STARTROUND: [{0}] Exit after first wait for {1} in game loop {2}, current player {3} game loop {4}", sequence, args.Username, args.GameLoopCounterValue, PlayerQueue.CurrentPlayer, GameLoopCounterValue), Logger.LogLevel.DEBUG);
                     return;
                 }
 
                 if (!CurrentPlayerHasPlayed && PlayerQueue.Count > 1)
                 {
-                    Logger.WriteLog(Logger.DebugLog, string.Format("STARTROUND: [{0}] STEP 1 Player didn't play: {1} in game loop {2}, current player {3} game loop {4}", sequence, args.Username, args.GameLoopCounterValue, PlayerQueue.CurrentPlayer, GameLoopCounterValue), Logger.LogLevel.DEBUG);
+                    Logger.WriteLog(Logger._debugLog, string.Format("STARTROUND: [{0}] STEP 1 Player didn't play: {1} in game loop {2}, current player {3} game loop {4}", sequence, args.Username, args.GameLoopCounterValue, PlayerQueue.CurrentPlayer, GameLoopCounterValue), Logger.LogLevel.DEBUG);
                     base.OnTurnEnded(args);
                     PlayerQueue.RemoveSinglePlayer(args.Username);
 
                     var nextPlayer = PlayerQueue.GetNextPlayer();
                     StartRound(nextPlayer);
-                    Logger.WriteLog(Logger.DebugLog, string.Format("STARTROUND: [{0}] STEP 2 Player didn't play: {1} in game loop {2}, current player {3} game loop {4}", sequence, args.Username, args.GameLoopCounterValue, PlayerQueue.CurrentPlayer, GameLoopCounterValue), Logger.LogLevel.DEBUG);
+                    Logger.WriteLog(Logger._debugLog, string.Format("STARTROUND: [{0}] STEP 2 Player didn't play: {1} in game loop {2}, current player {3} game loop {4}", sequence, args.Username, args.GameLoopCounterValue, PlayerQueue.CurrentPlayer, GameLoopCounterValue), Logger.LogLevel.DEBUG);
                 }
                 else
                 {
@@ -243,18 +237,18 @@ namespace InternetClawMachine.Games.ClawGame
                     //if after the second delay something skipped them, jump out
                     if (PlayerQueue.CurrentPlayer != args.Username || GameLoopCounterValue != args.GameLoopCounterValue)
                     {
-                        Logger.WriteLog(Logger.DebugLog, string.Format("STARTROUND: [{0}] Exit after second wait and new player started for {1} in game loop {2}, current player {3} game loop {4}", sequence, args.Username, args.GameLoopCounterValue, PlayerQueue.CurrentPlayer, GameLoopCounterValue), Logger.LogLevel.DEBUG);
+                        Logger.WriteLog(Logger._debugLog, string.Format("STARTROUND: [{0}] Exit after second wait and new player started for {1} in game loop {2}, current player {3} game loop {4}", sequence, args.Username, args.GameLoopCounterValue, PlayerQueue.CurrentPlayer, GameLoopCounterValue), Logger.LogLevel.DEBUG);
                         return;
                     }
 
                     var userPrefs = Configuration.UserList.GetUser(username);
-                    var MachineControl = GetProperMachine(userPrefs);
+                    var machineControl = GetProperMachine(userPrefs);
                     
 
                     //if the claw is dropping then we can just let the claw return home event trigger the next player
-                    if (!MachineControl.IsClawPlayActive) //otherwise cut their turn short and give the next person a chance
+                    if (!machineControl.IsClawPlayActive) //otherwise cut their turn short and give the next person a chance
                     {
-                        Logger.WriteLog(Logger.DebugLog, string.Format("STARTROUND: [{0}] Exit after second wait timeout for {1} in game loop {2}, current player {3} game loop {4}", sequence, args.Username, args.GameLoopCounterValue, PlayerQueue.CurrentPlayer, GameLoopCounterValue), Logger.LogLevel.DEBUG);
+                        Logger.WriteLog(Logger._debugLog, string.Format("STARTROUND: [{0}] Exit after second wait timeout for {1} in game loop {2}, current player {3} game loop {4}", sequence, args.Username, args.GameLoopCounterValue, PlayerQueue.CurrentPlayer, GameLoopCounterValue), Logger.LogLevel.DEBUG);
                         base.OnTurnEnded(args);
 
                         //because the person never played they're probably AFK, remove them
@@ -266,12 +260,12 @@ namespace InternetClawMachine.Games.ClawGame
                     }
                     else
                     {
-                        Logger.WriteLog(Logger.DebugLog, string.Format("STARTROUND: [{0}] Exit after checking active claw play = TRUE for {1} in game loop {2}, current player {3} game loop {4}", sequence, args.Username, args.GameLoopCounterValue, PlayerQueue.CurrentPlayer, GameLoopCounterValue), Logger.LogLevel.DEBUG);
+                        Logger.WriteLog(Logger._debugLog, string.Format("STARTROUND: [{0}] Exit after checking active claw play = TRUE for {1} in game loop {2}, current player {3} game loop {4}", sequence, args.Username, args.GameLoopCounterValue, PlayerQueue.CurrentPlayer, GameLoopCounterValue), Logger.LogLevel.DEBUG);
                     }
                 }
             }, GameCancellationToken.Token);
 
-            OnRoundStarted(new RoundStartedArgs() { Username = username, GameMode = GameMode });
+            OnRoundStarted(new RoundStartedArgs { GameMode = GameMode });
         }
     }
 }

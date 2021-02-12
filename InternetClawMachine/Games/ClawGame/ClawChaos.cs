@@ -1,10 +1,10 @@
-﻿using InternetClawMachine.Chat;
+﻿using System;
+using System.Linq;
+using System.Threading.Tasks;
+using InternetClawMachine.Chat;
 using InternetClawMachine.Games.GameHelpers;
 using InternetClawMachine.Settings;
 using OBSWebsocketDotNet;
-using System;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace InternetClawMachine.Games.ClawGame
 {
@@ -13,7 +13,7 @@ namespace InternetClawMachine.Games.ClawGame
         public ClawChaos(IChatApi client, BotConfiguration configuration, OBSWebsocket obs) : base(client, configuration, obs)
         {
             GameMode = GameModeType.REALTIME;
-            StartMessage = string.Format(Translator.GetTranslation("gameClawChaosStartGame", Translator.DefaultLanguage), Configuration.CommandPrefix);
+            StartMessage = string.Format(Translator.GetTranslation("gameClawChaosStartGame", Translator._defaultLanguage), Configuration.CommandPrefix);
         }
 
         public override void EndGame()
@@ -66,12 +66,12 @@ namespace InternetClawMachine.Games.ClawGame
                     cmd = ClawDirection.DOWN;
                     
 
-                    var user = SessionWinTracker.FirstOrDefault(u => u.Username == username);
+                    var user = SessionWinTracker.FirstOrDefault(u => u._username == username);
                     if (user != null)
-                        user = SessionWinTracker.First(u => u.Username == username);
+                        user = SessionWinTracker.First(u => u._username == username);
                     else
                     {
-                        user = new SessionWinTracker() { Username = username };
+                        user = new SessionWinTracker { _username = username };
                         SessionWinTracker.Add(user);
                     }
 
@@ -85,7 +85,7 @@ namespace InternetClawMachine.Games.ClawGame
                         team.Drops++;
                     }
 
-                    user.Drops++;
+                    user._drops++;
 
                     RefreshWinList();
                     try
@@ -98,7 +98,7 @@ namespace InternetClawMachine.Games.ClawGame
                     catch (Exception ex)
                     {
                         var error = string.Format("ERROR {0} {1}", ex.Message, ex);
-                        Logger.WriteLog(Logger.ErrorLog, error);
+                        Logger.WriteLog(Logger._errorLog, error);
                     }
 
                     break;
@@ -109,7 +109,7 @@ namespace InternetClawMachine.Games.ClawGame
             lock (CommandQueue)
             {
                 if (cmd != ClawDirection.NA)
-                    CommandQueue.Add(new ClawCommand() { Direction = cmd, Duration = Configuration.ClawSettings.ClawMovementTime, Timestamp = GameModeTimer.ElapsedMilliseconds, Username = username, MachineControl = GetProperMachine(userPrefs) });
+                    CommandQueue.Add(new ClawCommand { Direction = cmd, Duration = Configuration.ClawSettings.ClawMovementTime, Timestamp = GameModeTimer.ElapsedMilliseconds, Username = username, MachineControl = GetProperMachine(userPrefs) });
             }
             Task.Run(async delegate { await ProcessQueue(); });
         }

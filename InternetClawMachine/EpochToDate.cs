@@ -10,7 +10,7 @@ namespace InternetClawMachine
     {
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
-            var date = new DateTime(1970, 1, 1).AddSeconds(double.Parse(value?.ToString()));
+            var date = new DateTime(1970, 1, 1).AddSeconds(double.Parse(value?.ToString() ?? string.Empty));
             return date.ToShortDateString();
         }
 

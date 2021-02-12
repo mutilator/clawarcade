@@ -3,15 +3,16 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:l="clr-namespace:InternetClawMachine"
         Title="Internet Claw Machine 9001" SizeToContent="WidthAndHeight" Closing="Window_Closing" Icon="clawhey_112_MUQ_icon.ico" ResizeMode="CanMinimize" x:Name="Main" Margin="0"
-         xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
         xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" mc:Ignorable="d"
         TextElement.Foreground="{DynamicResource MaterialDesignBody}"
         TextElement.FontWeight="Regular"
         TextElement.FontSize="13"
         TextOptions.TextFormattingMode="Ideal"
         TextOptions.TextRenderingMode="Auto"
         Background="{DynamicResource MaterialDesignPaper}"
-        FontFamily="{DynamicResource MaterialDesignFont}" Height="924">
+        FontFamily="{DynamicResource MaterialDesignFont}" Height="924" >
     <Window.Resources>
         <l:EpochToDate x:Key="epochToDate" />
         <Style  TargetType="{x:Type ListBoxItem}">
@@ -227,7 +228,9 @@
                         <CheckBox Content="Allow Win Anim. Override" HorizontalAlignment="Left" IsChecked="{Binding EventMode.AllowOverrideWinAnimation, Mode=TwoWay}" VerticalAlignment="Top" Margin="217,82,0,0" />
                         <CheckBox Content="Allow Wire Frame Override" HorizontalAlignment="Left" IsChecked="{Binding EventMode.AllowOverrideWireFrame, Mode=TwoWay}" VerticalAlignment="Top" Margin="217,105,0,0" />
                         <CheckBox Content="Disable Strobe" HorizontalAlignment="Left" IsChecked="{Binding EventMode.DisableStrobe, Mode=TwoWay}" VerticalAlignment="Top" Margin="10,151,0,0" />
+                        
                         <CheckBox Content="Team Required" HorizontalAlignment="Left" IsChecked="{Binding EventMode.TeamRequired, Mode=TwoWay}" VerticalAlignment="Top" Margin="217,151,0,0" />
+                        
                         <CheckBox Content="Force Disable Greenscreen" HorizontalAlignment="Left" IsChecked="{Binding EventMode.GreenScreenOverrideOff, Mode=TwoWay}" VerticalAlignment="Top" Margin="217,174,0,0" />
                         <CheckBox Content="Disable Flipper" HorizontalAlignment="Left" IsChecked="{Binding EventMode.DisableFlipper, Mode=TwoWay}" VerticalAlignment="Top" Margin="10,174,0,0" />
                         <xctk:IntegerUpDown Value="{Binding EventMode.QueueSizeMax, Mode=TwoWay}" Margin="10,288,700,87" />

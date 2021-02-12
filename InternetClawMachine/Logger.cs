@@ -7,19 +7,19 @@ namespace InternetClawMachine
 {
     public static class Logger
     {
-        public static Dictionary<string, StreamWriter> LogFiles = new Dictionary<string, StreamWriter>();
+        public static Dictionary<string, StreamWriter> _logFiles = new Dictionary<string, StreamWriter>();
         private static string _defaultLogFolder;//where to write logs
-        public static string ErrorLog;
-        public static string MachineLog;
-        public static string DebugLog;
-        public static LogLevel Level = LogLevel.ERROR;
+        public static string _errorLog;
+        public static string _machineLog;
+        public static string _debugLog;
+        public static LogLevel _level = LogLevel.ERROR;
 
         public static void Init(string defaultFolder, string errpfx, string machpfx, string dbgpfx)
         {
             _defaultLogFolder = defaultFolder;
-            ErrorLog = errpfx;
-            MachineLog = machpfx;
-            DebugLog = dbgpfx;
+            _errorLog = errpfx;
+            _machineLog = machpfx;
+            _debugLog = dbgpfx;
         }
 
         public static void WriteLog(string logfile, string message)
@@ -36,13 +36,13 @@ namespace InternetClawMachine
             }
 
             //see if we're logging at this level
-            if (Level < logLevel)
+            if (_level < logLevel)
                 return;
 
             var date = DateTime.Now.ToString("dd-MM-yyyy");
             var timestamp = DateTime.Now.ToString("HH:mm:ss.ff");
             var fileHandle = GetFileHandle(logfile, date);
-            if (fileHandle != null && fileHandle.BaseStream != null)
+            if (fileHandle != null)
             {
                 try
                 {
@@ -61,31 +61,29 @@ namespace InternetClawMachine
         {
             try
             {
-                if (LogFiles.ContainsKey(source))
+                if (_logFiles.ContainsKey(source))
                 {
-                    var stream = (FileStream)LogFiles[source].BaseStream;
-                    if (stream == null)
-                        return null;
+                    var stream = (FileStream)_logFiles[source].BaseStream;
                     var filename = Path.GetFileName(stream.Name);
                     var newFilename = source + "_" + date + ".txt";
                     if (filename != newFilename) //checks if the current stream is todays date, if not, spawn a new one
                     {
-                        LogFiles[source].Close();
-                        LogFiles.Remove(source);
+                        _logFiles[source].Close();
+                        _logFiles.Remove(source);
                     }
                 }
-                if (!LogFiles.ContainsKey(source))
+                if (!_logFiles.ContainsKey(source))
                 {
                     if (!Directory.Exists(_defaultLogFolder))
                         Directory.CreateDirectory(_defaultLogFolder);
                     var path = Path.Combine(_defaultLogFolder, source + "_" + date + ".txt");
                     var fs = new StreamWriter(path, true);
-                    LogFiles.Add(source, fs);
+                    _logFiles.Add(source, fs);
                 }
 
                 //check if the date on the file is old, if so close it and open new
 
-                return LogFiles[source];
+                return _logFiles[source];
             }
             catch (Exception ex)
             {
@@ -96,7 +94,7 @@ namespace InternetClawMachine
 
         internal static void CloseStreams()
         {
-            foreach (var key in LogFiles)
+            foreach (var key in _logFiles)
             {
                 key.Value.Close();
             }

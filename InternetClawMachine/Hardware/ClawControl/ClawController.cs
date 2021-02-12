@@ -1,6 +1,4 @@
-﻿using InternetClawMachine.Games.GameHelpers;
-using InternetClawMachine.Settings;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Net;
@@ -8,6 +6,8 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using InternetClawMachine.Games.GameHelpers;
+using InternetClawMachine.Settings;
 
 namespace InternetClawMachine.Hardware.ClawControl
 {
@@ -113,15 +113,15 @@ namespace InternetClawMachine.Hardware.ClawControl
         internal string _lastCommandResponse;
         internal string _lastDirection = "s";
 
-        private Socket _workSocket = null;
+        private Socket _workSocket;
         private SocketAsyncEventArgs _socketReader;
         private byte[] _receiveBuffer = new byte[2048];
         private int _receiveIdx;
         
         
         
-        private int _sequence = 0;
-        private const int _maximumPingTime = 5000; //ping timeout threshold in ms
+        private int _sequence;
+        private const int MaximumPingTime = 5000; //ping timeout threshold in ms
         internal Stopwatch PingTimer { get; } = new Stopwatch();
         private List<ClawPing> _pingQueue = new List<ClawPing>();
         private FlipperDirection _lastFlipperDirection;
@@ -136,7 +136,7 @@ namespace InternetClawMachine.Hardware.ClawControl
             get
             {
                 //always increment 1 whenever this is requested, this way we have a base of 1 rather than 0
-                int nextVal = _sequence++;
+                var nextVal = _sequence++;
                 if (_sequence > 5000) _sequence = 0; //just set an arbitrary max
 
                 return nextVal;
@@ -158,13 +158,7 @@ namespace InternetClawMachine.Hardware.ClawControl
 
         public bool IsLit { get; private set; } = true;
 
-        public bool IsConnected
-        {
-            get
-            {
-                return _workSocket != null && _workSocket.Connected;
-            }
-        }
+        public bool IsConnected => _workSocket != null && _workSocket.Connected;
 
         public MovementDirection CurrentDirection
         {
@@ -294,7 +288,7 @@ namespace InternetClawMachine.Hardware.ClawControl
             catch (Exception ex)
             {
                 var error = string.Format("ERROR {0} {1}", ex.Message, ex);
-                Logger.WriteLog(Logger.ErrorLog, error);
+                Logger.WriteLog(Logger._errorLog, error);
             }
             return false;
         }
@@ -319,7 +313,7 @@ namespace InternetClawMachine.Hardware.ClawControl
             catch (Exception ex)
             {
                 var error = string.Format("ERROR {0} {1}", ex.Message, ex);
-                Logger.WriteLog(Logger.ErrorLog, error);
+                Logger.WriteLog(Logger._errorLog, error);
             }
         }
 
@@ -332,7 +326,7 @@ namespace InternetClawMachine.Hardware.ClawControl
             catch (Exception ex)
             {
                 var error = string.Format("ERROR {0} {1}", ex.Message, ex);
-                Logger.WriteLog(Logger.ErrorLog, error);
+                Logger.WriteLog(Logger._errorLog, error);
             }
         }
 
@@ -347,10 +341,10 @@ namespace InternetClawMachine.Hardware.ClawControl
                     foreach (var response in commands)
                     {
                         var guid = Guid.NewGuid();
-                        Logger.WriteLog(Logger.MachineLog, String.Format("[{0}] BEFORE HANDLE RESPONSE", guid), Logger.LogLevel.TRACE);
+                        Logger.WriteLog(Logger._machineLog, string.Format("[{0}] BEFORE HANDLE RESPONSE", guid), Logger.LogLevel.TRACE);
 
                         HandleMessage(response);
-                        Logger.WriteLog(Logger.MachineLog, String.Format("[{0}] AFTER HANDLE RESPONSE", guid), Logger.LogLevel.TRACE);
+                        Logger.WriteLog(Logger._machineLog, string.Format("[{0}] AFTER HANDLE RESPONSE", guid), Logger.LogLevel.TRACE);
                     }
                     break;
 
@@ -394,13 +388,13 @@ namespace InternetClawMachine.Hardware.ClawControl
             return commands.ToArray();
         }
 
-        virtual internal void HandleMessage(string response)
+        internal virtual void HandleMessage(string response)
         {
             try
             {
                 response = response.Trim();
 
-                Logger.WriteLog(Logger.MachineLog, "RECEIVE: " + response, Logger.LogLevel.DEBUG);
+                Logger.WriteLog(Logger._machineLog, "RECEIVE: " + response, Logger.LogLevel.DEBUG);
 
                 var delims = response.Split(' ');
 
@@ -437,7 +431,7 @@ namespace InternetClawMachine.Hardware.ClawControl
 
                         case ClawEvents.EVENT_PONG:
 
-                            for (int i = 0; i < _pingQueue.Count; i++)
+                            for (var i = 0; i < _pingQueue.Count; i++)
                             {
                                 var ping = _pingQueue[i];
                                 if (ping.Sequence == sequence)
@@ -564,7 +558,7 @@ namespace InternetClawMachine.Hardware.ClawControl
             catch (Exception ex)
             {
                 var error = string.Format("ERROR {0} {1}", ex.Message, ex);
-                Logger.WriteLog(Logger.ErrorLog, error);
+                Logger.WriteLog(Logger._errorLog, error);
             }
         }
 
@@ -580,14 +574,14 @@ namespace InternetClawMachine.Hardware.ClawControl
                 }
 
                 var ms = PingTimer.ElapsedMilliseconds;
-                int sequence = SendCommandAsync("ping " + ms);
-                var ping = new ClawPing() { Success = false, Sequence = sequence, StartTime = ms, CancelToken = new CancellationTokenSource() };
+                var sequence = SendCommandAsync("ping " + ms);
+                var ping = new ClawPing { Success = false, Sequence = sequence, StartTime = ms, CancelToken = new CancellationTokenSource() };
                 _pingQueue.Add(ping);
 
                 //kick off an async validating ping
                 await Task.Run(async delegate
                 {
-                    await Task.Delay(_maximumPingTime); //simply wait some second to check for the last ping
+                    await Task.Delay(MaximumPingTime); //simply wait some second to check for the last ping
                     if (ping.CancelToken.IsCancellationRequested)
                     {
                         if (ping.Success)
@@ -600,7 +594,7 @@ namespace InternetClawMachine.Hardware.ClawControl
                         return;
                     }
 
-                    Latency = PingTimer.ElapsedMilliseconds - _maximumPingTime;
+                    Latency = PingTimer.ElapsedMilliseconds - MaximumPingTime;
                     if (!_workSocket.Connected)
                     {
                         _pingQueue.Clear();
@@ -625,7 +619,7 @@ namespace InternetClawMachine.Hardware.ClawControl
                         else //yea we really timed out
                         {
                             _pingQueue.Clear();
-                            Logger.WriteLog(Logger.MachineLog, "Ping timeout: " + Latency);
+                            Logger.WriteLog(Logger._machineLog, "Ping timeout: " + Latency);
                             _workSocket.Disconnect(false);
                             OnPingTimeout?.Invoke(this, new EventArgs());
                             OnDisconnected?.Invoke(this, new EventArgs());
@@ -642,7 +636,7 @@ namespace InternetClawMachine.Hardware.ClawControl
             catch (Exception ex)
             {
                 var error = string.Format("ERROR {0} {1}", ex.Message, ex);
-                Logger.WriteLog(Logger.ErrorLog, error);
+                Logger.WriteLog(Logger._errorLog, error);
             }
         }
 
@@ -667,13 +661,13 @@ namespace InternetClawMachine.Hardware.ClawControl
             if (!IsConnected)
                 throw new Exception("Not Connected");
 
-            int seq = Sequence; //sequence increments each time it's asked for, just asking once
+            var seq = Sequence; //sequence increments each time it's asked for, just asking once
             try
             {
                 command = seq + " " + command; //add a sequence number
                 // Encode the data string into a byte array.
                 var msg = Encoding.ASCII.GetBytes(command + "\n");
-                Logger.WriteLog(Logger.MachineLog, "SEND: " + command, Logger.LogLevel.DEBUG);
+                Logger.WriteLog(Logger._machineLog, "SEND: " + command, Logger.LogLevel.DEBUG);
 
                 // Send the data through the socket.
                 _workSocket.Send(msg);
@@ -681,7 +675,7 @@ namespace InternetClawMachine.Hardware.ClawControl
             catch (Exception ex)
             {
                 var error = string.Format("ERROR {0} {1}", ex.Message, ex);
-                Logger.WriteLog(Logger.ErrorLog, error);
+                Logger.WriteLog(Logger._errorLog, error);
             }
 
             return seq;
@@ -693,11 +687,11 @@ namespace InternetClawMachine.Hardware.ClawControl
                 throw new Exception("Not Connected");
             try
             {
-                int seq = Sequence; //sequence increments each time it's asked for, just asking once
+                var seq = Sequence; //sequence increments each time it's asked for, just asking once
                 command = seq + " " + command; //add a sequence number
                 // Encode the data string into a byte array.
                 var msg = Encoding.ASCII.GetBytes(command + "\n");
-                Logger.WriteLog(Logger.MachineLog, "SEND: " + command, Logger.LogLevel.DEBUG);
+                Logger.WriteLog(Logger._machineLog, "SEND: " + command, Logger.LogLevel.DEBUG);
 
                 // Send the data through the socket.
                 _currentWaitSequenceNumberCommand = seq;
@@ -714,7 +708,7 @@ namespace InternetClawMachine.Hardware.ClawControl
             catch (Exception ex)
             {
                 var error = string.Format("ERROR {0} {1}", ex.Message, ex);
-                Logger.WriteLog(Logger.ErrorLog, error);
+                Logger.WriteLog(Logger._errorLog, error);
             }
 
             return "";
@@ -726,7 +720,7 @@ namespace InternetClawMachine.Hardware.ClawControl
             return true;
         }
 
-        virtual public void InsertCoinAsync()
+        public virtual void InsertCoinAsync()
         {
             Task.Run(async delegate
             {
@@ -737,14 +731,14 @@ namespace InternetClawMachine.Hardware.ClawControl
         public void LightSwitch(bool on)
         {
             if (!IsConnected) return;
-            IsLit = @on;
-            if (@on)
+            IsLit = on;
+            if (on)
                 SendCommandAsync("light on");
             else
                 SendCommandAsync("light off");
         }
 
-        virtual internal async Task Move(MovementDirection enumDir, int duration, bool force = false)
+        internal virtual async Task Move(MovementDirection enumDir, int duration, bool force = false)
         {
             if (IsConnected)
             {
@@ -801,9 +795,9 @@ namespace InternetClawMachine.Hardware.ClawControl
                 if (duration > 0)
                 {
                     var guid = Guid.NewGuid();
-                    Logger.WriteLog(Logger.DebugLog, guid + " sleeping: " + Thread.CurrentThread.ManagedThreadId, Logger.LogLevel.TRACE);
+                    Logger.WriteLog(Logger._debugLog, guid + " sleeping: " + Thread.CurrentThread.ManagedThreadId, Logger.LogLevel.TRACE);
                     await Task.Delay(duration);
-                    Logger.WriteLog(Logger.DebugLog, guid + " woke: " + Thread.CurrentThread.ManagedThreadId, Logger.LogLevel.TRACE);
+                    Logger.WriteLog(Logger._debugLog, guid + " woke: " + Thread.CurrentThread.ManagedThreadId, Logger.LogLevel.TRACE);
                 }
             }
         }
@@ -818,27 +812,27 @@ namespace InternetClawMachine.Hardware.ClawControl
             await Move(MovementDirection.CLAWCLOSE, 1);
         }
 
-        virtual public async Task MoveBackward(int duration)
+        public virtual async Task MoveBackward(int duration)
         {
             await Move(MovementDirection.BACKWARD, duration);
         }
 
-        virtual public async Task MoveDown(int duration)
+        public virtual async Task MoveDown(int duration)
         {
             await Move(MovementDirection.DOWN, duration);
         }
 
-        virtual public async Task MoveForward(int duration)
+        public virtual async Task MoveForward(int duration)
         {
             await Move(MovementDirection.FORWARD, duration);
         }
 
-        virtual public async Task MoveLeft(int duration)
+        public virtual async Task MoveLeft(int duration)
         {
             await Move(MovementDirection.LEFT, duration);
         }
 
-        virtual public async Task MoveRight(int duration)
+        public virtual async Task MoveRight(int duration)
         {
             await Move(MovementDirection.RIGHT, duration);
         }
@@ -848,12 +842,12 @@ namespace InternetClawMachine.Hardware.ClawControl
             await Move(MovementDirection.UP, duration);
         }
 
-        virtual public async Task PressDrop()
+        public virtual async Task PressDrop()
         {
             await Move(MovementDirection.DROP, 0);
         }
 
-        virtual public async Task RunConveyor(int runtime)
+        public virtual async Task RunConveyor(int runtime)
         {
             if (!IsConnected)
                 return;
@@ -861,7 +855,7 @@ namespace InternetClawMachine.Hardware.ClawControl
             await Task.Delay(runtime);
         }
 
-        virtual public void SetClawPower(int percent)
+        public virtual void SetClawPower(int percent)
         {
             if (!IsConnected)
                 return;
@@ -946,7 +940,7 @@ namespace InternetClawMachine.Hardware.ClawControl
             return int.Parse(res);
         }
 
-        virtual public async Task StopMove()
+        public virtual async Task StopMove()
         {
             await Move(MovementDirection.STOP, 0);
         }
@@ -964,12 +958,12 @@ namespace InternetClawMachine.Hardware.ClawControl
             //not implemented
         }
 
-        virtual public void Strobe(int red, int blue, int green, int strobeCount, int strobeDelay)
+        public virtual void Strobe(int red, int blue, int green, int strobeCount, int strobeDelay)
         {
             SendCommandAsync($"strobe {red} {blue} {green} {strobeCount} {strobeDelay} 0");
         }
 
-        virtual public void DualStrobe(int red, int blue, int green, int red2, int blue2, int green2, int strobeCount, int strobeDelay)
+        public virtual void DualStrobe(int red, int blue, int green, int red2, int blue2, int green2, int strobeCount, int strobeDelay)
         {
             SendCommandAsync($"uno ds {red}:{blue}:{green} {red2}:{blue2}:{green2} {strobeCount} {strobeDelay} 0");
         }

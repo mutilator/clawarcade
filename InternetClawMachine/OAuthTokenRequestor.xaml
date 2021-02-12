@@ -4,8 +4,6 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:wpf="clr-namespace:CefSharp.Wpf;assembly=CefSharp.Wpf"
-        xmlns:cef="clr-namespace:CefSharp;assembly=CefSharp.Core"
-        xmlns:local="clr-namespace:InternetClawMachine"
         mc:Ignorable="d"
         Title="OAuthTokenRequestor" Height="742.328" Width="585.321">
 

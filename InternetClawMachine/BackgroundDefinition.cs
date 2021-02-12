@@ -8,7 +8,7 @@ namespace InternetClawMachine
     {
         public string Name { set; get; }
         public List<string> Scenes { set; get; }
-        public string PointID { set; get; }
+        public string PointId { set; get; }
         public int TimeActivated { set; get; }
     }
 }

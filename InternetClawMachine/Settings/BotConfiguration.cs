@@ -1,11 +1,12 @@
-﻿using InternetClawMachine.Hardware.Gantry;
-using Newtonsoft.Json;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data.SQLite;
 using System.IO;
 using System.Linq;
+using System.Runtime.CompilerServices;
+using InternetClawMachine.Hardware.Gantry;
+using Newtonsoft.Json;
 
 namespace InternetClawMachine.Settings
 {
@@ -58,7 +59,7 @@ namespace InternetClawMachine.Settings
         {
             set
             {
-                _latency = value; OnPropertyChanged("Latency");
+                _latency = value; OnPropertyChanged();
             }
             get => _latency;
         }
@@ -72,7 +73,7 @@ namespace InternetClawMachine.Settings
         {
             set
             {
-                _reconnectAttempts = value; OnPropertyChanged("ReconnectAttempts");
+                _reconnectAttempts = value; OnPropertyChanged();
             }
             get => _reconnectAttempts;
         }
@@ -87,7 +88,7 @@ namespace InternetClawMachine.Settings
         {
             set
             {
-                _chatReconnectAttempts = value; OnPropertyChanged("ChatReconnectAttempts");
+                _chatReconnectAttempts = value; OnPropertyChanged();
             }
             get => _chatReconnectAttempts;
         }
@@ -219,15 +220,12 @@ namespace InternetClawMachine.Settings
         {
             set
             {
-                EventModeChanging?.Invoke(this, new EventModeArgs() { Event = value }); //fire event changing
+                EventModeChanging?.Invoke(this, new EventModeArgs { Event = value }); //fire event changing
                 _eventMode = value;
-                EventModeChanged?.Invoke(this, new EventModeArgs() { Event = _eventMode }); //fire event changed
-                OnPropertyChanged("EventMode"); //fire generic property change
+                EventModeChanged?.Invoke(this, new EventModeArgs { Event = _eventMode }); //fire event changed
+                OnPropertyChanged(); //fire generic property change
             }
-            get
-            {
-                return _eventMode;
-            }
+            get => _eventMode;
         }
 
         /// <summary>
@@ -287,7 +285,7 @@ namespace InternetClawMachine.Settings
             catch (Exception ex)
             {
                 var error = string.Format("ERROR {0} {1}", ex.Message, ex);
-                Logger.WriteLog(Logger.ErrorLog, error);
+                Logger.WriteLog(Logger._errorLog, error);
             }
         }
 
@@ -343,13 +341,13 @@ namespace InternetClawMachine.Settings
 
         public event PropertyChangedEventHandler PropertyChanged;
 
-        protected void OnPropertyChanged([System.Runtime.CompilerServices.CallerMemberName] string propertyName = "")
+        protected void OnPropertyChanged([CallerMemberName] string propertyName = "")
         {
-            if (this.PropertyChanged != null)
+            if (PropertyChanged != null)
             {
-                Console.WriteLine("Property Changed:" + propertyName);
+                Logger.WriteLog(Logger._debugLog, "Property Changed:" + propertyName, Logger.LogLevel.TRACE);
                 var e = new PropertyChangedEventArgs(propertyName);
-                this.PropertyChanged(this, e);
+                PropertyChanged(this, e);
             }
         }
     }

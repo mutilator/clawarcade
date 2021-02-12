@@ -7,8 +7,8 @@
 
         public TeamJoinedArgs(string username, string teamName)
         {
-            this.Username = username;
-            this.TeamName = teamName;
+            Username = username;
+            TeamName = teamName;
         }
     }
 }

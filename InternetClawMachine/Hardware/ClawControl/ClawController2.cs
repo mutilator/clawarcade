@@ -1,13 +1,8 @@
-﻿using InternetClawMachine.Games.GameHelpers;
-using InternetClawMachine.Settings;
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Net;
-using System.Net.Sockets;
-using System.Text;
+﻿using System;
 using System.Threading;
 using System.Threading.Tasks;
+using InternetClawMachine.Games.GameHelpers;
+using InternetClawMachine.Settings;
 
 namespace InternetClawMachine.Hardware.ClawControl
 {
@@ -22,7 +17,7 @@ namespace InternetClawMachine.Hardware.ClawControl
             
         }
 
-        override internal async Task Move(MovementDirection enumDir, int duration, bool force = false)
+        internal override async Task Move(MovementDirection enumDir, int duration, bool force = false)
         {
             if (IsConnected)
             {
@@ -85,14 +80,14 @@ namespace InternetClawMachine.Hardware.ClawControl
                 if (duration > 0)
                 {
                     var guid = Guid.NewGuid();
-                    Logger.WriteLog(Logger.DebugLog, guid + " sleeping: " + Thread.CurrentThread.ManagedThreadId, Logger.LogLevel.TRACE);
+                    Logger.WriteLog(Logger._debugLog, guid + " sleeping: " + Thread.CurrentThread.ManagedThreadId, Logger.LogLevel.TRACE);
                     await Task.Delay(duration);
-                    Logger.WriteLog(Logger.DebugLog, guid + " woke: " + Thread.CurrentThread.ManagedThreadId, Logger.LogLevel.TRACE);
+                    Logger.WriteLog(Logger._debugLog, guid + " woke: " + Thread.CurrentThread.ManagedThreadId, Logger.LogLevel.TRACE);
                 }
             }
         }
 
-        override public void InsertCoinAsync()
+        public override void InsertCoinAsync()
         {
             Task.Run(async delegate
             {
@@ -102,37 +97,37 @@ namespace InternetClawMachine.Hardware.ClawControl
             });
         }
 
-        override public async Task MoveBackward(int duration)
+        public override async Task MoveBackward(int duration)
         {
             await Move(MovementDirection.BACKWARD, duration);
         }
 
-        override public async Task MoveDown(int duration)
+        public override async Task MoveDown(int duration)
         {
             await Move(MovementDirection.DOWN, duration);
         }
 
-        override public async Task MoveForward(int duration)
+        public override async Task MoveForward(int duration)
         {
             await Move(MovementDirection.FORWARD, duration);
         }
 
-        override public async Task MoveLeft(int duration)
+        public override async Task MoveLeft(int duration)
         {
             await Move(MovementDirection.LEFT, duration);
         }
 
-        override public async Task MoveRight(int duration)
+        public override async Task MoveRight(int duration)
         {
             await Move(MovementDirection.RIGHT, duration);
         }
 
-        override public async Task PressDrop()
+        public override async Task PressDrop()
         {
             await Move(MovementDirection.DROP, 0);
         }
 
-        override public async Task RunConveyor(int runtime)
+        public override async Task RunConveyor(int runtime)
         {
             if (!IsConnected)
                 return;
@@ -140,7 +135,7 @@ namespace InternetClawMachine.Hardware.ClawControl
             await Task.Delay(runtime);
         }
 
-        override public void SetClawPower(int percent)
+        public override void SetClawPower(int percent)
         {
             if (!IsConnected)
                 return;
@@ -149,17 +144,17 @@ namespace InternetClawMachine.Hardware.ClawControl
             SendCommandAsync(str);
         }
 
-        override public async Task StopMove()
+        public override async Task StopMove()
         {
             await Move(MovementDirection.STOP, 0);
         }
 
-        override public void Strobe(int red, int blue, int green, int strobeCount, int strobeDelay)
+        public override void Strobe(int red, int blue, int green, int strobeCount, int strobeDelay)
         {
             SendCommandAsync($"strobe {red} {blue} {green} {strobeCount} {strobeDelay} 0");
         }
 
-        override public void DualStrobe(int red, int blue, int green, int red2, int blue2, int green2, int strobeCount, int strobeDelay)
+        public override void DualStrobe(int red, int blue, int green, int red2, int blue2, int green2, int strobeCount, int strobeDelay)
         {
             SendCommandAsync($"uno ds {red}:{blue}:{green} {red2}:{blue2}:{green2} {strobeCount} {strobeDelay} 0");
         }

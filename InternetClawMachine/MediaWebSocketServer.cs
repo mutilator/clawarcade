@@ -1,16 +1,16 @@
-﻿using Newtonsoft.Json.Linq;
-using System;
+﻿using System;
 using System.Net;
+using Newtonsoft.Json.Linq;
 using WebSocketSharp.Server;
 
 namespace InternetClawMachine
 {
     public class MediaWebSocketServer : WebSocketServer
     {
-        public static string CommandSound = "sound";
-        public static string CommandPoster = "poster";
-        public static string CommandVideo = "video";
-        public static string CommandMedia = "media";
+        public static string _commandSound = "sound";
+        public static string _commandPoster = "poster";
+        public static string _commandVideo = "video";
+        public static string _commandMedia = "media";
 
         public MediaWebSocketServer()
         {
@@ -69,7 +69,7 @@ namespace InternetClawMachine
                 eventData.Merge(payload);
             }
 
-            this.WebSocketServices.BroadcastAsync(eventData.ToString(), null);
+            WebSocketServices.BroadcastAsync(eventData.ToString(), null);
         }
     }
 }

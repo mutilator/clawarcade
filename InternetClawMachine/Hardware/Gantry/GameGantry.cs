@@ -14,13 +14,17 @@ namespace InternetClawMachine.Hardware.Gantry
         public int ShortSteps { set; get; }
         public int NormalSteps { set; get; }
 
-        private Socket _workSocket = null;
+        private Socket _workSocket;
         private SocketAsyncEventArgs _socketReader;
         private byte[] _receiveBuffer = new byte[2048];
         private int _receiveIdx;
         private string _lastCommandResponse;
 
-        public bool IsConnected { get { if (_workSocket == null) return false; else return _workSocket.Connected; } }
+        public bool IsConnected { get
+        {
+            if (_workSocket == null) return false;
+            return _workSocket.Connected;
+        } }
 
         public int ZMax { get; internal set; }
 
@@ -47,7 +51,7 @@ namespace InternetClawMachine.Hardware.Gantry
         public bool Connect()
         {
             // Establish the remote endpoint for the socket.
-            var ipAddress = System.Net.IPAddress.Parse(IpAddress);
+            var ipAddress = IPAddress.Parse(IpAddress);
             var remoteEp = new IPEndPoint(ipAddress, Port);
 
             return Connect(remoteEp);
@@ -75,7 +79,7 @@ namespace InternetClawMachine.Hardware.Gantry
             catch (Exception ex)
             {
                 var error = string.Format("ERROR {0} {1}", ex.Message, ex);
-                Logger.WriteLog(Logger.ErrorLog, error);
+                Logger.WriteLog(Logger._errorLog, error);
             }
             return false;
         }
@@ -94,7 +98,7 @@ namespace InternetClawMachine.Hardware.Gantry
             catch (Exception ex)
             {
                 var error = string.Format("ERROR {0} {1}", ex.Message, ex);
-                Logger.WriteLog(Logger.ErrorLog, error);
+                Logger.WriteLog(Logger._errorLog, error);
             }
         }
 
@@ -107,7 +111,7 @@ namespace InternetClawMachine.Hardware.Gantry
             catch (Exception ex)
             {
                 var error = string.Format("ERROR {0} {1}", ex.Message, ex);
-                Logger.WriteLog(Logger.ErrorLog, error);
+                Logger.WriteLog(Logger._errorLog, error);
             }
         }
 
@@ -136,14 +140,14 @@ namespace InternetClawMachine.Hardware.Gantry
             {
                 //echo the data received back to the client
                 //e.SetBuffer(e.Offset, e.BytesTransferred);
-                var i = 0;
+                int i;
                 for (i = 0; i < e.BytesTransferred; i++)
                 {
                     _receiveBuffer[_receiveIdx] = e.Buffer[i];
                     _receiveIdx++;
                     if (e.Buffer[i] == '\n') //if it's a command delimiter, process the read buffer
                     {
-                        var response = System.Text.Encoding.UTF8.GetString(_receiveBuffer, 0, _receiveIdx);
+                        var response = Encoding.UTF8.GetString(_receiveBuffer, 0, _receiveIdx);
                         _lastCommandResponse = response;
                         HandleMessage(response);
                         e.SetBuffer(0, 1024);
@@ -152,9 +156,6 @@ namespace InternetClawMachine.Hardware.Gantry
                         Array.Clear(_receiveBuffer, 0, _receiveBuffer.Length); //also make sure the array is zeroed
                     }
                 }
-            }
-            else
-            {
             }
         }
 
@@ -183,14 +184,14 @@ namespace InternetClawMachine.Hardware.Gantry
                         break;
 
                     case GantryResponses.RESPONSE_POSITION:
-                        PositionReturned?.Invoke(this, new PositionEventArgs() { Axis = delims[1], Value = delims[2] });
+                        PositionReturned?.Invoke(this, new PositionEventArgs { Axis = delims[1], Value = delims[2] });
                         break;
 
                     case GantryResponses.RESPONSE_DIRECTION:
                         break;
 
                     case GantryResponses.RESPONSE_XY_MOVE:
-                        XyMoveFinished?.Invoke(this, new XyMoveFinishedEventArgs() { X = delims[2], Y = delims[3] });
+                        XyMoveFinished?.Invoke(this, new XyMoveFinishedEventArgs { X = delims[2], Y = delims[3] });
                         break;
 
                     case GantryResponses.RESPONSE_HOME_AXIS_ACK:
@@ -203,15 +204,15 @@ namespace InternetClawMachine.Hardware.Gantry
                         break;
 
                     case GantryResponses.RESPONSE_EXCEED_LIMIT:
-                        ExceededLimit?.Invoke(this, new ExceededLimitEventArgs() { Axis = delims[1] });
+                        ExceededLimit?.Invoke(this, new ExceededLimitEventArgs { Axis = delims[1] });
                         break;
 
                     case GantryResponses.RESPONSE_LIMIT_SWITCH:
-                        ExceededLimit?.Invoke(this, new ExceededLimitEventArgs() { Axis = delims[1] });
+                        ExceededLimit?.Invoke(this, new ExceededLimitEventArgs { Axis = delims[1] });
                         break;
 
                     case GantryResponses.RESPONSE_TRIGGERED_SWITCH:
-                        ExceededLimit?.Invoke(this, new ExceededLimitEventArgs() { Axis = delims[1] });
+                        ExceededLimit?.Invoke(this, new ExceededLimitEventArgs { Axis = delims[1] });
                         break;
 
                     case GantryResponses.RESPONSE_SPEED:
@@ -221,15 +222,15 @@ namespace InternetClawMachine.Hardware.Gantry
                         break;
 
                     case GantryResponses.RESPONSE_STEP_ACK:
-                        StepSent?.Invoke(this, new StepSentEventArgs() { Axis = delims[1], Value = delims[2] });
+                        StepSent?.Invoke(this, new StepSentEventArgs { Axis = delims[1], Value = delims[2] });
                         break;
 
                     case GantryResponses.RESPONSE_POSITION_ACK:
-                        PositionSent?.Invoke(this, new PositionSentEventArgs() { Axis = delims[1], Value = delims[2] });
+                        PositionSent?.Invoke(this, new PositionSentEventArgs { Axis = delims[1], Value = delims[2] });
                         break;
 
                     case GantryResponses.RESPONSE_MOVE_COMPLETE:
-                        MoveComplete?.Invoke(this, new MoveCompleteEventArgs() { Axis = delims[1], Value = delims[2] });
+                        MoveComplete?.Invoke(this, new MoveCompleteEventArgs { Axis = delims[1], Value = delims[2] });
                         break;
 
                     case GantryResponses.RESPONSE_HOLE_ACTIVATED:
@@ -270,7 +271,7 @@ namespace InternetClawMachine.Hardware.Gantry
             catch (Exception ex)
             {
                 var error = string.Format("ERROR {0} {1}", ex.Message, ex);
-                Logger.WriteLog(Logger.ErrorLog, error);
+                Logger.WriteLog(Logger._errorLog, error);
             }
 
             return "";
@@ -299,7 +300,7 @@ namespace InternetClawMachine.Hardware.Gantry
             catch (Exception ex)
             {
                 var error = string.Format("ERROR {0} {1}", ex.Message, ex);
-                Logger.WriteLog(Logger.ErrorLog, error);
+                Logger.WriteLog(Logger._errorLog, error);
             }
 
             return "";
@@ -445,46 +446,27 @@ namespace InternetClawMachine.Hardware.Gantry
 
     public class ExceededLimitEventArgs
     {
-        public ExceededLimitEventArgs()
-        {
-        }
-
         public string Axis { get; set; }
     }
 
     public class HoleSwitchEventArgs
     {
-        public HoleSwitchEventArgs()
-        {
-        }
     }
 
     public class MoveCompleteEventArgs
     {
-        public MoveCompleteEventArgs()
-        {
-        }
-
         public string Axis { get; set; }
         public string Value { get; set; }
     }
 
     public class StepSentEventArgs
     {
-        public StepSentEventArgs()
-        {
-        }
-
         public string Axis { get; set; }
         public string Value { get; set; }
     }
 
     public class PositionSentEventArgs
     {
-        public PositionSentEventArgs()
-        {
-        }
-
         public string Axis { get; set; }
         public string Value { get; set; }
     }

@@ -53,13 +53,13 @@ namespace InternetClawMachine
 
         public void Run()
         {
-            ThreadPool.QueueUserWorkItem((o) =>
+            ThreadPool.QueueUserWorkItem(o =>
             {
                 try
                 {
                     while (_listener.IsListening)
                     {
-                        ThreadPool.QueueUserWorkItem((c) =>
+                        ThreadPool.QueueUserWorkItem(c =>
                         {
                             var ctx = c as HttpListenerContext;
                             try

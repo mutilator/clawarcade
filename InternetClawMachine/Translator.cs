@@ -1,12 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Data;
 using System.IO;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows.Forms.VisualStyles;
-using System.Windows.Markup;
 using Newtonsoft.Json;
 
 namespace InternetClawMachine
@@ -14,12 +9,12 @@ namespace InternetClawMachine
     class Translator
     {
         private static List<Localization> Localizations { set; get; }
-        public static string DefaultLanguage;
+        public static string _defaultLanguage;
         public static void Init(string configFile)
         {
             //load 
             Localizations = new List<Localization>();
-            DefaultLanguage = ""; //set to the first language loaded
+            _defaultLanguage = ""; //set to the first language loaded
             var settings = new JsonSerializerSettings
             {
                 Formatting = Formatting.Indented
@@ -27,7 +22,7 @@ namespace InternetClawMachine
             try
             {
                 JsonConvert.PopulateObject(File.ReadAllText(configFile), Localizations);
-                DefaultLanguage = Localizations[0].Name;
+                _defaultLanguage = Localizations[0].Name;
                 Console.WriteLine(Localizations);
             }
             catch (Exception e)
@@ -41,21 +36,17 @@ namespace InternetClawMachine
             var language = Localizations.FirstOrDefault(itm => itm.Name.Equals(localization));
             if (language != null && language.Dictionary.ContainsKey(reference))
             {
-                return string.IsNullOrEmpty(language.Dictionary[reference]) ? DefaultLanguage : language.Dictionary[reference];
+                return string.IsNullOrEmpty(language.Dictionary[reference]) ? _defaultLanguage : language.Dictionary[reference];
             }
-            else
+
+            language = Localizations.First(itm => itm.Name.Equals(_defaultLanguage));
+            if (language.Dictionary.ContainsKey(reference))
             {
-                language = Localizations.First(itm => itm.Name.Equals(DefaultLanguage));
-                if (language.Dictionary.ContainsKey(reference))
-                {
-                    return language.Dictionary[reference];
-                }
-                else
-                {
-                    //possibly throw exception instead
-                    return "ERROR NO TRANSLATION: " + reference;
-                }
+                return language.Dictionary[reference];
             }
+
+            //possibly throw exception instead
+            return "ERROR NO TRANSLATION: " + reference;
         }
 
         /// <summary>
@@ -66,7 +57,7 @@ namespace InternetClawMachine
         /// <returns>Return the word in the localization asked for, if none is found return the word</returns>
         internal static WordReference FindWord(string word, string localization)
         {
-            WordReference w = new WordReference()
+            var w = new WordReference
             {
                 SourceWord = word,
                 SourceLocalization = localization,
@@ -76,7 +67,7 @@ namespace InternetClawMachine
                 
             foreach (var l in Localizations)
             {
-                foreach (KeyValuePair<string, string> entry in l.Dictionary)
+                foreach (var entry in l.Dictionary)
                 {
                     if (entry.Value.Equals(word,StringComparison.CurrentCultureIgnoreCase))
                     {

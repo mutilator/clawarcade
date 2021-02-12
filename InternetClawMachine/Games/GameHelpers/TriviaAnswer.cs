@@ -1,4 +1,4 @@
-﻿using System.Collections;
+﻿using System;
 
 namespace InternetClawMachine.Games.GameHelpers
 {
@@ -23,13 +23,11 @@ namespace InternetClawMachine.Games.GameHelpers
             }
             if (!(obj is TriviaAnswer))
             {
-                if (obj is string)
+                if (obj is string s)
                 {
-                    return Text.ToLower() == ((string)obj).ToLower();
-                } else
-                {
-
+                    return string.Equals(Text, s, StringComparison.CurrentCultureIgnoreCase);
                 }
+
                 return false;
             }
             return Text.ToLower() == ((TriviaAnswer)obj).Text.ToLower();

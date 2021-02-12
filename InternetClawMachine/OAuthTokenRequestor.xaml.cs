@@ -1,6 +1,8 @@
 ﻿using System;
+using System.Text.RegularExpressions;
+using System.Web;
 using System.Windows;
-
+using CefSharp;
 
 namespace InternetClawMachine
 {
@@ -14,7 +16,7 @@ namespace InternetClawMachine
             InitializeComponent();
             Browser.FrameLoadEnd += Browser_FrameLoadEnd;
             
-            this.Loaded += (object sender, RoutedEventArgs e) =>
+            Loaded += (sender, e) =>
             {
                 //Create the destination URL
                 var destinationUrl = string.Format("https://api.twitch.tv/kraken/oauth2/authorize?client_id={0}&scope={1}&redirect_uri=http://localhost&response_type=token",
@@ -25,20 +27,20 @@ namespace InternetClawMachine
             };
         }
 
-        private void Browser_FrameLoadEnd(object sender, CefSharp.FrameLoadEndEventArgs e)
+        private void Browser_FrameLoadEnd(object sender, FrameLoadEndEventArgs e)
         {
             //If the URL has an access_token, grab it and walk away...
             var url = e.Url;
             if (url.Contains("access_token") && url.Contains("#"))
             {
-                url = new System.Text.RegularExpressions.Regex("#").Replace(url, "?", 1);
+                url = new Regex("#").Replace(url, "?", 1);
                 url = url.Substring(url.IndexOf("?"));
-                var parsed = System.Web.HttpUtility.ParseQueryString(url);
+                var parsed = HttpUtility.ParseQueryString(url);
                 AccessToken = parsed.Get("access_token");
                 Dispatcher?.BeginInvoke(new Action(() =>
                 {
                     DialogResult = true;
-                    this.Close();
+                    Close();
                 }));
             }
         }

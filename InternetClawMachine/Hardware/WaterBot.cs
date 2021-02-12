@@ -10,7 +10,7 @@ namespace InternetClawMachine.Hardware
         public string IpAddress { set; get; }
         public int Port { get; set; }
 
-        private Socket _workSocket = null;
+        private Socket _workSocket;
         private bool IsConnected => _workSocket.Connected;
 
         public WaterBot(string ip, int port)
@@ -22,7 +22,7 @@ namespace InternetClawMachine.Hardware
         public bool Connect()
         {
             // Establish the remote endpoint for the socket.
-            var ipAddress = System.Net.IPAddress.Parse(IpAddress);
+            var ipAddress = IPAddress.Parse(IpAddress);
             var remoteEp = new IPEndPoint(ipAddress, Port);
 
             return Connect(remoteEp);
@@ -45,7 +45,7 @@ namespace InternetClawMachine.Hardware
             catch (Exception ex)
             {
                 var error = string.Format("ERROR {0} {1}", ex.Message, ex);
-                Logger.WriteLog(Logger.ErrorLog, error);
+                Logger.WriteLog(Logger._errorLog, error);
             }
             return false;
         }
@@ -85,7 +85,7 @@ namespace InternetClawMachine.Hardware
             catch (Exception ex)
             {
                 var error = string.Format("ERROR {0} {1}", ex.Message, ex);
-                Logger.WriteLog(Logger.ErrorLog, error);
+                Logger.WriteLog(Logger._errorLog, error);
             }
 
             return false;

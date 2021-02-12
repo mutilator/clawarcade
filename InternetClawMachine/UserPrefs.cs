@@ -1,5 +1,5 @@
-﻿using InternetClawMachine.Settings;
-using System;
+﻿using System;
+using InternetClawMachine.Settings;
 
 namespace InternetClawMachine
 {
@@ -76,7 +76,7 @@ namespace InternetClawMachine
             FromDatabase = newData.FromDatabase;
         }
 
-        override public string ToString()
+        public override string ToString()
         {
             return Username;
         }
@@ -90,8 +90,7 @@ namespace InternetClawMachine
         {
             if (other == null)
                 return 1;
-            else
-                return Username.CompareTo(other.Username);
+            return Username.CompareTo(other.Username);
         }
     }
 }

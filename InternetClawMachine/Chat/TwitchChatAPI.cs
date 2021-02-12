@@ -1,11 +1,8 @@
 ﻿using System;
-using Microsoft.Extensions.Logging;
-using Serilog;
 using TwitchLib.Client;
-using TwitchLib.Client.Enums;
 using TwitchLib.Client.Events;
-using TwitchLib.Client.Extensions;
 using TwitchLib.Client.Models;
+using TwitchLib.Communication.Events;
 
 namespace InternetClawMachine.Chat
 {
@@ -15,16 +12,7 @@ namespace InternetClawMachine.Chat
         private ConnectionCredentials _credentials;
         private string _channel;
 
-        public bool IsConnected
-        {
-            get
-            {
-                if (_client == null)
-                    return false;
-                else
-                    return _client.IsConnected;
-            }
-        }
+        public bool IsConnected => _client != null && _client.IsConnected;
 
         public string Username { get; set; }
 
@@ -83,12 +71,12 @@ namespace InternetClawMachine.Chat
 
         private void _client_OnSendReceiveData(object sender, TwitchLib.Client.Events.OnSendReceiveDataArgs e)
         {
-            Logger.WriteLog(Logger.DebugLog, "[TWITCH CHAT] " + e.Direction + ": " + e.Data, Logger.LogLevel.TRACE);
+            Logger.WriteLog(Logger._debugLog, "[TWITCH CHAT] " + e.Direction + ": " + e.Data, Logger.LogLevel.TRACE);
         }
 
-        private void Client_OnDisconnected(object sender, TwitchLib.Communication.Events.OnDisconnectedEventArgs e)
+        private void Client_OnDisconnected(object sender, OnDisconnectedEventArgs e)
         {
-            OnDisconnected?.Invoke(sender, new OnDisconnectedArgs() { });
+            OnDisconnected?.Invoke(sender, new OnDisconnectedArgs());
         }
 
         private void Client_OnReSubscriber(object sender, OnReSubscriberArgs e)
@@ -98,67 +86,67 @@ namespace InternetClawMachine.Chat
 
         private void Client_OnSendReceiveData(object sender, TwitchLib.Client.Events.OnSendReceiveDataArgs e)
         {
-            OnSendReceiveData?.Invoke(sender, new OnSendReceiveDataArgs() { Data = e.Data, Direction = (SendReceiveDirection)e.Direction });
+            OnSendReceiveData?.Invoke(sender, new OnSendReceiveDataArgs { Data = e.Data, Direction = (SendReceiveDirection)e.Direction });
         }
 
-        private void Client_OnChatCommandReceived(object sender, TwitchLib.Client.Events.OnChatCommandReceivedArgs e)
+        private void Client_OnChatCommandReceived(object sender, OnChatCommandReceivedArgs e)
         {
-            OnChatCommandReceived?.Invoke(sender, new OnChatCommandReceivedArgs() { Command = e.Command });
+            OnChatCommandReceived?.Invoke(sender, new OnChatCommandReceivedArgs { Command = e.Command });
         }
 
         private void Client_OnMessageSent(object sender, TwitchLib.Client.Events.OnMessageSentArgs e)
         {
-            OnMessageSent?.Invoke(sender, new OnMessageSentArgs() { SentMessage = new SentMessage() { Message = e.SentMessage.Message, DisplayName = e.SentMessage.DisplayName, Channel = e.SentMessage.Channel, IsSubscriber = e.SentMessage.IsSubscriber } });
+            OnMessageSent?.Invoke(sender, new OnMessageSentArgs { SentMessage = new SentMessage { Message = e.SentMessage.Message, DisplayName = e.SentMessage.DisplayName, Channel = e.SentMessage.Channel, IsSubscriber = e.SentMessage.IsSubscriber } });
         }
 
         private void Client_OnUserLeft(object sender, TwitchLib.Client.Events.OnUserLeftArgs e)
         {
-            OnUserLeft?.Invoke(sender, new OnUserLeftArgs() { Username = e.Username, Channel = e.Channel });
+            OnUserLeft?.Invoke(sender, new OnUserLeftArgs { Username = e.Username, Channel = e.Channel });
         }
 
         private void Client_OnUserJoined(object sender, TwitchLib.Client.Events.OnUserJoinedArgs e)
         {
-            OnUserJoined?.Invoke(sender, new OnUserJoinedArgs() { Channel = e.Channel, Username = e.Username });
+            OnUserJoined?.Invoke(sender, new OnUserJoinedArgs { Channel = e.Channel, Username = e.Username });
         }
 
-        private void Client_OnExistingUsersDetected(object sender, TwitchLib.Client.Events.OnExistingUsersDetectedArgs e)
+        private void Client_OnExistingUsersDetected(object sender, OnExistingUsersDetectedArgs e)
         {
             foreach (var user in e.Users)
             {
-                OnJoinedChannel?.Invoke(sender, new OnJoinedChannelArgs() { BotUsername = user, Channel = e.Channel });
+                OnJoinedChannel?.Invoke(sender, new OnJoinedChannelArgs { BotUsername = user, Channel = e.Channel });
             }
         }
 
         private void Client_OnDisconnected(object sender, TwitchLib.Client.Events.OnDisconnectedArgs e)
         {
-            OnDisconnected?.Invoke(sender, new OnDisconnectedArgs() { BotUsername = e.BotUsername });
+            OnDisconnected?.Invoke(sender, new OnDisconnectedArgs { BotUsername = e.BotUsername });
         }
 
         private void Client_OnConnectionError(object sender, TwitchLib.Client.Events.OnConnectionErrorArgs e)
         {
-            OnConnectionError?.Invoke(sender, new OnConnectionErrorArgs() { BotUsername = e.BotUsername, Error = e.Error.Message });
+            OnConnectionError?.Invoke(sender, new OnConnectionErrorArgs { BotUsername = e.BotUsername, Error = e.Error.Message });
         }
 
         private void Client_OnConnected(object sender, TwitchLib.Client.Events.OnConnectedArgs e)
         {
-            OnConnected?.Invoke(sender, new OnConnectedArgs() { BotUsername = e.BotUsername, AutoJoinChannel = e.AutoJoinChannel });
+            OnConnected?.Invoke(sender, new OnConnectedArgs { BotUsername = e.BotUsername, AutoJoinChannel = e.AutoJoinChannel });
         }
 
-        private void Client_OnNewSubscriber(object sender, TwitchLib.Client.Events.OnNewSubscriberArgs e)
+        private void Client_OnNewSubscriber(object sender, OnNewSubscriberArgs e)
         {
             OnNewSubscriber?.Invoke(sender, e);
         }
 
         private void Client_OnWhisperReceived(object sender, TwitchLib.Client.Events.OnWhisperReceivedArgs e)
         {
-            OnWhisperReceived?.Invoke(sender, new OnWhisperReceivedArgs() { WhisperMessage = new WhisperMessage() { Username = e.WhisperMessage.Username, DisplayName = e.WhisperMessage.Username, Message = e.WhisperMessage.Message } });
+            OnWhisperReceived?.Invoke(sender, new OnWhisperReceivedArgs { _whisperMessage = new WhisperMessage { Username = e.WhisperMessage.Username, DisplayName = e.WhisperMessage.Username, Message = e.WhisperMessage.Message } });
         }
 
         private void Client_OnMessageReceived(object sender, TwitchLib.Client.Events.OnMessageReceivedArgs e)
         {
-            OnMessageReceived?.Invoke(sender, new OnMessageReceivedArgs()
+            OnMessageReceived?.Invoke(sender, new OnMessageReceivedArgs
             {
-                ChatMessage = new ChatMessage()
+                Message = new ChatMessage
                 {
                     CustomRewardId = e.ChatMessage.CustomRewardId,
                     Message = e.ChatMessage.Message,
@@ -173,7 +161,7 @@ namespace InternetClawMachine.Chat
 
         private void Client_OnJoinedChannel(object sender, TwitchLib.Client.Events.OnJoinedChannelArgs e)
         {
-            OnJoinedChannel?.Invoke(sender, new OnJoinedChannelArgs() { BotUsername = e.BotUsername, Channel = e.Channel });
+            OnJoinedChannel?.Invoke(sender, new OnJoinedChannelArgs { BotUsername = e.BotUsername, Channel = e.Channel });
         }
 
         public bool Reconnect()

@@ -1,13 +1,13 @@
-﻿using InternetClawMachine.Chat;
-using InternetClawMachine.Games.GameHelpers;
-using InternetClawMachine.Hardware.ClawControl;
-using InternetClawMachine.Settings;
-using OBSWebsocketDotNet;
-using System;
+﻿using System;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
+using InternetClawMachine.Chat;
+using InternetClawMachine.Games.GameHelpers;
+using InternetClawMachine.Hardware.ClawControl;
+using InternetClawMachine.Settings;
+using OBSWebsocketDotNet;
 
 namespace InternetClawMachine.Games.ClawGame
 {
@@ -19,22 +19,22 @@ namespace InternetClawMachine.Games.ClawGame
         {
             GameMode = GameModeType.SINGLEQUEUE;
             CurrentDroppingPlayer = new DroppingPlayer();
-            foreach (var MachineControl in MachineList)
+            foreach (var machineControl in MachineList)
             {
 
-                MachineControl.OnClawCentered += MachineControl_OnClawCentered;
+                machineControl.OnClawCentered += MachineControl_OnClawCentered;
 
-                ((ClawController)MachineControl).OnClawRecoiled += MachineControl_OnClawRecoiled;
-                ((ClawController)MachineControl).OnClawDropped += ClawSingleQueue_OnClawDropped;
+                ((ClawController)machineControl).OnClawRecoiled += MachineControl_OnClawRecoiled;
+                ((ClawController)machineControl).OnClawDropped += ClawSingleQueue_OnClawDropped;
             }
-            StartMessage = string.Format(Translator.GetTranslation("gameClawSingleQueueStartGame", Translator.DefaultLanguage), Configuration.CommandPrefix);
+            StartMessage = string.Format(Translator.GetTranslation("gameClawSingleQueueStartGame", Translator._defaultLanguage), Configuration.CommandPrefix);
 
             PlayerQueue.OnJoinedQueue += PlayerQueue_OnJoinedQueue;
         }
 
         internal virtual void ClawSingleQueue_OnClawDropped(object sender, EventArgs e)
         {
-            if ((ObsConnection.IsConnected) && (Configuration.EventMode.DropScene != null))
+            if (ObsConnection.IsConnected && Configuration.EventMode.DropScene != null)
                 ObsConnection.SetSourceRender(Configuration.EventMode.DropScene.SourceName, true, Configuration.EventMode.DropScene.SceneName);
         }
 
@@ -72,7 +72,7 @@ namespace InternetClawMachine.Games.ClawGame
             var msg = string.Format(Translator.GetTranslation("gameClawSingleQueueStartRoundShort", Configuration.UserList.GetUserLocalization(PlayerQueue.CurrentPlayer)), PlayerQueue.CurrentPlayer);
             ChatClient.SendMessage(Configuration.Channel, msg);
 
-            if ((ObsConnection.IsConnected) && (Configuration.EventMode.DropScene != null))
+            if (ObsConnection.IsConnected && Configuration.EventMode.DropScene != null)
             {
                 Task.Run(async () => {
                     await Task.Delay(Configuration.ClawSettings.DropCameraHideDelay);
@@ -93,14 +93,14 @@ namespace InternetClawMachine.Games.ClawGame
 
         public override void Destroy()
         {
-            foreach (var MachineControl in MachineList)
+            foreach (var machineControl in MachineList)
             {
 
-                if (MachineControl != null)
+                if (machineControl != null)
                 {
-                    MachineControl.OnClawCentered -= MachineControl_OnClawCentered;
-                    ((ClawController)MachineControl).OnClawRecoiled -= MachineControl_OnClawRecoiled;
-                    ((ClawController)MachineControl).OnClawDropped -= ClawSingleQueue_OnClawDropped;
+                    machineControl.OnClawCentered -= MachineControl_OnClawCentered;
+                    ((ClawController)machineControl).OnClawRecoiled -= MachineControl_OnClawRecoiled;
+                    ((ClawController)machineControl).OnClawDropped -= ClawSingleQueue_OnClawDropped;
                 }
             }
             PlayerQueue.OnJoinedQueue -= PlayerQueue_OnJoinedQueue;
@@ -116,10 +116,8 @@ namespace InternetClawMachine.Games.ClawGame
 
             var translateCommand = Translator.FindWord(commandText, "en-US");
 
-            string[] param;
-
             //split our args
-            param = chatMessage.Split(' ');
+            var param = chatMessage.Split(' ');
 
             switch (translateCommand.FinalWord)
             {
@@ -155,7 +153,7 @@ namespace InternetClawMachine.Games.ClawGame
                     //if there are multiple people playing it won't matter since they timeout after 15 seconds
                     if (!CurrentPlayerHasPlayed && GameRoundTimer.ElapsedMilliseconds > Configuration.ClawSettings.SinglePlayerQueueNoCommandDuration * 1000)
                     {
-                        var rargs = new RoundEndedArgs() { Username = username, GameLoopCounterValue = GameLoopCounterValue, GameMode = GameMode };
+                        var rargs = new RoundEndedArgs { Username = username, GameLoopCounterValue = GameLoopCounterValue, GameMode = GameMode };
                         base.OnTurnEnded(rargs);
                         PlayerQueue.RemoveSinglePlayer(PlayerQueue.CurrentPlayer);
                     }
@@ -391,12 +389,12 @@ namespace InternetClawMachine.Games.ClawGame
                     cmd = ClawDirection.DOWN;
                     var usr = Configuration.UserList.GetUser(username);
 
-                    var user = SessionWinTracker.FirstOrDefault(u => u.Username == username);
+                    var user = SessionWinTracker.FirstOrDefault(u => u._username == username);
                     if (user != null)
-                        user = SessionWinTracker.First(u => u.Username == username);
+                        user = SessionWinTracker.First(u => u._username == username);
                     else
                     {
-                        user = new SessionWinTracker() { Username = username };
+                        user = new SessionWinTracker { _username = username };
                         SessionWinTracker.Add(user);
                     }
 
@@ -410,7 +408,7 @@ namespace InternetClawMachine.Games.ClawGame
                         team.Drops++;
                     }
 
-                    user.Drops++;
+                    user._drops++;
 
                     RefreshWinList();
                     try
@@ -423,7 +421,7 @@ namespace InternetClawMachine.Games.ClawGame
                     catch (Exception ex)
                     {
                         var error = string.Format("ERROR {0} {1}", ex.Message, ex);
-                        Logger.WriteLog(Logger.ErrorLog, error);
+                        Logger.WriteLog(Logger._errorLog, error);
                     }
 
                     break;
@@ -433,9 +431,9 @@ namespace InternetClawMachine.Games.ClawGame
 
             lock (CommandQueue)
             {
-                Console.WriteLine("added command: " + Thread.CurrentThread.ManagedThreadId);
+                Logger.WriteLog(Logger._debugLog, "added command: " + Thread.CurrentThread.ManagedThreadId, Logger.LogLevel.TRACE);
                 if (cmd != ClawDirection.NA)
-                    CommandQueue.Add(new ClawCommand() { Direction = cmd, Duration = moveTime, Timestamp = GameModeTimer.ElapsedMilliseconds, Username = username, MachineControl = GetProperMachine(userPrefs) });
+                    CommandQueue.Add(new ClawCommand { Direction = cmd, Duration = moveTime, Timestamp = GameModeTimer.ElapsedMilliseconds, Username = username, MachineControl = GetProperMachine(userPrefs) });
             }
             //try processing queue
             Task.Run(async delegate { await ProcessQueue(); });
@@ -452,11 +450,11 @@ namespace InternetClawMachine.Games.ClawGame
 
         public override void StartGame(string username)
         {
-            foreach (var MachineControl in MachineList)
+            foreach (var machineControl in MachineList)
             {
 
-                MachineControl.SetClawPower(90);
-                MachineControl.InsertCoinAsync();
+                machineControl.SetClawPower(90);
+                machineControl.InsertCoinAsync();
             }
             GameModeTimer.Reset();
             GameModeTimer.Start();
@@ -471,7 +469,7 @@ namespace InternetClawMachine.Games.ClawGame
                 }
                 catch (PlayerQueueSizeExceeded)
                 {
-                    ChatClient.SendMessage(Configuration.Channel, string.Format(Translator.GetTranslation("gameClawCommandPlayQueueFull", Translator.DefaultLanguage), Configuration.EventMode.QueueSizeMax));
+                    ChatClient.SendMessage(Configuration.Channel, string.Format(Translator.GetTranslation("gameClawCommandPlayQueueFull", Translator._defaultLanguage), Configuration.EventMode.QueueSizeMax));
                 }
             }
         }
@@ -490,28 +488,28 @@ namespace InternetClawMachine.Games.ClawGame
             if (username == null)
             {
                 PlayerQueue.Clear();
-                OnRoundStarted(new RoundStartedArgs() { Username = username, GameMode = GameMode });
+                OnRoundStarted(new RoundStartedArgs { GameMode = GameMode });
                 return;
             }
 
             var userPrefs = Configuration.UserList.GetUser(username);
-            var MachineControl = GetProperMachine(userPrefs);
-            MachineControl.InsertCoinAsync();
+            var machineControl = GetProperMachine(userPrefs);
+            machineControl.InsertCoinAsync();
 
             //take everyone that voted and add them to the queue? -- nope
             GameRoundTimer.Start();
 
             var msg = string.Format(Translator.GetTranslation("gameClawSingleQueueStartRound", Configuration.UserList.GetUserLocalization(username)), PlayerQueue.CurrentPlayer, Configuration.ClawSettings.SinglePlayerDuration, Configuration.ClawSettings.SinglePlayerQueueNoCommandDuration);
 
-            var hasPlayedPlayer = SessionWinTracker.Find(itm => itm.Username.ToLower() == PlayerQueue.CurrentPlayer.ToLower());
+            var hasPlayedPlayer = SessionWinTracker.Find(itm => String.Equals(itm._username, PlayerQueue.CurrentPlayer, StringComparison.CurrentCultureIgnoreCase));
 
-            if (hasPlayedPlayer != null && hasPlayedPlayer.Drops > 1)
+            if (hasPlayedPlayer != null && hasPlayedPlayer._drops > 1)
                 msg = string.Format(Translator.GetTranslation("gameClawSingleQueueStartRoundShort", Configuration.UserList.GetUserLocalization(username)), PlayerQueue.CurrentPlayer);
 
             ChatClient.SendMessage(Configuration.Channel, msg);
 
             RefreshGameCancellationToken();
-            Task.Run(async delegate ()
+            Task.Run(async delegate
             {
                 //15 second timer to see if they're still active
                 var firstWait = Configuration.ClawSettings.SinglePlayerQueueNoCommandDuration * 1000;
@@ -523,7 +521,7 @@ namespace InternetClawMachine.Games.ClawGame
                 //      and the checks below this match their details it will end their turn early
                 var loopVal = GameLoopCounterValue;
                 //we need a check if they changed game mode or something weird happened
-                var args = new RoundEndedArgs() { Username = username, GameLoopCounterValue = loopVal, GameMode = GameMode };
+                var args = new RoundEndedArgs { Username = username, GameLoopCounterValue = loopVal, GameMode = GameMode };
 
                 await Task.Delay(firstWait);
                 GameCancellationToken.Token.ThrowIfCancellationRequested();
@@ -561,7 +559,7 @@ namespace InternetClawMachine.Games.ClawGame
                     }
 
                     //if the claw is dropping then we can just let the claw return home event trigger the next player
-                    if (!MachineControl.IsClawPlayActive) //otherwise cut their turn short and give the next person a chance
+                    if (!machineControl.IsClawPlayActive) //otherwise cut their turn short and give the next person a chance
                     {
                         base.OnTurnEnded(args);
 

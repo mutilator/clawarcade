@@ -17,11 +17,6 @@ namespace InternetClawMachine.Games.OtherGame
             DurationSinglePlayerQueueNoCommand = configuration.VoteSettings.VoteDuration;
         }
 
-        public override void EndGame()
-        {
-            base.EndGame();
-        }
-
         public override void HandleMessage(string username, string message)
         {
             base.HandleMessage(username, message);
@@ -102,7 +97,7 @@ namespace InternetClawMachine.Games.OtherGame
 
             ShowHelp(username);
             //start an event to end voting
-            Task.Run(async delegate ()
+            Task.Run(async delegate
             {
                 await Task.Delay(Configuration.VoteSettings.VoteDuration * 1000);
                 base.OnGameEnded(new EventArgs());

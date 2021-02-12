@@ -1,16 +1,16 @@
-﻿using InternetClawMachine.Chat;
-using InternetClawMachine.Games.GameHelpers;
-using InternetClawMachine.Games.OtherGame;
-using InternetClawMachine.Settings;
-using Newtonsoft.Json.Linq;
-using OBSWebsocketDotNet;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.SQLite;
 using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
+using InternetClawMachine.Chat;
+using InternetClawMachine.Games.GameHelpers;
+using InternetClawMachine.Games.OtherGame;
+using InternetClawMachine.Settings;
+using Newtonsoft.Json.Linq;
+using OBSWebsocketDotNet;
 
 namespace InternetClawMachine.Games
 {
@@ -21,21 +21,21 @@ namespace InternetClawMachine.Games
         /// <summary>
         /// flag for command queue checks
         /// </summary>
-        internal bool ProcessingQueue;
+        internal bool _processingQueue;
 
         /// <summary>
         /// flag for updating the player queue file
         /// </summary>
-        internal bool RunUpdateTimer;
+        internal bool _runUpdateTimer;
 
         /// <summary>
         /// Set when StartGame starts and false when StartGame execution is over
         /// This allows other functions to ignore specific command sequences when initializing a game
         /// </summary>
-        internal bool StartupSequence;
+        internal bool _startupSequence;
 
         //flag to set we've thrownt he game end event, it may be called more than once, ignore further calls
-        private bool _isEnding = false;
+        private bool _isEnding;
 
         /// <summary>
         /// Random number source
@@ -112,7 +112,7 @@ namespace InternetClawMachine.Games
         /// <summary>
         /// Whether the game has ended
         /// </summary>
-        public bool HasEnded { set; get; } = false;
+        public bool HasEnded { set; get; }
 
         /// <summary>
         /// This flag is TRUE when the RFID scanner is allowed to pick up a winning scan
@@ -140,11 +140,6 @@ namespace InternetClawMachine.Games
         public string StartMessage { get; set; }
 
         /// <summary>
-        /// Time this game mode was started according to the GameModeStopwatch, usually 0
-        /// </summary>
-        public long StartTime { get; set; }
-
-        /// <summary>
         /// Teams for players to join
         /// </summary>
         public List<GameTeam> Teams { set; get; }
@@ -152,11 +147,6 @@ namespace InternetClawMachine.Games
         /// Tally of all votes cast in this voting round
         /// </summary>
         public List<GameModeVote> Votes { set; get; }
-
-        /// <summary>
-        /// Votes needed before entering into voting mode
-        /// </summary>
-        public int VotesNeeded { get; internal set; }
 
         /// <summary>
         /// List of users who called for the drop, also could be called PossibleWinnersList because this is the pool of people drawn from when a prize is won
@@ -218,7 +208,7 @@ namespace InternetClawMachine.Games
         ~Game()
         {
             _isEnding = true;
-            RunUpdateTimer = false;
+            _runUpdateTimer = false;
         }
 
         #endregion Constructors + Destructors
@@ -306,38 +296,28 @@ namespace InternetClawMachine.Games
 
         public virtual Task ProcessQueue()
         {
-            if (!ProcessingQueue)
+            if (!_processingQueue)
             {
-                ProcessingQueue = true;
+                _processingQueue = true;
 
-                Console.WriteLine("processing queue: " + Thread.CurrentThread.ManagedThreadId);
+                Logger.WriteLog(Logger._debugLog, "processing queue: " + Thread.CurrentThread.ManagedThreadId, Logger.LogLevel.TRACE);
                 try
                 {
                     ProcessCommands();
                 }
                 catch (Exception ex)
                 {
-                    var error = string.Format("ERROR {0} {1}", ex.Message, ex);
-                    Logger.WriteLog(Logger.ErrorLog, error);
+                    var error = string.Format(@"ERROR {0} {1}", ex.Message, ex);
+                    Logger.WriteLog(Logger._errorLog, error);
                 }
                 finally
                 {
-                    ProcessingQueue = false;
+                    _processingQueue = false;
                 }
             }
             return Task.CompletedTask;
         }
 
-        public virtual void Run()
-        {
-        }
-
-        public void RunScare()
-        {
-            var rnd = new Random();
-            var idx = rnd.Next(Configuration.ObsScreenSourceNames.ThemeHalloweenScares.Length);
-            RunScare(false, idx);
-        }
 
         public async void RunScare(bool delay, int idx)
         {
@@ -350,7 +330,7 @@ namespace InternetClawMachine.Games
             var data = new JObject();
             data.Add("name", scare.SourceName);
             data.Add("duration", scare.Duration);
-            WsConnection.SendCommand(MediaWebSocketServer.CommandMedia, data);
+            WsConnection.SendCommand(MediaWebSocketServer._commandMedia, data);
         }
 
         public virtual void ShowHelp(string username)
@@ -375,7 +355,7 @@ namespace InternetClawMachine.Games
 
         public virtual void StartRound(string user)
         {
-            OnRoundStarted(new RoundStartedArgs() { Username = user, GameMode = GameMode });
+            OnRoundStarted(new RoundStartedArgs { Username = user, GameMode = GameMode });
         }
 
         public void WriteDbMovementAction(string name, string direction)
@@ -411,7 +391,7 @@ namespace InternetClawMachine.Games
                 catch (Exception ex)
                 {
                     var error = string.Format("ERROR {0} {1}", ex.Message, ex);
-                    Logger.WriteLog(Logger.ErrorLog, error);
+                    Logger.WriteLog(Logger._errorLog, error);
 
                     Configuration.LoadDatebase();
                 }
@@ -428,7 +408,7 @@ namespace InternetClawMachine.Games
             if (handler != null && !_isEnding)
             {
                 _isEnding = true;
-                RunUpdateTimer = false;
+                _runUpdateTimer = false;
                 PlayerQueue.OnChangedQueue -= PlayerQueue_ChangedPlayerQueue;
                 handler(this, e);
             }

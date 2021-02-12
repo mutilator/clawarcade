@@ -1,8 +1,6 @@
 ﻿//using TwitchLib.Client.Services;
 
-using InternetClawMachine.Settings;
-
-namespace InternetClawMachine
+namespace InternetClawMachine.Settings
 {
     public class EventModeArgs
     {

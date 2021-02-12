@@ -1,7 +1,7 @@
-﻿using InternetClawMachine.Games.GameHelpers;
-using InternetClawMachine.Settings;
-using System;
+﻿using System;
 using System.Threading.Tasks;
+using InternetClawMachine.Games.GameHelpers;
+using InternetClawMachine.Settings;
 
 namespace InternetClawMachine.Hardware.ClawControl
 {

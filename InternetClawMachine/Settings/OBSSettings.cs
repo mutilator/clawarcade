@@ -9,10 +9,10 @@ namespace InternetClawMachine.Settings
         public string Password { set; get; }
         public int AudioManagerPort { set; get; }
         public string AudioManagerEndpoint { set; get; }
-        public List<OBSSceneFilters> GreenScreenNormalFrontCamera { get;  set; }
-        public List<OBSSceneFilters> GreenScreenNormalSideCamera { get;  set; }
-        public List<OBSSceneFilters> GreenScreenBlackLightFrontCamera { get; set; }
-        public List<OBSSceneFilters> GreenScreenBlackLightSideCamera { get; set; }
+        public List<ObsSceneFilters> GreenScreenNormalFrontCamera { get;  set; }
+        public List<ObsSceneFilters> GreenScreenNormalSideCamera { get;  set; }
+        public List<ObsSceneFilters> GreenScreenBlackLightFrontCamera { get; set; }
+        public List<ObsSceneFilters> GreenScreenBlackLightSideCamera { get; set; }
         public List<JObject> TVFilters { set; get; }
     }
 }

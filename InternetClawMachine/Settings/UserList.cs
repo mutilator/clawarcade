@@ -19,7 +19,7 @@ namespace InternetClawMachine.Settings
 
         public event EventHandler<UserListEventArgs> OnRemovedUser;
 
-        private bool _isUpdating = false;
+        private bool _isUpdating;
 
         public UserList()
         {
@@ -95,7 +95,7 @@ namespace InternetClawMachine.Settings
 
         public bool Contains(string username)
         {
-            return base.Contains(new UserPrefs() { Username = username });
+            return base.Contains(new UserPrefs { Username = username });
         }
 
         public new void Clear()
@@ -109,7 +109,7 @@ namespace InternetClawMachine.Settings
             {
                 _isUpdating = true;
                 base.Add(userPrefs);
-                this.Sort();
+                Sort();
                 _isUpdating = false;
                 OnAddedUser?.Invoke(this, new UserListEventArgs(userPrefs.Username, userPrefs));
                 OnCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Reset));
@@ -121,9 +121,9 @@ namespace InternetClawMachine.Settings
             var sortableList = new List<UserPrefs>(this);
             sortableList.Sort();
 
-            for (int i = 0; i < sortableList.Count; i++)
+            for (var i = 0; i < sortableList.Count; i++)
             {
-                this.Move(this.IndexOf(sortableList[i]), i);
+                Move(IndexOf(sortableList[i]), i);
             }
         }
 
@@ -135,9 +135,9 @@ namespace InternetClawMachine.Settings
         internal string GetUserLocalization(string username)
         {
             if (!Contains(username))
-                return Translator.DefaultLanguage;
+                return Translator._defaultLanguage;
             var l = GetUser(username).Localization;
-            return string.IsNullOrEmpty(l) ? Translator.DefaultLanguage : l;
+            return string.IsNullOrEmpty(l) ? Translator._defaultLanguage : l;
         }
     }
 

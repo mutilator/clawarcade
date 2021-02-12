@@ -27,7 +27,7 @@ namespace InternetClawMachine.Games.GantryGame
         /// <summary>
         /// When the golf gantry is pathing to the home coordinate, disallows new commands to be made
         /// </summary>
-        private bool _returningHome = false;
+        private bool _returningHome;
 
         //since maps are static, hold a list of all rectangles that are impassible
         private List<Rectangle> _filledBlocks;
@@ -205,7 +205,7 @@ namespace InternetClawMachine.Games.GantryGame
                 var saying = string.Format("{0} sunk the putt! It took {1} moves to get there.", winner, _moves);
 
                 ChatClient.SendMessage(Configuration.Channel, saying);
-                StartupSequence = true;
+                _startupSequence = true;
                 _returningHome = true;
                 PlayerQueue.Clear();
                 //putter to home
@@ -215,7 +215,7 @@ namespace InternetClawMachine.Games.GantryGame
                 Phase = GamePhase.DISTANCE_MOVE;
                 Gantry.SetPosition(GantryAxis.Z, _zAxisUp); //move the gantry up
                 HandleDistanceControlCommand(null, _gridHomePosition); //move it to home
-                StartupSequence = false;
+                _startupSequence = false;
             }
         }
 
@@ -319,7 +319,7 @@ namespace InternetClawMachine.Games.GantryGame
             catch (Exception ex)
             {
                 var error = string.Format("ERROR {0} {1}", ex.Message, ex);
-                Logger.WriteLog(Logger.ErrorLog, error);
+                Logger.WriteLog(Logger._errorLog, error);
             }
         }
 
@@ -343,7 +343,7 @@ namespace InternetClawMachine.Games.GantryGame
                 }
                 else if (CommandQueue.Count == 0 && cmd.CommandGroup == ClawCommandGroup.HIT)
                 {
-                    Task.Run(async delegate ()
+                    Task.Run(async delegate
                     {
                         Console.WriteLine("Task Waiting 3 seconds: " + GameModeTimer.ElapsedMilliseconds);
                         await Task.Delay(3000); //3 seconds for a trip to be called a win
@@ -388,7 +388,7 @@ namespace InternetClawMachine.Games.GantryGame
             Gantry.SetUpperLimit(GantryAxis.Z, Configuration.GolfSettings.LimitUpperZ);
             Gantry.SetPosition(GantryAxis.Z, _zAxisUp); //move the putter to the start position
             Configuration.GolfSettings.HasHomed = true; //assume homed if it hits this?
-            StartupSequence = true;
+            _startupSequence = true;
             GameModeTimer.Reset();
             GameModeTimer.Start();
             Gantry.EnableBallReturn(true);
@@ -400,12 +400,12 @@ namespace InternetClawMachine.Games.GantryGame
             //helps with stuck xy moves...
             ChatClient.SendMessage(Configuration.Channel, string.Format("Quick Queue mode has begun! Type {0}help for commands. Type {0}play to opt-in to the player queue.", Configuration.CommandPrefix));
             Phase = GamePhase.DISTANCE_MOVE;
-            _map = new GolfHelpers.AStar();
+            _map = new AStar();
             _map.SetStarMap(11, 12);
             InitMap();
             _map.CalculateGaps(2);
 
-            StartupSequence = false;
+            _startupSequence = false;
             HitStepLocations.Clear();
 
             _moves = 0;
@@ -445,7 +445,7 @@ namespace InternetClawMachine.Games.GantryGame
             //we need to check if we're in the middle of a hit action
             //if we are the queue cannot reset because it's a string of commands to drop the putter, rotate, counter rotate, and then return to the up position
             //this all seems inefficient, need to think through how commands are sent to make this work without special handlers
-            var queueCnt = 0;
+            int queueCnt;
             ClawCommand currentCmd = null;
             lock (CommandQueue)
             {
@@ -467,7 +467,7 @@ namespace InternetClawMachine.Games.GantryGame
 
             GameRoundTimer.Reset();
             CommandQueue.Clear();
-            ProcessingQueue = false;
+            _processingQueue = false;
             GameLoopCounterValue++; //increment the counter for this persons turn
 
             Configuration.GolfSettings.CurrentPlayerHasPlayed = false;
@@ -478,7 +478,7 @@ namespace InternetClawMachine.Games.GantryGame
             if (username == null)
             {
                 PlayerQueue.Clear();
-                OnRoundStarted(new RoundStartedArgs() { Username = username, GameMode = GameMode });
+                OnRoundStarted(new RoundStartedArgs { GameMode = GameMode });
                 return;
             }
 
@@ -488,14 +488,14 @@ namespace InternetClawMachine.Games.GantryGame
             CurrentDroppingPlayer.Username = username;
             CurrentDroppingPlayer.GameLoop = GameLoopCounterValue;
 
-            Task.Run(async delegate ()
+            Task.Run(async delegate
             {
                 //15 second timer to see if they're still active
                 var firstWait = Configuration.GolfSettings.SinglePlayerQueueNoCommandDuration * 1000;
                 //we need a check if they changed game mode or something weird happened
                 var loopVal = GameLoopCounterValue;
                 //we need a check if they changed game mode or something weird happened
-                var args = new RoundEndedArgs() { Username = username, GameLoopCounterValue = loopVal, GameMode = GameMode };
+                var args = new RoundEndedArgs { Username = username, GameLoopCounterValue = loopVal, GameMode = GameMode };
                 await Task.Delay(firstWait);
                 if (!Configuration.GolfSettings.CurrentPlayerHasPlayed && PlayerQueue.Count > 1)
                 {
@@ -537,7 +537,7 @@ namespace InternetClawMachine.Games.GantryGame
                 }
             });
 
-            OnRoundStarted(new RoundStartedArgs() { Username = username, GameMode = GameMode });
+            OnRoundStarted(new RoundStartedArgs { GameMode = GameMode });
         }
 
         public override void HandleCommand(string channel, string username, string chatMessage, bool isSubscriber, string customRewardId)
@@ -725,15 +725,13 @@ namespace InternetClawMachine.Games.GantryGame
                 if (xGrid > 9 || xGrid < 0)
                 {
                     //if a person tries to use the angle command in grid mode, pass the command to the single command handler
-                    if (yGrid == 0 && (xGrid > 9 || xGrid == 0))
+                    if (yGrid == 0 && xGrid > 9)
                     {
                         HandleFineControlCommand(username, message);
                         return;
                     }
-                    else //not using an angle command, ignore it
-                    {
-                        return;
-                    }
+
+                    return;
                 }
                 var xCurGrid = GetGridForStepX(X);
                 var yCurGrid = GetGridForStepY(Y);
@@ -742,8 +740,8 @@ namespace InternetClawMachine.Games.GantryGame
                     (X != GetStepForGridX(xGrid) || Y != GetStepForGridY(yGrid)))
                 {
                     //If we're in the current grid, move left and backward a full move step
-                    CommandQueue.Add(new ClawCommand() { Direction = ClawDirection.LEFT, Timestamp = GameModeTimer.ElapsedMilliseconds, Username = username });
-                    CommandQueue.Add(new ClawCommand() { Direction = ClawDirection.BACKWARD, Timestamp = GameModeTimer.ElapsedMilliseconds, Username = username });
+                    CommandQueue.Add(new ClawCommand { Direction = ClawDirection.LEFT, Timestamp = GameModeTimer.ElapsedMilliseconds, Username = username });
+                    CommandQueue.Add(new ClawCommand { Direction = ClawDirection.BACKWARD, Timestamp = GameModeTimer.ElapsedMilliseconds, Username = username });
                 }
                 else
                 {
@@ -751,7 +749,7 @@ namespace InternetClawMachine.Games.GantryGame
 
                     var path = _map.Solve(1, 2000);
 
-                    if (path == null || path.Count == 0 || path[0].X != xGrid && path[0].Y != yGrid)
+                    if (path == null || path.Count == 0 || path[0]._x != xGrid && path[0]._y != yGrid)
                     {
                         return;
                     }
@@ -763,7 +761,7 @@ namespace InternetClawMachine.Games.GantryGame
                     {
                         foreach (var step in path)
                         {
-                            CommandQueue.Add(new ClawCommand() { X = (int)step.X, Y = (int)step.Y, Direction = ClawDirection.FREEMOVE, Timestamp = GameModeTimer.ElapsedMilliseconds, Username = username });
+                            CommandQueue.Add(new ClawCommand { X = (int)step._x, Y = (int)step._y, Direction = ClawDirection.FREEMOVE, Timestamp = GameModeTimer.ElapsedMilliseconds, Username = username });
                         }
                     }
                 }
@@ -778,7 +776,7 @@ namespace InternetClawMachine.Games.GantryGame
 
         private void HandleFineControlCommand(string username, string message)
         {
-            var cmd = new ClawCommand() { Direction = ClawDirection.NONE, Timestamp = GameModeTimer.ElapsedMilliseconds, Username = username };
+            var cmd = new ClawCommand { Direction = ClawDirection.NONE, Timestamp = GameModeTimer.ElapsedMilliseconds, Username = username };
 
             switch (message.ToLower())
             {
@@ -833,40 +831,40 @@ namespace InternetClawMachine.Games.GantryGame
                     WinnersList.Add(username);
                     cmd.Direction = ClawDirection.HIT;
                     cmd.CommandGroup = ClawCommandGroup.HIT;
-                    CommandQueue.Add(new ClawCommand() { Direction = ClawDirection.DOWN, Timestamp = GameModeTimer.ElapsedMilliseconds, Username = username, CommandGroup = ClawCommandGroup.HIT });
+                    CommandQueue.Add(new ClawCommand { Direction = ClawDirection.DOWN, Timestamp = GameModeTimer.ElapsedMilliseconds, Username = username, CommandGroup = ClawCommandGroup.HIT });
                     CommandQueue.Add(cmd);
-                    CommandQueue.Add(new ClawCommand() { Direction = ClawDirection.UP, Timestamp = GameModeTimer.ElapsedMilliseconds, Username = username, CommandGroup = ClawCommandGroup.HIT });
-                    CommandQueue.Add(new ClawCommand() { Direction = ClawDirection.COUNTERHIT, Timestamp = GameModeTimer.ElapsedMilliseconds, Username = username, CommandGroup = ClawCommandGroup.HIT });
+                    CommandQueue.Add(new ClawCommand { Direction = ClawDirection.UP, Timestamp = GameModeTimer.ElapsedMilliseconds, Username = username, CommandGroup = ClawCommandGroup.HIT });
+                    CommandQueue.Add(new ClawCommand { Direction = ClawDirection.COUNTERHIT, Timestamp = GameModeTimer.ElapsedMilliseconds, Username = username, CommandGroup = ClawCommandGroup.HIT });
                     break;
 
                 case "hs":
                     WinnersList.Add(username);
                     cmd.Direction = ClawDirection.HITSHORT;
                     cmd.CommandGroup = ClawCommandGroup.HIT;
-                    CommandQueue.Add(new ClawCommand() { Direction = ClawDirection.DOWN, Timestamp = GameModeTimer.ElapsedMilliseconds, Username = username, CommandGroup = ClawCommandGroup.HIT });
+                    CommandQueue.Add(new ClawCommand { Direction = ClawDirection.DOWN, Timestamp = GameModeTimer.ElapsedMilliseconds, Username = username, CommandGroup = ClawCommandGroup.HIT });
                     CommandQueue.Add(cmd);
-                    CommandQueue.Add(new ClawCommand() { Direction = ClawDirection.UP, Timestamp = GameModeTimer.ElapsedMilliseconds, Username = username, CommandGroup = ClawCommandGroup.HIT });
-                    CommandQueue.Add(new ClawCommand() { Direction = ClawDirection.COUNTERHITSHORT, Timestamp = GameModeTimer.ElapsedMilliseconds, Username = username, CommandGroup = ClawCommandGroup.HIT });
+                    CommandQueue.Add(new ClawCommand { Direction = ClawDirection.UP, Timestamp = GameModeTimer.ElapsedMilliseconds, Username = username, CommandGroup = ClawCommandGroup.HIT });
+                    CommandQueue.Add(new ClawCommand { Direction = ClawDirection.COUNTERHITSHORT, Timestamp = GameModeTimer.ElapsedMilliseconds, Username = username, CommandGroup = ClawCommandGroup.HIT });
                     break;
 
                 case "ch":
                     WinnersList.Add(username);
                     cmd.Direction = ClawDirection.COUNTERHIT;
                     cmd.CommandGroup = ClawCommandGroup.HIT;
-                    CommandQueue.Add(new ClawCommand() { Direction = ClawDirection.DOWN, Timestamp = GameModeTimer.ElapsedMilliseconds, Username = username, CommandGroup = ClawCommandGroup.HIT });
+                    CommandQueue.Add(new ClawCommand { Direction = ClawDirection.DOWN, Timestamp = GameModeTimer.ElapsedMilliseconds, Username = username, CommandGroup = ClawCommandGroup.HIT });
                     CommandQueue.Add(cmd);
-                    CommandQueue.Add(new ClawCommand() { Direction = ClawDirection.UP, Timestamp = GameModeTimer.ElapsedMilliseconds, Username = username, CommandGroup = ClawCommandGroup.HIT });
-                    CommandQueue.Add(new ClawCommand() { Direction = ClawDirection.HIT, Timestamp = GameModeTimer.ElapsedMilliseconds, Username = username, CommandGroup = ClawCommandGroup.HIT });
+                    CommandQueue.Add(new ClawCommand { Direction = ClawDirection.UP, Timestamp = GameModeTimer.ElapsedMilliseconds, Username = username, CommandGroup = ClawCommandGroup.HIT });
+                    CommandQueue.Add(new ClawCommand { Direction = ClawDirection.HIT, Timestamp = GameModeTimer.ElapsedMilliseconds, Username = username, CommandGroup = ClawCommandGroup.HIT });
                     break;
 
                 case "chs":
                     WinnersList.Add(username);
                     cmd.Direction = ClawDirection.COUNTERHITSHORT;
                     cmd.CommandGroup = ClawCommandGroup.HIT;
-                    CommandQueue.Add(new ClawCommand() { Direction = ClawDirection.DOWN, Timestamp = GameModeTimer.ElapsedMilliseconds, Username = username, CommandGroup = ClawCommandGroup.HIT });
+                    CommandQueue.Add(new ClawCommand { Direction = ClawDirection.DOWN, Timestamp = GameModeTimer.ElapsedMilliseconds, Username = username, CommandGroup = ClawCommandGroup.HIT });
                     CommandQueue.Add(cmd);
-                    CommandQueue.Add(new ClawCommand() { Direction = ClawDirection.UP, Timestamp = GameModeTimer.ElapsedMilliseconds, Username = username, CommandGroup = ClawCommandGroup.HIT });
-                    CommandQueue.Add(new ClawCommand() { Direction = ClawDirection.HITSHORT, Timestamp = GameModeTimer.ElapsedMilliseconds, Username = username, CommandGroup = ClawCommandGroup.HIT });
+                    CommandQueue.Add(new ClawCommand { Direction = ClawDirection.UP, Timestamp = GameModeTimer.ElapsedMilliseconds, Username = username, CommandGroup = ClawCommandGroup.HIT });
+                    CommandQueue.Add(new ClawCommand { Direction = ClawDirection.HITSHORT, Timestamp = GameModeTimer.ElapsedMilliseconds, Username = username, CommandGroup = ClawCommandGroup.HIT });
                     break;
             }
 
@@ -893,11 +891,11 @@ namespace InternetClawMachine.Games.GantryGame
                 catch (Exception ex)
                 {
                     var error = string.Format("ERROR {0} {1}", ex.Message, ex);
-                    Logger.WriteLog(Logger.ErrorLog, error);
+                    Logger.WriteLog(Logger._errorLog, error);
                 }
             }
 
-            if (cmd.Direction != ClawDirection.NONE && !StartupSequence)
+            if (cmd.Direction != ClawDirection.NONE && !_startupSequence)
             {
                 //distance move passed it to us and we executed a command, force change mode
                 if (Phase == GamePhase.DISTANCE_MOVE)
@@ -921,9 +919,9 @@ namespace InternetClawMachine.Games.GantryGame
 
         public override Task ProcessQueue()
         {
-            if (!ProcessingQueue)
+            if (!_processingQueue)
             {
-                ProcessingQueue = true;
+                _processingQueue = true;
                 try
                 {
                     ProcessCommands();
@@ -931,10 +929,7 @@ namespace InternetClawMachine.Games.GantryGame
                 catch (Exception ex)
                 {
                     var error = string.Format("ERROR {0} {1}", ex.Message, ex);
-                    Logger.WriteLog(Logger.ErrorLog, error);
-                }
-                finally
-                {
+                    Logger.WriteLog(Logger._errorLog, error);
                 }
             }
             return Task.CompletedTask;
@@ -948,7 +943,7 @@ namespace InternetClawMachine.Games.GantryGame
             ClawCommand currentQueueCommand;
             if (Configuration.OverrideChat) //if we're currently overriding what's in the command queue, for instance when using UI controls
             {
-                ProcessingQueue = false;
+                _processingQueue = false;
                 return Task.CompletedTask;
             }
 
@@ -959,7 +954,7 @@ namespace InternetClawMachine.Games.GantryGame
                 {
                     currentQueueCommand = CommandQueue[0];
                 }
-                else { ProcessingQueue = false; return Task.CompletedTask; }
+                else { _processingQueue = false; return Task.CompletedTask; }
             }
 
             //do actual direction moves
@@ -968,8 +963,8 @@ namespace InternetClawMachine.Games.GantryGame
                 case ClawDirection.HITSHORT:
                     CurrentDroppingPlayer.Username = PlayerQueue.CurrentPlayer;
                     CurrentDroppingPlayer.GameLoop = GameLoopCounterValue;
-                    HitStepLocations.Add(new Coordinates() { XCord = X, YCord = Y });
-                    Logger.WriteLog(Logger.MachineLog, "MOVE SMALL HIT");
+                    HitStepLocations.Add(new Coordinates { XCord = X, YCord = Y });
+                    Logger.WriteLog(Logger._machineLog, "MOVE SMALL HIT");
                     Gantry.SetSpeed(GantryAxis.A, 200);
                     Gantry.Step(GantryAxis.A, -44);
                     break;
@@ -977,8 +972,8 @@ namespace InternetClawMachine.Games.GantryGame
                 case ClawDirection.HIT:
                     CurrentDroppingPlayer.Username = PlayerQueue.CurrentPlayer;
                     CurrentDroppingPlayer.GameLoop = GameLoopCounterValue;
-                    HitStepLocations.Add(new Coordinates() { XCord = X, YCord = Y });
-                    Logger.WriteLog(Logger.MachineLog, "MOVE HIT");
+                    HitStepLocations.Add(new Coordinates { XCord = X, YCord = Y });
+                    Logger.WriteLog(Logger._machineLog, "MOVE HIT");
                     Gantry.SetSpeed(GantryAxis.A, 400);
                     Gantry.Step(GantryAxis.A, -44);
                     break;
@@ -986,8 +981,8 @@ namespace InternetClawMachine.Games.GantryGame
                 case ClawDirection.COUNTERHITSHORT:
                     CurrentDroppingPlayer.Username = PlayerQueue.CurrentPlayer;
                     CurrentDroppingPlayer.GameLoop = GameLoopCounterValue;
-                    HitStepLocations.Add(new Coordinates() { XCord = X, YCord = Y });
-                    Logger.WriteLog(Logger.MachineLog, "MOVE SMALL COUNTER HIT");
+                    HitStepLocations.Add(new Coordinates { XCord = X, YCord = Y });
+                    Logger.WriteLog(Logger._machineLog, "MOVE SMALL COUNTER HIT");
                     Gantry.SetSpeed(GantryAxis.A, 200);
                     Gantry.Step(GantryAxis.A, 44);
                     break;
@@ -995,19 +990,19 @@ namespace InternetClawMachine.Games.GantryGame
                 case ClawDirection.COUNTERHIT:
                     CurrentDroppingPlayer.Username = PlayerQueue.CurrentPlayer;
                     CurrentDroppingPlayer.GameLoop = GameLoopCounterValue;
-                    HitStepLocations.Add(new Coordinates() { XCord = X, YCord = Y });
-                    Logger.WriteLog(Logger.MachineLog, "MOVE COUNTER HIT");
+                    HitStepLocations.Add(new Coordinates { XCord = X, YCord = Y });
+                    Logger.WriteLog(Logger._machineLog, "MOVE COUNTER HIT");
                     Gantry.SetSpeed(GantryAxis.A, 400);
                     Gantry.Step(GantryAxis.A, 44);
                     break;
 
                 case ClawDirection.ROTATE:
-                    Logger.WriteLog(Logger.MachineLog, "ROTATE PUTTER");
+                    Logger.WriteLog(Logger._machineLog, "ROTATE PUTTER");
                     Gantry.RotateAxis(GantryAxis.A, (decimal)currentQueueCommand.Angle * -1);
                     break;
 
                 case ClawDirection.FREEMOVE:
-                    Logger.WriteLog(Logger.MachineLog, "MOVE FREE MOVE");
+                    Logger.WriteLog(Logger._machineLog, "MOVE FREE MOVE");
                     //calculate the spot at this point, if we precalc it will use the coordinates from the starting point
                     //this is used for battleship movement, the coordinate to move to is a grid location, we want to move the gantry to the middle of the grid
                     //calculate corner of the grid, add half the grid size to x and Y
@@ -1016,52 +1011,50 @@ namespace InternetClawMachine.Games.GantryGame
                     var getStepY = GetStepForGridY(currentQueueCommand.Y);
                     if (IsStepInOpenArea(getStepX, getStepY))
                         Gantry.XyMove(getStepX, getStepY);
-                    else
-                        currentQueueCommand = null;
                     break;
 
                 case ClawDirection.FORWARD:
-                    Logger.WriteLog(Logger.MachineLog, "MOVE FORWARD");
+                    Logger.WriteLog(Logger._machineLog, "MOVE FORWARD");
                     Gantry.Step(GantryAxis.X, GetMaxMoveDistance(GantryAxis.X, Gantry.NormalSteps));
                     break;
 
                 case ClawDirection.BACKWARD:
-                    Logger.WriteLog(Logger.MachineLog, "MOVE BACKWARD");
+                    Logger.WriteLog(Logger._machineLog, "MOVE BACKWARD");
                     Gantry.Step(GantryAxis.X, GetMaxMoveDistance(GantryAxis.X, Gantry.NormalSteps * -1));
 
                     break;
 
                 case ClawDirection.LEFT:
-                    Logger.WriteLog(Logger.MachineLog, "MOVE LEFT");
+                    Logger.WriteLog(Logger._machineLog, "MOVE LEFT");
                     Gantry.Step(GantryAxis.Y, GetMaxMoveDistance(GantryAxis.Y, Gantry.NormalSteps * -1));
 
                     break;
 
                 case ClawDirection.RIGHT:
-                    Logger.WriteLog(Logger.MachineLog, "MOVE RIGHT");
+                    Logger.WriteLog(Logger._machineLog, "MOVE RIGHT");
                     Gantry.Step(GantryAxis.Y, GetMaxMoveDistance(GantryAxis.Y, Gantry.NormalSteps));
 
                     break;
 
                 case ClawDirection.FORWARD_SHORT:
-                    Logger.WriteLog(Logger.MachineLog, "MOVE FORWARD SHORT");
+                    Logger.WriteLog(Logger._machineLog, "MOVE FORWARD SHORT");
                     Gantry.Step(GantryAxis.X, GetMaxMoveDistance(GantryAxis.X, Gantry.ShortSteps));
                     break;
 
                 case ClawDirection.BACKWARD_SHORT:
-                    Logger.WriteLog(Logger.MachineLog, "MOVE BACKWARD SHORT");
+                    Logger.WriteLog(Logger._machineLog, "MOVE BACKWARD SHORT");
                     Gantry.Step(GantryAxis.X, GetMaxMoveDistance(GantryAxis.X, Gantry.ShortSteps * -1));
 
                     break;
 
                 case ClawDirection.LEFT_SHORT:
-                    Logger.WriteLog(Logger.MachineLog, "MOVE LEFT SHORT");
+                    Logger.WriteLog(Logger._machineLog, "MOVE LEFT SHORT");
                     Gantry.Step(GantryAxis.Y, GetMaxMoveDistance(GantryAxis.Y, Gantry.ShortSteps * -1));
 
                     break;
 
                 case ClawDirection.RIGHT_SHORT:
-                    Logger.WriteLog(Logger.MachineLog, "MOVE RIGHT SHORT");
+                    Logger.WriteLog(Logger._machineLog, "MOVE RIGHT SHORT");
                     Gantry.Step(GantryAxis.Y, GetMaxMoveDistance(GantryAxis.Y, Gantry.ShortSteps));
 
                     break;
@@ -1074,21 +1067,21 @@ namespace InternetClawMachine.Games.GantryGame
 
                 case ClawDirection.DOWN:
 
-                    Logger.WriteLog(Logger.MachineLog, "MOVE DOWN");
+                    Logger.WriteLog(Logger._machineLog, "MOVE DOWN");
                     Gantry.SetPosition(GantryAxis.Z, 28500);
 
                     break;
 
                 case ClawDirection.UP:
 
-                    Logger.WriteLog(Logger.MachineLog, "MOVE UP");
+                    Logger.WriteLog(Logger._machineLog, "MOVE UP");
                     Gantry.SetPosition(GantryAxis.Z, _zAxisUp);
 
                     break;
 
                 case ClawDirection.NA:
                 case ClawDirection.NONE:
-                    Logger.WriteLog(Logger.MachineLog, "MOVE STOP-NA");
+                    Logger.WriteLog(Logger._machineLog, "MOVE STOP-NA");
                     Gantry.Stop(GantryAxis.X);
                     Gantry.Stop(GantryAxis.Y);
                     Gantry.Stop(GantryAxis.Z);
@@ -1143,27 +1136,27 @@ namespace InternetClawMachine.Games.GantryGame
                     if (Math.Abs(distance) > StepsPerGrid)
                         throw new Exception("Distance cannot be larger than 1 grid using this check");
 
-                    if (IsStepInOpenArea(this.X + distance, this.Y))
+                    if (IsStepInOpenArea(X + distance, Y))
                         return distance;
 
                     if (distance < 0)
                     {
                         //since the are we want to move isnt acceptable we need to move to the edge of this grid
                         var currentGrid = (int)Math.Floor(X / (decimal)StepsPerGrid);
-                        return currentGrid * StepsPerGrid - this.X;
+                        return currentGrid * StepsPerGrid - X;
                     }
                     else
                     {
                         //since the are we want to move isnt acceptable we need to move to the edge of this grid
                         var currentGridPlus1 = (int)Math.Ceiling(X / (decimal)StepsPerGrid);
-                        return currentGridPlus1 * StepsPerGrid - this.X;
+                        return currentGridPlus1 * StepsPerGrid - X;
                     }
                 case GantryAxis.Y:
                     //first thing is check if the new location is an open location
                     if (Math.Abs(distance) > StepsPerGrid)
                         throw new Exception("Distance cannot be larger than 1 grid using this check");
                     //first thing is check if the new location is an open location
-                    if (IsStepInOpenArea(this.X, this.Y + distance))
+                    if (IsStepInOpenArea(X, Y + distance))
                         return distance;
 
                     //if it isnt
@@ -1172,13 +1165,13 @@ namespace InternetClawMachine.Games.GantryGame
                     {
                         //since the are we want to move isnt acceptable we need to move to the edge of this grid
                         var currentGrid = (int)Math.Floor(Y / (decimal)StepsPerGrid);
-                        return currentGrid * StepsPerGrid - this.Y;
+                        return currentGrid * StepsPerGrid - Y;
                     }
                     else
                     {
                         //since the are we want to move isnt acceptable we need to move to the edge of this grid
                         var currentGridPlus1 = (int)Math.Ceiling(Y / (decimal)StepsPerGrid);
-                        return currentGridPlus1 * StepsPerGrid - this.Y;
+                        return currentGridPlus1 * StepsPerGrid - Y;
                     }
                 case GantryAxis.Z:
                     break;

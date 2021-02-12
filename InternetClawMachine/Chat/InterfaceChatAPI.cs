@@ -57,58 +57,58 @@ namespace InternetClawMachine.Chat
 
     public class OnSendReceiveDataArgs : EventArgs
     {
-        public SendReceiveDirection Direction;
-        public string Data;
+        public SendReceiveDirection Direction { get; set; }
+        public string Data { get; set; }
     }
 
     public class OnJoinedChannelArgs : EventArgs
     {
-        public string BotUsername;
-        public string Channel;
+        public string BotUsername { get; set; }
+        public string Channel { get; set; }
     }
 
     public class OnMessageReceivedArgs : EventArgs
     {
-        public ChatMessage ChatMessage;
+        public ChatMessage Message { get; set; }
     }
 
     public class OnWhisperReceivedArgs : EventArgs
     {
-        public WhisperMessage WhisperMessage;
+        public WhisperMessage _whisperMessage;
     }
 
     public class OnConnectedArgs : EventArgs
     {
-        public string BotUsername;
-        public string AutoJoinChannel;
+        public string BotUsername { get; set; }
+        public string AutoJoinChannel { get; set; }
     }
 
     public class OnConnectionErrorArgs : EventArgs
     {
-        public string Error;
-        public string BotUsername;
+        public string Error { get; set; }
+        public string BotUsername { get; set; }
     }
 
     public class OnDisconnectedArgs : EventArgs
     {
-        public string BotUsername;
+        public string BotUsername { get; set; }
     }
 
     public class OnUserJoinedArgs : EventArgs
     {
-        public string Username;
-        public string Channel;
+        public string Username { get; set; }
+        public string Channel { get; set; }
     }
 
     public class OnUserLeftArgs : EventArgs
     {
-        public string Username;
-        public string Channel;
+        public string Username { get; set; }
+        public string Channel { get; set; }
     }
 
     public class OnMessageSentArgs : EventArgs
     {
-        public SentMessage SentMessage;
+        public SentMessage SentMessage { get; set; }
     }
 
     public class SentMessage
@@ -173,49 +173,5 @@ namespace InternetClawMachine.Chat
         public string Message { get; set; }
     }
 
-    public class IrcMessage
-    {
-        public readonly string User;
-        public readonly string Hostmask;
-        public readonly IrcCommand Command;
-        public readonly Dictionary<string, string> Tags;
 
-        public string Channel { get; set; }
-        public string Params { get; set; }
-        public string Message { get; set; }
-        public string Trailing { get; set; }
-    }
-
-    public enum IrcCommand
-    {
-        UNKNOWN = 0,
-        PRIV_MSG = 1,
-        NOTICE = 2,
-        PING = 3,
-        PONG = 4,
-        JOIN = 5,
-        PART = 6,
-        HOST_TARGET = 7,
-        CLEAR_CHAT = 8,
-        USER_STATE = 9,
-        GLOBAL_USER_STATE = 10,
-        NICK = 11,
-        PASS = 12,
-        CAP = 13,
-        RPL_001 = 14,
-        RPL_002 = 15,
-        RPL_003 = 16,
-        RPL_004 = 17,
-        RPL_353 = 18,
-        RPL_366 = 19,
-        RPL_372 = 20,
-        RPL_375 = 21,
-        RPL_376 = 22,
-        WHISPER = 23,
-        ROOM_STATE = 24,
-        RECONNECT = 25,
-        SERVER_CHANGE = 26,
-        USER_NOTICE = 27,
-        MODE = 28
-    }
 }

@@ -1,8 +1,8 @@
-﻿using InternetClawMachine.Games;
+﻿
 
 //using TwitchLib.Client.Services;
 
-namespace InternetClawMachine
+namespace InternetClawMachine.Games.GameHelpers
 {
     public class GameModeSelections
     {

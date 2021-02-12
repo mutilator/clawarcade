@@ -23,7 +23,9 @@
         /// <summary>
         /// Create a game mode vote
         /// </summary>
+        /// <param name="u">Useranme</param>
         /// <param name="v">Which game mode you'd like to vote for</param>
+        /// <param name="t">epoch timestamp</param>
         public GameModeVote(string u, GameModeType v, long t)
         {
             Username = u;

@@ -1,7 +1,7 @@
-﻿using InternetClawMachine.Games.GameHelpers;
-using InternetClawMachine.Settings;
-using System;
+﻿using System;
 using System.Threading.Tasks;
+using InternetClawMachine.Games.GameHelpers;
+using InternetClawMachine.Settings;
 
 namespace InternetClawMachine.Hardware.ClawControl
 {
@@ -10,7 +10,7 @@ namespace InternetClawMachine.Hardware.ClawControl
         /// <summary>
         /// in ms, how long it takes the crane to fully drop and return to home position
         /// </summary>
-        internal int ReturnHomeTime = 20000;
+        internal int _returnHomeTime = 20000;
 
         private int _device = -1;
         private byte _lastDirection = DirectionStop;
@@ -67,7 +67,7 @@ namespace InternetClawMachine.Hardware.ClawControl
                 catch (Exception ex)
                 {
                     var error = string.Format("ERROR {0} {1}", ex.Message, ex);
-                    Logger.WriteLog(Logger.ErrorLog, error);
+                    Logger.WriteLog(Logger._errorLog, error);
                 }
 
                 // return the number of devices
@@ -123,7 +123,7 @@ namespace InternetClawMachine.Hardware.ClawControl
             catch (Exception ex)
             {
                 var error = string.Format("ERROR {0} {1}", ex.Message, ex);
-                Logger.WriteLog(Logger.ErrorLog, error);
+                Logger.WriteLog(Logger._errorLog, error);
             }
             finally
             {
@@ -188,7 +188,7 @@ namespace InternetClawMachine.Hardware.ClawControl
             catch (Exception ex)
             {
                 var error = string.Format("ERROR {0} {1}", ex.Message, ex);
-                Logger.WriteLog(Logger.ErrorLog, error);
+                Logger.WriteLog(Logger._errorLog, error);
             }
         }
 
@@ -285,9 +285,9 @@ namespace InternetClawMachine.Hardware.ClawControl
         public void ExecuteClawCenteredEvent()
         {
             //async task reset the claw
-            Task.Run(async delegate ()
+            Task.Run(async delegate
             {
-                await Task.Delay(ReturnHomeTime);
+                await Task.Delay(_returnHomeTime);
                 OnClawCentered?.Invoke(null, new EventArgs());
             });
         }
@@ -417,7 +417,7 @@ namespace InternetClawMachine.Hardware.ClawControl
                     //wait for movement
                     await Task.Delay(duration);
                     //stop moving
-                    dir = DirectionStop;
+                    _lastDirection = DirectionStop;
                     WriteMachineData();
                 }
             }

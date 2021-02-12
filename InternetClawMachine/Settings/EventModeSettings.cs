@@ -1,9 +1,9 @@
-﻿using InternetClawMachine.Games;
-using InternetClawMachine.Hardware.ClawControl;
-using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
+using InternetClawMachine.Games;
+using InternetClawMachine.Hardware.ClawControl;
 
 namespace InternetClawMachine.Settings
 {
@@ -17,14 +17,14 @@ namespace InternetClawMachine.Settings
     {
         public event PropertyChangedEventHandler PropertyChanged;
 
-        protected void OnPropertyChanged([System.Runtime.CompilerServices.CallerMemberName] string propertyName = "")
+        protected void OnPropertyChanged([CallerMemberName] string propertyName = "")
         {
-            if (this.PropertyChanged != null)
+            if (PropertyChanged != null)
             {
                 Debug.WriteLine("Property Changed:" + propertyName);
                 var e = new PropertyChangedEventArgs(propertyName);
 
-                this.PropertyChanged(this, e);
+                PropertyChanged(this, e);
             }
         }
 
@@ -205,12 +205,9 @@ namespace InternetClawMachine.Settings
             set
             {
                 _queueSizeMax = value;
-                OnPropertyChanged("QueueSizeMax");
+                OnPropertyChanged();
             }
-            get
-            {
-                return _queueSizeMax;
-            }
+            get => _queueSizeMax;
         }
     }
 }

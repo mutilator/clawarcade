@@ -1,6 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.ComponentModel;
+using System.Runtime.CompilerServices;
 
 namespace InternetClawMachine.Settings
 {
@@ -26,7 +26,7 @@ namespace InternetClawMachine.Settings
         {
             set
             {
-                _wiggleMode = value; OnPropertyChanged("WiggleMode");
+                _wiggleMode = value; OnPropertyChanged();
             }
             get => _wiggleMode;
         }
@@ -197,7 +197,7 @@ namespace InternetClawMachine.Settings
                 var fire = !value.Equals(_blackLightMode);
                 _blackLightMode = value;
                 if (fire)
-                    OnPropertyChanged("BlackLightMode");
+                    OnPropertyChanged();
             }
             get => _blackLightMode;
         }
@@ -225,7 +225,7 @@ namespace InternetClawMachine.Settings
         /// <summary>
         /// List of all wireframe colors available
         /// </summary>
-        public List<OBSSceneFilters> WireFrameList { set; get; }
+        public List<ObsSceneFilters> WireFrameList { set; get; }
 
         /// <summary>
         /// List of all reticles available
@@ -271,13 +271,13 @@ namespace InternetClawMachine.Settings
 
         public event PropertyChangedEventHandler PropertyChanged;
 
-        protected void OnPropertyChanged([System.Runtime.CompilerServices.CallerMemberName] string propertyName = "")
+        protected void OnPropertyChanged([CallerMemberName] string propertyName = "")
         {
-            if (this.PropertyChanged != null)
+            if (PropertyChanged != null)
             {
-                Console.WriteLine("Property Changed:" + propertyName);
+                Logger.WriteLog(Logger._debugLog, "Property Changed:" + propertyName, Logger.LogLevel.TRACE);
                 var e = new PropertyChangedEventArgs(propertyName);
-                this.PropertyChanged(this, e);
+                PropertyChanged(this, e);
             }
         }
     }

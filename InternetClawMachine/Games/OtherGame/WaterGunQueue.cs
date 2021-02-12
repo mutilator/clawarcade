@@ -14,11 +14,6 @@ namespace InternetClawMachine.Games.OtherGame
             GameMode = GameModeType.WATERGUNQUEUE;
         }
 
-        public override void EndGame()
-        {
-            base.EndGame();
-        }
-
         public override void HandleMessage(string username, string message)
         {
             var msg = message.ToLower();
@@ -79,7 +74,7 @@ namespace InternetClawMachine.Games.OtherGame
                     }
                     if (matches.Count > 0 && total == msg.Length && matches.Count < 10)
                     {
-                        Task.Run(async delegate ()
+                        Task.Run(async delegate
                         {
                             var currentIndex = GameLoopCounterValue;
                             foreach (Match match in matches)
@@ -164,7 +159,7 @@ namespace InternetClawMachine.Games.OtherGame
             lock (CommandQueue)
             {
                 if (cmd != ClawDirection.NA)
-                    CommandQueue.Add(new ClawCommand() { Direction = cmd, Timestamp = GameModeTimer.ElapsedMilliseconds, Username = username });
+                    CommandQueue.Add(new ClawCommand { Direction = cmd, Timestamp = GameModeTimer.ElapsedMilliseconds, Username = username });
             }
         }
 
@@ -199,7 +194,7 @@ namespace InternetClawMachine.Games.OtherGame
             if (username == null)
             {
                 PlayerQueue.Clear();
-                OnRoundStarted(new RoundStartedArgs() { Username = username, GameMode = GameMode });
+                OnRoundStarted(new RoundStartedArgs { GameMode = GameMode });
                 return;
             }
 
@@ -218,7 +213,7 @@ namespace InternetClawMachine.Games.OtherGame
 
             ChatClient.SendMessage(Configuration.Channel, string.Format("@{0} has control for the next {1} seconds. You have {2} seconds to start playing", PlayerQueue.CurrentPlayer, Configuration.WaterGunSettings.SinglePlayerDuration + additionalTime / 1000, Configuration.WaterGunSettings.SinglePlayerQueueNoCommandDuration + additionalTime / 1000));
 
-            Task.Run(async delegate ()
+            Task.Run(async delegate
             {
                 //15 second timer to see if they're still active
                 var firstWait = Configuration.WaterGunSettings.SinglePlayerQueueNoCommandDuration * 1000 + (int)additionalTime;
@@ -233,7 +228,7 @@ namespace InternetClawMachine.Games.OtherGame
 
                         PlayerQueue.Index--; //decrease the index so when it skips to the next person it is the next person
 
-                        var args = new RoundEndedArgs() { Username = username, GameLoopCounterValue = longVal, GameMode = GameMode };
+                        var args = new RoundEndedArgs { Username = username, GameLoopCounterValue = longVal, GameMode = GameMode };
                         var nextPlayer = PlayerQueue.GetNextPlayer();
                         StartRound(nextPlayer);
                         base.OnTurnEnded(args);
@@ -249,7 +244,7 @@ namespace InternetClawMachine.Games.OtherGame
                     //      and the checks below this match their details it will end their turn early
                     var loopVal = GameLoopCounterValue;
                     //we need a check if they changed game mode or something weird happened
-                    var args = new RoundEndedArgs() { Username = username, GameLoopCounterValue = loopVal, GameMode = GameMode };
+                    var args = new RoundEndedArgs { Username = username, GameLoopCounterValue = loopVal, GameMode = GameMode };
 
                     await Task.Delay(Configuration.WaterGunSettings.SinglePlayerDuration * 1000 - firstWait);
 

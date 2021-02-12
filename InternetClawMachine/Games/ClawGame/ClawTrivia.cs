@@ -1,11 +1,4 @@
-﻿using InternetClawMachine.Chat;
-using InternetClawMachine.Games.GameHelpers;
-using InternetClawMachine.Hardware.ClawControl;
-using InternetClawMachine.Settings;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
-using OBSWebsocketDotNet;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -13,6 +6,13 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
+using InternetClawMachine.Chat;
+using InternetClawMachine.Games.GameHelpers;
+using InternetClawMachine.Hardware.ClawControl;
+using InternetClawMachine.Settings;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using OBSWebsocketDotNet;
 
 namespace InternetClawMachine.Games.ClawGame
 {
@@ -35,13 +35,13 @@ namespace InternetClawMachine.Games.ClawGame
         {
             GameMode = GameModeType.TRIVIA;
             CurrentDroppingPlayer = new DroppingPlayer();
-            foreach (var MachineControl in MachineList)
+            foreach (var machineControl in MachineList)
             {
-                MachineControl.OnClawCentered += MachineControl_OnClawCentered;
-                ((ClawController)MachineControl).OnClawRecoiled += ClawSingleQueue_OnClawRecoiled;
+                machineControl.OnClawCentered += MachineControl_OnClawCentered;
+                ((ClawController)machineControl).OnClawRecoiled += ClawSingleQueue_OnClawRecoiled;
             }
             StartMessage =
-                string.Format(Translator.GetTranslation("gameClawTriviaStartGame", Translator.DefaultLanguage),
+                string.Format(Translator.GetTranslation("gameClawTriviaStartGame", Translator._defaultLanguage),
                     Configuration.CommandPrefix);
 
             OnRestartVoteEnd += ClawTrivia_OnRestartVoteEnd;
@@ -65,7 +65,7 @@ namespace InternetClawMachine.Games.ClawGame
 
             ChatClient.SendMessage(Configuration.Channel,
                 string.Format(
-                    Translator.GetTranslation("gameClawTriviaSetupQuestionsComplete", Translator.DefaultLanguage),
+                    Translator.GetTranslation("gameClawTriviaSetupQuestionsComplete", Translator._defaultLanguage),
                     highestVote, highestTotal));
 
 
@@ -172,13 +172,13 @@ namespace InternetClawMachine.Games.ClawGame
 
 
             GameLoopCounterValue = -1;
-            foreach (var MachineControl in MachineList)
+            foreach (var machineControl in MachineList)
             {
-                if (MachineControl != null)
+                if (machineControl != null)
                 {
-                    MachineControl.OnClawCentered -= MachineControl_OnClawCentered;
-                    if (MachineControl is ClawController)
-                        ((ClawController)MachineControl).OnClawRecoiled -= ClawSingleQueue_OnClawRecoiled;
+                    machineControl.OnClawCentered -= MachineControl_OnClawCentered;
+                    if (machineControl is ClawController controller)
+                        controller.OnClawRecoiled -= ClawSingleQueue_OnClawRecoiled;
                 }
             }
             base.EndGame();
@@ -186,13 +186,13 @@ namespace InternetClawMachine.Games.ClawGame
 
         public override void Destroy()
         {
-            foreach (var MachineControl in MachineList)
+            foreach (var machineControl in MachineList)
             {
-                if (MachineControl != null)
+                if (machineControl != null)
                 {
-                    MachineControl.OnClawCentered -= MachineControl_OnClawCentered;
-                    if (MachineControl is ClawController)
-                        ((ClawController)MachineControl).OnClawRecoiled -= ClawSingleQueue_OnClawRecoiled;
+                    machineControl.OnClawCentered -= MachineControl_OnClawCentered;
+                    if (machineControl is ClawController controller)
+                        controller.OnClawRecoiled -= ClawSingleQueue_OnClawRecoiled;
                 }
             }
             base.Destroy();
@@ -208,10 +208,8 @@ namespace InternetClawMachine.Games.ClawGame
 
             var translateCommand = Translator.FindWord(commandText, "en-US");
 
-            string[] param;
-
             //split our args
-            param = chatMessage.Split(' ');
+            var param = chatMessage.Split(' ');
 
             switch (translateCommand.FinalWord)
             {
@@ -247,7 +245,7 @@ namespace InternetClawMachine.Games.ClawGame
 
                         var data = new JObject();
                         data.Add("name", Configuration.EventMode.TriviaSettings.OBSCorrectAnswer.SourceName);
-                        WsConnection.SendCommand(MediaWebSocketServer.CommandMedia, data);
+                        WsConnection.SendCommand(MediaWebSocketServer._commandMedia, data);
 
                         CurrentQuestion.AnsweredBy = username;
                         TriviaMessageMode = TriviaMessageMode.CLAW;
@@ -291,14 +289,14 @@ namespace InternetClawMachine.Games.ClawGame
                         case "yes":
                         case "y":
                             if (!RestartVotes.Any(v => v.Username == username))
-                                RestartVotes.Add(new RestartVote() { Username = username, Value = VoteValue.YES });
+                                RestartVotes.Add(new RestartVote { Username = username, Value = VoteValue.YES });
                             break;
                         case "!no":
                         case "!n":
                         case "no":
                         case "n":
                             if (!RestartVotes.Any(v => v.Username == username))
-                                RestartVotes.Add(new RestartVote() { Username = username, Value = VoteValue.NO });
+                                RestartVotes.Add(new RestartVote { Username = username, Value = VoteValue.NO });
                             break;
                     }
                     break;
@@ -428,14 +426,14 @@ namespace InternetClawMachine.Games.ClawGame
                     cmd = ClawDirection.DOWN;
                     
 
-                    var user = SessionWinTracker.FirstOrDefault(u => u.Username == username);
+                    var user = SessionWinTracker.FirstOrDefault(u => u._username == username);
                     if (user != null)
                     {
-                        user = SessionWinTracker.First(u => u.Username == username);
+                        user = SessionWinTracker.First(u => u._username == username);
                     }
                     else
                     {
-                        user = new SessionWinTracker { Username = username };
+                        user = new SessionWinTracker { _username = username };
                         SessionWinTracker.Add(user);
                     }
 
@@ -446,7 +444,7 @@ namespace InternetClawMachine.Games.ClawGame
                     var team = Teams.FirstOrDefault(t => t.Id == teamid);
                     if (team != null) team.Drops++;
 
-                    user.Drops++;
+                    user._drops++;
 
                     RefreshWinList();
                     try
@@ -457,7 +455,7 @@ namespace InternetClawMachine.Games.ClawGame
                     catch (Exception ex)
                     {
                         var error = $"ERROR {ex.Message} {ex}";
-                        Logger.WriteLog(Logger.ErrorLog, error);
+                        Logger.WriteLog(Logger._errorLog, error);
                     }
 
                     break;
@@ -516,10 +514,10 @@ namespace InternetClawMachine.Games.ClawGame
 
         public override void StartGame(string username)
         {
-            foreach (var MachineControl in MachineList)
+            foreach (var machineControl in MachineList)
             {
-                MachineControl.SetClawPower(90);
-                MachineControl.InsertCoinAsync();
+                machineControl.SetClawPower(90);
+                machineControl.InsertCoinAsync();
             }
             GameModeTimer.Reset();
             GameModeTimer.Start();
@@ -578,20 +576,20 @@ namespace InternetClawMachine.Games.ClawGame
         public virtual void EndTrivia()
         {
             //no qestions left, determine winner
-            var winners = SessionWinTracker.OrderByDescending(p => p.Wins).ThenByDescending(p => p.Drops).ToArray();
+            var winners = SessionWinTracker.OrderByDescending(p => p._wins).ThenByDescending(p => p._drops).ToArray();
 
             for (var i = 0; i < winners.Length; i++)
             {
                 var user = winners[i];
 
-                var correctAnswers = TriviaQuestions.FindAll(q => q.AnsweredBy.ToLower() == user.Username.ToLower())
+                var correctAnswers = TriviaQuestions.FindAll(q => q.AnsweredBy.ToLower() == user._username.ToLower())
                     .Count;
                 var winnings = 1000;
                 //congratulate winning team
                 if (i == 0)
                 {
                     var users = Configuration.UserList.ToList().FindAll(k =>
-                        k.EventTeamName != null && k.EventTeamName.ToLower() == user.Username.ToLower());
+                        k.EventTeamName != null && k.EventTeamName.ToLower() == user._username.ToLower());
                     var allPlayers = "";
                     var cma = "";
                     foreach (var u in users)
@@ -603,18 +601,18 @@ namespace InternetClawMachine.Games.ClawGame
 
                     ChatClient.SendMessage(Configuration.Channel,
                         string.Format(
-                            Translator.GetTranslation("gameClawTriviaWinFinalWinner", Translator.DefaultLanguage),
-                            user.Username, allPlayers));
+                            Translator.GetTranslation("gameClawTriviaWinFinalWinner", Translator._defaultLanguage),
+                            user._username, allPlayers));
                 }
 
                 //spit out stats for the team
                 ChatClient.SendMessage(Configuration.Channel,
-                    string.Format(Translator.GetTranslation("gameClawTriviaWinFinal", Translator.DefaultLanguage),
-                        user.Username, correctAnswers, user.Wins));
+                    string.Format(Translator.GetTranslation("gameClawTriviaWinFinal", Translator._defaultLanguage),
+                        user._username, correctAnswers, user._wins));
             }
             RefreshGameCancellationToken();
 
-            Task.Run(async delegate ()
+            Task.Run(async delegate
             {
                 await Task.Delay(Configuration.ClawSettings.TriviaEndRoundDelay); //wait a bit before we vote
                 GameCancellationToken.Token.ThrowIfCancellationRequested();
@@ -629,7 +627,7 @@ namespace InternetClawMachine.Games.ClawGame
             DurationSinglePlayerQueueNoCommand = Configuration.VoteSettings.VoteDuration;
 
             TriviaMessageMode = TriviaMessageMode.VOTERESTART;
-            ChatClient.SendMessage(Configuration.Channel, string.Format(Translator.GetTranslation("gameClawTriviaRestartGameVote", Translator.DefaultLanguage)));
+            ChatClient.SendMessage(Configuration.Channel, string.Format(Translator.GetTranslation("gameClawTriviaRestartGameVote", Translator._defaultLanguage)));
             RestartVotes.Clear();
 
             await Task.Delay(Configuration.VoteSettings.VoteDuration * 1000);
@@ -672,8 +670,8 @@ namespace InternetClawMachine.Games.ClawGame
             }
 
             var userPrefs = Configuration.UserList.GetUser(username);
-            var MachineControl = GetProperMachine(userPrefs);
-            MachineControl.InsertCoinAsync();
+            var machineControl = GetProperMachine(userPrefs);
+            machineControl.InsertCoinAsync();
 
             //take everyone that voted and add them to the queue? -- nope
             GameRoundTimer.Start();
@@ -685,9 +683,9 @@ namespace InternetClawMachine.Games.ClawGame
                 Configuration.ClawSettings.SinglePlayerQueueNoCommandDuration);
 
             var hasPlayedPlayer =
-                SessionWinTracker.Find(itm => itm.Username.ToLower() == PlayerQueue.CurrentPlayer.ToLower());
+                SessionWinTracker.Find(itm => itm._username.ToLower() == PlayerQueue.CurrentPlayer.ToLower());
 
-            if (hasPlayedPlayer != null && hasPlayedPlayer.Drops > 1)
+            if (hasPlayedPlayer != null && hasPlayedPlayer._drops > 1)
                 msg = string.Format(
                     Translator.GetTranslation("gameClawTriviaStartRoundShort",
                         Configuration.UserList.GetUserLocalization(username)), PlayerQueue.CurrentPlayer);
@@ -741,7 +739,7 @@ namespace InternetClawMachine.Games.ClawGame
                         GameLoopCounterValue != args.GameLoopCounterValue) return;
 
                     //if the claw is dropping then we can just let the claw return home event trigger the next player
-                    if (!MachineControl.IsClawPlayActive
+                    if (!machineControl.IsClawPlayActive
                     ) //otherwise cut their turn short and give the next person a chance
                     {
                         base.OnTurnEnded(args);
@@ -761,7 +759,7 @@ namespace InternetClawMachine.Games.ClawGame
         public virtual void StartVoteQuestionAmount()
         {
             ChatClient.SendMessage(Configuration.Channel,
-                string.Format(Translator.GetTranslation("gameClawTriviaSetupQuestions", Translator.DefaultLanguage)));
+                string.Format(Translator.GetTranslation("gameClawTriviaSetupQuestions", Translator._defaultLanguage)));
             RefreshGameCancellationToken();
             Task.Run(async delegate
             {
@@ -804,7 +802,7 @@ namespace InternetClawMachine.Games.ClawGame
                 if (Configuration.EventMode.TriviaSettings.QuestionWaitDelay > 0)
                 {
                     ChatClient.SendMessage(Configuration.Channel,
-                        string.Format(Translator.GetTranslation("gameClawTriviaPleaseWait", Translator.DefaultLanguage),
+                        string.Format(Translator.GetTranslation("gameClawTriviaPleaseWait", Translator._defaultLanguage),
                             Configuration.EventMode.TriviaSettings.QuestionWaitDelay));
 
                     var firstWait = Configuration.EventMode.TriviaSettings.QuestionWaitDelay * 1000;
@@ -816,14 +814,14 @@ namespace InternetClawMachine.Games.ClawGame
                 var answers = "";
 
                 if (CurrentQuestion.ShowAnswers)
-                    answers = CurrentQuestion.getAnswersAsCSV();
+                    answers = CurrentQuestion.GetAnswersAsCsv();
 
                 QuestionsAsked++;
 
                 var question =
                     string.Format(
                         "[" + QuestionsAsked + "/" + QuestionCount + "] " +
-                        Translator.GetTranslation("gameClawTriviaStartTriviaRound", Translator.DefaultLanguage),
+                        Translator.GetTranslation("gameClawTriviaStartTriviaRound", Translator._defaultLanguage),
                         CurrentQuestion.Question, answers);
                 ChatClient.SendMessage(Configuration.Channel, question);
 
@@ -841,7 +839,7 @@ namespace InternetClawMachine.Games.ClawGame
                 for (var i = 0; i < 10; i++)
                 {
                     // Were we already canceled?
-                    await Task.Delay(Configuration.EventMode.TriviaSettings.AnswerHintDelay);
+                    await Task.Delay(Configuration.EventMode.TriviaSettings.AnswerHintDelay, hintCt);
                     GameCancellationToken.Token.ThrowIfCancellationRequested();
                     hintCt.ThrowIfCancellationRequested();
                     UpdateAnswerHint();

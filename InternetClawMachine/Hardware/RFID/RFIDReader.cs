@@ -9,12 +9,12 @@ namespace InternetClawMachine.Hardware.RFID
     public static class RfidReader
     {
         public static bool IsConnected { set; get; }
-        public const byte READING_MODE_SINGLE = 0;
-        public const byte READING_MODE_MULTI = 1;
+        public const byte ReadingModeSingle = 0;
+        public const byte ReadingModeMulti = 1;
 
         public static event TagEventHanlder NewTagFound;
 
-        public static Dis.HandleFun F = new Dis.HandleFun(HandleData);
+        public static Dis.HandleFun _f = HandleData;
         private static string _epc;
         private static byte _deviceNo = 0;
         private static string _ipaddress;
@@ -52,9 +52,7 @@ namespace InternetClawMachine.Hardware.RFID
             if (mainVer == 0 && minSer == 0)
                 throw new Exception("Error during version check.");
 
-            var res = Dis.SetSingleParameter(_deviceNo, Dis.ADD_USERCODE, _deviceNo);
-            res *= Dis.SetSingleParameter(_deviceNo, Dis.ADD_POWER, antPower);
-            res *= Dis.SetSingleParameter(_deviceNo, Dis.ADD_SINGLE_OR_MULTI_TAG, READING_MODE_SINGLE);
+            Dis.SetSingleParameter(_deviceNo, Dis.AddUsercode, _deviceNo);
             Dis.BeepCtrl(_deviceNo, 0);
             IsConnected = true;
             return true;
@@ -75,7 +73,7 @@ namespace InternetClawMachine.Hardware.RFID
         {
             if (!_isListening)
             {
-                Dis.BeginMultiInv(_deviceNo, F);
+                Dis.BeginMultiInv(_deviceNo, _f);
                 _isListening = true;
             }
         }
@@ -122,8 +120,8 @@ namespace InternetClawMachine.Hardware.RFID
             if (IsConnected)
             {
                 //StopListening();
-                var res = Dis.SetSingleParameter(_deviceNo, Dis.ADD_USERCODE, _deviceNo);
-                Dis.SetSingleParameter(_deviceNo, Dis.ADD_POWER, (byte)value);
+                Dis.SetSingleParameter(_deviceNo, Dis.AddUsercode, _deviceNo);
+                Dis.SetSingleParameter(_deviceNo, Dis.AddPower, (byte)value);
                 //StartListening();
             }
         }
@@ -131,16 +129,16 @@ namespace InternetClawMachine.Hardware.RFID
 
     public sealed class EpcData : IComparable
     {
-        public string Epc;
-        public int Count;
-        public int DevNo;
-        public byte AntNo;
+        public string Epc { get; set; }
+        public int Count { get; set; }
+        public int DevNo { get; set; }
+        public byte AntNo { get; set; }
 
         int IComparable.CompareTo(object obj)
         {
             var temp = (EpcData)obj;
             {
-                return string.Compare(this.Epc, temp.Epc);
+                return string.Compare(Epc, temp.Epc);
             }
         }
     }

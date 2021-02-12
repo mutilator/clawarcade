@@ -5,22 +5,22 @@ namespace InternetClawMachine.Hardware.ClawControl
 {
     public class UsBm
     {
-        public static byte BitA0 = 0x00;
-        public static byte BitA1 = 0x01;
-        public static byte BitA2 = 0x02;
-        public static byte BitA3 = 0x03;
-        public static byte BitA4 = 0x04;
-        public static byte BitA5 = 0x05;
-        public static byte BitA6 = 0x06;
-        public static byte BitA7 = 0x07;
-        public static byte BitB0 = 0x08;
-        public static byte BitB1 = 0x09;
-        public static byte BitB2 = 0x0A;
-        public static byte BitB3 = 0x0B;
-        public static byte BitB4 = 0x0C;
-        public static byte BitB5 = 0x0D;
-        public static byte BitB6 = 0x0E;
-        public static byte BitB7 = 0x0F;
+        public static byte _bitA0 = 0x00;
+        public static byte _bitA1 = 0x01;
+        public static byte _bitA2 = 0x02;
+        public static byte _bitA3 = 0x03;
+        public static byte _bitA4 = 0x04;
+        public static byte _bitA5 = 0x05;
+        public static byte _bitA6 = 0x06;
+        public static byte _bitA7 = 0x07;
+        public static byte _bitB0 = 0x08;
+        public static byte _bitB1 = 0x09;
+        public static byte _bitB2 = 0x0A;
+        public static byte _bitB3 = 0x0B;
+        public static byte _bitB4 = 0x0C;
+        public static byte _bitB5 = 0x0D;
+        public static byte _bitB6 = 0x0E;
+        public static byte _bitB7 = 0x0F;
         /*
         ⁄⁄  USBm.dll - C# pInvoke examples
         ⁄⁄  "Commands"

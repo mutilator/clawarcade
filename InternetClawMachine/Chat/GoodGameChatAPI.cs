@@ -55,7 +55,7 @@ namespace InternetClawMachine.Chat
         {
             // host ws://chat.goodgame.ru:8081/chat/websocket
             // token
-            _socket = new WebSocketSharp.WebSocket(hostAddress, null);
+            _socket = new WebSocket(hostAddress, null);
 
             _socket.OnClose += _socket_OnClose;
             _socket.OnError += _socket_OnError;
@@ -67,7 +67,7 @@ namespace InternetClawMachine.Chat
         {
             if (OnConnected != null)
             {
-                var args = new OnConnectedArgs() { BotUsername = Username };
+                var args = new OnConnectedArgs { BotUsername = Username };
                 OnConnected(sender, args);
             }
 
@@ -80,7 +80,7 @@ namespace InternetClawMachine.Chat
             var data = e.Data;
             _jsonSerializerSettings = new JsonSerializerSettings();
             var response = JsonConvert.DeserializeObject<GgReturnJsonObject>(data, _jsonSerializerSettings);
-            OnSendReceiveData?.Invoke(this, new OnSendReceiveDataArgs() { Data = data, Direction = SendReceiveDirection.RECEIVED });
+            OnSendReceiveData?.Invoke(this, new OnSendReceiveDataArgs { Data = data, Direction = SendReceiveDirection.RECEIVED });
 
             switch (response.Type)
             {
@@ -88,7 +88,7 @@ namespace InternetClawMachine.Chat
                     var welcomeResponseData = JsonConvert.DeserializeObject<GgWelcomeResponse>(response.Data.ToString(), _jsonSerializerSettings);
 
                     // send auth
-                    var authObj = new GgAuthObj() { Type = "auth", Data = new GgAuthParams() { Token = AuthToken, UserId = UserId } };
+                    var authObj = new GgAuthObj { Type = "auth", Data = new GgAuthParams { Token = AuthToken, UserId = UserId } };
                     var authString = JsonConvert.SerializeObject(authObj, Formatting.Indented);
                     SendString(authString);
                     break;
@@ -156,7 +156,7 @@ namespace InternetClawMachine.Chat
 
                 case "error":
                     var errorResponseData = JsonConvert.DeserializeObject<GgErrorResponse>(response.Data.ToString(), _jsonSerializerSettings);
-                    Console.WriteLine("ERROR: " + errorResponseData.ErrorMsg);
+                    Console.WriteLine(@"ERROR: " + errorResponseData.ErrorMsg);
                     break;
 
                 default:
@@ -168,23 +168,23 @@ namespace InternetClawMachine.Chat
 
         private void JoinChannel(string channel)
         {
-            var joinObj = new GgJoinChannel() { Type = "join", Data = new GgJoinChannelParams() { ChannelId = Channel, Hidden = false } };
+            var joinObj = new GgJoinChannel { Type = "join", Data = new GgJoinChannelParams { ChannelId = Channel, Hidden = false } };
             var joinString = JsonConvert.SerializeObject(joinObj, Formatting.Indented);
             SendString(joinString);
         }
 
         private void GetUsersList()
         {
-            var gulObj = new GgGetUsersList() { Type = "get_users_list", Data = new GgGetUsersListParams() { ChannelId = Channel } };
+            var gulObj = new GgGetUsersList { Type = "get_users_list", Data = new GgGetUsersListParams { ChannelId = Channel } };
             var gulString = JsonConvert.SerializeObject(gulObj, Formatting.Indented);
             SendString(gulString);
         }
 
         private void SendString(string message)
         {
-            _socket.SendAsync(message, delegate (bool s)
+            _socket.SendAsync(message, delegate
             {
-                OnSendReceiveData?.Invoke(this, new OnSendReceiveDataArgs() { Data = message, Direction = SendReceiveDirection.SENT });
+                OnSendReceiveData?.Invoke(this, new OnSendReceiveDataArgs { Data = message, Direction = SendReceiveDirection.SENT });
             });
         }
 
@@ -217,14 +217,14 @@ namespace InternetClawMachine.Chat
 
         private void RunPartReceived(string channelId, string id, string username)
         {
-            OnUserLeft?.Invoke(this, new OnUserLeftArgs() { Username = username, Channel = channelId });
+            OnUserLeft?.Invoke(this, new OnUserLeftArgs { Username = username, Channel = channelId });
         }
 
         private void RunJoinReceived(string channel, string userid, string username)
         {
-            OnUserJoined?.Invoke(this, new OnUserJoinedArgs() { Username = username, Channel = channel });
+            OnUserJoined?.Invoke(this, new OnUserJoinedArgs { Username = username, Channel = channel });
 
-            _currentUserList.Add(new GgUserObject() { Id = userid, Username = username });
+            _currentUserList.Add(new GgUserObject { Id = userid, Username = username });
         }
 
         private void RunChannelCountersReceived(JToken data)
@@ -242,14 +242,14 @@ namespace InternetClawMachine.Chat
             var responseData = JsonConvert.DeserializeObject<GgMessageResponse>(data.ToString(), _jsonSerializerSettings);
             if (OnMessageReceived != null)
             {
-                var message = new ChatMessage()
+                var message = new ChatMessage
                 {
                     Channel = responseData.ChannelId,
                     Message = responseData.Text,
                     DisplayName = responseData.UserName,
                     Username = responseData.UserName
                 };
-                OnMessageReceived(this, new OnMessageReceivedArgs() { ChatMessage = message });
+                OnMessageReceived(this, new OnMessageReceivedArgs { Message = message });
             }
         }
 
@@ -258,31 +258,31 @@ namespace InternetClawMachine.Chat
             var responseData = JsonConvert.DeserializeObject<GgMessageResponse>(data.ToString(), _jsonSerializerSettings);
             if (OnWhisperReceived != null)
             {
-                var message = new WhisperMessage()
+                var message = new WhisperMessage
                 {
                     Message = responseData.Text,
                     DisplayName = responseData.UserName,
                     Username = responseData.UserName
                 };
-                OnWhisperReceived(this, new OnWhisperReceivedArgs() { WhisperMessage = message });
+                OnWhisperReceived(this, new OnWhisperReceivedArgs { _whisperMessage = message });
             }
         }
 
         private void RunJoinReceived(JToken data)
         {
             var responseData = JsonConvert.DeserializeObject<GgJoinChannelResponse>(data.ToString(), _jsonSerializerSettings);
-            OnJoinedChannel?.Invoke(this, new OnJoinedChannelArgs() { BotUsername = responseData.Name, Channel = responseData.ChannelName });
-            _currentUserList.Add(new GgUserObject() { Id = responseData.UserId, Username = responseData.Name });
+            OnJoinedChannel?.Invoke(this, new OnJoinedChannelArgs { BotUsername = responseData.Name, Channel = responseData.ChannelName });
+            _currentUserList.Add(new GgUserObject { Id = responseData.UserId, Username = responseData.Name });
         }
 
         private void _socket_OnError(object sender, ErrorEventArgs e)
         {
-            OnConnectionError?.Invoke(this, new OnConnectionErrorArgs() { Error = e.Message });
+            OnConnectionError?.Invoke(this, new OnConnectionErrorArgs { Error = e.Message });
         }
 
         private void _socket_OnClose(object sender, CloseEventArgs e)
         {
-            OnDisconnected?.Invoke(this, new OnDisconnectedArgs() { BotUsername = Username });
+            OnDisconnected?.Invoke(this, new OnDisconnectedArgs { BotUsername = Username });
         }
 
         public bool Reconnect()
@@ -292,10 +292,10 @@ namespace InternetClawMachine.Chat
 
         public void SendMessage(string channel, string message)
         {
-            var msgObj = new GgSendMessage()
+            var msgObj = new GgSendMessage
             {
                 Type = "send_message",
-                Data = new GgSendMessageParams()
+                Data = new GgSendMessageParams
                 {
                     Text = message,
                     ChannelId = channel
@@ -305,13 +305,13 @@ namespace InternetClawMachine.Chat
             SendString(msgString);
             if (OnMessageSent != null)
             {
-                var sentMsg = new SentMessage()
+                var sentMsg = new SentMessage
                 {
                     Channel = channel,
                     Message = message,
                     DisplayName = Username
                 };
-                OnMessageSent(this, new OnMessageSentArgs() { SentMessage = sentMsg });
+                OnMessageSent(this, new OnMessageSentArgs { SentMessage = sentMsg });
             }
         }
 

@@ -1,9 +1,9 @@
-﻿using InternetClawMachine.Games.GameHelpers;
-using InternetClawMachine.Settings;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.SQLite;
+using InternetClawMachine.Games.GameHelpers;
+using InternetClawMachine.Settings;
 
 namespace InternetClawMachine
 {
@@ -134,7 +134,7 @@ namespace InternetClawMachine
                     catch (Exception ex)
                     {
                         var error = string.Format("ERROR {0} {1}", ex.Message, ex);
-                        Logger.WriteLog(Logger.ErrorLog, error);
+                        Logger.WriteLog(Logger._errorLog, error);
                     }
                 }
                 finally
@@ -147,7 +147,7 @@ namespace InternetClawMachine
 
         public static UserPrefs GetUserPrefs(BotConfiguration configuration, string username)
         {
-            var prefs = new UserPrefs() { Username = username };
+            var prefs = new UserPrefs { Username = username };
             if (configuration.RecordsDatabase == null)
                 throw new Exception("Database not opened");
             lock (configuration.RecordsDatabase)
@@ -188,7 +188,7 @@ namespace InternetClawMachine
                 }
                 catch (Exception e)
                 {
-                    Logger.WriteLog(Logger.DebugLog, string.Format("Error reading user: {0}", e.Message));
+                    Logger.WriteLog(Logger._debugLog, string.Format("Error reading user: {0}", e.Message));
                 }
                 finally
                 {
@@ -203,9 +203,9 @@ namespace InternetClawMachine
             lock (configuration.RecordsDatabase)
             {
                 configuration.RecordsDatabase.Open();
-                string sql;
                 try
                 {
+                    string sql;
                     if (prefs.FromDatabase)
                     {
                         sql =
@@ -240,7 +240,7 @@ namespace InternetClawMachine
                 {
                     var error = string.Format("ERROR {0} {1}", ex.Message, ex);
 
-                    Logger.WriteLog(Logger.ErrorLog, error);
+                    Logger.WriteLog(Logger._errorLog, error);
                 }
                 finally
                 {
@@ -275,7 +275,7 @@ namespace InternetClawMachine
                 catch (Exception ex)
                 {
                     var error = string.Format("ERROR {0} {1}", ex.Message, ex);
-                    Logger.WriteLog(Logger.ErrorLog, error);
+                    Logger.WriteLog(Logger._errorLog, error);
                 }
                 return streamBuxCosts;
             }
@@ -286,12 +286,10 @@ namespace InternetClawMachine
             lock (configuration.RecordsDatabase)
             {
                 configuration.RecordsDatabase.Open();
-                string sql;
                 try
                 {
-                    SQLiteCommand command;
-                    sql = "INSERT INTO plushie_codes (EPC, plushid) VALUES (@epc, @id)";
-                    command = configuration.RecordsDatabase.CreateCommand();
+                    var sql = "INSERT INTO plushie_codes (EPC, plushid) VALUES (@epc, @id)";
+                    var command = configuration.RecordsDatabase.CreateCommand();
                     command.CommandType = CommandType.Text;
                     command.CommandText = sql;
                     command.Parameters.Add(new SQLiteParameter("@epc", strEpc));
@@ -312,12 +310,11 @@ namespace InternetClawMachine
             lock (configuration.RecordsDatabase)
             {
                 configuration.RecordsDatabase.Open();
-                string sql;
                 try
                 {
                     if (!plushObject.FromDatabase)
                     {
-                        sql = "INSERT INTO plushie (name) VALUES (@name)";
+                        var sql = "INSERT INTO plushie (name) VALUES (@name)";
 
                         var command = configuration.RecordsDatabase.CreateCommand();
                         command.CommandType = CommandType.Text;
@@ -349,8 +346,8 @@ namespace InternetClawMachine
                                 if (singlePlush.GetValue(6).ToString().Length > 0)
                                     bonusBux = int.Parse(singlePlush.GetValue(6).ToString());
 
-                                plushObject = new PlushieObject() { Name = name, PlushId = plushId, ChangedBy = changedBy, ChangeDate = changeDate, WinStream = winStream, BountyStream = bountyStream, FromDatabase = true, BonusBux = bonusBux };
-                                plushObject.EpcList = new List<string>() { strEpc };
+                                plushObject = new PlushieObject { Name = name, PlushId = plushId, ChangedBy = changedBy, ChangeDate = changeDate, WinStream = winStream, BountyStream = bountyStream, FromDatabase = true, BonusBux = bonusBux };
+                                plushObject.EpcList = new List<string> { strEpc };
                             }
                         }
                         //add to history
@@ -410,7 +407,7 @@ namespace InternetClawMachine
                 catch (Exception ex)
                 {
                     var error = string.Format("ERROR {0} {1}", ex.Message, ex);
-                    Logger.WriteLog(Logger.ErrorLog, error);
+                    Logger.WriteLog(Logger._errorLog, error);
                     configuration.LoadDatebase();
                     returnvalue = false;
                 }
@@ -428,10 +425,9 @@ namespace InternetClawMachine
             lock (configuration.RecordsDatabase)
             {
                 configuration.RecordsDatabase.Open();
-                string sql;
                 try
                 {
-                    sql = "INSERT INTO teams (name, guid) VALUES (@name, @guid)";
+                    var sql = "INSERT INTO teams (name, guid) VALUES (@name, @guid)";
 
                     var command = configuration.RecordsDatabase.CreateCommand();
                     command.CommandType = CommandType.Text;
@@ -466,10 +462,9 @@ namespace InternetClawMachine
             {
                 var teams = new List<GameTeam>();
                 configuration.RecordsDatabase.Open();
-                string sql;
                 try
                 {
-                    sql = "SELECT t.id, t.name, t.guid, s.eventid, s.eventname FROM teams t LEFT JOIN sessions s ON t.guid = s.guid WHERE s.eventid = 0";
+                    var sql = "SELECT t.id, t.name, t.guid, s.eventid, s.eventname FROM teams t LEFT JOIN sessions s ON t.guid = s.guid WHERE s.eventid = 0";
 
                     var command = configuration.RecordsDatabase.CreateCommand();
                     command.CommandType = CommandType.Text;
@@ -479,7 +474,7 @@ namespace InternetClawMachine
                     {
                         while (singleTeam.Read())
                         {
-                            var team = new GameTeam()
+                            var team = new GameTeam
                             {
                                 Id = int.Parse(singleTeam.GetValue(0).ToString()),
                                 Name = singleTeam.GetValue(1).ToString(),
@@ -506,10 +501,9 @@ namespace InternetClawMachine
             {
                 var teams = new List<GameTeam>();
                 configuration.RecordsDatabase.Open();
-                string sql;
                 try
                 {
-                    sql = "SELECT id, name, t.guid, s.eventid, s.eventname FROM teams t LEFT JOIN sessions s ON t.guid = s.guid WHERE s.guid = @guid";
+                    var sql = "SELECT id, name, t.guid, s.eventid, s.eventname FROM teams t LEFT JOIN sessions s ON t.guid = s.guid WHERE s.guid = @guid";
 
                     var command = configuration.RecordsDatabase.CreateCommand();
                     command.CommandType = CommandType.Text;
@@ -520,7 +514,7 @@ namespace InternetClawMachine
                     {
                         while (singleTeam.Read())
                         {
-                            var team = new GameTeam()
+                            var team = new GameTeam
                             {
                                 Id = int.Parse(singleTeam.GetValue(0).ToString()),
                                 Name = singleTeam.GetValue(1).ToString(),
@@ -538,13 +532,8 @@ namespace InternetClawMachine
                 }
                 return teams;
             }
-            throw new Exception("Unable to get teams");
         }
 
-        internal static void WriteDbWinRecord(BotConfiguration configuration, UserPrefs user, int prize)
-        {
-            WriteDbWinRecord(configuration, user, prize, configuration.SessionGuid.ToString());
-        }
 
         internal static void WriteDbWinRecord(BotConfiguration configuration, UserPrefs user, int prize, string guid)
         {
@@ -574,7 +563,7 @@ namespace InternetClawMachine
                 catch (Exception ex)
                 {
                     var error = string.Format("ERROR {0} {1}", ex.Message, ex);
-                    Logger.WriteLog(Logger.ErrorLog, error);
+                    Logger.WriteLog(Logger._errorLog, error);
                 }
                 finally
                 {
@@ -605,7 +594,7 @@ namespace InternetClawMachine
                 catch (Exception ex)
                 {
                     var error = string.Format("ERROR {0} {1}", ex.Message, ex);
-                    Logger.WriteLog(Logger.ErrorLog, error);
+                    Logger.WriteLog(Logger._errorLog, error);
                 }
                 finally
                 {

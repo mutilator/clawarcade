@@ -6,61 +6,61 @@ namespace InternetClawMachine.Hardware.RFID
     public class Dis
     {
         // parameter address
-        public const byte ADD_USERCODE = 0x64;
+        public const byte AddUsercode = 0x64;
 
-        public const byte ADD_POWER = 0x65;
-        public const byte ADD_WORKMODE = 0x70;
-        public const byte ADD_TIME_INTERVAL = 0x71;
-        public const byte ADD_COMM_MODE = 0x72;
-        public const byte ADD_WIEGAND_PROTO = 0x73;
-        public const byte ADD_WIEGAND_PULSEWIDTH = 0x74;
-        public const byte ADD_WIEGAND_PULSECYCLE = 0x75;
-        public const byte ADD_NEIGHJUDGE_TIME = 0x7A;
-        public const byte ADD_NEIGHJUDGE_SET = 0x7B;
-        public const byte ADD_TRIG_SWITCH = 0x80;
-        public const byte ADD_TRIG_MODE = 0x81;
-        public const byte ADD_TRIG_DELAYTIME = 0x84;
-        public const byte ADD_BAUD_RATE = 0x85;
-        public const byte ADD_SINGLE_OR_MULTI_TAG = 0x87;
-        public const byte ADD_ANT_MODE = 0x89;
-        public const byte ADD_ANT_SET = 0x8A;
-        public const byte ADD_FREQUENCY_SET = 0x90;
-        public const byte ADD_FREQUENCY_PARA_92 = 0x92;
-        public const byte ADD_FREQUENCY_PARA_93 = 0x93;
-        public const byte ADD_FREQUENCY_PARA_94 = 0x94;
-        public const byte ADD_FREQUENCY_PARA_95 = 0x95;
-        public const byte ADD_FREQUENCY_PARA_96 = 0x96;
-        public const byte ADD_FREQUENCY_PARA_97 = 0x97;
-        public const byte ADD_FREQUENCY_PARA_98 = 0x98;
-        public const byte ADD_SERIAL = 0x34;
-        public const byte ADD_DELAYER_TIME = 0xC6;
-        public const byte ADD_WIEGAND_VALUE = 0xB4;
-        public const byte ADD_READSPEED = 0xC8;
-        public const byte ADD_RELAY_AUTOMATIC_CLOSE = 0xC7;
-        public const byte ADD_RELAY_TIME_DELAY = 0xC6;
-        public const byte ADD_BAND_SET = 0X8F;
+        public const byte AddPower = 0x65;
+        public const byte AddWorkmode = 0x70;
+        public const byte AddTimeInterval = 0x71;
+        public const byte AddCommMode = 0x72;
+        public const byte AddWiegandProto = 0x73;
+        public const byte AddWiegandPulsewidth = 0x74;
+        public const byte AddWiegandPulsecycle = 0x75;
+        public const byte AddNeighjudgeTime = 0x7A;
+        public const byte AddNeighjudgeSet = 0x7B;
+        public const byte AddTrigSwitch = 0x80;
+        public const byte AddTrigMode = 0x81;
+        public const byte AddTrigDelaytime = 0x84;
+        public const byte AddBaudRate = 0x85;
+        public const byte AddSingleOrMultiTag = 0x87;
+        public const byte AddAntMode = 0x89;
+        public const byte AddAntSet = 0x8A;
+        public const byte AddFrequencySet = 0x90;
+        public const byte AddFrequencyPara92 = 0x92;
+        public const byte AddFrequencyPara93 = 0x93;
+        public const byte AddFrequencyPara94 = 0x94;
+        public const byte AddFrequencyPara95 = 0x95;
+        public const byte AddFrequencyPara96 = 0x96;
+        public const byte AddFrequencyPara97 = 0x97;
+        public const byte AddFrequencyPara98 = 0x98;
+        public const byte AddSerial = 0x34;
+        public const byte AddDelayerTime = 0xC6;
+        public const byte AddWiegandValue = 0xB4;
+        public const byte AddReadspeed = 0xC8;
+        public const byte AddRelayAutomaticClose = 0xC7;
+        public const byte AddRelayTimeDelay = 0xC6;
+        public const byte AddBandSet = 0X8F;
 
         // mask_bit
-        public const byte MASK_BIT_0 = 0x1;
+        public const byte MaskBit0 = 0x1;
 
-        public const byte MASK_BIT_1 = 0x2;
-        public const byte MASK_BIT_2 = 0x4;
-        public const byte MASK_BIT_3 = 0x8;
-        public const byte MASK_BIT_4 = 0x10;
-        public const byte MASK_BIT_5 = 0x20;
-        public const byte MASK_BIT_6 = 0x40;
-        public const byte MASK_BIT_7 = 0x80;
+        public const byte MaskBit1 = 0x2;
+        public const byte MaskBit2 = 0x4;
+        public const byte MaskBit3 = 0x8;
+        public const byte MaskBit4 = 0x10;
+        public const byte MaskBit5 = 0x20;
+        public const byte MaskBit6 = 0x40;
+        public const byte MaskBit7 = 0x80;
 
         //antenna
-        public const byte ANT_BIT_0 = 0x1;
+        public const byte AntBit0 = 0x1;
 
-        public const byte ANT_BIT_1 = 0x2;
-        public const byte ANT_BIT_2 = 0x4;
-        public const byte ANT_BIT_3 = 0x8;
-        public const byte ANT_BIT_4 = 0x10;
-        public const byte ANT_BIT_5 = 0x20;
-        public const byte ANT_BIT_6 = 0x40;
-        public const byte ANT_BIT_7 = 0x80;
+        public const byte AntBit1 = 0x2;
+        public const byte AntBit2 = 0x4;
+        public const byte AntBit3 = 0x8;
+        public const byte AntBit4 = 0x10;
+        public const byte AntBit5 = 0x20;
+        public const byte AntBit6 = 0x40;
+        public const byte AntBit7 = 0x80;
 
         public delegate void HandleFun(IntPtr pData, int length);
 

@@ -5,8 +5,8 @@
     /// </summary>
     internal class SessionWinTracker
     {
-        public string Username;
-        public int Wins;
-        public int Drops;
+        public string _username;
+        public int _wins;
+        public int _drops;
     }
 }

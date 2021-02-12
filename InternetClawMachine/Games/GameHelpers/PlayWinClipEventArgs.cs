@@ -6,7 +6,7 @@
 
         public PlayWinClipEventArgs(string winStream)
         {
-            this.WinStream = winStream;
+            WinStream = winStream;
         }
     }
 }

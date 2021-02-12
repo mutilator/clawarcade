@@ -75,7 +75,7 @@ namespace InternetClawMachine
             _btnOk.Name = "_btnOk";
             _btnOk.Size = new Size(64, 24);
             _btnOk.TabIndex = 1;
-            _btnOk.Text = "&OK";
+            _btnOk.Text = @"&OK";
             _btnOk.Click += btnOK_Click;
             //
             // btnCancel
@@ -86,7 +86,7 @@ namespace InternetClawMachine
             _btnCancel.Name = "_btnCancel";
             _btnCancel.Size = new Size(64, 24);
             _btnCancel.TabIndex = 2;
-            _btnCancel.Text = "&Cancel";
+            _btnCancel.Text = @"&Cancel";
             _btnCancel.Click += btnCancel_Click;
             //
             // txtInput

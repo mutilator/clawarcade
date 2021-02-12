@@ -1,13 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Newtonsoft.Json.Linq;
+﻿using Newtonsoft.Json.Linq;
 
 namespace InternetClawMachine
 {
-    public class OBSSceneFilters
+    public class ObsSceneFilters
     {
         public string SceneName { set; get; }
         public string SourceName { get; set; }

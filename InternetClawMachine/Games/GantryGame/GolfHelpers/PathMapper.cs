@@ -4,15 +4,15 @@ namespace InternetClawMachine.Games.GantryGame.GolfHelpers
 {
     public class PathMapper : IComparable<PathMapper>
     {
-        public AStarCellType CellType = 0;
-        public PathMapper ParentCell = null;
-        public int G;
-        public float F;
-        public int C;
-        public float X;
-        public float Y;
-        public bool IsClosed = false;
-        public bool Visited = false;
+        public AStarCellType _cellType = 0;
+        public PathMapper _parentCell = null;
+        public int _g;
+        public float _f;
+        public int _c;
+        public float _x;
+        public float _y;
+        public bool _isClosed = false;
+        public bool _visited = false;
 
         public PathMapper()
         {
@@ -20,13 +20,13 @@ namespace InternetClawMachine.Games.GantryGame.GolfHelpers
 
         public PathMapper(float h, float i)
         {
-            X = h;
-            Y = i;
+            _x = h;
+            _y = i;
         }
 
         public int CompareTo(PathMapper cell2)
         {
-            return this.F < cell2.F ? 1 : this.F > cell2.F ? -1 : 0; //descending
+            return _f < cell2._f ? 1 : _f > cell2._f ? -1 : 0; //descending
         }
     }
 }

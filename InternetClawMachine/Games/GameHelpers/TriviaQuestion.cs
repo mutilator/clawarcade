@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Collections.Generic;
 
 namespace InternetClawMachine.Games.GameHelpers
 {
@@ -61,10 +57,10 @@ namespace InternetClawMachine.Games.GameHelpers
             Answers.Shuffle();
         }
 
-        internal string getAnswersAsCSV()
+        internal string GetAnswersAsCsv()
         {
 
-            string outp = "";
+            var outp = "";
             Answers.Shuffle();
             foreach(var a in Answers)
             {
