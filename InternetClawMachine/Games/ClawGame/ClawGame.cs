@@ -398,6 +398,41 @@ namespace InternetClawMachine.Games.ClawGame
                 string[] param;
                 switch (translateCommand.FinalWord)
                 {
+                    case "estop":
+                    case "shutdown":
+                        if (!Configuration.AdminUsers.Contains(username))
+                            return;
+
+                        Configuration.IsPaused = true;
+                        try
+                        {
+                            ObsConnection.SetSourceRender(Configuration.ObsScreenSourceNames.Construction.SourceName, true,
+                                Configuration.ObsScreenSourceNames.Construction.SceneName);
+                        }
+                        catch
+                        {
+                            // ignored
+                        }
+
+                        try
+                        {
+
+                            Task.Run(async delegate
+                            {
+                                //send to discord
+                                var client = new HttpClient();
+                                var url = new JObject();
+                                url.Add("content", "Emergency shutdown initiated!");
+
+                                var data = new StringContent(JsonConvert.SerializeObject(url), Encoding.UTF8, "application/json");
+                                await client.PostAsync(Configuration.DiscordSettings.ChatWebhook, data);
+                            });
+                        }
+                        catch
+                        {
+                            // ignored
+                        }
+                        break;
                     case "theme":
 
                         if (customRewardId == "e73b59d1-d716-4348-9faf-00daaf0b4d92")
@@ -427,6 +462,7 @@ namespace InternetClawMachine.Games.ClawGame
                         break;
 
                     case "chrtcl":
+
                         if (customRewardId == "834af606-e51b-4cba-b855-6ddf20d48215")
                         {
                             var cbwargs = chatMessage.Split(' ');
@@ -454,6 +490,9 @@ namespace InternetClawMachine.Games.ClawGame
                         break;
 
                     case "chgwinanm":
+                        if (!Configuration.EventMode.AllowOverrideWinAnimation)
+                            break;
+
                         if (customRewardId == "aba1a822-db81-45be-b5ee-b5b362ee8ee4")
                         {
                             var cbwargs = chatMessage.Split(' ');
@@ -490,6 +529,9 @@ namespace InternetClawMachine.Games.ClawGame
                         break;
 
                     case "chgsbg":
+                        if (!Configuration.EventMode.AllowOverrideGreenscreen)
+                            break;
+
                         if (customRewardId == "162a508c-6603-46dd-96b4-cbd837c80454")
                         {
                             var cgargs = chatMessage.Split(' ');
@@ -522,6 +564,10 @@ namespace InternetClawMachine.Games.ClawGame
                         break;
 
                     case "chmygsbg":
+
+                        if (!Configuration.EventMode.AllowOverrideGreenscreen)
+                            break;
+
                         if (customRewardId == "8d916ecf-e8fe-4732-9b55-147c59adc3d8")
                         {
                             var cbargs = chatMessage.Split(' ');
@@ -997,6 +1043,10 @@ namespace InternetClawMachine.Games.ClawGame
                     case "lights":
                         if (!isSubscriber)
                             break;
+
+                        if (!Configuration.EventMode.AllowOverrideLights)
+                            break;
+
                         if (PlayerQueue.CurrentPlayer != null && PlayerQueue.CurrentPlayer == username)
                         {
                             //lights can turn lights on and off, blacklights always off
@@ -1012,6 +1062,10 @@ namespace InternetClawMachine.Games.ClawGame
                     case "blacklights":
                         if (!isSubscriber)
                             break;
+
+                        if (!Configuration.EventMode.AllowOverrideLights)
+                            break;
+
                         if (PlayerQueue.CurrentPlayer != null && PlayerQueue.CurrentPlayer == username)
                         {
                             //black lights off turns on the lights, also saves lights on
@@ -1178,6 +1232,9 @@ namespace InternetClawMachine.Games.ClawGame
                         }
 
                         if (!isSubscriber && string.IsNullOrEmpty(customRewardId))
+                            break;
+
+                        if (!Configuration.EventMode.AllowOverrideScene)
                             break;
 
                         var newScene = int.Parse(scene[1]);
@@ -1507,6 +1564,8 @@ namespace InternetClawMachine.Games.ClawGame
                                 break;
 
                             case "scene":
+                                if (!Configuration.EventMode.AllowOverrideScene)
+                                    break;
 
                                 if (args.Length == 3)
                                 {
@@ -2343,7 +2402,7 @@ namespace InternetClawMachine.Games.ClawGame
             }
         }
 
-        internal void RefreshWinList()
+        internal virtual void RefreshWinList()
         {
             try
             {
@@ -2379,11 +2438,11 @@ namespace InternetClawMachine.Games.ClawGame
                 }
                 else
                 {
-                    var winners = SessionWinTracker.OrderByDescending(u => u._wins).ThenByDescending(u => u._drops).ToList();
+                    var winners = SessionWinTracker.OrderByDescending(u => u.Wins).ThenByDescending(u => u.Drops).ToList();
                     var output = "Session Leaderboard:\r\n";
                     for (var i = 0; i < winners.Count; i++)
                     {
-                        output += string.Format("{0} - {1} wins, {2} drops\r\n", winners[i]._username, winners[i]._wins, winners[i]._drops);
+                        output += string.Format("{0} - {1} wins, {2} drops\r\n", winners[i].Username, winners[i].Wins, winners[i].Drops);
                     }
                     output += "\r\n\r\n\r\n\r\n\r\n";
                     File.WriteAllText(Configuration.FileLeaderboard, output);
@@ -3741,11 +3800,11 @@ namespace InternetClawMachine.Games.ClawGame
             }
 
             //see if they're in the tracker yeta
-            var user = SessionWinTracker.FirstOrDefault(u => u._username == winner);
+            var user = SessionWinTracker.FirstOrDefault(u => u.Username == winner);
             if (user != null)
-                user = SessionWinTracker.First(u => u._username == winner);
+                user = SessionWinTracker.First(u => u.Username == winner);
             else
-                user = new SessionWinTracker { _username = winner };
+                user = new SessionWinTracker { Username = winner };
 
             if (pointsToAdd < 0) //if we're negative points, handle inside this so we don't skip to another text we don't want
             {
@@ -3764,23 +3823,23 @@ namespace InternetClawMachine.Games.ClawGame
             else if (objPlush != null && !string.IsNullOrEmpty(Configuration.EventMode.CustomWinTextResource) && pointsToAdd > 0) //if an RF scan but also custom text enter here
             {
                 saying = string.Format(Translator.GetTranslation(Configuration.EventMode.CustomWinTextResource, Configuration.UserList.GetUserLocalization(winner)), winnerName, objPlush.Name, objPlush.BonusBux, pointsToAdd);
-                DatabaseFunctions.AddStreamBuxBalance(Configuration, user._username, StreamBuxTypes.WIN, objPlush.BonusBux);
+                DatabaseFunctions.AddStreamBuxBalance(Configuration, user.Username, StreamBuxTypes.WIN, objPlush.BonusBux);
             }
             else if (!string.IsNullOrEmpty(Configuration.EventMode.CustomWinTextResource) && pointsToAdd > 0) //if an RF scan but also custom text enter here
             {
                 saying = string.Format(Translator.GetTranslation(Configuration.EventMode.CustomWinTextResource, Configuration.UserList.GetUserLocalization(winner)), winnerName, null, pointsToAdd, pointsToAdd);
-                DatabaseFunctions.AddStreamBuxBalance(Configuration, user._username, StreamBuxTypes.WIN, pointsToAdd);
+                DatabaseFunctions.AddStreamBuxBalance(Configuration, user.Username, StreamBuxTypes.WIN, pointsToAdd);
             }
             //otherwise if just a custom win, mainly for events, use this
             else if (!string.IsNullOrEmpty(Configuration.EventMode.CustomWinTextResource))
             {
                 saying = string.Format(Translator.GetTranslation(Configuration.EventMode.CustomWinTextResource, Configuration.UserList.GetUserLocalization(winner)), winnerName, Configuration.EventMode.WinMultiplier);
-                DatabaseFunctions.AddStreamBuxBalance(Configuration, user._username, StreamBuxTypes.WIN, Configuration.GetStreamBuxCost(StreamBuxTypes.WIN) * Configuration.EventMode.WinMultiplier);
+                DatabaseFunctions.AddStreamBuxBalance(Configuration, user.Username, StreamBuxTypes.WIN, Configuration.GetStreamBuxCost(StreamBuxTypes.WIN) * Configuration.EventMode.WinMultiplier);
             }
             else if (objPlush != null)
             {
                 saying = string.Format(Translator.GetTranslation("gameClawGrabPlush", Configuration.UserList.GetUserLocalization(winner)), winnerName, objPlush.Name);
-                DatabaseFunctions.AddStreamBuxBalance(Configuration, user._username, StreamBuxTypes.WIN, Configuration.GetStreamBuxCost(StreamBuxTypes.WIN));
+                DatabaseFunctions.AddStreamBuxBalance(Configuration, user.Username, StreamBuxTypes.WIN, Configuration.GetStreamBuxCost(StreamBuxTypes.WIN));
 
                 if (objPlush.BonusBux > 0)
                     DatabaseFunctions.AddStreamBuxBalance(Configuration, usr.Username, StreamBuxTypes.WIN, objPlush.BonusBux);
@@ -3796,7 +3855,7 @@ namespace InternetClawMachine.Games.ClawGame
             }
 
             //increment their wins
-            user._wins += pointsToAdd;
+            user.Wins += pointsToAdd;
 
             //increment the current goals wins
             Configuration.DataExchanger.GoalPercentage += Configuration.GoalProgressIncrement;

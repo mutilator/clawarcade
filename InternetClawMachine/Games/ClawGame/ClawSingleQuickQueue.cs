@@ -117,9 +117,9 @@ namespace InternetClawMachine.Games.ClawGame
             GameRoundTimer.Start();
 
             var msg = string.Format(Translator.GetTranslation("gameClawSingleQuickQueueStartRound", Configuration.UserList.GetUserLocalization(username)), PlayerQueue.CurrentPlayer, Configuration.ClawSettings.SinglePlayerQueueNoCommandDuration);
-            var hasPlayedPlayer = SessionWinTracker.Find(itm => itm._username.ToLower() == PlayerQueue.CurrentPlayer.ToLower());
+            var hasPlayedPlayer = SessionWinTracker.Find(itm => itm.Username.ToLower() == PlayerQueue.CurrentPlayer.ToLower());
 
-            if (hasPlayedPlayer != null && hasPlayedPlayer._drops > 1)
+            if (hasPlayedPlayer != null && hasPlayedPlayer.Drops > 1)
                 msg = string.Format(Translator.GetTranslation("gameClawSingleQuickQueueStartRoundShort", Configuration.UserList.GetUserLocalization(username)), PlayerQueue.CurrentPlayer);
 
             ChatClient.SendMessage(Configuration.Channel, msg);
@@ -196,7 +196,7 @@ namespace InternetClawMachine.Games.ClawGame
                 }
             }, GameCancellationToken.Token);
 
-            OnRoundStarted(new RoundStartedArgs { GameMode = GameMode });
+            OnRoundStarted(new RoundStartedArgs { Username = username, GameMode = GameMode });
         }
     }
 }

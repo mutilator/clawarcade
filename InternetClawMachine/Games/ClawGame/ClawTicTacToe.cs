@@ -148,9 +148,9 @@ namespace InternetClawMachine.Games.ClawGame
             machineControl.InsertCoinAsync();
 
             var msg = string.Format(Translator.GetTranslation("gameClawTicTacToeStartRound", Configuration.UserList.GetUserLocalization(username)), PlayerQueue.CurrentPlayer, Configuration.ClawSettings.SinglePlayerQueueNoCommandDuration);
-            var hasPlayedPlayer = SessionWinTracker.Find(itm => itm._username.ToLower() == PlayerQueue.CurrentPlayer.ToLower());
+            var hasPlayedPlayer = SessionWinTracker.Find(itm => itm.Username.ToLower() == PlayerQueue.CurrentPlayer.ToLower());
 
-            if (hasPlayedPlayer != null && hasPlayedPlayer._drops > 1)
+            if (hasPlayedPlayer != null && hasPlayedPlayer.Drops > 1)
                 msg = string.Format(Translator.GetTranslation("gameClawTicTacToeStartRoundShort", Configuration.UserList.GetUserLocalization(username)), PlayerQueue.CurrentPlayer);
 
             ChatClient.SendMessage(Configuration.Channel, msg);

@@ -6,6 +6,7 @@ namespace InternetClawMachine
     public class UserPrefs : IEquatable<UserPrefs>, IComparable<UserPrefs>
     {
         public string Username { set; get; }
+        public string Content => Username;
         public bool LightsOn { set; get; }
         public string Scene { set; get; }
         public string Localization { set; get; }

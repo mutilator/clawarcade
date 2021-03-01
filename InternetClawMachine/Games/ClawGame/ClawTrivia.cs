@@ -426,14 +426,14 @@ namespace InternetClawMachine.Games.ClawGame
                     cmd = ClawDirection.DOWN;
                     
 
-                    var user = SessionWinTracker.FirstOrDefault(u => u._username == username);
+                    var user = SessionWinTracker.FirstOrDefault(u => u.Username == username);
                     if (user != null)
                     {
-                        user = SessionWinTracker.First(u => u._username == username);
+                        user = SessionWinTracker.First(u => u.Username == username);
                     }
                     else
                     {
-                        user = new SessionWinTracker { _username = username };
+                        user = new SessionWinTracker { Username = username };
                         SessionWinTracker.Add(user);
                     }
 
@@ -444,7 +444,7 @@ namespace InternetClawMachine.Games.ClawGame
                     var team = Teams.FirstOrDefault(t => t.Id == teamid);
                     if (team != null) team.Drops++;
 
-                    user._drops++;
+                    user.Drops++;
 
                     RefreshWinList();
                     try
@@ -576,20 +576,20 @@ namespace InternetClawMachine.Games.ClawGame
         public virtual void EndTrivia()
         {
             //no qestions left, determine winner
-            var winners = SessionWinTracker.OrderByDescending(p => p._wins).ThenByDescending(p => p._drops).ToArray();
+            var winners = SessionWinTracker.OrderByDescending(p => p.Wins).ThenByDescending(p => p.Drops).ToArray();
 
             for (var i = 0; i < winners.Length; i++)
             {
                 var user = winners[i];
 
-                var correctAnswers = TriviaQuestions.FindAll(q => q.AnsweredBy.ToLower() == user._username.ToLower())
+                var correctAnswers = TriviaQuestions.FindAll(q => q.AnsweredBy.ToLower() == user.Username.ToLower())
                     .Count;
                 var winnings = 1000;
                 //congratulate winning team
                 if (i == 0)
                 {
                     var users = Configuration.UserList.ToList().FindAll(k =>
-                        k.EventTeamName != null && k.EventTeamName.ToLower() == user._username.ToLower());
+                        k.EventTeamName != null && k.EventTeamName.ToLower() == user.Username.ToLower());
                     var allPlayers = "";
                     var cma = "";
                     foreach (var u in users)
@@ -602,13 +602,13 @@ namespace InternetClawMachine.Games.ClawGame
                     ChatClient.SendMessage(Configuration.Channel,
                         string.Format(
                             Translator.GetTranslation("gameClawTriviaWinFinalWinner", Translator._defaultLanguage),
-                            user._username, allPlayers));
+                            user.Username, allPlayers));
                 }
 
                 //spit out stats for the team
                 ChatClient.SendMessage(Configuration.Channel,
                     string.Format(Translator.GetTranslation("gameClawTriviaWinFinal", Translator._defaultLanguage),
-                        user._username, correctAnswers, user._wins));
+                        user.Username, correctAnswers, user.Wins));
             }
             RefreshGameCancellationToken();
 
@@ -683,9 +683,9 @@ namespace InternetClawMachine.Games.ClawGame
                 Configuration.ClawSettings.SinglePlayerQueueNoCommandDuration);
 
             var hasPlayedPlayer =
-                SessionWinTracker.Find(itm => itm._username.ToLower() == PlayerQueue.CurrentPlayer.ToLower());
+                SessionWinTracker.Find(itm => itm.Username.ToLower() == PlayerQueue.CurrentPlayer.ToLower());
 
-            if (hasPlayedPlayer != null && hasPlayedPlayer._drops > 1)
+            if (hasPlayedPlayer != null && hasPlayedPlayer.Drops > 1)
                 msg = string.Format(
                     Translator.GetTranslation("gameClawTriviaStartRoundShort",
                         Configuration.UserList.GetUserLocalization(username)), PlayerQueue.CurrentPlayer);

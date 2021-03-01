@@ -115,6 +115,20 @@ namespace InternetClawMachine.Games.GameHelpers
         /// <param name="username"></param>
         internal void RemoveSinglePlayer(string username)
         {
+            if (PrivateRemovePlayer(username))
+            {
+                OnChangedQueue?.Invoke(this, new QueueUpdateArgs(QueueUpdateType.LEFT, username, -1));
+                OnLeftQueue?.Invoke(this, new QueueUpdateArgs(QueueUpdateType.LEFT, username, -1));
+            }
+        }
+
+
+        /// <summary>
+        /// Removes player from the player queue without throwing events
+        /// </summary>
+        /// <param name="username"></param>
+        private bool PrivateRemovePlayer(string username)
+        {
             if (Players.Contains(username))
             {
                 //if the player removed comes at or before the current index, decrease by 1
@@ -125,9 +139,10 @@ namespace InternetClawMachine.Games.GameHelpers
                     Index = 0;
 
                 Players.Remove(username);
-                OnChangedQueue?.Invoke(this, new QueueUpdateArgs(QueueUpdateType.LEFT, username, -1));
-                OnLeftQueue?.Invoke(this, new QueueUpdateArgs(QueueUpdateType.LEFT, username, -1));
+                return true;
             }
+
+            return false;
         }
 
         /// <summary>
@@ -160,11 +175,13 @@ namespace InternetClawMachine.Games.GameHelpers
                     if (idxOfNew < Index)
                         repIdx--;
 
-                    RemoveSinglePlayer(nickname); //remove this person from the queue if they exist
+                    PrivateRemovePlayer(nickname); //remove this person from the queue if they exist
                 }
                 //else the person doesnt already exist, just put them in place of user
-                RemoveSinglePlayer(user); //remove the gifter from the queue
+                PrivateRemovePlayer(user); //remove the gifter from the queue
                 Players.Insert(repIdx, nickname);
+                
+                OnChangedQueue?.Invoke(this, new QueueUpdateArgs(QueueUpdateType.MOVED, nickname, -1));
             }
             catch (Exception e)
             {
@@ -242,6 +259,7 @@ namespace InternetClawMachine.Games.GameHelpers
     {
         JOINED,
         LEFT,
-        CLEARED
+        CLEARED,
+        MOVED
     }
 }

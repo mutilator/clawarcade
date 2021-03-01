@@ -303,12 +303,12 @@ namespace InternetClawMachine.Games.ClawGame
                     cmd = ClawDirection.DOWN;
                     
 
-                    var user = SessionWinTracker.FirstOrDefault(u => u._username == username);
+                    var user = SessionWinTracker.FirstOrDefault(u => u.Username == username);
                     if (user != null)
-                        user = SessionWinTracker.First(u => u._username == username);
+                        user = SessionWinTracker.First(u => u.Username == username);
                     else
                     {
-                        user = new SessionWinTracker { _username = username };
+                        user = new SessionWinTracker { Username = username };
                         SessionWinTracker.Add(user);
                     }
 
@@ -322,7 +322,7 @@ namespace InternetClawMachine.Games.ClawGame
                         team.Drops++;
                     }
 
-                    user._drops++;
+                    user.Drops++;
 
                     RefreshWinList();
                     try
@@ -403,9 +403,9 @@ namespace InternetClawMachine.Games.ClawGame
 
             var msg = string.Format(Translator.GetTranslation("gameClawTeamChaosStartRound", Configuration.UserList.GetUserLocalization(username)), PlayerQueue.CurrentPlayer, Configuration.ClawSettings.SinglePlayerDuration, Configuration.ClawSettings.SinglePlayerQueueNoCommandDuration);
 
-            var hasPlayedPlayer = SessionWinTracker.Find(itm => itm._username.ToLower() == PlayerQueue.CurrentPlayer.ToLower());
+            var hasPlayedPlayer = SessionWinTracker.Find(itm => itm.Username.ToLower() == PlayerQueue.CurrentPlayer.ToLower());
 
-            if (hasPlayedPlayer != null && hasPlayedPlayer._drops > 1)
+            if (hasPlayedPlayer != null && hasPlayedPlayer.Drops > 1)
                 msg = string.Format(Translator.GetTranslation("gameClawTeamChaosStartRoundShort", Configuration.UserList.GetUserLocalization(username)), PlayerQueue.CurrentPlayer);
 
             ChatClient.SendMessage(Configuration.Channel, msg);

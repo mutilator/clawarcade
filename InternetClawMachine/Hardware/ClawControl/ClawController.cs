@@ -538,6 +538,7 @@ namespace InternetClawMachine.Hardware.ClawControl
                             break;
 
                         case ClawEvents.EVENT_RETURNED_HOME: //home in the case of the machine is the win chute
+                            IsClawPlayActive = false;
                             OnReturnedHome?.Invoke(this, new EventArgs());
                             break;
 

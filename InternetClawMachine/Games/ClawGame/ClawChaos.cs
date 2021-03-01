@@ -66,12 +66,12 @@ namespace InternetClawMachine.Games.ClawGame
                     cmd = ClawDirection.DOWN;
                     
 
-                    var user = SessionWinTracker.FirstOrDefault(u => u._username == username);
+                    var user = SessionWinTracker.FirstOrDefault(u => u.Username == username);
                     if (user != null)
-                        user = SessionWinTracker.First(u => u._username == username);
+                        user = SessionWinTracker.First(u => u.Username == username);
                     else
                     {
-                        user = new SessionWinTracker { _username = username };
+                        user = new SessionWinTracker { Username = username };
                         SessionWinTracker.Add(user);
                     }
 
@@ -85,7 +85,7 @@ namespace InternetClawMachine.Games.ClawGame
                         team.Drops++;
                     }
 
-                    user._drops++;
+                    user.Drops++;
 
                     RefreshWinList();
                     try

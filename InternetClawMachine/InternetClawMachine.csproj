@@ -283,6 +283,7 @@
     <Compile Include="Games\ClawGame\ClawMarbles.cs" />
     <Compile Include="Games\ClawGame\ClawPlinko.cs" />
     <Compile Include="Games\ClawGame\ClawTicTacToe.cs" />
+    <Compile Include="Games\GameHelpers\PlinkoPhase.cs" />
     <Compile Include="Games\GameHelpers\RestartVote.cs" />
     <Compile Include="Games\GameHelpers\VoteValue.cs" />
     <Compile Include="Games\GameHelpers\TeamJoinedArgs.cs" />

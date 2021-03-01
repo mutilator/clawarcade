@@ -1,9 +1,17 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
+using System.Web.Configuration;
+using System.Windows.Documents;
 using InternetClawMachine.Chat;
+using InternetClawMachine.Games.GameHelpers;
 using InternetClawMachine.Hardware.ClawControl;
 using InternetClawMachine.Settings;
 using OBSWebsocketDotNet;
+using OBSWebsocketDotNet.Types;
 
 namespace InternetClawMachine.Games.ClawGame
 {
@@ -11,6 +19,25 @@ namespace InternetClawMachine.Games.ClawGame
     {
         private int _lastScore;
         private int _multiplier;
+
+        private string _camWait = "SideCameraOBS";
+        private string _camDrop = "FrontCameraOBS";
+        private string _camGrab = "ClawCamera";
+        private PlinkoPhase _currentPhase;
+
+        public PlinkoPhase CurrentPhase
+        {
+            get { return _currentPhase; }
+            set
+            {
+                _currentPhase = value;
+                ActivatePlinkoCamera(_currentPhase);
+            }
+        }
+
+
+
+        public CancellationTokenSource CurrentPlayerScoringTimer { get; private set; }
 
         public ClawPlinko(IChatApi client, BotConfiguration configuration, OBSWebsocket obs) : base(client, configuration, obs)
         {
@@ -36,19 +63,129 @@ namespace InternetClawMachine.Games.ClawGame
         public override void Init()
         {
             base.Init();
+            if (ObsConnection.IsConnected)
+            {
+                ObsConnection.SetCurrentScene("Plinko 1");
+                RefreshWinList();
+            }
+
             foreach (var machineControl in MachineList)
             {
                 ((ClawController)machineControl).OnReturnedHome += ClawSingleQuickQueue_OnReturnedHome;
                 ((ClawController)machineControl).OnScoreSensorTripped += ClawPlinko_OnScoreSensorTripped;
+                
             }
+        }
+
+        private void ActivatePlinkoCamera(PlinkoPhase currentPhase)
+        {
+            try
+            {
+                switch (currentPhase)
+                {
+                    case PlinkoPhase.NA:
+                    case PlinkoPhase.GRABBING:
+                        ObsConnection.SetSourceRender(_camGrab, true);
+                        ObsConnection.SetSourceRender("LowerScores", false);
+                        ObsConnection.SetSourceRender("UpperScores", false);
+                        Task.Run(async delegate
+                        {
+                            await Task.Delay(800);
+                            try
+                            {
+                                ObsConnection.SetSourceRender(_camWait, false);
+                                ObsConnection.SetSourceRender("LowerScores", false);
+                                ObsConnection.SetSourceRender("UpperScores", false);
+
+                            }
+                            catch
+                            {
+                                //nothing
+                            }
+                        });
+                        break;
+
+                    case PlinkoPhase.DROPPING:
+                        ObsConnection.SetSourceRender(_camDrop, true);
+                        Task.Run(async delegate
+                        {
+                            await Task.Delay(800);
+                            try
+                            {
+                                ObsConnection.SetSourceRender(_camGrab, false);
+                                ObsConnection.SetSourceRender("UpperScores", true);
+                                
+                            }
+                            catch
+                            {
+                                //nothing
+                            }
+                        });
+                        break;
+                    case PlinkoPhase.WAITING:
+                        ObsConnection.SetSourceRender(_camWait, true);
+                        Task.Run(async delegate
+                        {
+                            await Task.Delay(800);
+                            try
+                            {
+                                ObsConnection.SetSourceRender(_camDrop, false);
+                                ObsConnection.SetSourceRender("UpperScores", false);
+                                ObsConnection.SetSourceRender("LowerScores", true);
+                            }
+                            catch
+                            {
+                                //nothing
+                            }
+                        });
+                        break;
+                }
+            }
+            catch
+            {
+                // do nothing
+            }
+        }
+
+        public override void HandleMessage(string username, string message)
+        {
+            if (Configuration.IsPaused)
+                return;
+
+            switch (CurrentPhase)
+            {
+                case PlinkoPhase.NA: //what
+                    break;
+                case PlinkoPhase.GRABBING:
+                    if (message.ToLower().Equals("d")) //send it away if we know they can do this
+                        base.HandleMessage(username, message);
+                    
+                    break;
+                case PlinkoPhase.DROPPING:
+                    var result = Regex.Replace(message.ToLower(), "[^lsrd ]*", "");
+                    if (result.Length != message.Length)
+                        return;
+
+                    
+                    base.HandleMessage(username, message);
+                    break;
+                case PlinkoPhase.WAITING:
+                    break;
+                default:
+                    //do nothing
+                    break;
+            }
+
+
         }
 
         private void ClawPlinko_OnScoreSensorTripped(IMachineControl controller, string slotNumber)
         {
-            Logger.WriteLog(Logger._machineLog, "Slot " + slotNumber + " was tripped");
+            Logger.WriteLog(Logger._machineLog, "Slot " + slotNumber + " was tripped", Logger.LogLevel.DEBUG);
 
             switch (slotNumber)
             {
+                //FIRST STAGE OF SCORING
                 case "1":
                     _lastScore = 100;
                     break;
@@ -77,6 +214,7 @@ namespace InternetClawMachine.Games.ClawGame
                     _lastScore = 100;
                     break;
 
+                //SECOND STAGE OF SCORING
                 case "8":
                     _multiplier = -1;
                     break;
@@ -98,18 +236,121 @@ namespace InternetClawMachine.Games.ClawGame
                     break;
             }
 
+            if (_lastScore != 0)
+            {
+                //camera switching too soon (camera network lag issue)
+                Task.Run(async delegate
+                {
+                    await Task.Delay(800);
+                    CurrentPhase = PlinkoPhase.WAITING;
+                });
+
+            }
+
             if (_multiplier != 0 && _lastScore == 0)
             {
                 _multiplier = 0;
             }
             if (_lastScore != 0 && _multiplier != 0)
             {
-                var msg = string.Format("You got {0} points multiplied by {1} for a total of {2}", _lastScore,
-                    _multiplier, _lastScore * _multiplier);
-                ChatClient.SendMessage(Configuration.Channel, msg);
+
+
+
+                if (!CurrentPlayerScoringTimer.IsCancellationRequested)
+                    CurrentPlayerScoringTimer.Cancel();
+
+                DropInCommandQueue = false;
+                Configuration.OverrideChat = false;
+
+                if (PlayerQueue.CurrentPlayer != null)
+                {
+
+                    var user = SessionWinTracker.FirstOrDefault(u => u.Username == PlayerQueue.CurrentPlayer);
+                    if (user != null)
+                    {
+                        user.Score += _lastScore * _multiplier;
+                    }
+                    else
+                    {
+                        SessionWinTracker.Add(
+                            new SessionWinTracker()
+                                {Username = PlayerQueue.CurrentPlayer, Score = _lastScore * _multiplier}
+                        );
+                    }
+
+                    var msg = string.Format(
+                        Translator.GetTranslation("gameClawPlinkoScored",
+                            Configuration.UserList.GetUserLocalization(PlayerQueue.CurrentPlayer)),
+                        PlayerQueue.CurrentPlayer, _lastScore * _multiplier);
+
+
+                    Task.Run(async delegate
+                    {
+                        await Task.Delay(Configuration.WinNotificationDelay);
+
+                        ChatClient.SendMessage(Configuration.Channel, msg);
+                    }, GameCancellationToken.Token);
+
+                }
+
+
                 _lastScore = 0;
                 _multiplier = 0;
+
+                RefreshWinList();
+
+                Task.Run(async delegate
+                {
+                    await Task.Delay(1200);
+
+
+                    base.OnTurnEnded(new RoundEndedArgs
+                    {
+                        Username = PlayerQueue.CurrentPlayer,
+                        GameMode = GameMode,
+                        GameLoopCounterValue = GameLoopCounterValue
+                    });
+                    var nextPlayer = PlayerQueue.GetNextPlayer();
+                    StartRound(nextPlayer);
+                }, GameCancellationToken.Token);
+
+
+
             }
+        }
+
+        internal override void RefreshWinList()
+        {
+            if (!ObsConnection.IsConnected)
+                return;
+
+            try
+            {
+                //generate output text
+                int userColMaxLen = 10; //how long is the username part of the field
+                string output = "Player:    Score:\r\n";
+                var sessions = SessionWinTracker.OrderByDescending(i => i.Score);
+                foreach (var user in sessions)
+                {
+                    if (user.Username == null)
+                        continue;
+                    var nickLen = user.Username.Length > userColMaxLen ? userColMaxLen : user.Username.Length;
+                    var scoreLen = user.Score.ToString().Length;
+                    output += user.Username.Substring(0, nickLen) + " ".PadRight((userColMaxLen - nickLen)+1) + user.Score + "\r\n";
+                }
+
+                // TODO - move this source name to config setting
+                var props = ObsConnection.GetTextGDIPlusProperties("PlinkoScoreBoard");
+                props.Text = output;
+                props.TextColor = 16777215;
+                ObsConnection.SetTextGDIPlusProperties(props);
+            }
+            catch (Exception e)
+            {
+                var error = string.Format("ERROR {0} {1}", e.Message, e);
+                Logger.WriteLog(Logger._errorLog, error);
+            }
+
         }
 
         public override void StartGame(string username)
@@ -139,9 +380,27 @@ namespace InternetClawMachine.Games.ClawGame
             DropInCommandQueue = false;
             Configuration.OverrideChat = false;
 
-            var msg = string.Format(Translator.GetTranslation("gameClawPlinkoCentered", Configuration.UserList.GetUserLocalization(PlayerQueue.CurrentPlayer)), PlayerQueue.CurrentPlayer);
+            if (CurrentPhase == PlinkoPhase.GRABBING)
+            {
+                CurrentPhase = PlinkoPhase.DROPPING;
 
-            ChatClient.SendMessage(Configuration.Channel, msg);
+                var msg = string.Format(
+                    Translator.GetTranslation("gameClawPlinkoCentered",
+                        Configuration.UserList.GetUserLocalization(PlayerQueue.CurrentPlayer)),
+                    PlayerQueue.CurrentPlayer);
+
+                var hasPlayedPlayer = SessionWinTracker.Find(itm => itm.Username != null && itm.Username.ToLower() == PlayerQueue.CurrentPlayer.ToLower());
+
+                if (hasPlayedPlayer != null && hasPlayedPlayer.Drops > 1)
+                    msg = string.Format(
+                        Translator.GetTranslation("gameClawPlinkoCenteredShort",
+                            Configuration.UserList.GetUserLocalization(PlayerQueue.CurrentPlayer)),
+                        PlayerQueue.CurrentPlayer);
+
+                ChatClient.SendMessage(Configuration.Channel, msg);
+
+                
+            }
         }
 
         private void ClawSingleQuickQueue_OnReturnedHome(object sender, EventArgs e)
@@ -152,11 +411,36 @@ namespace InternetClawMachine.Games.ClawGame
             if (PlayerQueue.CurrentPlayer != null && PlayerQueue.CurrentPlayer == CurrentDroppingPlayer.Username && GameLoopCounterValue == CurrentDroppingPlayer.GameLoop
             && Configuration.EventMode.ClawMode == ClawMode.TARGETING)
             {
-                DropInCommandQueue = false;
-                Configuration.OverrideChat = false;
-                base.OnTurnEnded(new RoundEndedArgs { Username = PlayerQueue.CurrentPlayer, GameMode = GameMode, GameLoopCounterValue = GameLoopCounterValue });
-                var nextPlayer = PlayerQueue.GetNextPlayer();
-                StartRound(nextPlayer);
+                if (!DropInCommandQueue) //if it returned home and a drop wasnt sent, don't let them send anything
+                {
+                    DropInCommandQueue = true;
+                    Configuration.OverrideChat = true;
+                }
+
+
+
+                //Run async task with cancellation token that uses a timer to check if the player has scored
+                    CurrentPlayerScoringTimer = new CancellationTokenSource(); //cancellation token for this drop
+
+                
+
+                Task.Run(async delegate
+                {
+                    
+                    await Task.Delay(10000);
+                    DropInCommandQueue = false;
+                    Configuration.OverrideChat = false;
+                    if (CurrentPlayerScoringTimer.IsCancellationRequested)
+                        return;
+                    base.OnTurnEnded(new RoundEndedArgs
+                    {
+                        Username = PlayerQueue.CurrentPlayer, GameMode = GameMode,
+                        GameLoopCounterValue = GameLoopCounterValue
+                    });
+                    var nextPlayer = PlayerQueue.GetNextPlayer();
+                    StartRound(nextPlayer);
+                }, CurrentPlayerScoringTimer.Token);
+
             }
         }
 
@@ -168,23 +452,26 @@ namespace InternetClawMachine.Games.ClawGame
             GameLoopCounterValue++; //increment the counter for this persons turn
             CommandQueue.Clear();
             CurrentPlayerHasPlayed = false;
-
+            
             //just stop everything
             if (username == null)
             {
+                CurrentPhase = PlinkoPhase.NA;
                 PlayerQueue.Clear();
                 OnRoundStarted(new RoundStartedArgs { GameMode = GameMode });
                 return;
             }
 
 
-
+            CurrentPhase = PlinkoPhase.GRABBING;
             GameRoundTimer.Start();
 
-            var msg = string.Format(Translator.GetTranslation("gameClawPlinkoStartRound", Configuration.UserList.GetUserLocalization(username)), PlayerQueue.CurrentPlayer, Configuration.ClawSettings.SinglePlayerDuration, Configuration.ClawSettings.SinglePlayerQueueNoCommandDuration);
-            var hasPlayedPlayer = SessionWinTracker.Find(itm => itm._username.ToLower() == PlayerQueue.CurrentPlayer.ToLower());
+            
 
-            if (hasPlayedPlayer != null && hasPlayedPlayer._drops > 1)
+            var msg = string.Format(Translator.GetTranslation("gameClawPlinkoStartRound", Configuration.UserList.GetUserLocalization(username)), PlayerQueue.CurrentPlayer, Configuration.ClawSettings.SinglePlayerDuration, Configuration.ClawSettings.SinglePlayerQueueNoCommandDuration);
+            var hasPlayedPlayer = SessionWinTracker.Find(itm => itm.Username!= null && itm.Username.ToLower() == PlayerQueue.CurrentPlayer.ToLower());
+
+            if (hasPlayedPlayer != null && hasPlayedPlayer.Drops > 1)
                 msg = string.Format(Translator.GetTranslation("gameClawPlinkoStartRoundShort", Configuration.UserList.GetUserLocalization(username)), PlayerQueue.CurrentPlayer);
 
             ChatClient.SendMessage(Configuration.Channel, msg);
@@ -265,7 +552,7 @@ namespace InternetClawMachine.Games.ClawGame
                 }
             }, GameCancellationToken.Token);
 
-            OnRoundStarted(new RoundStartedArgs { GameMode = GameMode });
+            OnRoundStarted(new RoundStartedArgs { Username = username, GameMode = GameMode });
         }
     }
 }

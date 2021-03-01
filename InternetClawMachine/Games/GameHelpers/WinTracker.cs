@@ -5,8 +5,12 @@
     /// </summary>
     internal class SessionWinTracker
     {
-        public string _username;
-        public int _wins;
-        public int _drops;
+        public string Username { set; get; }
+        public int Wins { set; get; }
+        public int Drops { set; get; }
+        /// <summary>
+        /// So far only used for plinko
+        /// </summary>
+        public int Score { set; get; }
     }
 }

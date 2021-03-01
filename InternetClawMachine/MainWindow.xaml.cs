@@ -6,6 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.NetworkInformation;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Timers;
@@ -758,6 +759,7 @@ namespace InternetClawMachine
         {
             LoadConfiguration();
 
+
             InitializeComponent();
             Translator.Init(_localizationPath);
 
@@ -1423,6 +1425,7 @@ namespace InternetClawMachine
                 EndGame();
             }
 
+            Configuration.EventMode = Configuration.ClawSettings.EventModes.Find(m => m.DisplayName == "Plinko");
             Game = new ClawPlinko(Client, Configuration, ObsConnection);
 
             StartGame(username);
