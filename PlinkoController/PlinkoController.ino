@@ -169,8 +169,9 @@ unsigned long _waitForAckTimestamp = 0; //time we sent last plinko message
 byte _waitForAckCount = 0;
 
 uint8_t gHue = 0; // rotating "base color" used by many of the patterns
-const char RTS = '}'; //request to send data
-const char CTS = '{'; //clear to send data
+const char RTS = '{'; //request to send data
+const char CS = '}'; //complete send data
+const char CTS = '!'; //clear to send data
 
 void setup() {
     delay(2000);
@@ -248,7 +249,9 @@ void checkScoreSensors()
 
     if (digitalRead(_PINStage1Sensor1) == SENSOR_TRIPPED_STATE)
     {
-        debugLine("Score Sensor hit" + _PINStage1Sensor1);
+        debugString("sensor hit ");
+        debugString(_PINStage1Sensor1);
+        debugLine(".");
        
         if (curTime - _timestampStage1ScoreSensor1 > _scoreSensorDelay)
         {
@@ -261,7 +264,9 @@ void checkScoreSensors()
 
     if (digitalRead(_PINStage1Sensor2) == SENSOR_TRIPPED_STATE)
     {
-        debugLine("Score Sensor hit" + _PINStage1Sensor2);
+        debugString("sensor hit ");
+        debugString(_PINStage1Sensor2);
+        debugLine(".");
        
         if (curTime - _timestampStage1ScoreSensor2 > _scoreSensorDelay)
         {
@@ -274,7 +279,9 @@ void checkScoreSensors()
 
     if (digitalRead(_PINStage1Sensor3) == SENSOR_TRIPPED_STATE)
     {
-        debugLine("Score Sensor hit" + _PINStage1Sensor3);
+        debugString("sensor hit ");
+        debugString(_PINStage1Sensor3);
+        debugLine(".");
        
         if (curTime - _timestampStage1ScoreSensor3 > _scoreSensorDelay)
         {
@@ -287,7 +294,9 @@ void checkScoreSensors()
 
     if (digitalRead(_PINStage1Sensor4) == SENSOR_TRIPPED_STATE)
     {
-        debugLine("Score Sensor hit" + _PINStage1Sensor4);
+        debugString("sensor hit ");
+        debugString(_PINStage1Sensor4);
+        debugLine(".");
        
         if (curTime - _timestampStage1ScoreSensor4 > _scoreSensorDelay)
         {
@@ -300,7 +309,9 @@ void checkScoreSensors()
 
     if (digitalRead(_PINStage1Sensor5) == SENSOR_TRIPPED_STATE)
     {
-        debugLine("Score Sensor hit" + _PINStage1Sensor5);
+        debugString("sensor hit ");
+        debugString(_PINStage1Sensor5);
+        debugLine(".");
        
         if (curTime - _timestampStage1ScoreSensor5 > _scoreSensorDelay)
         {
@@ -313,7 +324,9 @@ void checkScoreSensors()
 
     if (digitalRead(_PINStage1Sensor6) == SENSOR_TRIPPED_STATE)
     {
-        debugLine("Score Sensor hit" + _PINStage1Sensor6);
+        debugString("sensor hit ");
+        debugString(_PINStage1Sensor6);
+        debugLine(".");
        
         if (curTime - _timestampStage1ScoreSensor6 > _scoreSensorDelay)
         {
@@ -326,7 +339,9 @@ void checkScoreSensors()
 
     if (digitalRead(_PINStage1Sensor7) == SENSOR_TRIPPED_STATE)
     {
-        debugLine("Score Sensor hit" + _PINStage1Sensor7);
+        debugString("sensor hit ");
+        debugString(_PINStage1Sensor7);
+        debugLine(".");
        
         if (curTime - _timestampStage1ScoreSensor7 > _scoreSensorDelay)
         {
@@ -344,7 +359,9 @@ void checkScoreSensors()
 
     if (digitalRead(_PINStage2Sensor1) == SENSOR_TRIPPED_STATE)
     {
-        debugLine("Score Sensor hit" + _PINStage2Sensor1);
+        debugString("sensor hit ");
+        debugString(_PINStage2Sensor1);
+        debugLine(".");
        
         if (curTime - _timestampStage2ScoreSensor1 > _scoreSensorDelay)
         {
@@ -357,7 +374,9 @@ void checkScoreSensors()
 
     if (digitalRead(_PINStage2Sensor2) == SENSOR_TRIPPED_STATE)
     {
-        debugLine("Score Sensor hit" + _PINStage2Sensor2);
+        debugString("sensor hit ");
+        debugString(_PINStage2Sensor2);
+        debugLine(".");
        
         if (curTime - _timestampStage2ScoreSensor2 > _scoreSensorDelay)
         {
@@ -370,7 +389,9 @@ void checkScoreSensors()
 
     if (digitalRead(_PINStage2Sensor3) == SENSOR_TRIPPED_STATE)
     {
-        debugLine("Score Sensor hit" + _PINStage2Sensor3);
+        debugString("sensor hit ");
+        debugString(_PINStage2Sensor3);
+        debugLine(".");
        
         if (curTime - _timestampStage2ScoreSensor3 > _scoreSensorDelay)
         {
@@ -383,7 +404,9 @@ void checkScoreSensors()
 
     if (digitalRead(_PINStage2Sensor4) == SENSOR_TRIPPED_STATE)
     {
-        debugLine("Score Sensor hit" + _PINStage2Sensor4);
+        debugString("sensor hit ");
+        debugString(_PINStage2Sensor4);
+        debugLine(".");
        
         if (curTime - _timestampStage2ScoreSensor4 > _scoreSensorDelay)
         {
@@ -396,7 +419,9 @@ void checkScoreSensors()
 
     if (digitalRead(_PINStage2Sensor5) == SENSOR_TRIPPED_STATE)
     {
-        debugLine("Score Sensor hit" + _PINStage2Sensor5);
+        debugString("sensor hit ");
+        debugString(_PINStage2Sensor5);
+        debugLine(".");
        
         if (curTime - _timestampStage2ScoreSensor5 > _scoreSensorDelay)
         {
@@ -439,7 +464,7 @@ void sendMainControllerMessage(char message[])
 void sendMainControllerData(char message[])
 {
     mainController.print(message);
-    mainController.print("!");
+    mainController.print(CS);
 }
 
 
@@ -488,8 +513,9 @@ void handlePlinkoSerialCommands()
 
                 startTime = millis(); //update received timestamp, allows slow data to come in (manually typing)
                 thisChar = mainController.read();
-
-                if (thisChar == '!') //if we receive a proper ending, process the data
+                if (thisChar == RTS)
+                    continue;
+                if (thisChar == CS) //if we receive a proper ending, process the data
                 {
                     while (mainController.available() > 0) //burns the buffer
                         mainController.read();
@@ -533,7 +559,7 @@ void handleUsbSerialCommands()
     while (usbController.available()) //burns through the buffer waiting for a start byte
     {
         char thisChar = usbController.read(); 
-        if (thisChar == '.') //is this a start byte?
+        if (thisChar == RTS) //is this a start byte?
         {
             while (millis() - startTime < 1000) //wait up to 1000ms for next byte
             {
@@ -543,7 +569,7 @@ void handleUsbSerialCommands()
                 startTime = millis(); //update received timestamp, allows slow data to come in (manually typing)
                 thisChar = usbController.read();
 
-                if (thisChar == '!') //if we receive a proper ending, process the data
+                if (thisChar == CS) //if we receive a proper ending, process the data
                 {
                     _sUsbPlinkoIncomingCommand[sidx] = '\0'; //terminate string
                     
@@ -661,9 +687,11 @@ void sendSerialEvent(int eventId, char outputData[])
 {
     sprintf(_lastPlinkoMessage, "%i %s", eventId, outputData);
     sendMainControllerMessage(_lastPlinkoMessage);
+    debugString("TX: ");
     debugString(eventId);
     debugString(" ");
-    debugLine(outputData);
+    debugString(outputData);
+    debugLine("-ETX");
 }
 
 
@@ -1623,7 +1651,7 @@ void setPixel(CRGB &pixel, byte red, byte green, byte blue) {
   pixel.b = blue;
 }
 
-void debugLine(char* message)
+void debugLine(char message[])
 {
     if (_isDebugMode)
     {
@@ -1631,7 +1659,7 @@ void debugLine(char* message)
     }
 }
 
-void debugString(char* message)
+void debugString(char message[])
 {
     if (_isDebugMode)
     {

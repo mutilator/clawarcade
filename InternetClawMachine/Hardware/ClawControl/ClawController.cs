@@ -15,6 +15,8 @@ namespace InternetClawMachine.Hardware.ClawControl
 
     public delegate void ClawScoreEventArgs(IMachineControl controller, string slotNumber);
 
+    public delegate void BeltEventHandler(IMachineControl controller, int beltNumber);
+
     /**
      * Talk to the claw machine controller
      *
@@ -66,7 +68,7 @@ namespace InternetClawMachine.Hardware.ClawControl
 
         public event EventHandler OnResetButtonPressed;
 
-        public event EventHandler OnBreakSensorTripped;
+        public event BeltEventHandler OnBreakSensorTripped;
 
         public event EventHandler OnLimitHitForward;
 
@@ -259,7 +261,10 @@ namespace InternetClawMachine.Hardware.ClawControl
         public bool Connect(IPEndPoint remoteEp)
         {
             if (_workSocket != null && _workSocket.Connected)
+            {
                 _workSocket.Disconnect(false);
+                _workSocket.Dispose();
+            }
 
             // Create a TCP/IP  socket.
             _workSocket = new Socket(remoteEp.AddressFamily,
@@ -267,6 +272,7 @@ namespace InternetClawMachine.Hardware.ClawControl
             {
                 ReceiveTimeout = 2000
             };
+
 
             try
             {
@@ -422,7 +428,7 @@ namespace InternetClawMachine.Hardware.ClawControl
                     switch (resp)
                     {
                         case ClawEvents.EVENT_BELT_SENSOR:
-                            OnBreakSensorTripped?.Invoke(this, new EventArgs());
+                            OnBreakSensorTripped?.Invoke(this, 1);
                             break;
 
                         case ClawEvents.EVENT_RESETBUTTON:
@@ -477,7 +483,9 @@ namespace InternetClawMachine.Hardware.ClawControl
                             OnScoreSensorTripped?.Invoke(this,
                                 response.Substring(delims[0].Length, response.Length - delims[0].Length).Trim());
                             break;
-
+                        case ClawEvents.EVENT_BELT2_SENSOR:
+                            OnBreakSensorTripped?.Invoke(this, 2);
+                            break;
                         case ClawEvents.EVENT_FLIPPER_ERROR:
                             var data = response.Substring(delims[0].Length, response.Length - delims[0].Length).Trim();
                             OnFlipperError?.Invoke(this, data);
@@ -576,7 +584,7 @@ namespace InternetClawMachine.Hardware.ClawControl
 
                 var ms = PingTimer.ElapsedMilliseconds;
                 var sequence = SendCommandAsync("ping " + ms);
-                var ping = new ClawPing { Success = false, Sequence = sequence, StartTime = ms, CancelToken = new CancellationTokenSource() };
+                var ping = new ClawPing {Success = false, Sequence = sequence, StartTime = ms, CancelToken = new CancellationTokenSource()};
                 _pingQueue.Add(ping);
 
                 //kick off an async validating ping
@@ -591,6 +599,7 @@ namespace InternetClawMachine.Hardware.ClawControl
                             await Task.Delay(10000);
                             Ping();
                         }
+
                         _pingQueue.Remove(ping);
                         return;
                     }
@@ -632,7 +641,12 @@ namespace InternetClawMachine.Hardware.ClawControl
                         await Task.Delay(10000);
                         Ping();
                     }
-                }, ping.CancelToken.Token);
+                });
+            }
+            catch (ControllerNotConnectedException)
+            {
+                OnPingTimeout?.Invoke(this, new EventArgs());
+                OnDisconnected?.Invoke(this, new EventArgs());
             }
             catch (Exception ex)
             {
@@ -660,7 +674,7 @@ namespace InternetClawMachine.Hardware.ClawControl
         public int SendCommandAsync(string command)
         {
             if (!IsConnected)
-                throw new Exception("Not Connected");
+                throw new ControllerNotConnectedException("Not Connected");
 
             var seq = Sequence; //sequence increments each time it's asked for, just asking once
             try
@@ -850,9 +864,24 @@ namespace InternetClawMachine.Hardware.ClawControl
 
         public virtual async Task RunConveyor(int runtime)
         {
+            await RunConveyor(runtime, 1);
+        }
+
+        public virtual async Task RunConveyor(int runtime, int beltNumber)
+        {
             if (!IsConnected)
                 return;
-            SendCommandAsync("belt " + runtime);
+            switch (beltNumber)
+            {
+                case 1:
+
+                    SendCommandAsync("belt " + runtime);
+                    break;
+                case 2:
+                    SendCommandAsync("belt2 " + runtime);
+                    break;
+            }
+
             await Task.Delay(runtime);
         }
 

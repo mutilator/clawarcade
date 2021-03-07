@@ -53,6 +53,19 @@ namespace InternetClawMachine.Hardware.ClawControl
         private bool _alreadyTripped;
         private object _readingInputs = new object();
 
+        event BeltEventHandler IMachineControl.OnBreakSensorTripped
+        {
+            add
+            {
+                throw new NotImplementedException();
+            }
+
+            remove
+            {
+                throw new NotImplementedException();
+            }
+        }
+
         public bool Init()
         {
             lock (_readingInputs)
@@ -502,6 +515,11 @@ namespace InternetClawMachine.Hardware.ClawControl
         }
 
         public void Flipper(FlipperDirection direction)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task RunConveyor(int duration, int beltNumber)
         {
             throw new NotImplementedException();
         }

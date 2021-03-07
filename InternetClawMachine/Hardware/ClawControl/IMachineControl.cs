@@ -33,6 +33,8 @@ namespace InternetClawMachine.Hardware.ClawControl
 
         Task RunConveyor(int duration);
 
+        Task RunConveyor(int duration, int beltNumber);
+
         void SetClawPower(int percent);
 
         void ToggleLaser(bool on);
@@ -64,7 +66,7 @@ namespace InternetClawMachine.Hardware.ClawControl
         /// <summary>
         /// When the belt sensor sees a plush
         /// </summary>
-        event EventHandler OnBreakSensorTripped;
+        event BeltEventHandler OnBreakSensorTripped;
 
         /// <summary>
         /// Reset button on the machine is pressed to restart the game mode

@@ -163,6 +163,11 @@ namespace InternetClawMachine.Games
         #region Events
 
         /// <summary>
+        /// This is fired after a scene change is received from OBS, generally thrown from the OBS scene change event
+        /// </summary>
+        public event EventHandler<OBSSceneChangeEventArgs> OBSSceneChange;
+
+        /// <summary>
         /// Thrown when the game ends
         /// </summary>
         public event EventHandler<EventArgs> GameEnded;
@@ -192,7 +197,7 @@ namespace InternetClawMachine.Games
             //MainWindow = mainWindow;
             Configuration = configuration;
             ObsConnection = obs;
-
+            ObsConnection.SceneChanged += ObsConnection_SceneChanged;
             WinnersList = new List<string>();
             SecondaryWinnersList = new List<string>();
 
@@ -205,8 +210,14 @@ namespace InternetClawMachine.Games
             
         }
 
+        private void ObsConnection_SceneChanged(OBSWebsocket sender, string newSceneName)
+        {
+            OBSSceneChange?.Invoke(sender, new OBSSceneChangeEventArgs(newSceneName));
+        }
+
         ~Game()
         {
+            ObsConnection.SceneChanged -= ObsConnection_SceneChanged;
             _isEnding = true;
             _runUpdateTimer = false;
         }

@@ -2507,8 +2507,13 @@ namespace InternetClawMachine
             if (Game == null) return;
             if (Game is ClawGame game)
             {
+                if (cmbClawMachineList.SelectedItem == null)
+                    return;
+                var machineInfo = (ClawMachine)cmbClawMachineList.SelectedItem;
+
+                var myMachine = (ClawController)(((ClawGame)Game).GetNamedMachine(machineInfo.Name));
                 var cmd = txtClawSendCommand.Text;
-                var resp = ((ClawController)game.GetActiveMachine()).SendCommand(cmd);
+                var resp = myMachine.SendCommand(cmd);
                 txtClawCommandResponse.Text = resp;
             }
         }

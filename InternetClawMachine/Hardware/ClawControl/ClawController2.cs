@@ -53,12 +53,6 @@ namespace InternetClawMachine.Hardware.ClawControl
                         break;
 
                     case MovementDirection.DROP:
-                        Task.Run(async delegate
-                        {
-                            await Task.Delay(15000);
-                            FireCenteredEvent();
-                            
-                        });
                         IsClawPlayActive = true;
                         dir = "d";
                         break;
@@ -85,16 +79,6 @@ namespace InternetClawMachine.Hardware.ClawControl
                     Logger.WriteLog(Logger._debugLog, guid + " woke: " + Thread.CurrentThread.ManagedThreadId, Logger.LogLevel.TRACE);
                 }
             }
-        }
-
-        public override void InsertCoinAsync()
-        {
-            Task.Run(async delegate
-            {
-                await Move(MovementDirection.COIN, 0);
-                await Move(MovementDirection.FORWARD, 1500);
-                await Move(MovementDirection.RIGHT, 1500);
-            });
         }
 
         public override async Task MoveBackward(int duration)

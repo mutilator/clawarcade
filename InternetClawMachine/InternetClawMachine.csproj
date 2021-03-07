@@ -296,10 +296,13 @@
     <Compile Include="Games\GameHelpers\ListShuffle.cs" />
     <Compile Include="Games\GameHelpers\TriviaAnswer.cs" />
     <Compile Include="Games\GameHelpers\TriviaQuestion.cs" />
+    <Compile Include="Games\OBSSceneChangeEventArgs.cs" />
+    <Compile Include="Hardware\ClawControl\BeltEventArgs.cs" />
     <Compile Include="Hardware\ClawControl\ClawController2.cs" />
     <Compile Include="Hardware\ClawControl\ClawHomeLocation.cs" />
     <Compile Include="Hardware\ClawControl\ClawMode.cs" />
     <Compile Include="Hardware\ClawControl\ClawPing.cs" />
+    <Compile Include="Hardware\ClawControl\ControllerNotConnectedException.cs" />
     <Compile Include="Hardware\ClawControl\FailsafeType.cs" />
     <Compile Include="Hardware\ClawControl\FlipperDirection.cs" />
     <Compile Include="PlayerQueueSizeExceeded.cs" />

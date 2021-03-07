@@ -24,6 +24,8 @@ namespace InternetClawMachine.Games.ClawGame
 {
     internal class ClawGame : Game
     {
+
+
         #region Fields
 
         private int _failsafeCurrentResets;
@@ -80,6 +82,8 @@ namespace InternetClawMachine.Games.ClawGame
             WsConnection = new MediaWebSocketServer(Configuration.ObsSettings.AudioManagerPort);
             WsConnection.AddWebSocketService(Configuration.ObsSettings.AudioManagerEndpoint, () => new AudioManager(this));
             WsConnection.Start();
+
+            this.OBSSceneChange += ClawGame_OBSSceneChange;
 
             MachineList = new List<IMachineControl>();
             foreach(var m in Configuration.ClawSettings.ClawMachines)
@@ -152,6 +156,11 @@ namespace InternetClawMachine.Games.ClawGame
                 GameCancellationToken.Token.ThrowIfCancellationRequested();
                 ObsConnection.SetSourceRender("BrowserSounds", true, "VideosScene");
             }, GameCancellationToken.Token);
+        }
+
+        private void ClawGame_OBSSceneChange(object sender, OBSSceneChangeEventArgs e)
+        {
+            UpdateNewSceneTheme();
         }
 
         ~ClawGame()
@@ -270,6 +279,8 @@ namespace InternetClawMachine.Games.ClawGame
             base.Destroy();
             if (WsConnection != null && WsConnection.IsListening)
                 WsConnection.Stop();
+
+            this.OBSSceneChange -= ClawGame_OBSSceneChange;
 
             if (MachineList != null)
             {
@@ -1257,7 +1268,19 @@ namespace InternetClawMachine.Games.ClawGame
 
                         if (PlayerQueue.CurrentPlayer == username)
                         {
-                            ChangeClawScene(newScene);
+                            var curScene = ObsConnection.GetCurrentScene();
+                            if (curScene.Name != GetProperMachine(userPrefs).Machine.ObsScenePrefix + userPrefs.Scene)
+                            {
+                                var newSceneName = userPrefs.Scene;
+                                if (userPrefs.Scene.Length == 0)
+                                {
+                                    newSceneName = Configuration.ObsScreenSourceNames.SceneClaw1.SceneName;
+                                }
+                                newSceneName = GetProperMachine(userPrefs).Machine.ObsScenePrefix + newSceneName;
+
+
+                                ChangeScene(newSceneName);
+                            }
                         }
 
                         break;
@@ -1494,7 +1517,8 @@ namespace InternetClawMachine.Games.ClawGame
                         break;
 
                     case "belt":
-
+                    case "belt1":
+                    case "belt2":
                         if (Configuration.EventMode.DisableBelt)
                             break;
 
@@ -1513,8 +1537,19 @@ namespace InternetClawMachine.Games.ClawGame
                         param = chatMessage.Split(' ');
                         if (param.Length != 2)
                             break;
-                        
-                        RunBelt(GetActiveMachine(), param[1]);
+
+                        var selMachine = GetActiveMachine();
+                        switch (translateCommand.FinalWord)
+                        {
+                            case "belt1":
+                                selMachine = MachineList[0];
+                                break;
+                            case "belt2":
+                                selMachine = MachineList[1];
+                                break;
+                        }
+
+                        RunBelt(selMachine, param[1]);
                         
 
                         break;
@@ -1575,7 +1610,34 @@ namespace InternetClawMachine.Games.ClawGame
                                         {
                                             if (int.TryParse(args[2], out newScene))
                                             {
-                                                ChangeClawScene(newScene);
+                                                switch (newScene)
+                                                {
+                                                    case 2:
+                                                        userPrefs.Scene = Configuration.ObsScreenSourceNames.SceneClaw2.SceneName;
+                                                        break;
+
+                                                    case 3:
+                                                        userPrefs.Scene = Configuration.ObsScreenSourceNames.SceneClaw3.SceneName;
+                                                        break;
+
+                                                    default:
+                                                        userPrefs.Scene = Configuration.ObsScreenSourceNames.SceneClaw1.SceneName;
+                                                        break;
+                                                }
+                                                DatabaseFunctions.WriteUserPrefs(Configuration, userPrefs);
+                                                var curScene = ObsConnection.GetCurrentScene();
+                                                if (curScene.Name != GetProperMachine(userPrefs).Machine.ObsScenePrefix + userPrefs.Scene)
+                                                {
+                                                    var newSceneName = userPrefs.Scene;
+                                                    if (userPrefs.Scene.Length == 0)
+                                                    {
+                                                        newSceneName = Configuration.ObsScreenSourceNames.SceneClaw1.SceneName;
+                                                    }
+                                                    newSceneName = GetProperMachine(userPrefs).Machine.ObsScenePrefix + newSceneName;
+
+
+                                                    ChangeScene(newSceneName);
+                                                }
                                                 DatabaseFunctions.AddStreamBuxBalance(Configuration, username, StreamBuxTypes.SCENE, Configuration.GetStreamBuxCost(StreamBuxTypes.SCENE));
                                                 Thread.Sleep(100);
                                                 ChatClient.SendWhisper(username, string.Format(Translator.GetTranslation("gameClawCommandBuxBal", Configuration.UserList.GetUserLocalization(username)), DatabaseFunctions.GetStreamBuxBalance(Configuration, username)));
@@ -1602,7 +1664,10 @@ namespace InternetClawMachine.Games.ClawGame
                                     {
                                         DatabaseFunctions.AddStreamBuxBalance(Configuration, username, StreamBuxTypes.BELT, Configuration.GetStreamBuxCost(StreamBuxTypes.BELT));
 
-                                        RunBelt(GetActiveMachine(), args[2]);
+                                        
+                                        RunBelt(GetActiveMachine(), args[1]);
+                                        
+
                                         Thread.Sleep(100);
                                         ChatClient.SendWhisper(username, string.Format(Translator.GetTranslation("gameClawCommandBuxBal", Configuration.UserList.GetUserLocalization(username)), DatabaseFunctions.GetStreamBuxBalance(Configuration, username)));
                                     }
@@ -2038,7 +2103,48 @@ namespace InternetClawMachine.Games.ClawGame
             }
         }
 
+        public void RunBelt2(IMachineControl machineControl, int milliseconds)
+        {
+            try
+            {
+                RefreshGameCancellationToken();
+                Task.Run(async delegate
+                {
+                    InScanWindow = true; //disable scan acceptance
+                    if (!ObsConnection.IsConnected)
+                        return;
+
+                    ObsConnection.SetSourceRender(Configuration.ObsScreenSourceNames.CameraConveyor.SourceName, true);
+                    await Task.Delay(Configuration.ClawSettings.CameraLagTime);
+                    GameCancellationToken.Token.ThrowIfCancellationRequested();
+                    await machineControl.RunConveyor(milliseconds, 2);
+                    GameCancellationToken.Token.ThrowIfCancellationRequested();
+                    await Task.Delay(Configuration.ClawSettings.ConveyorWaitBeforeFlipper);
+                    GameCancellationToken.Token.ThrowIfCancellationRequested();
+                    if (!Configuration.EventMode.DisableFlipper)
+                        machineControl.Flipper(FlipperDirection.FLIPPER_FORWARD);
+                    await machineControl.RunConveyor(Configuration.ClawSettings.ConveyorRunDuringFlipper, 2);
+                    GameCancellationToken.Token.ThrowIfCancellationRequested();
+                    await Task.Delay(Configuration.ClawSettings.ConveyorWaitAfter);
+                    GameCancellationToken.Token.ThrowIfCancellationRequested();
+                    ObsConnection.SetSourceRender(Configuration.ObsScreenSourceNames.CameraConveyor.SourceName, false);
+
+                    InScanWindow = false; //disable scan acceptance
+                }, GameCancellationToken.Token);
+            }
+            catch (Exception ex)
+            {
+                var error = string.Format("ERROR {0} {1}", ex.Message, ex);
+                Logger.WriteLog(Logger._errorLog, error);
+            }
+        }
+
         public void RunBelt(IMachineControl machineControl, string seconds)
+        {
+            RunBelt(machineControl, seconds, 1);
+        }
+
+        public void RunBelt(IMachineControl machineControl, string seconds, int beltNum)
         {
             if (!int.TryParse(seconds, out var secs))
                 return;
@@ -2046,7 +2152,15 @@ namespace InternetClawMachine.Games.ClawGame
             if (secs > Configuration.ClawSettings.BeltRuntimeMax || secs < Configuration.ClawSettings.BeltRuntimeMin)
                 secs = 2;
 
-            RunBelt(machineControl, secs * 1000);
+            switch (beltNum)
+            {
+                case 1:
+                    RunBelt(machineControl, secs * 1000);
+                    break;
+                case 2:
+                    RunBelt2(machineControl, secs * 1000);
+                    break;
+            }
         }
 
         public override void StartGame(string user)
@@ -2627,6 +2741,10 @@ namespace InternetClawMachine.Games.ClawGame
 
                         ChangeScene(newScene);
                     }
+                    else //their scene isnt changing but we still need to theme it
+                    {
+                        UpdateNewSceneTheme();
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -2636,108 +2754,129 @@ namespace InternetClawMachine.Games.ClawGame
                 Configuration.ClawSettings.ActiveMachine = GetProperMachine(userPrefs).Machine;
             }
 
-            //now, if they need it enabled, enable it so set the background and filters and other related things
-            //handler for event modes
-            if (Configuration.EventMode.EventMode == EventMode.NORMAL || Configuration.EventMode.AllowOverrideLights)
+        }
+
+        private async void UpdateNewSceneTheme()
+        {
+            await Task.Run( delegate
             {
-                try
-                {
-                    Configuration.ClawSettings.BlackLightMode = userPrefs.BlackLightsOn;
-                }
-                catch (Exception ex)
-                {
-                    var error = string.Format("ERROR 300 {0} {1}", ex.Message, ex);
-                    Logger.WriteLog(Logger._errorLog, error);
-                }
+                if (PlayerQueue.CurrentPlayer == null)
+                    return;
+
+                var userPrefs = Configuration.UserList.GetUser(PlayerQueue.CurrentPlayer);
+                if (userPrefs == null)
+                    return;
 
                 //now, if they need it enabled, enable it so set the background and filters and other related things
                 //handler for event modes
-
-                try
+                if (Configuration.EventMode.EventMode == EventMode.NORMAL ||
+                    Configuration.EventMode.AllowOverrideLights)
                 {
-                    var machineControl = GetProperMachine(userPrefs);
-                    if (!Configuration.ClawSettings.BlackLightMode && userPrefs.LightsOn)
-                    {
-                        machineControl.LightSwitch(true);
-                    }
-                    else if (!userPrefs.LightsOn)
-                    {
-                        machineControl.LightSwitch(false);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    var error = string.Format("ERROR 400 {0} {1}", ex.Message, ex);
-                    Logger.WriteLog(Logger._errorLog, error);
-                }
-            }
-
-            //handler for event modes
-            if (Configuration.EventMode.EventMode == EventMode.NORMAL || Configuration.EventMode.AllowOverrideGreenscreen)
-            {
-                try
-                {
-                    var gs = Configuration.ClawSettings.ObsGreenScreenActive.Name;
-                    //check if they have a custom greenscreen defined
-                    if (!string.IsNullOrEmpty(userPrefs.GreenScreen))
-                        gs = userPrefs.GreenScreen;
-
-                    //if the background override was set check if we need to revert it
-                    if (Configuration.ClawSettings.ObsGreenScreenActive.TimeActivated > 0 && Helpers.GetEpoch() - Configuration.ClawSettings.ObsGreenScreenActive.TimeActivated >= 86400)
-                        Configuration.ClawSettings.ObsGreenScreenActive = Configuration.ClawSettings.ObsGreenScreenDefault;
-
                     try
                     {
-                        foreach (var bg in Configuration.ClawSettings.ObsGreenScreenOptions)
-                            foreach (var scene in bg.Scenes)
-                                ObsConnection.SetSourceRender(scene, bg.Name == gs);
+                        Configuration.ClawSettings.BlackLightMode = userPrefs.BlackLightsOn;
                     }
                     catch (Exception ex)
                     {
-                        var error = string.Format("ERROR 600 {0} {1}", ex.Message, ex);
+                        var error = string.Format("ERROR 300 {0} {1}", ex.Message, ex);
                         Logger.WriteLog(Logger._errorLog, error);
                     }
-                    
-            
+
+                    //now, if they need it enabled, enable it so set the background and filters and other related things
+                    //handler for event modes
+
+                    try
+                    {
+                        var machineControl = GetProperMachine(userPrefs);
+                        if (!Configuration.ClawSettings.BlackLightMode && userPrefs.LightsOn)
+                        {
+                            machineControl.LightSwitch(true);
+                        }
+                        else if (!userPrefs.LightsOn)
+                        {
+                            machineControl.LightSwitch(false);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        var error = string.Format("ERROR 400 {0} {1}", ex.Message, ex);
+                        Logger.WriteLog(Logger._errorLog, error);
+                    }
                 }
-                catch (Exception ex)
+
+                //handler for event modes
+                if (Configuration.EventMode.EventMode == EventMode.NORMAL ||
+                    Configuration.EventMode.AllowOverrideGreenscreen)
                 {
-                    var error = string.Format("ERROR 700 {0} {1}", ex.Message, ex);
-                    Logger.WriteLog(Logger._errorLog, error);
+                    try
+                    {
+                        var gs = Configuration.ClawSettings.ObsGreenScreenActive.Name;
+                        //check if they have a custom greenscreen defined
+                        if (!string.IsNullOrEmpty(userPrefs.GreenScreen))
+                            gs = userPrefs.GreenScreen;
+
+                        //if the background override was set check if we need to revert it
+                        if (Configuration.ClawSettings.ObsGreenScreenActive.TimeActivated > 0 && Helpers.GetEpoch() -
+                            Configuration.ClawSettings.ObsGreenScreenActive.TimeActivated >= 86400)
+                            Configuration.ClawSettings.ObsGreenScreenActive =
+                                Configuration.ClawSettings.ObsGreenScreenDefault;
+
+                        try
+                        {
+                            foreach (var bg in Configuration.ClawSettings.ObsGreenScreenOptions)
+                            foreach (var scene in bg.Scenes)
+                                ObsConnection.SetSourceRender(scene, bg.Name == gs);
+                        }
+                        catch (Exception ex)
+                        {
+                            var error = string.Format("ERROR 600 {0} {1}", ex.Message, ex);
+                            Logger.WriteLog(Logger._errorLog, error);
+                        }
+
+
+                    }
+                    catch (Exception ex)
+                    {
+                        var error = string.Format("ERROR 700 {0} {1}", ex.Message, ex);
+                        Logger.WriteLog(Logger._errorLog, error);
+                    }
                 }
-            }
 
-            //handelr for reticle
-            if (!string.IsNullOrEmpty(userPrefs.ReticleName))
-            {
-                var rtcl = Configuration.ClawSettings.ReticleOptions.Find(t => t.RedemptionName.ToLower() == userPrefs.ReticleName.ToLower());
+                //handelr for reticle
+                if (!string.IsNullOrEmpty(userPrefs.ReticleName))
+                {
+                    var rtcl = Configuration.ClawSettings.ReticleOptions.Find(t =>
+                        t.RedemptionName.ToLower() == userPrefs.ReticleName.ToLower());
 
-                ChangeReticle(rtcl);
-            }
-            else
-            {
-                var rtcl = Configuration.ClawSettings.ReticleOptions.Find(t => t.RedemptionName.ToLower() == "default");
+                    ChangeReticle(rtcl);
+                }
+                else
+                {
+                    var rtcl = Configuration.ClawSettings.ReticleOptions.Find(t =>
+                        t.RedemptionName.ToLower() == "default");
 
-                ChangeReticle(rtcl);
-            }
+                    ChangeReticle(rtcl);
+                }
 
-            //handler for wire theme
-            if (!string.IsNullOrEmpty(userPrefs.WireTheme) && Configuration.EventMode.AllowOverrideWireFrame)
-            {
-                var theme = Configuration.ClawSettings.WireThemes.Find(t => t.Name.ToLower() == userPrefs.WireTheme.ToLower());
+                //handler for wire theme
+                if (!string.IsNullOrEmpty(userPrefs.WireTheme) && Configuration.EventMode.AllowOverrideWireFrame)
+                {
+                    var theme = Configuration.ClawSettings.WireThemes.Find(t =>
+                        t.Name.ToLower() == userPrefs.WireTheme.ToLower());
 
-                ChangeWireTheme(theme);
-            }
-            else if (Configuration.EventMode.WireTheme != null)
-            {
-                ChangeWireTheme(Configuration.EventMode.WireTheme);
-            }
-            else
-            {
-                var theme = Configuration.ClawSettings.WireThemes.Find(t => t.Name.ToLower() == "default");
+                    ChangeWireTheme(theme, true);
+                }
+                else if (Configuration.EventMode.WireTheme != null)
+                {
+                    ChangeWireTheme(Configuration.EventMode.WireTheme, true);
+                }
+                else
+                {
+                    var theme = Configuration.ClawSettings.WireThemes.Find(t => t.Name.ToLower() == "default");
 
-                ChangeWireTheme(theme);
-            }
+                    ChangeWireTheme(theme, true);
+                }
+            });
         }
 
         protected override void OnTurnEnded(RoundEndedArgs e)
@@ -2860,6 +2999,7 @@ namespace InternetClawMachine.Games.ClawGame
 
         private void ClawGame_Disconnected(object sender, EventArgs e)
         {
+
         }
 
         private void ClawGame_OnClawRecoiled(object sender, EventArgs e)
@@ -3434,7 +3574,7 @@ namespace InternetClawMachine.Games.ClawGame
             SessionDrops++;
         }
 
-        private void MachineControl_OnBreakSensorTripped(object sender, EventArgs e)
+        private void MachineControl_OnBreakSensorTripped(IMachineControl sender, int beltNumber)
         {
             var message = "Break sensor tripped";
             Logger.WriteLog(Logger._machineLog, message);
@@ -3450,7 +3590,18 @@ namespace InternetClawMachine.Games.ClawGame
 
             //async task to run conveyor
             if (!Configuration.EventMode.DisableBelt)
-                RunBelt((ClawController)sender, Configuration.ClawSettings.ConveyorWaitFor);
+            {
+                switch (beltNumber)
+                {
+                    case 1:
+                        RunBelt((ClawController)sender, Configuration.ClawSettings.ConveyorWaitFor);
+                        break;
+                    case 2:
+                        RunBelt2((ClawController)sender, Configuration.ClawSettings.ConveyorWaitFor);
+                        break;
+                }
+            }
+                
 
             if (Configuration.EventMode.IRTriggersWin)
             {
@@ -3895,5 +4046,10 @@ namespace InternetClawMachine.Games.ClawGame
         }
 
         #endregion Methods
+
+        public IMachineControl GetNamedMachine(string machineInfoName)
+        {
+            return MachineList.FirstOrDefault(cm => cm.Machine.Name.Equals(machineInfoName));
+        }
     }
 }
