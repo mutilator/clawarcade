@@ -2,8 +2,9 @@
 #include <Ethernet.h>
 #include <EthernetClient.h>
 #include <EthernetServer.h>
+#include <SoftwareSerial.h>
 
-HardwareSerial &conveyorController = Serial1;
+SoftwareSerial conveyorController(6, 5);
 HardwareSerial &ledController = Serial3;
 HardwareSerial &plinkoController = Serial2;
 
@@ -34,6 +35,7 @@ const int _PINConveyorBelt = 3;
 const int _PINConveyorSensor = 8;
 const int _PINConveyorSensor2 = 11;
 const int _PINBlackLight = 9;
+const int _PINClawPower = 12;
 
 const int _PINGameReset = 53;
 
@@ -45,8 +47,8 @@ const int _PINStickMoveForward = 24;
 const int _PINStickMoveBackward = 25;
 const int _PINStickMoveDown = 26;
 
-const int _PINConveyorFlipperError = 20;
-//_PINConveyorFlipperSerial PORT 18 & 19 = Serial1
+//const int _PINConveyorFlipperError = 7;
+//_PINConveyorFlipperSerial PORT 18 & 19 = Serial1 = conveyorController
 
 
 //High/Low settings for what determines on and off state
@@ -170,6 +172,7 @@ unsigned long _timestampRunLeft = 0; //When did we start running right to left
 unsigned long _timestampRunBackward = 0; //When did we start running back to front
 unsigned long _timestampConveyorBeltStart = 0; //when the conveyor belt started running
 unsigned long _timestampRunCenter = 0; //timestamp set when we start running gantry to the center
+unsigned long _timestampConveyorBeltStart2 = 0; //second conveyor start
 unsigned long _timestampConveyorFlipperStart = 0; //when did flipper start movement
 
 unsigned long _timestampMotorMoveUp = 0; //motor movement failsafe stamp
@@ -230,6 +233,7 @@ int _clawRemoteMoveDurationDrop = 0;
 int _clawRemoteMoveDurationDown = 0;
 int _clawRemoteMoveDurationUp = 0;
 int _conveyorMoveDuration = 0;
+int _conveyorMoveDuration2 = 0;
 
 
 //When did the move begin
@@ -267,13 +271,18 @@ const byte FLIPPER_MOTOR_COMMAND_STOP = 0xE0;
 int _conveyorBeltRunTime = 0;
 int _conveyorFlipperRunTime = 0; //how long to run the flipper in a direction before we call the stop command?
 byte _conveyorFlipperStatus = 0;
+
+int _conveyorBeltRunTime2 = 0;
+int _conveyorSpeed2 = 80; //speed in percent of the conveyor belt
+
 int _flipperSpeed = 75;
 bool _autoDropTargeting = false; //If in targeting mode, setting this TRUE causes the claw to drop when over the home location
 bool _allowTargetingMoves = true; //When in tatrgeting mode, allow the player to move anywhere in the play area during their turn
 
 
-const char RTS = '}'; //request to send data
-const char CTS = '{'; //clear to send data
+const char RTS = '{'; //request to send data
+const char CS = '}'; //complete send data
+const char CTS = '!'; //clear to send data
 
 char _lastPlinkoMessage[40]; //plinko message
 unsigned long _waitForAckTimestamp = 0; //time we sent last plinko message
@@ -342,6 +351,7 @@ void loop() {
     handlePlinkoSerialCommands();
     checkConveyorSensor();
     checkBeltRuntime();
+    checkBelt2Runtime();
     
     checkMovements();
     checkGameReset();
@@ -381,6 +391,9 @@ void initMovement()
     pinMode(_PINMoveDown, OUTPUT);
     pinMode(_PINMoveUp, OUTPUT);
     pinMode(_PINClawSolenoid, OUTPUT);
+    pinMode(_PINClawPower, OUTPUT);
+
+    analogWrite(_PINClawPower, 20);
 
 
     //Limit switch inputs
@@ -421,7 +434,8 @@ void initLights()
 void initConveyor()
 {
     pinMode(_PINConveyorBelt, OUTPUT);
-    pinMode(_PINConveyorFlipperError, INPUT);
+    //pinMode(_PINConveyorFlipperError, INPUT);
+    //conveyor belt 2
     conveyorController.begin(19200); //talk to motor controller
 
     pinMode(_PINConveyorSensor, INPUT_PULLUP);
@@ -1081,7 +1095,7 @@ void sendLedControllerMessage(char message[])
 void sendLedControllerData(char message[])
 {
     ledController.print(message);
-    ledController.print("!");
+    ledController.print(CS);
 }
 
 void handleLedSerialCommands()
@@ -1110,8 +1124,8 @@ void handleLedSerialCommands()
         char thisChar = ledController.read();
         if (thisChar == RTS) //if the other end wants to send data, tell them it's OK
         {
-            Serial.print(CTS);
-            Serial.flush();
+            ledController.print(CTS);
+            ledController.flush();
 
             //reset the index
             sidx = 0;
@@ -1122,11 +1136,12 @@ void handleLedSerialCommands()
 
                 startTime = millis(); //update received timestamp, allows slow data to come in (manually typing)
                 thisChar = ledController.read();
-
-                if (thisChar == '!')
+                if (thisChar == RTS)
+                    continue;
+                if (thisChar == CS)
                 {
                     while (ledController.available() > 0) //burns the buffer
-                        Serial.read();
+                        ledController.read();
 
                     _sLedIncomingCommand[sidx] = '\0'; //terminate string
 
@@ -1178,9 +1193,8 @@ void sendPlinkoControllerMessage(char message[])
 void sendPlinkoControllerData(char message[])
 {
     plinkoController.print(message);
-    plinkoController.print("!");
+    plinkoController.print(CS);
 }
-
 
 //command from plinko is ".command args!"
 void handlePlinkoSerialCommands()
@@ -1223,8 +1237,9 @@ void handlePlinkoSerialCommands()
 
                 startTime = millis(); //update received timestamp, allows slow data to come in (manually typing)
                 thisChar = plinkoController.read();
-
-                if (thisChar == '!')
+                if (thisChar == RTS)
+                    continue;
+                if (thisChar == CS)
                 {
 
                     while (plinkoController.available() > 0) //burns the buffer
@@ -1315,7 +1330,7 @@ void checkMovements()
 int readByteFlipper()
 {
   char c;
-  if(Serial1.readBytes(&c, 1) == 0){ return -1; }
+  if(conveyorController.readBytes(&c, 1) == 0){ return -1; }
   return (byte)c;
 }
 
@@ -1324,15 +1339,21 @@ int readByteFlipper()
 // should be typecast as an int.
 unsigned int getFlipperVariable(unsigned char variableID)
 {
-  Serial1.write(FLIPPER_MOTOR_COMMAND_GET_VAR);
-  Serial1.write(variableID);
-  return readByteFlipper() + 256 * readByteFlipper();
+  conveyorController.write(FLIPPER_MOTOR_COMMAND_GET_VAR);
+  conveyorController.write(variableID);
+  int rtn = readByteFlipper() + 256 * readByteFlipper();
+  debugString("mtr cntr var: ");
+  debugInt(rtn);
+  return rtn;
 }
 
 //Move the flipper 
 void moveFlipper(byte direction)
 {
+    return;
+    /*
     _conveyorFlipperStatus = direction;
+    int baseSpeed = 0;
     switch (direction)
     {
         case FLIPPER_FORWARD:
@@ -1340,31 +1361,33 @@ void moveFlipper(byte direction)
             
             _timestampConveyorFlipperStart = millis();
             //blindly clearing this error means we are no longer presenting a high error pin but we also may not be able to move because the controller won't let us
-            Serial1.write(FLIPPER_MOTOR_COMMAND_CLEAR_SAFE_START);
-            Serial1.write(FLIPPER_MOTOR_COMMAND_FORWARD);
-            Serial1.write(0);
-            Serial1.write(_flipperSpeed);
+            conveyorController.write(FLIPPER_MOTOR_COMMAND_CLEAR_SAFE_START);
+            conveyorController.write(FLIPPER_MOTOR_COMMAND_FORWARD);
+            conveyorController.write(baseSpeed);
+            conveyorController.write(_flipperSpeed);
             break;
         case FLIPPER_BACKWARD:
             // TODO - do this smarter, need to check if the current limit event is the home position so we don't have to bother starting the flipper
             _timestampConveyorFlipperStart = millis();
-            Serial1.write(FLIPPER_MOTOR_COMMAND_CLEAR_SAFE_START);
-            Serial1.write(FLIPPER_MOTOR_COMMAND_REVERSE);
-            Serial1.write(0);
-            Serial1.write(_flipperSpeed);
+            conveyorController.write(FLIPPER_MOTOR_COMMAND_CLEAR_SAFE_START);
+            conveyorController.write(FLIPPER_MOTOR_COMMAND_REVERSE);
+            conveyorController.write(baseSpeed);
+            conveyorController.write(_flipperSpeed);
             break;
         default:
             _conveyorFlipperStatus = FLIPPER_STOPPED;
             _timestampConveyorFlipperStart = 0;
-            Serial1.write(FLIPPER_MOTOR_COMMAND_CLEAR_SAFE_START);
-            Serial1.write(FLIPPER_MOTOR_COMMAND_STOP);
+            conveyorController.write(FLIPPER_MOTOR_COMMAND_CLEAR_SAFE_START);
+            conveyorController.write(FLIPPER_MOTOR_COMMAND_STOP);
             break;
     }
-    
+    */
 }
 
 void handleFlipper()
 {
+    return;
+/*
     char ERROR_VAR = 0;
     char LIMIT_VAR = 3;
     short BIT_SAFESTART = 1;
@@ -1416,7 +1439,7 @@ void handleFlipper()
         }
 
     }
-
+*/
 }
 
 void checkBeltRuntime()
@@ -1429,6 +1452,19 @@ void checkBeltRuntime()
         _conveyorBeltRunTime = 0;
     }
 }
+
+void checkBelt2Runtime()
+{
+    if ((_timestampConveyorBeltStart2 > 0 && ((millis() - _timestampConveyorBeltStart2 >= _conveyorBeltRunTime2) && (_conveyorBeltRunTime2 >= 0))) ||
+        (millis() - _timestampConveyorBeltStart2 >= _failsafeBeltLimit))
+    {
+        conveyorController.write(FLIPPER_MOTOR_COMMAND_CLEAR_SAFE_START);
+        conveyorController.write(FLIPPER_MOTOR_COMMAND_STOP);
+        _timestampConveyorBeltStart2 = 0;
+        _conveyorBeltRunTime2 = 0;
+    }
+}     
+
 
 void checkConveyorSensor()
 {
@@ -1812,6 +1848,19 @@ void handleTelnetCommand(EthernetClient &client)
         int val = atoi(argument);
         moveConveyorBelt(val);
 
+    }  else if (strcmp(command,"belt2") == 0) { //move belt2 for # milliseconds
+
+        sendFormattedResponse(client, EVENT_INFO, sequence, "");
+
+        int val = atoi(argument);
+        moveConveyorBelt2(val);
+
+    } else if (strcmp(command,"belt2speed") == 0) { //set belt speed in percent
+
+        sendFormattedResponse(client, EVENT_INFO, sequence, "");
+
+        _conveyorSpeed2 = atoi(argument);
+
     } else if (strcmp(command,"claw") == 0) { //open or close claw
 
         sendFormattedResponse(client, EVENT_INFO, sequence, "");
@@ -1848,8 +1897,9 @@ void handleTelnetCommand(EthernetClient &client)
 
     } else if (strcmp(command,"clap") == 0) { //clap claw
 
+        int times = atoi(argument);
         sendFormattedResponse(client, EVENT_INFO, sequence, "");
-        clapClaw();
+        clapClaw(times);
 
     } else if (strcmp(command,"cl") == 0) { //check limit
 
@@ -1977,6 +2027,10 @@ void handleTelnetCommand(EthernetClient &client)
         sendFormattedResponse(client, EVENT_INFO, sequence, "");
         sprintf(_lastLedMessage, "%s %s %s %s %s %s", argument, argument2, argument3, argument4, argument5, argument6);
         sendLedControllerMessage(_lastLedMessage);
+    } else if (strcmp(command,"p") == 0)
+    {
+        int power = atoi(argument);
+        analogWrite(_PINClawPower, power);
     } else if (strcmp(command,"plinko") == 0) { //send generic commands to uno
 
         sendFormattedResponse(client, EVENT_INFO, sequence, "");
@@ -2023,6 +2077,26 @@ void moveConveyorBelt(int runTime)
         digitalWrite(_PINConveyorBelt, RELAYPINOFF);
     }
 }
+
+void moveConveyorBelt2(int runTime)
+{
+    int baseSpeed = 0;
+    if (runTime != 0)
+    {
+        conveyorController.write(FLIPPER_MOTOR_COMMAND_CLEAR_SAFE_START);
+        conveyorController.write(FLIPPER_MOTOR_COMMAND_FORWARD);
+        conveyorController.write(baseSpeed);
+        conveyorController.write(_conveyorSpeed2);
+        _timestampConveyorBeltStart2 = millis();
+        _conveyorBeltRunTime2 = runTime;
+    } else {
+        conveyorController.write(FLIPPER_MOTOR_COMMAND_CLEAR_SAFE_START);
+        conveyorController.write(FLIPPER_MOTOR_COMMAND_FORWARD);
+        conveyorController.write(baseSpeed);
+        conveyorController.write(_conveyorSpeed2);
+    }
+}
+
 
 /**
  * @brief  Move the motor a direction for a specified duration
@@ -2252,14 +2326,14 @@ void stopMotorUp()
     digitalWrite(_PINMoveUp, RELAYPINOFF);
 }
 
-void debugLine(char* message)
+void debugLine(char message[])
 {
     if (_isDebugMode)
     {
         Serial.println(message);
     }
 }
-void debugString(char* message)
+void debugString(char message[])
 {
     if (_isDebugMode)
     {
@@ -2324,18 +2398,14 @@ void wiggleClaw()
     stopMotorLeft();
 }
 
-void clapClaw()
+void clapClaw(int times)
 {
-    closeClaw();
-    delay(_wiggleTime);
-    openClaw();
-    delay(_wiggleTime);
-    closeClaw();
-    delay(_wiggleTime);
-    openClaw();
-    delay(_wiggleTime);
-    closeClaw();
-    delay(_wiggleTime);
-    openClaw();
+    for(int i = 0; i < times; i++)
+    {
+        closeClaw();
+        delay(_wiggleTime);
+        openClaw();
+        delay(_wiggleTime);
+    }
 }
 

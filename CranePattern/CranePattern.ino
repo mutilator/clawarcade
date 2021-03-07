@@ -2,9 +2,6 @@
 
 FASTLED_USING_NAMESPACE
 
-#if defined(FASTLED_VERSION) && (FASTLED_VERSION < 3001000)
-#warning "Requires FastLED 3.1 or later; check github for latest code."
-#endif
 #define ARRAY_SIZE(A) (sizeof(A) / sizeof((A)[0]))
 #define DATA_PIN    5
 #define LED_TYPE    WS2811
@@ -17,12 +14,16 @@ CRGB leds[NUM_LEDS];
 #define BRIGHTNESS         128
 #define FRAMES_PER_SECOND  120
 
+const int _PINButton = 3;
+const int _PINRelay = 53;
+
 const byte _numChars = 64;
 char _incomingCommand[_numChars]; // an array to store the received data
 
 unsigned long checkTime = 0;
-const char RTS = '}'; //request to send data
-const char CTS = '{'; //clear to send data
+const char RTS = '{'; //request to send data
+const char CS = '}'; //comeplete send data
+const char CTS = '!'; //clear to send data
 
 void setup() {
   delay(2000);
@@ -87,7 +88,7 @@ void sendSerialMessage(char message[])
 void sendSerialData(char message[])
 {
     Serial.print(message);
-    Serial.print("!");
+    Serial.print(CS);
     Serial.flush();
 }
 
@@ -132,8 +133,9 @@ void handleSerialCommands()
 
           startTime = millis(); //update received timestamp, allows slow data to come in (manually typing)
           thisChar = Serial.read();
-
-          if (thisChar == '!') //if we receive a proper ending, process the data
+          if (thisChar == RTS)
+                    continue;
+          if (thisChar == CS) //if we receive a proper ending, process the data
           {
             while (Serial.available() > 0) //burns the buffer
               Serial.read();
