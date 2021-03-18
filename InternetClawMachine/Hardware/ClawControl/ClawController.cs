@@ -17,6 +17,9 @@ namespace InternetClawMachine.Hardware.ClawControl
 
     public delegate void BeltEventHandler(IMachineControl controller, int beltNumber);
 
+    public delegate void PingSuccessEventHandler(IMachineControl controller, long latency);
+    public delegate void MachineEventHandler(IMachineControl controller);
+
     /**
      * Talk to the claw machine controller
      *
@@ -35,11 +38,13 @@ namespace InternetClawMachine.Hardware.ClawControl
     {
         
 
-        public event EventHandler OnDisconnected;
+        public event MachineEventHandler OnDisconnected;
 
-        public event EventHandler OnPingTimeout;
+        public event MachineEventHandler OnConnected;
 
-        public event EventHandler OnPingSuccess;
+        public event MachineEventHandler OnPingTimeout;
+
+        public event PingSuccessEventHandler OnPingSuccess;
 
         /// <summary>
         /// Fired when claw is cover the chute
@@ -260,10 +265,18 @@ namespace InternetClawMachine.Hardware.ClawControl
 
         public bool Connect(IPEndPoint remoteEp)
         {
-            if (_workSocket != null && _workSocket.Connected)
+            if (_workSocket != null)
             {
-                _workSocket.Disconnect(false);
-                _workSocket.Dispose();
+                try
+                {
+                    if (_workSocket.Connected)
+                        _workSocket.Disconnect(false);
+                    _workSocket.Dispose();
+                }
+                catch
+                {
+                    //do nothing if a d/c fails
+                }
             }
 
             // Create a TCP/IP  socket.
@@ -293,7 +306,7 @@ namespace InternetClawMachine.Hardware.ClawControl
             }
             catch (Exception ex)
             {
-                var error = string.Format("ERROR {0} {1}", ex.Message, ex);
+                var error = string.Format("ERROR [" + Machine.Name + "] {0} {1}", ex.Message, ex);
                 Logger.WriteLog(Logger._errorLog, error);
             }
             return false;
@@ -323,18 +336,7 @@ namespace InternetClawMachine.Hardware.ClawControl
             }
         }
 
-        public void StopReader()
-        {
-            try
-            {
-                _workSocket.EndReceive(null);
-            }
-            catch (Exception ex)
-            {
-                var error = string.Format("ERROR {0} {1}", ex.Message, ex);
-                Logger.WriteLog(Logger._errorLog, error);
-            }
-        }
+        
 
         private void E_Completed(object sender, SocketAsyncEventArgs e)
         {
@@ -368,28 +370,38 @@ namespace InternetClawMachine.Hardware.ClawControl
             var commands = new List<string>();
             if (e.BytesTransferred > 0 && e.SocketError == SocketError.Success)
             {
-                //echo the data received back to the client
-                //e.SetBuffer(e.Offset, e.BytesTransferred);
-                int i;
-
-                for (i = 0; i < e.BytesTransferred; i++)
+                try
                 {
-                    if (_receiveIdx >= _receiveBuffer.Length)
-                        _receiveIdx = _receiveBuffer.Length - 1; //rewrite the last byte
-                    _receiveBuffer[_receiveIdx] = e.Buffer[i];
-                    _receiveIdx++;
-                    if (e.Buffer[i] != '\n') continue; //read until a newline
-                    var response = Encoding.UTF8.GetString(_receiveBuffer, 0, _receiveIdx);
-                    _receiveIdx = 0; //reset index to zero
-                    Array.Clear(_receiveBuffer, 0, _receiveBuffer.Length); //also make sure the array is zeroed
-                    commands.Add(response);
+                    //echo the data received back to the client
+                    //e.SetBuffer(e.Offset, e.BytesTransferred);
+                    int i;
+
+                    for (i = 0; i < e.BytesTransferred; i++)
+                    {
+                        if (_receiveIdx >= _receiveBuffer.Length)
+                            _receiveIdx = _receiveBuffer.Length - 1; //rewrite the last byte
+                        _receiveBuffer[_receiveIdx] = e.Buffer[i];
+                        _receiveIdx++;
+                        if (e.Buffer[i] != '\n') continue; //read until a newline
+                        var response = Encoding.UTF8.GetString(_receiveBuffer, 0, _receiveIdx);
+                        _receiveIdx = 0; //reset index to zero
+                        Array.Clear(_receiveBuffer, 0, _receiveBuffer.Length); //also make sure the array is zeroed
+                        commands.Add(response);
+                    }
+
+                    e.SetBuffer(0, 1024);
                 }
-                e.SetBuffer(0, 1024);
+                catch (Exception)
+                {
+                    // ignored
+                }
             }
             else
             {
-                if (!_workSocket.Connected)
-                    OnDisconnected?.Invoke(this, new EventArgs());
+                if (!IsConnected)
+                {
+                    OnDisconnected?.Invoke(this);
+                }
             }
             return commands.ToArray();
         }
@@ -417,7 +429,16 @@ namespace InternetClawMachine.Hardware.ClawControl
                     if (aryEventResp.Length > 1) //make sure we have a response and sequence number
                     {
                         eventResp = aryEventResp[0];
-                        sequence = int.Parse(aryEventResp[1]);
+
+                        try
+                        {
+                            sequence = int.Parse(aryEventResp[1]);
+                        } catch (Exception ex)
+                        {
+                            var error = string.Format("ERROR [" + Machine.Name + "] Socket Data: {0} - {1} {2}", response, ex.Message, ex);
+                            Logger.WriteLog(Logger._errorLog, error);
+                        }
+
                         if (sequence == _currentWaitSequenceNumberCommand) //if this sequence is a command we're waiting for then set that response
                         {
                             _currentWaitSequenceNumberCommand = -1;
@@ -444,11 +465,11 @@ namespace InternetClawMachine.Hardware.ClawControl
                                 {
                                     Latency = PingTimer.ElapsedMilliseconds - ping.StartTime;
                                     ping.Success = true;
-                                    //cancel the task if running
-                                    ping.CancelToken.Cancel();
-                                    _pingQueue.RemoveAt(i);
+                                    //Tell the task to cancel if it's still running
+                                    //ping.CancelToken.Cancel();
+                                    
 
-                                    OnPingSuccess?.Invoke(this, new EventArgs());
+                                    OnPingSuccess?.Invoke(this, PingTimer.ElapsedMilliseconds - ping.StartTime);
                                     break;
                                 }
                             }
@@ -566,103 +587,125 @@ namespace InternetClawMachine.Hardware.ClawControl
             }
             catch (Exception ex)
             {
-                var error = string.Format("ERROR {0} {1}", ex.Message, ex);
+                var error = string.Format("ERROR [" + Machine.Name + "] {0} {1}", ex.Message, ex);
                 Logger.WriteLog(Logger._errorLog, error);
             }
         }
 
         private async void Ping()
         {
-            try
-            {
-                //only restart the timer if there are no outstanding pings
-                if (_pingQueue.Count == 0)
+            
+                while (true)
                 {
-                    PingTimer.Reset();
-                    PingTimer.Start();
-                }
-
-                var ms = PingTimer.ElapsedMilliseconds;
-                var sequence = SendCommandAsync("ping " + ms);
-                var ping = new ClawPing {Success = false, Sequence = sequence, StartTime = ms, CancelToken = new CancellationTokenSource()};
-                _pingQueue.Add(ping);
-
-                //kick off an async validating ping
-                await Task.Run(async delegate
+                try
                 {
+                    //only restart the timer if there are no outstanding pings
+                    if (_pingQueue.Count == 0)
+                    {
+                        PingTimer.Reset();
+                        PingTimer.Start();
+                    }
+
+                    var ms = PingTimer.ElapsedMilliseconds;
+                    var sequence = SendCommandAsync("ping " + ms);
+                    var ping = new ClawPing { Success = false, Sequence = sequence, StartTime = ms };
+                    _pingQueue.Add(ping);
+
+                    //kick off an async validating ping
                     await Task.Delay(MaximumPingTime); //simply wait some second to check for the last ping
-                    if (ping.CancelToken.IsCancellationRequested)
-                    {
-                        if (ping.Success)
-                        {
-                            //start a ping in 10 seconds?
-                            await Task.Delay(10000);
-                            Ping();
-                        }
 
+                    if (ping.Success) //this should only ever be true as currently the only place that cancels a token is a valid ping response
+                    {
                         _pingQueue.Remove(ping);
-                        return;
-                    }
-
-                    Latency = PingTimer.ElapsedMilliseconds - MaximumPingTime;
-                    if (!_workSocket.Connected)
-                    {
-                        _pingQueue.Clear();
-                        //don't do anything if we disconnected afterward
-                    }
-                    else if (!ping.Success) //no response, TIMEOUT!
-                    {
-                        //first, check if any pings AFTER this have succeeded, maybe this got delayed for some reason
-                        var hasOtherSuccess = false;
-                        foreach (var p in _pingQueue)
-                        {
-                            if (p.Sequence > ping.Sequence && p.Success)
-                                hasOtherSuccess = true;
-                        }
-
-                        if (hasOtherSuccess)
-                        {
-                            //if another successful ping was after this one we just remove it and continue on
-                            //also don't spawn a new ping because the subsequent ping will do taht
-                            _pingQueue.Remove(ping);
-                        }
-                        else //yea we really timed out
-                        {
-                            _pingQueue.Clear();
-                            Logger.WriteLog(Logger._machineLog, "Ping timeout: " + Latency);
-                            _workSocket.Disconnect(false);
-                            OnPingTimeout?.Invoke(this, new EventArgs());
-                            OnDisconnected?.Invoke(this, new EventArgs());
-                        }
-                    }
-                    else //this ping was a success
-                    {
                         //start a ping in 10 seconds?
                         await Task.Delay(10000);
-                        Ping();
+                        continue;
                     }
-                });
+
+                    
+                    Latency = PingTimer.ElapsedMilliseconds - MaximumPingTime; //technically it's MaximumPingTime
+                    Latency = MaximumPingTime; //technically it's MaximumPingTime
+                    if (!IsConnected) //are we still connected to the controller according to the socket?
+                    {
+                        //if we're disconnected... was it on purpose?
+                        if (_pingQueue.Count > 0) //if there are pings in the queue still, it means it wasn't on purpose
+                        {
+                            _pingQueue.Clear();
+                            Logger.WriteLog(Logger._machineLog, "Ping timeout [" + Machine.Name + "]: " + Latency);
+                            Logger.WriteLog(Logger._errorLog, "Ping timeout [" + Machine.Name + "]: " + Latency);
+
+                            try
+                            {
+                                _workSocket.Disconnect(false);
+                            }
+                            catch (Exception ex)
+                            {
+                                var error = string.Format("ERROR {0} {1}", ex.Message, ex);
+                                Logger.WriteLog(Logger._errorLog, error);
+                            }
+
+                            OnPingTimeout?.Invoke(this);
+                            OnDisconnected?.Invoke(this);
+                            
+                            return;
+                        }
+
+                        //don't do anything if we disconnected afterward
+                    }
+                    else { 
+                        _pingQueue.Clear();
+                        Logger.WriteLog(Logger._machineLog, "Ping timeout [" + Machine.Name + "]: " + Latency);
+                        Logger.WriteLog(Logger._errorLog, "Ping timeout [" + Machine.Name + "]: " + Latency);
+
+                        try
+                        {
+                            _workSocket.Disconnect(false);
+                        }
+                        catch (Exception ex)
+                        {
+                            var error = string.Format("ERROR [" + Machine.Name + "]{0} {1}", ex.Message, ex);
+                            Logger.WriteLog(Logger._errorLog, error);
+                        }
+
+                        OnPingTimeout?.Invoke(this);
+                        OnDisconnected?.Invoke(this);
+                        
+                        return;
+                    }
+                }
+                catch (ControllerNotConnectedException cex)
+                {
+                    var error = string.Format("ERROR CONTROLLER NOT CONNECTED [" + Machine.Name + "] {0} {1}", cex.Message, cex);
+                    Logger.WriteLog(Logger._errorLog, error);
+                    OnPingTimeout?.Invoke(this);
+                    OnDisconnected?.Invoke(this);
+                    
+                }
+                catch (Exception ex)
+                {
+                    var error = string.Format("ERROR [" + Machine.Name + "] {0} {1}", ex.Message, ex);
+                    Logger.WriteLog(Logger._errorLog, error);
+                }
             }
-            catch (ControllerNotConnectedException)
-            {
-                OnPingTimeout?.Invoke(this, new EventArgs());
-                OnDisconnected?.Invoke(this, new EventArgs());
+        }
+
+        public void Disconnect()
+        {
+            try
+            {            
+                _pingQueue.Clear();
+                // Release the socket.
+                if (IsConnected)
+                    OnDisconnected?.Invoke(this);
+            
+                _workSocket.Shutdown(SocketShutdown.Both);
+                _workSocket.Close();
             }
             catch (Exception ex)
             {
                 var error = string.Format("ERROR {0} {1}", ex.Message, ex);
                 Logger.WriteLog(Logger._errorLog, error);
             }
-        }
-
-        public void Disconnect()
-        {
-            // Release the socket.
-            if (IsConnected)
-                OnDisconnected?.Invoke(this, new EventArgs());
-            StopReader();
-            _workSocket.Shutdown(SocketShutdown.Both);
-            _workSocket.Close();
         }
 
         public void Reconnect()
@@ -689,7 +732,7 @@ namespace InternetClawMachine.Hardware.ClawControl
             }
             catch (Exception ex)
             {
-                var error = string.Format("ERROR {0} {1}", ex.Message, ex);
+                var error = string.Format("ERROR [" + Machine.Name + "] {0} {1}", ex.Message, ex);
                 Logger.WriteLog(Logger._errorLog, error);
             }
 
@@ -699,7 +742,7 @@ namespace InternetClawMachine.Hardware.ClawControl
         public string SendCommand(string command)
         {
             if (!IsConnected)
-                throw new Exception("Not Connected");
+                throw new ControllerNotConnectedException("Not Connected");
             try
             {
                 var seq = Sequence; //sequence increments each time it's asked for, just asking once
@@ -722,16 +765,15 @@ namespace InternetClawMachine.Hardware.ClawControl
             }
             catch (Exception ex)
             {
-                var error = string.Format("ERROR {0} {1}", ex.Message, ex);
+                var error = string.Format("ERROR [" + Machine.Name + "] {0} {1}", ex.Message, ex);
                 Logger.WriteLog(Logger._errorLog, error);
             }
 
             return "";
         }
 
-        public bool Init()
+        public virtual bool Init()
         {
-            PingTimer.Start();
             return true;
         }
 

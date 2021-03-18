@@ -254,7 +254,16 @@ namespace InternetClawMachine.Settings
         /// Holds slack settings
         /// </summary>
         public SlackSettings SlackSettings { set; get; }
+
+        /// <summary>
+        /// If the entire game is paused
+        /// </summary>
         public bool IsPaused { get; internal set; }
+
+        /// <summary>
+        /// Whether we allow printjob command to change scene
+        /// </summary>
+        public bool PrintJobEnabled { get; set; }
 
         #endregion Properties
 

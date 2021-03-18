@@ -13,6 +13,7 @@ namespace InternetClawMachine
         public static string _machineLog;
         public static string _debugLog;
         public static LogLevel _level = LogLevel.ERROR;
+        private static Object _logWritingLock = new object();
 
         public static void Init(string defaultFolder, string errpfx, string machpfx, string dbgpfx)
         {
@@ -29,6 +30,7 @@ namespace InternetClawMachine
 
         public static void WriteLog(string logfile, string message, LogLevel logLevel)
         {
+            
             if (_defaultLogFolder == null)
             {
                 MessageBox.Show("No log folder defined");
@@ -41,18 +43,21 @@ namespace InternetClawMachine
 
             var date = DateTime.Now.ToString("dd-MM-yyyy");
             var timestamp = DateTime.Now.ToString("HH:mm:ss.ff");
-            var fileHandle = GetFileHandle(logfile, date);
-            if (fileHandle != null)
+            lock (_logWritingLock)
             {
-                try
+                var fileHandle = GetFileHandle(logfile, date);
+                if (fileHandle != null)
                 {
-                    fileHandle.WriteLine(timestamp + " " + message);
+                    try
+                    {
+                        fileHandle.WriteLine(timestamp + " " + message);
 
-                    fileHandle.Flush(); //force write to the file
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show("Unable to write to log file.\r\n" + ex.Message);
+                        fileHandle.Flush(); //force write to the file
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show("Unable to write to log file.\r\n" + ex.Message);
+                    }
                 }
             }
         }

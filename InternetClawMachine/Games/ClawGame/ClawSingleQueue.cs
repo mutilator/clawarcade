@@ -158,6 +158,14 @@ namespace InternetClawMachine.Games.ClawGame
                         PlayerQueue.RemoveSinglePlayer(PlayerQueue.CurrentPlayer);
                     }
 
+                    //fix an issue caused by a controller disconnecting during a reset sequence, if the bot doesn't recieve the re-center event it wont allow further commands
+                    //TODO fix this properly, tech debt
+                    if (PlayerQueue.Count == 0)
+                    {
+                        DropInCommandQueue = false;
+                        Configuration.OverrideChat = false;
+                    }
+
                     //rather than having something constantly checking for the next player the end time of the current player is used to move to the next
                     //however if no player is in the queue this will never come about so we need to check it here
                     try

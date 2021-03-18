@@ -500,6 +500,26 @@ namespace InternetClawMachine
 
             switch (translateCommand.FinalWord)
             {
+                case "printer":
+                case "print":
+                    if (!isSubscriber)
+                        break;
+                    if (!Configuration.PrintJobEnabled)
+                        return;
+                    var scene = ObsConnection.GetCurrentScene();
+                    if (scene.Name == "PrintJob")
+                    {
+                        if (!(Game is ClawGame))
+                            return;
+                        var machine = (ClawController)((ClawGame)Game).GetActiveMachine();
+
+                        ((ClawGame)Game).SwitchMachine(machine.Machine.Name);
+                        
+                    } else
+                    {
+                        ObsConnection.SetCurrentScene("PrintJob");
+                    }
+                    break;
                 case "volume":
                     if (!Configuration.AdminUsers.Contains(username))
                         break;
@@ -1542,7 +1562,10 @@ namespace InternetClawMachine
             Game.StartGame(username);
             if (Game is ClawGame game)
             {
-                lstPlushes.ItemsSource = game.PlushieTags;
+                Dispatcher?.BeginInvoke(new Action(() =>
+                {
+                    lstPlushes.ItemsSource = game.PlushieTags;
+                }));
             }
             Configuration.IsPaused = false;
             if (!(Game is ClawChaos))
@@ -2279,8 +2302,19 @@ namespace InternetClawMachine
         {
             if (Game is ClawGame game)
             {
-                ((ClawController)game.GetActiveMachine()).Disconnect();
-                ((ClawController)game.GetActiveMachine()).Connect();
+                if (cmbClawMachineList.SelectedItem == null)
+                    return;
+                var machineInfo = (ClawMachine)cmbClawMachineList.SelectedItem;
+                try
+                {
+                    var myMachine = (ClawController) (((ClawGame) Game).GetNamedMachine(machineInfo.Name));
+                    myMachine.Disconnect();
+                    myMachine.Connect();
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(ex.Message, "Error connecting");
+                }
             }
         }
 
@@ -2513,8 +2547,16 @@ namespace InternetClawMachine
 
                 var myMachine = (ClawController)(((ClawGame)Game).GetNamedMachine(machineInfo.Name));
                 var cmd = txtClawSendCommand.Text;
-                var resp = myMachine.SendCommand(cmd);
-                txtClawCommandResponse.Text = resp;
+                try
+                {
+                    var resp = myMachine.SendCommand(cmd);
+
+                    txtClawCommandResponse.Text = resp;
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(ex.Message, "Error sending command");
+                }
             }
         }
 

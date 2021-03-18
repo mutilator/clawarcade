@@ -159,6 +159,7 @@
                         <Button x:Name="btnGhost1" Content="Gst1" HorizontalAlignment="Left" VerticalAlignment="Top" Width="65" Margin="547,84,0,0" Click="BtnGhost1_Click" />
                         <Button x:Name="btnGhost2" Content="Gst2" HorizontalAlignment="Left" VerticalAlignment="Top" Width="65" Margin="617,84,0,0" Click="BtnGhost2_Click" />
                         <Button x:Name="btnBat1" Content="Bat1" HorizontalAlignment="Left" VerticalAlignment="Top" Width="65" Margin="687,84,0,0" Click="BtnBat1_Click" />
+                        <CheckBox x:Name="chkPrintJob" Content="Print Job Enabled" HorizontalAlignment="Left" Margin="230,290,0,0" VerticalAlignment="Top" IsChecked="{Binding PrintJobEnabled, Mode=TwoWay}" />
                     </Grid>
                 </TabItem>
                 <TabItem Header="Plushes" Padding="20,2">

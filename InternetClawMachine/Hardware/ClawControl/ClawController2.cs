@@ -62,7 +62,7 @@ namespace InternetClawMachine.Hardware.ClawControl
                         break;
 
                     case MovementDirection.COIN:
-                        dir = "start";
+                        dir = "coin";
                         break;
 
                     case MovementDirection.CONVEYOR:
@@ -141,6 +141,12 @@ namespace InternetClawMachine.Hardware.ClawControl
         public override void DualStrobe(int red, int blue, int green, int red2, int blue2, int green2, int strobeCount, int strobeDelay)
         {
             SendCommandAsync($"uno ds {red}:{blue}:{green} {red2}:{blue2}:{green2} {strobeCount} {strobeDelay} 0");
+        }
+
+        public override bool Init()
+        {
+            SendCommandAsync($"start");
+            return true;
         }
     }
 

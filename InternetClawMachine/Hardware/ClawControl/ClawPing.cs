@@ -22,6 +22,6 @@ namespace InternetClawMachine.Hardware.ClawControl
         /// <summary>
         /// Cancellation token for the Task
         /// </summary>
-        public CancellationTokenSource CancelToken { get; internal set; }
+        //public CancellationTokenSource CancelToken { get; internal set; }
     }
 }
