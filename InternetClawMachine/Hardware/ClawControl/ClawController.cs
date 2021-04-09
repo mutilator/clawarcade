@@ -36,7 +36,6 @@ namespace InternetClawMachine.Hardware.ClawControl
 
     internal class ClawController : IMachineControl
     {
-        
 
         public event MachineEventHandler OnDisconnected;
 
@@ -302,6 +301,7 @@ namespace InternetClawMachine.Hardware.ClawControl
                 Thread.Sleep(200);
                 //kick off the first ping
                 StartPing();
+                OnConnected?.Invoke(this);
                 return true;
             }
             catch (Exception ex)
@@ -679,7 +679,7 @@ namespace InternetClawMachine.Hardware.ClawControl
                     Logger.WriteLog(Logger._errorLog, error);
                     OnPingTimeout?.Invoke(this);
                     OnDisconnected?.Invoke(this);
-                    
+                    return;
                 }
                 catch (Exception ex)
                 {
@@ -700,6 +700,7 @@ namespace InternetClawMachine.Hardware.ClawControl
             
                 _workSocket.Shutdown(SocketShutdown.Both);
                 _workSocket.Close();
+                
             }
             catch (Exception ex)
             {

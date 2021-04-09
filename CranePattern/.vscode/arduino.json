@@ -1,5 +1,5 @@
 {
-    "port": "COM8",
+    "port": "COM6",
     "board": "arduino:avr:uno",
     "sketch": "CranePattern.ino"
 }

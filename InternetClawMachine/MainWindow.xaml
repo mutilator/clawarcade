@@ -151,15 +151,16 @@
                         <Button x:Name="btnReloadTranslations" Content="Reload Translations" HorizontalAlignment="Left" VerticalAlignment="Top" Width="162" Margin="477,290,0,0" Click="BtnReloadTranslations_Click" />
                         <Button x:Name="btnTvEnable" Content="Enable TV" HorizontalAlignment="Left" VerticalAlignment="Top" Width="108" Margin="477,180,0,0" Click="BtnTvEnable_Click" />
                         <Button x:Name="btnTvDisable" Content="Disable TV" HorizontalAlignment="Left" VerticalAlignment="Top" Width="110" Margin="590,180,0,0" Click="BtnTvDisable_Click" />
-                        <Button x:Name="btnGlitch1" Content="1" HorizontalAlignment="Left" VerticalAlignment="Top" Width="45" Margin="477,143,0,0" />
-                        <Button x:Name="btnGlitch2" Content="2" HorizontalAlignment="Left" VerticalAlignment="Top" Width="45" Margin="527,143,0,0" />
-                        <Button x:Name="btnGlitch3" Content="3" HorizontalAlignment="Left" VerticalAlignment="Top" Width="45" Margin="577,143,0,0" />
-                        <Button x:Name="btnGlitch4" Content="4" HorizontalAlignment="Left" VerticalAlignment="Top" Width="45" Margin="627,143,0,0" />
+                        <Button x:Name="btnGlitch1" Content="1" HorizontalAlignment="Left" VerticalAlignment="Top" Width="45" Margin="477,143,0,0" Click="BtnGlitch1_Click" />
+                        <Button x:Name="btnGlitch2" Content="2" HorizontalAlignment="Left" VerticalAlignment="Top" Width="45" Margin="527,143,0,0" Click="BtnGlitch2_Click" />
+                        <Button x:Name="btnGlitch3" Content="3" HorizontalAlignment="Left" VerticalAlignment="Top" Width="45" Margin="577,143,0,0" Click="BtnGlitch3_Click" />
+                        <Button x:Name="btnGlitch4" Content="4" HorizontalAlignment="Left" VerticalAlignment="Top" Width="45" Margin="627,143,0,0" Click="BtnGlitch4_Click" />
                         <Label Content="Glitches" HorizontalAlignment="Left" Margin="477,121,0,0" VerticalAlignment="Top" />
                         <Button x:Name="btnGhost1" Content="Gst1" HorizontalAlignment="Left" VerticalAlignment="Top" Width="65" Margin="547,84,0,0" Click="BtnGhost1_Click" />
                         <Button x:Name="btnGhost2" Content="Gst2" HorizontalAlignment="Left" VerticalAlignment="Top" Width="65" Margin="617,84,0,0" Click="BtnGhost2_Click" />
                         <Button x:Name="btnBat1" Content="Bat1" HorizontalAlignment="Left" VerticalAlignment="Top" Width="65" Margin="687,84,0,0" Click="BtnBat1_Click" />
-                        <CheckBox x:Name="chkPrintJob" Content="Print Job Enabled" HorizontalAlignment="Left" Margin="230,290,0,0" VerticalAlignment="Top" IsChecked="{Binding PrintJobEnabled, Mode=TwoWay}" />
+                        <CheckBox x:Name="chkPrintJob" Content="Print Job Enabled" HorizontalAlignment="Left" Margin="328,276,0,0" VerticalAlignment="Top" IsChecked="{Binding PrintJobEnabled, Mode=TwoWay}" />
+                        <Button x:Name="btnGlitch5" Content="5" HorizontalAlignment="Left" VerticalAlignment="Top" Width="45" Margin="677,143,0,0" Click="BtnGlitch5_Click"/>
                     </Grid>
                 </TabItem>
                 <TabItem Header="Plushes" Padding="20,2">
@@ -229,9 +230,9 @@
                         <CheckBox Content="Allow Win Anim. Override" HorizontalAlignment="Left" IsChecked="{Binding EventMode.AllowOverrideWinAnimation, Mode=TwoWay}" VerticalAlignment="Top" Margin="217,82,0,0" />
                         <CheckBox Content="Allow Wire Frame Override" HorizontalAlignment="Left" IsChecked="{Binding EventMode.AllowOverrideWireFrame, Mode=TwoWay}" VerticalAlignment="Top" Margin="217,105,0,0" />
                         <CheckBox Content="Disable Strobe" HorizontalAlignment="Left" IsChecked="{Binding EventMode.DisableStrobe, Mode=TwoWay}" VerticalAlignment="Top" Margin="10,151,0,0" />
-                        
+
                         <CheckBox Content="Team Required" HorizontalAlignment="Left" IsChecked="{Binding EventMode.TeamRequired, Mode=TwoWay}" VerticalAlignment="Top" Margin="217,151,0,0" />
-                        
+
                         <CheckBox Content="Force Disable Greenscreen" HorizontalAlignment="Left" IsChecked="{Binding EventMode.GreenScreenOverrideOff, Mode=TwoWay}" VerticalAlignment="Top" Margin="217,174,0,0" />
                         <CheckBox Content="Disable Flipper" HorizontalAlignment="Left" IsChecked="{Binding EventMode.DisableFlipper, Mode=TwoWay}" VerticalAlignment="Top" Margin="10,174,0,0" />
                         <xctk:IntegerUpDown Value="{Binding EventMode.QueueSizeMax, Mode=TwoWay}" Margin="10,288,700,87" />
@@ -287,15 +288,15 @@
                         <Slider x:Name="sldrsinglePlayerQueueNoCommandDuration" HorizontalAlignment="Left" Margin="10,222,0,0" VerticalAlignment="Top" Width="112" Maximum="60" Minimum="1" Value="{Binding ClawSettings.SinglePlayerQueueNoCommandDuration, Mode=TwoWay}" IsSnapToTickEnabled="True" />
                         <Label Content="NoCommandDuration" HorizontalAlignment="Left" Margin="10,196,0,0" VerticalAlignment="Top" RenderTransformOrigin="-0.026,-0.077" />
                         <Label x:Name="lblsinglePlayerQueueNoCommandDuration" HorizontalAlignment="Left" Margin="147,196,0,0" VerticalAlignment="Top" RenderTransformOrigin="0.368,-0.308" Content="{Binding Value, ElementName=sldrsinglePlayerQueueNoCommandDuration}" />
-                        <Button Content="Reset" HorizontalAlignment="Left" Margin="678,168,0,0" VerticalAlignment="Top" Width="74" x:Name="btnResetCam" RenderTransformOrigin="0.573,0.35" Click="btnResetCam_Click" />
+                        <Button Content="Reset" HorizontalAlignment="Left" Margin="678,244,0,0" VerticalAlignment="Top" Width="74" x:Name="btnResetCam" RenderTransformOrigin="0.573,0.35" Click="btnResetCam_Click" />
                         <Button x:Name="btnScene1" Content="Scene 1" HorizontalAlignment="Left" Margin="551,31,0,0" VerticalAlignment="Top" Width="80" Click="btnScene1_Click" />
                         <Button x:Name="btnScene2" Content="Scene 2" HorizontalAlignment="Left" Margin="551,68,0,0" VerticalAlignment="Top" Width="80" Click="btnScene2_Click" />
                         <Button x:Name="btnScene3" Content="Scene 3" HorizontalAlignment="Left" Margin="551,105,0,0" VerticalAlignment="Top" Width="80" Click="btnScene3_Click" />
                         <CheckBox x:Name="chkAttractMode" Content="Attract Mode" HorizontalAlignment="Left" Margin="636,54,0,0" VerticalAlignment="Top" Checked="chkAttractMode_Checked" Click="chkAttractMode_Click" />
                         <CheckBox x:Name="ClawPower" Content="Enable Lasers" HorizontalAlignment="Left" Margin="636,72,0,0" VerticalAlignment="Top" Click="ClawPower_Click" IsEnabled="False" />
 
-                        <Label Content="Claw Camera IP" HorizontalAlignment="Left" Margin="551,146,0,0" VerticalAlignment="Top" />
-                        <TextBox HorizontalAlignment="Left" Height="23" Margin="551,177,0,0" Text="{Binding ClawSettings.ClawCameraAddress}" VerticalAlignment="Top" Width="120" />
+                        <Label Content="Claw Camera IP" HorizontalAlignment="Left" Margin="551,222,0,0" VerticalAlignment="Top" />
+                        <TextBox HorizontalAlignment="Left" Height="23" Margin="551,253,0,0" Text="{Binding ClawSettings.ClawCameraAddress}" VerticalAlignment="Top" Width="120" />
                         <Slider x:Name="sldrconveyorRunFlipper" HorizontalAlignment="Left" Margin="193,317,0,0" VerticalAlignment="Top" Width="113" Maximum="5000" Minimum="1" Value="{Binding ClawSettings.ConveyorRunDuringFlipper, Mode=TwoWay}" SmallChange="100" LargeChange="100" IsSnapToTickEnabled="True" TickFrequency="100" />
                         <Label Content="conveyorRunFlipper" HorizontalAlignment="Left" Margin="193,291,0,0" VerticalAlignment="Top" RenderTransformOrigin="-0.026,-0.077" />
                         <Label x:Name="lblconveyorRunFlipper" HorizontalAlignment="Left" Margin="325,291,0,0" VerticalAlignment="Top" RenderTransformOrigin="0.368,-0.308" Content="{Binding Value, ElementName=sldrconveyorRunFlipper}" />
@@ -306,6 +307,7 @@
                         <Label Content="ConveyWaitBfrFlipper" HorizontalAlignment="Left" Margin="193,196,0,0" VerticalAlignment="Top" RenderTransformOrigin="-0.026,-0.077" />
                         <Label x:Name="lblConveyorWaitBeforeFlipper" HorizontalAlignment="Left" Margin="325,196,0,0" VerticalAlignment="Top" RenderTransformOrigin="0.368,-0.308" Content="{Binding Value, ElementName=sldrConveyorWaitBeforeFlipper}" />
                         <CheckBox x:Name="chkClipRFIDMisses" Content="Clip RFID Misses" HorizontalAlignment="Left" Margin="636,90,0,0" VerticalAlignment="Top" IsChecked="{Binding ClawSettings.ClipMissedPlush, Mode=TwoWay}" />
+                        <CheckBox x:Name="chkReverseControls" Content="Reverse Controls" HorizontalAlignment="Left" VerticalAlignment="Top" IsChecked="{Binding ClawSettings.ReverseControles, Mode=TwoWay}" Margin="636,112,0,0" />
                         <Slider x:Name="sldrconveyorRuntimeMin" HorizontalAlignment="Left" Margin="355,272,0,0" VerticalAlignment="Top" Width="113" Maximum="5000" Minimum="1" Value="{Binding ClawSettings.BeltRuntimeMin, Mode=TwoWay}" SmallChange="100" LargeChange="100" IsSnapToTickEnabled="True" TickFrequency="100" />
                         <Label Content="beltRuntimeMin" HorizontalAlignment="Left" Margin="355,246,0,0" VerticalAlignment="Top" RenderTransformOrigin="-0.026,-0.077" />
                         <Label x:Name="lblconveyorRuntimeMin" HorizontalAlignment="Left" Margin="487,246,0,0" VerticalAlignment="Top" RenderTransformOrigin="0.368,-0.308" Content="{Binding Value, ElementName=sldrconveyorRuntimeMin}" />
@@ -324,6 +326,7 @@
                         <Slider x:Name="sldrTriviaEndRoundDelay" HorizontalAlignment="Left" Margin="545,362,0,0" VerticalAlignment="Top" Width="113" Maximum="50" Minimum="1" Value="{Binding ClawSettings.TriviaEndRoundDelay, Mode=TwoWay}" SmallChange="1" IsSnapToTickEnabled="True" />
                         <Label Content="TriviaEndRoundDelay" HorizontalAlignment="Left" Margin="545,336,0,0" VerticalAlignment="Top" RenderTransformOrigin="-0.026,-0.077" />
                         <Label x:Name="lblTriviaEndRoundDelay" HorizontalAlignment="Left" Margin="677,336,0,0" VerticalAlignment="Top" RenderTransformOrigin="0.368,-0.308" Content="{Binding Value, ElementName=sldrTriviaEndRoundDelay}" />
+                        <CheckBox x:Name="chkGlitchMode" Content="Glitch Mode" HorizontalAlignment="Left" VerticalAlignment="Top" IsChecked="{Binding ClawSettings.GlitchMode, Mode=TwoWay}" Margin="636,135,0,0" />
                     </Grid>
                 </TabItem>
                 <TabItem Header="Golf" Padding="20,2">
@@ -564,6 +567,7 @@
                         </TabControl>
                     </Grid>
                 </TabItem>
+
 
             </TabControl>
             <Label Content="Event Mode" HorizontalAlignment="Left" Margin="629,281,0,0" VerticalAlignment="Top" Height="26" Width="79" />

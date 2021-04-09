@@ -36,6 +36,7 @@ namespace InternetClawMachine.Games.ClawGame
         private Random _rnd = new Random();
         private int _pinBlackLight = 9;
         private bool _reconnecting;
+        private bool _isGlitching;
 
         #endregion Fields
 
@@ -169,6 +170,7 @@ namespace InternetClawMachine.Games.ClawGame
             //The ideal fix would be to know the last machine played, if it was the machine that's reconnecting, set these to true
             DropInCommandQueue = false;
             Configuration.OverrideChat = false;
+            MachineControl_OnClawCentered(controller, new EventArgs());
         }
 
         private void ClawGame_OBSSceneChange(object sender, OBSSceneChangeEventArgs e)
@@ -1673,26 +1675,24 @@ namespace InternetClawMachine.Games.ClawGame
                                     break;
 
                                 if (args.Length != 3)
+                                    return;
+
+                                if (DatabaseFunctions.GetStreamBuxBalance(Configuration, username) + Configuration.GetStreamBuxCost(StreamBuxTypes.BELT) >= 0)
                                 {
+                                    DatabaseFunctions.AddStreamBuxBalance(Configuration, username, StreamBuxTypes.BELT, Configuration.GetStreamBuxCost(StreamBuxTypes.BELT));
+
+                                        
+                                    RunBelt(GetActiveMachine(), args[2]);
+                                        
+
+                                    Thread.Sleep(100);
+                                    ChatClient.SendWhisper(username, string.Format(Translator.GetTranslation("gameClawCommandBuxBal", Configuration.UserList.GetUserLocalization(username)), DatabaseFunctions.GetStreamBuxBalance(Configuration, username)));
                                 }
                                 else
                                 {
-                                    if (DatabaseFunctions.GetStreamBuxBalance(Configuration, username) + Configuration.GetStreamBuxCost(StreamBuxTypes.BELT) >= 0)
-                                    {
-                                        DatabaseFunctions.AddStreamBuxBalance(Configuration, username, StreamBuxTypes.BELT, Configuration.GetStreamBuxCost(StreamBuxTypes.BELT));
-
-                                        
-                                        RunBelt(GetActiveMachine(), args[1]);
-                                        
-
-                                        Thread.Sleep(100);
-                                        ChatClient.SendWhisper(username, string.Format(Translator.GetTranslation("gameClawCommandBuxBal", Configuration.UserList.GetUserLocalization(username)), DatabaseFunctions.GetStreamBuxBalance(Configuration, username)));
-                                    }
-                                    else
-                                    {
-                                        ChatClient.SendMessage(Configuration.Channel, string.Format(Translator.GetTranslation("gameClawCommandBuxInsuffBal", Configuration.UserList.GetUserLocalization(username)), DatabaseFunctions.GetStreamBuxBalance(Configuration, username)));
-                                    }
+                                    ChatClient.SendMessage(Configuration.Channel, string.Format(Translator.GetTranslation("gameClawCommandBuxInsuffBal", Configuration.UserList.GetUserLocalization(username)), DatabaseFunctions.GetStreamBuxBalance(Configuration, username)));
                                 }
+                                
                                 break;
 
                             case "rename":
@@ -1993,6 +1993,7 @@ namespace InternetClawMachine.Games.ClawGame
                 }
                 Logger.WriteLog(Logger._debugLog, guid + "Start processing: " + Thread.CurrentThread.ManagedThreadId, Logger.LogLevel.DEBUG);
                 var machineControl = currentCommand.MachineControl;
+
                 //do actual direction moves
                 switch (currentCommand.Direction)
                 {
@@ -2000,7 +2001,10 @@ namespace InternetClawMachine.Games.ClawGame
                         
                         if (machineControl.CurrentDirection != MovementDirection.FORWARD)
                             Logger.WriteLog(Logger._machineLog, "MOVE FORWARD");
-                        await machineControl.MoveForward(currentCommand.Duration);
+                        if (Configuration.ClawSettings.ReverseControles)
+                            await machineControl.MoveBackward(currentCommand.Duration);
+                        else
+                            await machineControl.MoveForward(currentCommand.Duration);
 
                         break;
 
@@ -2008,7 +2012,10 @@ namespace InternetClawMachine.Games.ClawGame
 
                         if (machineControl.CurrentDirection != MovementDirection.BACKWARD)
                             Logger.WriteLog(Logger._machineLog, "MOVE BACKWARD");
-                        await machineControl.MoveBackward(currentCommand.Duration);
+                        if (Configuration.ClawSettings.ReverseControles)
+                            await machineControl.MoveForward(currentCommand.Duration);
+                        else
+                            await machineControl.MoveBackward(currentCommand.Duration);
 
                         break;
 
@@ -2016,7 +2023,10 @@ namespace InternetClawMachine.Games.ClawGame
 
                         if (machineControl.CurrentDirection != MovementDirection.LEFT)
                             Logger.WriteLog(Logger._machineLog, "MOVE LEFT");
-                        await machineControl.MoveLeft(currentCommand.Duration);
+                        if (Configuration.ClawSettings.ReverseControles)
+                            await machineControl.MoveRight(currentCommand.Duration);
+                        else
+                            await machineControl.MoveLeft(currentCommand.Duration);
 
                         break;
 
@@ -2024,7 +2034,10 @@ namespace InternetClawMachine.Games.ClawGame
 
                         if (machineControl.CurrentDirection != MovementDirection.RIGHT)
                             Logger.WriteLog(Logger._machineLog, "MOVE RIGHT");
-                        await machineControl.MoveRight(currentCommand.Duration);
+                        if (Configuration.ClawSettings.ReverseControles)
+                            await machineControl.MoveLeft(currentCommand.Duration);
+                        else
+                            await machineControl.MoveRight(currentCommand.Duration);
 
                         break;
 
@@ -2283,7 +2296,7 @@ namespace InternetClawMachine.Games.ClawGame
 
                     WsConnection.SendCommand(MediaWebSocketServer._commandMedia, data);
                 }
-                else if (Configuration.EventMode.EventMode == EventMode.SPECIAL && (Configuration.EventMode.WinAnimation != null && pointsToAdd > 0 || Configuration.EventMode.FailAnimation != null && pointsToAdd < 0)) //if they didnt have a custom animation but an event is going on with a custom animation
+                else if (Configuration.EventMode.EventMode == EventMode.SPECIAL && (winAnimation != null && pointsToAdd > 0 || Configuration.EventMode.FailAnimation != null && pointsToAdd < 0)) //if they didnt have a custom animation but an event is going on with a custom animation
                 {
                     if (pointsToAdd > 0)
                     {
@@ -3180,7 +3193,6 @@ namespace InternetClawMachine.Games.ClawGame
 
                 Logger.WriteLog(Logger._machineLog, " Ping [" + ((ClawController)machine).Machine.Name + "]: " + latency + "ms", Logger.LogLevel.DEBUG);
             }
-                    
             _reconnectCounter = 0;
         }
 
@@ -3212,6 +3224,33 @@ namespace InternetClawMachine.Games.ClawGame
                     HandleBlackLightMode(m);
                 }
                 
+            }
+            else if (e.PropertyName == "GlitchMode")
+            {
+                if (_isGlitching && !Configuration.ClawSettings.GlitchMode)
+                {
+                    _isGlitching = false;
+                } else if (_isGlitching) //glitching and set it to true so don't do anything, out of sync somehow
+                {
+
+                } else if (Configuration.ClawSettings.GlitchMode)
+                {
+                    StartGlitching();
+                }
+            }
+        }
+
+        private async void StartGlitching()
+        {
+            _isGlitching = true;
+            while (_isGlitching || !GameCancellationToken.IsCancellationRequested)
+            {
+                await Task.Delay(90000);
+                var rnd = new Random();
+                var rng = rnd.Next(5) + 1;
+                var data = new JObject();
+                data.Add("name", "CLIP-glitch" + rng);
+                WsConnection.SendCommand(MediaWebSocketServer._commandMedia, data);
             }
         }
 
@@ -3970,6 +4009,9 @@ namespace InternetClawMachine.Games.ClawGame
             }
 
             var usr = Configuration.UserList.GetUser(winner);
+            if (usr == null)
+                return;
+
             var winnerName = winner;
             var teamid = usr.TeamId;
             if (Configuration.EventMode.TeamRequired)
@@ -3985,10 +4027,11 @@ namespace InternetClawMachine.Games.ClawGame
 
             //see if they're in the tracker yeta
             var user = SessionWinTracker.FirstOrDefault(u => u.Username == winner);
-            if (user != null)
-                user = SessionWinTracker.First(u => u.Username == winner);
-            else
+            if (user == null)
+            { 
                 user = new SessionWinTracker { Username = winner };
+                SessionWinTracker.Add(user);
+            }
 
             if (pointsToAdd < 0) //if we're negative points, handle inside this so we don't skip to another text we don't want
             {
@@ -4011,8 +4054,16 @@ namespace InternetClawMachine.Games.ClawGame
             }
             else if (!string.IsNullOrEmpty(Configuration.EventMode.CustomWinTextResource) && pointsToAdd > 0) //if an RF scan but also custom text enter here
             {
-                saying = string.Format(Translator.GetTranslation(Configuration.EventMode.CustomWinTextResource, Configuration.UserList.GetUserLocalization(winner)), winnerName, null, pointsToAdd, pointsToAdd);
-                DatabaseFunctions.AddStreamBuxBalance(Configuration, user.Username, StreamBuxTypes.WIN, pointsToAdd);
+                if (Configuration.EventMode.WinMultiplier > 0)
+                {
+                    saying = string.Format(Translator.GetTranslation(Configuration.EventMode.CustomWinTextResource, Configuration.UserList.GetUserLocalization(winner)), winnerName, Configuration.EventMode.WinMultiplier);
+                    DatabaseFunctions.AddStreamBuxBalance(Configuration, user.Username, StreamBuxTypes.WIN, Configuration.GetStreamBuxCost(StreamBuxTypes.WIN) * Configuration.EventMode.WinMultiplier);
+                }
+                else
+                {
+                    saying = string.Format(Translator.GetTranslation(Configuration.EventMode.CustomWinTextResource, Configuration.UserList.GetUserLocalization(winner)), winnerName, null, pointsToAdd, pointsToAdd);
+                    DatabaseFunctions.AddStreamBuxBalance(Configuration, user.Username, StreamBuxTypes.WIN, pointsToAdd);
+                }
             }
             //otherwise if just a custom win, mainly for events, use this
             else if (!string.IsNullOrEmpty(Configuration.EventMode.CustomWinTextResource))

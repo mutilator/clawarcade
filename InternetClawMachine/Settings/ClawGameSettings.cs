@@ -8,6 +8,7 @@ namespace InternetClawMachine.Settings
     {
         private bool _wiggleMode;
         private bool _blackLightMode;
+        private bool _glitchtMode;
 
         public int StrobeRedChannel { set; get; }
         public int StrobeBlueChannel { set; get; }
@@ -19,6 +20,17 @@ namespace InternetClawMachine.Settings
         public int StrobeCount { set; get; }
         public int StrobeMaxTime { set; get; }
 
+        public bool GlitchMode {
+            set
+            {
+                var fire = !value.Equals(_glitchtMode);
+                _glitchtMode = value;
+                if (fire)
+                    OnPropertyChanged();
+            }
+            get => _glitchtMode;
+        }
+        public bool ReverseControles { set; get; }
         /// <summary>
         /// Whether wiggle mode is on or off
         /// </summary>

@@ -3076,6 +3076,42 @@ namespace InternetClawMachine
 
             ((ClawGame)Game).SwitchMachine(machine.Name);
         }
+
+        private void BtnGlitch1_Click(object sender, RoutedEventArgs e)
+        {
+            
+            var data = new JObject();
+            data.Add("name", "CLIP-glitch1");
+            Game.WsConnection.SendCommand(MediaWebSocketServer._commandMedia, data);
+        }
+
+        private void BtnGlitch2_Click(object sender, RoutedEventArgs e)
+        {
+            var data = new JObject();
+            data.Add("name", "CLIP-glitch2");
+            Game.WsConnection.SendCommand(MediaWebSocketServer._commandMedia, data);
+        }
+
+        private void BtnGlitch3_Click(object sender, RoutedEventArgs e)
+        {
+            var data = new JObject();
+            data.Add("name", "CLIP-glitch3");
+            Game.WsConnection.SendCommand(MediaWebSocketServer._commandMedia, data);
+        }
+
+        private void BtnGlitch4_Click(object sender, RoutedEventArgs e)
+        {
+            var data = new JObject();
+            data.Add("name", "CLIP-glitch4");
+            Game.WsConnection.SendCommand(MediaWebSocketServer._commandMedia, data);
+        }
+
+        private void BtnGlitch5_Click(object sender, RoutedEventArgs e)
+        {
+            var data = new JObject();
+            data.Add("name", "CLIP-glitch5");
+            Game.WsConnection.SendCommand(MediaWebSocketServer._commandMedia, data);
+        }
     }
 
     public class LogLevelOption
