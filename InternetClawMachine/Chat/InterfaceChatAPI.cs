@@ -45,6 +45,8 @@ namespace InternetClawMachine.Chat
 
         void ThrottleMessage(int messages, TimeSpan lengthOfTime);
 
+        void JoinChannel(string channel);
+
         #endregion Methods
 
         #region Properties

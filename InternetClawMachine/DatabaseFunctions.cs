@@ -155,7 +155,7 @@ namespace InternetClawMachine
                 configuration.RecordsDatabase.Open();
                 try
                 {
-                    var sql = "SELECT lights_on, scene, custom_win_clip, strobe_settings, localization, blacklightmode, greenscreen, wiretheme, teamid, reticlename, t.name, knows_multiple  FROM user_prefs LEFT JOIN teams t ON teamid = t.id WHERE lower(username) = @username";
+                    var sql = "SELECT lights_on, scene, custom_win_clip, strobe_settings, localization, blacklightmode, greenscreen, wiretheme, teamid, reticlename, t.name, knows_multiple, skeeball_normal_color  FROM user_prefs LEFT JOIN teams t ON teamid = t.id WHERE lower(username) = @username";
 
                     var command = new SQLiteCommand(sql, configuration.RecordsDatabase);
                     command.Parameters.Add(new SQLiteParameter("@username", prefs.Username));
@@ -179,6 +179,7 @@ namespace InternetClawMachine
                             prefs.TeamName = users.GetValue(10).ToString();
 
                             prefs.KnowsMultiple = users.GetValue(11).ToString() == "1";
+                            prefs.SkeeballNormalColor = users.GetValue(12).ToString();
                             prefs.EventTeamId = -1;
 
                             prefs.FromDatabase = true;
@@ -209,12 +210,12 @@ namespace InternetClawMachine
                     if (prefs.FromDatabase)
                     {
                         sql =
-                            "UPDATE user_prefs SET localization = @localization, lights_on = @lightsOn, scene = @scene, strobe_settings = @strobe, blacklightmode = @blacklightmode, greenscreen = @greenscreen, custom_win_clip = @winclip, wiretheme = @wiretheme, teamid = @team_id, eventteamid = @event_team_id, reticlename = @reticlename, knows_multiple = @knowsmultiple WHERE lower(username) = @username";
+                            "UPDATE user_prefs SET localization = @localization, lights_on = @lightsOn, scene = @scene, strobe_settings = @strobe, blacklightmode = @blacklightmode, greenscreen = @greenscreen, custom_win_clip = @winclip, wiretheme = @wiretheme, teamid = @team_id, eventteamid = @event_team_id, reticlename = @reticlename, knows_multiple = @knowsmultiple, skeeball_normal_color = @skeeball_normal_color WHERE lower(username) = @username";
                     }
                     else
                     {
                         sql =
-                            "INSERT INTO user_prefs (username, localization, lights_on, scene, strobe_settings, blacklightmode, greenscreen, custom_win_clip, wiretheme, teamid, eventteamid, reticlename, knows_multiple) VALUES (@username, @localization, @lightsOn, @scene,@strobe, @blacklightmode, @greenscreen, @winclip, @wiretheme, @team_id, @event_team_id, @reticlename, @knowsmultiple)";
+                            "INSERT INTO user_prefs (username, localization, lights_on, scene, strobe_settings, blacklightmode, greenscreen, custom_win_clip, wiretheme, teamid, eventteamid, reticlename, knows_multiple, skeeball_normal_color) VALUES (@username, @localization, @lightsOn, @scene,@strobe, @blacklightmode, @greenscreen, @winclip, @wiretheme, @team_id, @event_team_id, @reticlename, @knowsmultiple, @skeeball_normal_color)";
                     }
 
                     var command = configuration.RecordsDatabase.CreateCommand();
@@ -224,6 +225,7 @@ namespace InternetClawMachine
                     command.Parameters.Add(new SQLiteParameter("@lightsOn", prefs.LightsOn));
                     command.Parameters.Add(new SQLiteParameter("@scene", prefs.Scene));
                     command.Parameters.Add(new SQLiteParameter("@strobe", prefs.CustomStrobe));
+                    command.Parameters.Add(new SQLiteParameter("@skeeball_normal_color", prefs.SkeeballNormalColor));
                     command.Parameters.Add(new SQLiteParameter("@username", prefs.Username));
                     command.Parameters.Add(new SQLiteParameter("@blacklightmode", prefs.BlackLightsOn));
                     command.Parameters.Add(new SQLiteParameter("@greenscreen", prefs.GreenScreen));
@@ -534,7 +536,6 @@ namespace InternetClawMachine
             }
         }
 
-
         internal static void WriteDbWinRecord(BotConfiguration configuration, UserPrefs user, int prize, string guid)
         {
             if (!configuration.RecordStats)
@@ -558,6 +559,39 @@ namespace InternetClawMachine
                         command.Parameters.Add(new SQLiteParameter("@teamid", user.EventTeamId));
                     else
                         command.Parameters.Add(new SQLiteParameter("@teamid", user.TeamId));
+                    command.ExecuteNonQuery();
+                }
+                catch (Exception ex)
+                {
+                    var error = string.Format("ERROR {0} {1}", ex.Message, ex);
+                    Logger.WriteLog(Logger._errorLog, error);
+                }
+                finally
+                {
+                    configuration.RecordsDatabase.Close();
+                }
+            }
+        }
+
+        internal static void WriteDbSkeeballNormalWinRecord(BotConfiguration configuration, UserPrefs user, int score, string guid)
+        {
+            if (!configuration.RecordStats)
+                return;
+
+            lock (configuration.RecordsDatabase)
+            {
+                try
+                {
+                    configuration.RecordsDatabase.Open();
+                    var sql = "INSERT INTO skeeball_normal_stats (timestamp, name, score, guid) VALUES (@datetime, @name, @score, @guid)";
+                    var command = configuration.RecordsDatabase.CreateCommand();
+                    command.CommandType = CommandType.Text;
+                    command.CommandText = sql;
+                    command.Parameters.Add(new SQLiteParameter("@datetime", Helpers.GetEpoch()));
+                    command.Parameters.Add(new SQLiteParameter("@name", user.Username));
+                    command.Parameters.Add(new SQLiteParameter("@score", score));
+                    command.Parameters.Add(new SQLiteParameter("@guid", guid));
+
                     command.ExecuteNonQuery();
                 }
                 catch (Exception ex)

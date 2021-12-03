@@ -32,6 +32,7 @@ namespace InternetClawMachine.Settings
 
         public VoteSettings VoteSettings { set; get; }
         public ClawGameSettings ClawSettings { set; get; }
+        public SkeeballGameSettings SkeeballSettings { set; get; }
         public GolfGameSettings GolfSettings { set; get; }
         public ObsSettings ObsSettings { set; get; }
         public TwitchSettings TwitchSettings { set; get; }
@@ -324,7 +325,8 @@ namespace InternetClawMachine.Settings
 
             var settings = new JsonSerializerSettings
             {
-                Formatting = Formatting.Indented
+                Formatting = Formatting.Indented,
+                NullValueHandling = NullValueHandling.Ignore
             };
 
             var jsonString = JsonConvert.SerializeObject(this, settings);

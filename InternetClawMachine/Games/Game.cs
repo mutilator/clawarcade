@@ -69,7 +69,7 @@ namespace InternetClawMachine.Games
         /// <summary>
         /// Running list of all commands being sent from chat
         /// </summary>
-        public List<ClawCommand> CommandQueue { get; set; }
+        public List<GameQueuedCommand> CommandQueue { get; set; }
 
         /// <summary>
         /// Timer for the command queue to record timings when events occur
@@ -142,7 +142,7 @@ namespace InternetClawMachine.Games
         /// <summary>
         /// Teams for players to join
         /// </summary>
-        public List<GameTeam> Teams { set; get; }
+        public List<GameTeam> Teams { set; get; } = new List<GameTeam>();
         /// <summary>
         /// Tally of all votes cast in this voting round
         /// </summary>
@@ -202,7 +202,7 @@ namespace InternetClawMachine.Games
             SecondaryWinnersList = new List<string>();
 
             PlayerQueue = new PlayerQueue(Configuration.EventMode.QueueSizeMax);
-            CommandQueue = new List<ClawCommand>();
+            CommandQueue = new List<GameQueuedCommand>();
             CommandQueueTimer = new Stopwatch();
             GameModeTimer = new Stopwatch();
             GameRoundTimer = new Stopwatch();
@@ -217,7 +217,8 @@ namespace InternetClawMachine.Games
 
         ~Game()
         {
-            ObsConnection.SceneChanged -= ObsConnection_SceneChanged;
+            if (ObsConnection != null)
+                ObsConnection.SceneChanged -= ObsConnection_SceneChanged;
             _isEnding = true;
             _runUpdateTimer = false;
         }
@@ -266,7 +267,7 @@ namespace InternetClawMachine.Games
                             if (DatabaseFunctions.GetStreamBuxBalance(Configuration, username) + Configuration.GetStreamBuxCost(StreamBuxTypes.SCARE) >= 0)
                             {
                                 DatabaseFunctions.AddStreamBuxBalance(Configuration, username, StreamBuxTypes.SCARE, Configuration.GetStreamBuxCost(StreamBuxTypes.SCARE));
-                                RunScare(true, 0);
+                                RunScare(true, _rnd.Next(Configuration.ObsScreenSourceNames.ThemeHalloweenScaresMax));
                                 Thread.Sleep(100);
                                 ChatClient.SendWhisper(username, string.Format(Translator.GetTranslation("gameClawCommandBuxBal", Configuration.UserList.GetUserLocalization(username)), DatabaseFunctions.GetStreamBuxBalance(Configuration, username)));
                             }
@@ -351,10 +352,7 @@ namespace InternetClawMachine.Games
         public virtual void ShowHelpSub(string username)
         {
             ChatClient.SendMessage(Configuration.Channel, Configuration.CommandPrefix + Translator.GetTranslation("gameHelpSub1", Configuration.UserList.GetUserLocalization(username)));
-            ChatClient.SendMessage(Configuration.Channel, Configuration.CommandPrefix + Translator.GetTranslation("gameHelpSub2", Configuration.UserList.GetUserLocalization(username)));
-            ChatClient.SendMessage(Configuration.Channel, Configuration.CommandPrefix + Translator.GetTranslation("gameHelpSub3", Configuration.UserList.GetUserLocalization(username)));
-            ChatClient.SendMessage(Configuration.Channel, Configuration.CommandPrefix + Translator.GetTranslation("gameHelpSub4", Configuration.UserList.GetUserLocalization(username)));
-            ChatClient.SendMessage(Configuration.Channel, Configuration.CommandPrefix + Translator.GetTranslation("gameHelpSub5", Configuration.UserList.GetUserLocalization(username)));
+            
         }
 
         public virtual void StartGame(string user)
@@ -413,6 +411,7 @@ namespace InternetClawMachine.Games
             }
         }
 
+        
         protected virtual void OnGameEnded(EventArgs e)
         {
             var handler = GameEnded;
@@ -441,6 +440,29 @@ namespace InternetClawMachine.Games
         }
         protected virtual void UpdateObsQueueDisplay()
         {
+            if (ObsConnection.IsConnected)
+            {
+                try
+                {
+                    if (PlayerQueue.Count > 0)
+                    {
+                        //ObsConnection.SetSourceRender(Configuration.ObsScreenSourceNames.TextOverlayChat.SourceName, true);
+                        ObsConnection.SetSourceRender(Configuration.ObsScreenSourceNames.TextOverlayPlayerQueue.SourceName, true);
+                        ObsConnection.SetSourceRender(Configuration.ObsScreenSourceNames.TextOverlayPlayNotification.SourceName, false);
+                    }
+                    else //swap the !play image for the queue list if no one is in the queue
+                    {
+                        //ObsConnection.SetSourceRender(Configuration.ObsScreenSourceNames.TextOverlayChat.SourceName, false);
+                        ObsConnection.SetSourceRender(Configuration.ObsScreenSourceNames.TextOverlayPlayerQueue.SourceName, false);
+                        ObsConnection.SetSourceRender(Configuration.ObsScreenSourceNames.TextOverlayPlayNotification.SourceName, true);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    var error = string.Format("ERROR {0} {1}", ex.Message, ex);
+                    Logger.WriteLog(Logger._errorLog, error);
+                }
+            }
         }
 
         private void PlayerQueue_ChangedPlayerQueue(object sender, QueueUpdateArgs e)

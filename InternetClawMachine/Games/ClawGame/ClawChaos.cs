@@ -71,7 +71,7 @@ namespace InternetClawMachine.Games.ClawGame
                         user = SessionWinTracker.First(u => u.Username == username);
                     else
                     {
-                        user = new SessionWinTracker { Username = username };
+                        user = new SessionUserTracker { Username = username };
                         SessionWinTracker.Add(user);
                     }
 
@@ -109,7 +109,7 @@ namespace InternetClawMachine.Games.ClawGame
             lock (CommandQueue)
             {
                 if (cmd != ClawDirection.NA)
-                    CommandQueue.Add(new ClawCommand { Direction = cmd, Duration = Configuration.ClawSettings.ClawMovementTime, Timestamp = GameModeTimer.ElapsedMilliseconds, Username = username, MachineControl = GetProperMachine(userPrefs) });
+                    CommandQueue.Add(new ClawQueuedCommand { Direction = cmd, Duration = Configuration.ClawSettings.ClawMovementTime, Timestamp = GameModeTimer.ElapsedMilliseconds, Username = username, MachineControl = GetProperMachine(userPrefs) });
             }
             Task.Run(async delegate { await ProcessQueue(); });
         }

@@ -224,11 +224,7 @@ namespace InternetClawMachine.Games.ClawGame
                 var matches = Regex.Matches(msg, regex);
                 //means we only have one letter commands
 
-                if (msg == "f" || msg == "b" || msg == "r" || msg == "l" || msg == "d")
-                {
-                    ChatClient.SendMessage(Configuration.Channel, string.Format(Translator.GetTranslation("gameClawResponseNoQueue", Configuration.UserList.GetUserLocalization(username)), Configuration.CommandPrefix));
-                }
-                else if (matches.Count > 0 && matches.Count * 2 == msg.Length && matches.Count < 10)
+                if (matches.Count > 0 && matches.Count * 2 == msg.Length && matches.Count < 10)
                 {
                     ChatClient.SendMessage(Configuration.Channel, string.Format(Translator.GetTranslation("gameClawResponseNoQueue", Configuration.UserList.GetUserLocalization(username)), Configuration.CommandPrefix));
                 }
@@ -402,7 +398,7 @@ namespace InternetClawMachine.Games.ClawGame
                         user = SessionWinTracker.First(u => u.Username == username);
                     else
                     {
-                        user = new SessionWinTracker { Username = username };
+                        user = new SessionUserTracker { Username = username };
                         SessionWinTracker.Add(user);
                     }
 
@@ -441,7 +437,7 @@ namespace InternetClawMachine.Games.ClawGame
             {
                 Logger.WriteLog(Logger._debugLog, "added command: " + Thread.CurrentThread.ManagedThreadId, Logger.LogLevel.TRACE);
                 if (cmd != ClawDirection.NA)
-                    CommandQueue.Add(new ClawCommand { Direction = cmd, Duration = moveTime, Timestamp = GameModeTimer.ElapsedMilliseconds, Username = username, MachineControl = GetProperMachine(userPrefs) });
+                    CommandQueue.Add(new ClawQueuedCommand { Direction = cmd, Duration = moveTime, Timestamp = GameModeTimer.ElapsedMilliseconds, Username = username, MachineControl = GetProperMachine(userPrefs) });
             }
             //try processing queue
             Task.Run(async delegate { await ProcessQueue(); });

@@ -12,6 +12,8 @@ namespace InternetClawMachine
         public static string _commandVideo = "video";
         public static string _commandMedia = "media";
 
+        public string Path { get; set; }
+
         public MediaWebSocketServer()
         {
         }
@@ -19,10 +21,14 @@ namespace InternetClawMachine
         public MediaWebSocketServer(int port) : base(port)
         {
         }
-
+        public MediaWebSocketServer(int port, string path) : base(port)
+        {
+            Path = path;
+        }
         public MediaWebSocketServer(string url) : base(url)
         {
         }
+
 
         public MediaWebSocketServer(int port, bool secure) : base(port, secure)
         {
@@ -35,7 +41,7 @@ namespace InternetClawMachine
         public MediaWebSocketServer(IPAddress address, int port, bool secure) : base(address, port, secure)
         {
         }
-
+        
         protected string NewMessageId(int length = 16)
         {
             const string pool = "abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
@@ -53,10 +59,11 @@ namespace InternetClawMachine
 
         public void SendCommand(string command, JObject payload)
         {
-            var eventData = new JObject();
-
-            // Build the bare-minimum body for a request
-            eventData.Add("command", command);
+            var eventData = new JObject
+            {
+                // Build the bare-minimum body for a request
+                { "command", command }
+            };
 
             // Add optional fields if provided
             if (payload != null)
@@ -69,7 +76,12 @@ namespace InternetClawMachine
                 eventData.Merge(payload);
             }
 
-            WebSocketServices.BroadcastAsync(eventData.ToString(), null);
+            WebSocketServiceHost host = null;
+            var blah = this.WebSocketServices.TryGetServiceHost(Path, out host);
+            if (blah)
+            {
+                host.Sessions.BroadcastAsync(eventData.ToString(), null);
+            }
         }
     }
 }

@@ -63,6 +63,7 @@ namespace InternetClawMachine.Chat
             _socket.OnOpen += _socket_OnOpen;
         }
 
+        
         private void _socket_OnOpen(object sender, EventArgs e)
         {
             if (OnConnected != null)
@@ -166,7 +167,7 @@ namespace InternetClawMachine.Chat
             }
         }
 
-        private void JoinChannel(string channel)
+        public void JoinChannel(string channel)
         {
             var joinObj = new GgJoinChannel { Type = "join", Data = new GgJoinChannelParams { ChannelId = Channel, Hidden = false } };
             var joinString = JsonConvert.SerializeObject(joinObj, Formatting.Indented);

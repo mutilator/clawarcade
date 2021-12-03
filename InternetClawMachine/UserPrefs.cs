@@ -16,27 +16,29 @@ namespace InternetClawMachine
         /// </summary>
         public bool FromDatabase { set; get; }
 
-        public string WinClipName { get; internal set; }
-        public string CustomStrobe { get; internal set; }
-        public bool BlackLightsOn { get; internal set; }
-        public string GreenScreen { get; internal set; }
-        public string WireTheme { get; internal set; }
+        public string SkeeballNormalColor { set; get; }
 
-        public int TeamId { get; internal set; }
-        public string TeamName { get; internal set; }
+        public string WinClipName { get; set; }
+        public string CustomStrobe { get; set; }
+        public bool BlackLightsOn { get; set; }
+        public string GreenScreen { get; set; }
+        public string WireTheme { get; set; }
 
-        public int EventTeamId { get; internal set; }
-        public string EventTeamName { get; internal set; }
+        public int TeamId { get; set; }
+        public string TeamName { get; set; }
+
+        public int EventTeamId { get; set; }
+        public string EventTeamName { get; set; }
 
         /// <summary>
         /// Which reticle they use
         /// </summary>
-        public string ReticleName { get; internal set; }
+        public string ReticleName { get; set; }
 
         /// <summary>
         /// Set true if we know the users knows how to use multiple commands
         /// </summary>
-        public bool KnowsMultiple { get; internal set; }
+        public bool KnowsMultiple { get; set; }
 
         /// <summary>
         /// How many times in a row has this user only used one command at a time?
@@ -53,6 +55,7 @@ namespace InternetClawMachine
             LightsOn = true;
             Scene = "";
             CustomStrobe = "";
+            SkeeballNormalColor = "";
             EventTeamName = "";
             TeamName = "";
         }
@@ -64,6 +67,7 @@ namespace InternetClawMachine
             Scene = newData.Scene;
             WinClipName = newData.WinClipName;
             CustomStrobe = newData.CustomStrobe;
+            SkeeballNormalColor = newData.SkeeballNormalColor;
             Localization = newData.Localization;
             BlackLightsOn = newData.BlackLightsOn;
             GreenScreen = newData.GreenScreen;

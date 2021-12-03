@@ -15,9 +15,16 @@ namespace InternetClawMachine
             return (value - fromSource) / (toSource - fromSource) * (toTarget - fromTarget) + fromTarget;
         }
 
+        public static int Map(this int value, int fromSource, int toSource, int fromTarget, int toTarget)
+        {
+            return (int)((((decimal)value - (decimal)fromSource) / ((decimal)toSource - (decimal)fromSource)) * (toTarget - fromTarget) + fromTarget);
+        }
+
         public static double ToRadians(this double val)
         {
             return Math.PI / 180 * val;
         }
+
+        
     }
 }

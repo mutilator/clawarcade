@@ -15,16 +15,20 @@ namespace InternetClawMachine
         {
             InitializeComponent();
             Browser.FrameLoadEnd += Browser_FrameLoadEnd;
-            
-            Loaded += (sender, e) =>
+            Browser.IsBrowserInitializedChanged += Browser_IsBrowserInitializedChanged;
+
+        }
+        private void Browser_IsBrowserInitializedChanged(object sender, DependencyPropertyChangedEventArgs e)
+        {
+            if (Browser.IsBrowserInitialized)
             {
                 //Create the destination URL
                 var destinationUrl = string.Format("https://api.twitch.tv/kraken/oauth2/authorize?client_id={0}&scope={1}&redirect_uri=http://localhost&response_type=token",
                    ClientId, //client_id
                    "chat_login%20channel_read%20channel_feed_read%20channel_check_subscription%20user_blocks_edit%20user_blocks_read%20user_read%20user_subscriptions%20clips:edit" //scope
-                );
+                    );
                 Browser.Load(destinationUrl);
-            };
+            }
         }
 
         private void Browser_FrameLoadEnd(object sender, FrameLoadEndEventArgs e)

@@ -14,6 +14,8 @@
 
         public ObsSceneSource WinAnimationDefault = new ObsSceneSource { SourceName = "CLIP-Confetti", Type = ObsSceneSourceType.VIDEO, SceneName = "VideosScene" };
 
+        public int ThemeHalloweenScaresMax { set; get; }
+
         public ObsSceneSource[] ThemeHalloweenScares = {
             new ObsSceneSource { SourceName = "CLIP-scare", Type = ObsSceneSourceType.VIDEO, Duration = 4170 },
             new ObsSceneSource { SourceName = "CLIP-ghost1", Type = ObsSceneSourceType.VIDEO },

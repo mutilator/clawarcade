@@ -328,7 +328,7 @@ namespace InternetClawMachine.Games.GantryGame
             if (CommandQueue.Count > 0)
             {
                 //pop it off
-                var cmd = CommandQueue[0];
+                var cmd = (ClawQueuedCommand)CommandQueue[0];
                 //remove it
                 lock (CommandQueue)
                 {
@@ -446,12 +446,12 @@ namespace InternetClawMachine.Games.GantryGame
             //if we are the queue cannot reset because it's a string of commands to drop the putter, rotate, counter rotate, and then return to the up position
             //this all seems inefficient, need to think through how commands are sent to make this work without special handlers
             int queueCnt;
-            ClawCommand currentCmd = null;
+            ClawQueuedCommand currentCmd = null;
             lock (CommandQueue)
             {
                 queueCnt = CommandQueue.Count;
                 if (queueCnt > 0)
-                    currentCmd = CommandQueue[0];
+                    currentCmd = (ClawQueuedCommand)CommandQueue[0];
             }
             //wait until the hit is complete
             while (currentCmd != null && queueCnt > 0 && currentCmd.CommandGroup == ClawCommandGroup.HIT)
@@ -461,7 +461,7 @@ namespace InternetClawMachine.Games.GantryGame
                 {
                     queueCnt = CommandQueue.Count;
                     if (queueCnt > 0)
-                        currentCmd = CommandQueue[0];
+                        currentCmd = (ClawQueuedCommand)CommandQueue[0];
                 }
             }
 
@@ -740,8 +740,8 @@ namespace InternetClawMachine.Games.GantryGame
                     (X != GetStepForGridX(xGrid) || Y != GetStepForGridY(yGrid)))
                 {
                     //If we're in the current grid, move left and backward a full move step
-                    CommandQueue.Add(new ClawCommand { Direction = ClawDirection.LEFT, Timestamp = GameModeTimer.ElapsedMilliseconds, Username = username });
-                    CommandQueue.Add(new ClawCommand { Direction = ClawDirection.BACKWARD, Timestamp = GameModeTimer.ElapsedMilliseconds, Username = username });
+                    CommandQueue.Add(new ClawQueuedCommand { Direction = ClawDirection.LEFT, Timestamp = GameModeTimer.ElapsedMilliseconds, Username = username });
+                    CommandQueue.Add(new ClawQueuedCommand { Direction = ClawDirection.BACKWARD, Timestamp = GameModeTimer.ElapsedMilliseconds, Username = username });
                 }
                 else
                 {
@@ -761,7 +761,7 @@ namespace InternetClawMachine.Games.GantryGame
                     {
                         foreach (var step in path)
                         {
-                            CommandQueue.Add(new ClawCommand { X = (int)step._x, Y = (int)step._y, Direction = ClawDirection.FREEMOVE, Timestamp = GameModeTimer.ElapsedMilliseconds, Username = username });
+                            CommandQueue.Add(new ClawQueuedCommand { X = (int)step._x, Y = (int)step._y, Direction = ClawDirection.FREEMOVE, Timestamp = GameModeTimer.ElapsedMilliseconds, Username = username });
                         }
                     }
                 }
@@ -776,7 +776,7 @@ namespace InternetClawMachine.Games.GantryGame
 
         private void HandleFineControlCommand(string username, string message)
         {
-            var cmd = new ClawCommand { Direction = ClawDirection.NONE, Timestamp = GameModeTimer.ElapsedMilliseconds, Username = username };
+            var cmd = new ClawQueuedCommand { Direction = ClawDirection.NONE, Timestamp = GameModeTimer.ElapsedMilliseconds, Username = username };
 
             switch (message.ToLower())
             {
@@ -831,40 +831,40 @@ namespace InternetClawMachine.Games.GantryGame
                     WinnersList.Add(username);
                     cmd.Direction = ClawDirection.HIT;
                     cmd.CommandGroup = ClawCommandGroup.HIT;
-                    CommandQueue.Add(new ClawCommand { Direction = ClawDirection.DOWN, Timestamp = GameModeTimer.ElapsedMilliseconds, Username = username, CommandGroup = ClawCommandGroup.HIT });
+                    CommandQueue.Add(new ClawQueuedCommand { Direction = ClawDirection.DOWN, Timestamp = GameModeTimer.ElapsedMilliseconds, Username = username, CommandGroup = ClawCommandGroup.HIT });
                     CommandQueue.Add(cmd);
-                    CommandQueue.Add(new ClawCommand { Direction = ClawDirection.UP, Timestamp = GameModeTimer.ElapsedMilliseconds, Username = username, CommandGroup = ClawCommandGroup.HIT });
-                    CommandQueue.Add(new ClawCommand { Direction = ClawDirection.COUNTERHIT, Timestamp = GameModeTimer.ElapsedMilliseconds, Username = username, CommandGroup = ClawCommandGroup.HIT });
+                    CommandQueue.Add(new ClawQueuedCommand { Direction = ClawDirection.UP, Timestamp = GameModeTimer.ElapsedMilliseconds, Username = username, CommandGroup = ClawCommandGroup.HIT });
+                    CommandQueue.Add(new ClawQueuedCommand { Direction = ClawDirection.COUNTERHIT, Timestamp = GameModeTimer.ElapsedMilliseconds, Username = username, CommandGroup = ClawCommandGroup.HIT });
                     break;
 
                 case "hs":
                     WinnersList.Add(username);
                     cmd.Direction = ClawDirection.HITSHORT;
                     cmd.CommandGroup = ClawCommandGroup.HIT;
-                    CommandQueue.Add(new ClawCommand { Direction = ClawDirection.DOWN, Timestamp = GameModeTimer.ElapsedMilliseconds, Username = username, CommandGroup = ClawCommandGroup.HIT });
+                    CommandQueue.Add(new ClawQueuedCommand { Direction = ClawDirection.DOWN, Timestamp = GameModeTimer.ElapsedMilliseconds, Username = username, CommandGroup = ClawCommandGroup.HIT });
                     CommandQueue.Add(cmd);
-                    CommandQueue.Add(new ClawCommand { Direction = ClawDirection.UP, Timestamp = GameModeTimer.ElapsedMilliseconds, Username = username, CommandGroup = ClawCommandGroup.HIT });
-                    CommandQueue.Add(new ClawCommand { Direction = ClawDirection.COUNTERHITSHORT, Timestamp = GameModeTimer.ElapsedMilliseconds, Username = username, CommandGroup = ClawCommandGroup.HIT });
+                    CommandQueue.Add(new ClawQueuedCommand { Direction = ClawDirection.UP, Timestamp = GameModeTimer.ElapsedMilliseconds, Username = username, CommandGroup = ClawCommandGroup.HIT });
+                    CommandQueue.Add(new ClawQueuedCommand { Direction = ClawDirection.COUNTERHITSHORT, Timestamp = GameModeTimer.ElapsedMilliseconds, Username = username, CommandGroup = ClawCommandGroup.HIT });
                     break;
 
                 case "ch":
                     WinnersList.Add(username);
                     cmd.Direction = ClawDirection.COUNTERHIT;
                     cmd.CommandGroup = ClawCommandGroup.HIT;
-                    CommandQueue.Add(new ClawCommand { Direction = ClawDirection.DOWN, Timestamp = GameModeTimer.ElapsedMilliseconds, Username = username, CommandGroup = ClawCommandGroup.HIT });
+                    CommandQueue.Add(new ClawQueuedCommand { Direction = ClawDirection.DOWN, Timestamp = GameModeTimer.ElapsedMilliseconds, Username = username, CommandGroup = ClawCommandGroup.HIT });
                     CommandQueue.Add(cmd);
-                    CommandQueue.Add(new ClawCommand { Direction = ClawDirection.UP, Timestamp = GameModeTimer.ElapsedMilliseconds, Username = username, CommandGroup = ClawCommandGroup.HIT });
-                    CommandQueue.Add(new ClawCommand { Direction = ClawDirection.HIT, Timestamp = GameModeTimer.ElapsedMilliseconds, Username = username, CommandGroup = ClawCommandGroup.HIT });
+                    CommandQueue.Add(new ClawQueuedCommand { Direction = ClawDirection.UP, Timestamp = GameModeTimer.ElapsedMilliseconds, Username = username, CommandGroup = ClawCommandGroup.HIT });
+                    CommandQueue.Add(new ClawQueuedCommand { Direction = ClawDirection.HIT, Timestamp = GameModeTimer.ElapsedMilliseconds, Username = username, CommandGroup = ClawCommandGroup.HIT });
                     break;
 
                 case "chs":
                     WinnersList.Add(username);
                     cmd.Direction = ClawDirection.COUNTERHITSHORT;
                     cmd.CommandGroup = ClawCommandGroup.HIT;
-                    CommandQueue.Add(new ClawCommand { Direction = ClawDirection.DOWN, Timestamp = GameModeTimer.ElapsedMilliseconds, Username = username, CommandGroup = ClawCommandGroup.HIT });
+                    CommandQueue.Add(new ClawQueuedCommand { Direction = ClawDirection.DOWN, Timestamp = GameModeTimer.ElapsedMilliseconds, Username = username, CommandGroup = ClawCommandGroup.HIT });
                     CommandQueue.Add(cmd);
-                    CommandQueue.Add(new ClawCommand { Direction = ClawDirection.UP, Timestamp = GameModeTimer.ElapsedMilliseconds, Username = username, CommandGroup = ClawCommandGroup.HIT });
-                    CommandQueue.Add(new ClawCommand { Direction = ClawDirection.HITSHORT, Timestamp = GameModeTimer.ElapsedMilliseconds, Username = username, CommandGroup = ClawCommandGroup.HIT });
+                    CommandQueue.Add(new ClawQueuedCommand { Direction = ClawDirection.UP, Timestamp = GameModeTimer.ElapsedMilliseconds, Username = username, CommandGroup = ClawCommandGroup.HIT });
+                    CommandQueue.Add(new ClawQueuedCommand { Direction = ClawDirection.HITSHORT, Timestamp = GameModeTimer.ElapsedMilliseconds, Username = username, CommandGroup = ClawCommandGroup.HIT });
                     break;
             }
 
@@ -940,7 +940,7 @@ namespace InternetClawMachine.Games.GantryGame
         /// </summary>
         public override Task ProcessCommands()
         {
-            ClawCommand currentQueueCommand;
+            ClawQueuedCommand currentQueueCommand;
             if (Configuration.OverrideChat) //if we're currently overriding what's in the command queue, for instance when using UI controls
             {
                 _processingQueue = false;
@@ -952,7 +952,7 @@ namespace InternetClawMachine.Games.GantryGame
             {
                 if (CommandQueue.Count > 0)
                 {
-                    currentQueueCommand = CommandQueue[0];
+                    currentQueueCommand = (ClawQueuedCommand)CommandQueue[0];
                 }
                 else { _processingQueue = false; return Task.CompletedTask; }
             }

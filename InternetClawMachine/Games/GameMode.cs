@@ -18,6 +18,9 @@
         TRIVIA,
         MARBLES,
         TICTACTOE,
-        PLINKO
+        PLINKO,
+        SKEEBALLNORMAL,
+        SKEEBALLAROUNDTHEWORLD
+
     }
 }

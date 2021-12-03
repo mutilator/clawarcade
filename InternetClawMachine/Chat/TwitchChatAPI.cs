@@ -48,7 +48,7 @@ namespace InternetClawMachine.Chat
             _credentials = credentials;
             _client = new TwitchClient();
 
-            _client.Initialize(_credentials, _channel);
+            _client.Initialize(_credentials);
             _client.AddChatCommandIdentifier('!');
             _client.AutoReListenOnException = true;
 
@@ -69,6 +69,10 @@ namespace InternetClawMachine.Chat
             _client.OnReSubscriber += Client_OnReSubscriber;
         }
 
+        public  void JoinChannel(string channel)
+        {
+            _client.JoinChannel(channel, true);
+        }
         private void _client_OnSendReceiveData(object sender, TwitchLib.Client.Events.OnSendReceiveDataArgs e)
         {
             Logger.WriteLog(Logger._debugLog, "[TWITCH CHAT] " + e.Direction + ": " + e.Data, Logger.LogLevel.TRACE);

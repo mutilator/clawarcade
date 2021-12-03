@@ -179,59 +179,59 @@ namespace InternetClawMachine.Games.ClawGame
 
         }
 
-        private void ClawPlinko_OnScoreSensorTripped(IMachineControl controller, string slotNumber)
+        private void ClawPlinko_OnScoreSensorTripped(IMachineControl controller, int slotNumber)
         {
             Logger.WriteLog(Logger._machineLog, "Slot " + slotNumber + " was tripped", Logger.LogLevel.DEBUG);
 
             switch (slotNumber)
             {
                 //FIRST STAGE OF SCORING
-                case "1":
+                case 1:
                     _lastScore = 100;
                     break;
 
-                case "2":
+                case 2:
                     _lastScore = 50;
                     break;
 
-                case "3":
+                case 3:
                     _lastScore = 1;
                     break;
 
-                case "4":
+                case 4:
                     _lastScore = 1000;
                     break;
 
-                case "5":
+                case 5:
                     _lastScore = 1;
                     break;
 
-                case "6":
+                case 6:
                     _lastScore = 50;
                     break;
 
-                case "7":
+                case 7:
                     _lastScore = 100;
                     break;
 
                 //SECOND STAGE OF SCORING
-                case "8":
+                case 8:
                     _multiplier = -1;
                     break;
 
-                case "9":
+                case 9:
                     _multiplier = 1;
                     break;
 
-                case "10":
+                case 10:
                     _multiplier = 2;
                     break;
 
-                case "11":
+                case 11:
                     _multiplier = 1;
                     break;
 
-                case "12":
+                case 12:
                     _multiplier = -1;
                     break;
             }
@@ -273,7 +273,7 @@ namespace InternetClawMachine.Games.ClawGame
                     else
                     {
                         SessionWinTracker.Add(
-                            new SessionWinTracker()
+                            new SessionUserTracker()
                                 {Username = PlayerQueue.CurrentPlayer, Score = _lastScore * _multiplier}
                         );
                     }

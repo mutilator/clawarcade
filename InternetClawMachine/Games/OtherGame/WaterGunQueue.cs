@@ -159,7 +159,7 @@ namespace InternetClawMachine.Games.OtherGame
             lock (CommandQueue)
             {
                 if (cmd != ClawDirection.NA)
-                    CommandQueue.Add(new ClawCommand { Direction = cmd, Timestamp = GameModeTimer.ElapsedMilliseconds, Username = username });
+                    CommandQueue.Add(new ClawQueuedCommand { Direction = cmd, Timestamp = GameModeTimer.ElapsedMilliseconds, Username = username });
             }
         }
 

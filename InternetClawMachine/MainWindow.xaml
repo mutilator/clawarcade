@@ -2,6 +2,7 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:l="clr-namespace:InternetClawMachine"
+        xmlns:sys="clr-namespace:System;assembly=mscorlib"
         Title="Internet Claw Machine 9001" SizeToContent="WidthAndHeight" Closing="Window_Closing" Icon="clawhey_112_MUQ_icon.ico" ResizeMode="CanMinimize" x:Name="Main" Margin="0"
         xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -12,7 +13,7 @@
         TextOptions.TextFormattingMode="Ideal"
         TextOptions.TextRenderingMode="Auto"
         Background="{DynamicResource MaterialDesignPaper}"
-        FontFamily="{DynamicResource MaterialDesignFont}" Height="924" >
+        FontFamily="{DynamicResource MaterialDesignFont}" Height="505.5" Width="1672.55" >
     <Window.Resources>
         <l:EpochToDate x:Key="epochToDate" />
         <Style  TargetType="{x:Type ListBoxItem}">
@@ -72,39 +73,42 @@
         </DataTemplate>
     </Window.Resources>
 
-    <Grid Margin="0,0,0,-2" Width="797">
-        <Grid>
+    <Grid Margin="0,0,0,-2">
+        <Grid Margin="0,0,10,10">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="260*"/>
+                <ColumnDefinition Width="291*"/>
+            </Grid.ColumnDefinitions>
             <Grid.RowDefinitions>
-                <RowDefinition Height="388*" />
-                <RowDefinition Height="509*" />
+                <RowDefinition Height="30*" />
+                <RowDefinition Height="37*"/>
             </Grid.RowDefinitions>
-            <TextBox Margin="15,43,423,126" TextWrapping="Wrap" AllowDrop="False" x:Name="txtDump" ScrollViewer.CanContentScroll="True" VerticalScrollBarVisibility="Visible" FontFamily="Yu Gothic UI Semibold" Text="(Nickname) Test" FontSize="20" Background="Black" Foreground="#FF408080" />
-            <TextBox Margin="15,0,423,92" TextWrapping="Wrap" AllowDrop="False" x:Name="txtInput" KeyUp="Input_KeyUp" Foreground="#FF408080" Background="Black" Height="29" VerticalAlignment="Bottom">
+            <TextBox Margin="20,49,0,1" MaxHeight="160" TextWrapping="Wrap" AllowDrop="False" x:Name="txtDump" ScrollViewer.CanContentScroll="True" VerticalScrollBarVisibility="Visible" FontFamily="Yu Gothic UI Semibold" Text="Nickname> Test" FontSize="16" Background="Black" Foreground="#FF408080" HorizontalAlignment="Left" Width="337" />
+            <TextBox Margin="20,0,0,235" TextWrapping="Wrap" AllowDrop="False" x:Name="txtInput" KeyUp="Input_KeyUp" Foreground="#FF408080" Background="Black" HorizontalAlignment="Left" Width="337" Height="20" VerticalAlignment="Bottom" Grid.Row="1">
                 <TextBox.InputBindings>
                     <KeyBinding Key="Enter" />
                     <KeyBinding Key="Return" />
                 </TextBox.InputBindings>
             </TextBox>
-            <Button Content="Forward" HorizontalAlignment="Right" Margin="0,22,88,0" VerticalAlignment="Top" Width="98" x:Name="btnFordward" PreviewMouseDown="btnFordward_MouseDown" PreviewMouseUp="btnFordward_MouseUp" />
-            <Button Content="Backward" HorizontalAlignment="Right" Margin="0,96,88,0" VerticalAlignment="Top" Width="98" x:Name="btnBackward" PreviewMouseDown="btnBackward_MouseDown" PreviewMouseUp="btnBackward_MouseUp" />
-            <Button Content="Left" HorizontalAlignment="Right" Margin="0,59,188,0" VerticalAlignment="Top" Width="76" x:Name="btnLeft" PreviewMouseDown="btnLeft_MouseDown" PreviewMouseUp="btnLeft_MouseUp" />
-            <Button Content="Right" HorizontalAlignment="Right" Margin="0,59,9,0" VerticalAlignment="Top" Width="74" x:Name="btnRight" PreviewMouseDown="btnRight_MouseDown" PreviewMouseUp="btnRight_MouseUp" />
-            <Button Content="Drop" HorizontalAlignment="Right" Margin="0,59,102,0" VerticalAlignment="Top" Width="64" x:Name="btnDrop" PreviewMouseDown="btnDrop_MouseDown" PreviewMouseUp="btnDrop_MouseUp" />
-            <ListBox HorizontalAlignment="Right" Height="186" Margin="0,43,276,0" VerticalAlignment="Top" Width="125" x:Name="lstViewers" Background="Black" Foreground="#FF408080" BorderBrush="Red" BorderThickness="0" ItemsSource="{Binding UserList}" DisplayMemberPath="Username" />
-            <Label Content="Viewers" HorizontalAlignment="Left" Margin="371,14,0,0" VerticalAlignment="Top" Height="26" Width="54" />
-            <Button Content="Reconnect" HorizontalAlignment="Right" Margin="0,312,276,0" VerticalAlignment="Top" Width="125" x:Name="btnReconnect" Click="btnReconnect_Click" />
-            <Button Content="Pause" HorizontalAlignment="Left" Margin="134,0,0,12" VerticalAlignment="Bottom" Width="75" x:Name="btnPause" Click="btnPause_Click" />
-            <Button x:Name="btnStartChaos" Content="Start Game" HorizontalAlignment="Left" Margin="21,0,0,12" VerticalAlignment="Bottom" Width="108" Click="btnStartChaos_Click" />
-            <Button x:Name="btnCloseClaw" Content="Close Claw" HorizontalAlignment="Right" Margin="0,142,155,0" VerticalAlignment="Top" Width="109" MouseDown="BtnCloseClaw_MouseDown" PreviewMouseDown="BtnCloseClaw_PreviewMouseDown" PreviewMouseUp="BtnCloseClaw_PreviewMouseUp" />
-            <ComboBox x:Name="cmbGameModes" HorizontalAlignment="Left" Margin="20,0,0,49" VerticalAlignment="Bottom" Width="329" SelectedIndex="1" DisplayMemberPath="Name" Height="28" />
-            <Button x:Name="btnBeltOn" Content="Belt" HorizontalAlignment="Left" Margin="679,142,0,0" VerticalAlignment="Top" Width="109" PreviewMouseDown="btnBeltOn_PreviewMouseDown" PreviewMouseUp="btnBeltOn_PreviewMouseUp" />
-            <Button x:Name="btnChatConnect" Content="Chat Connect" HorizontalAlignment="Right" Margin="0,274,276,0" VerticalAlignment="Top" Width="124" Click="btnChatConnect_Click" />
-            <Button x:Name="btnOBSConnect" Content="OBS Connect" HorizontalAlignment="Left" Margin="224,0,0,12" VerticalAlignment="Bottom" Width="125" Click="btnOBSConnect_Click" />
-            <Button x:Name="btnUp" Content="Up" HorizontalAlignment="Right" Margin="0,183,155,0" VerticalAlignment="Top" Width="109" PreviewMouseDown="btnUp_PreviewMouseDown" PreviewMouseUp="btnUp_PreviewMouseUp" />
+            <Button Content="Forward" Margin="590,41,0,0" VerticalAlignment="Top" x:Name="btnFordward" PreviewMouseDown="btnFordward_MouseDown" PreviewMouseUp="btnFordward_MouseUp" HorizontalAlignment="Left" Width="98" />
+            <Button Content="Backward" Margin="590,115,0,0" VerticalAlignment="Top" x:Name="btnBackward" PreviewMouseDown="btnBackward_MouseDown" PreviewMouseUp="btnBackward_MouseUp" HorizontalAlignment="Left" Width="98" />
+            <Button Content="Left" Margin="512,78,0,0" VerticalAlignment="Top" x:Name="btnLeft" PreviewMouseDown="btnLeft_MouseDown" PreviewMouseUp="btnLeft_MouseUp" HorizontalAlignment="Left" Width="76" />
+            <Button Content="Right" Margin="693,78,0,0" VerticalAlignment="Top" x:Name="btnRight" PreviewMouseDown="btnRight_MouseDown" PreviewMouseUp="btnRight_MouseUp" HorizontalAlignment="Left" Width="74" />
+            <Button Content="Drop" Margin="610,78,0,0" VerticalAlignment="Top" x:Name="btnDrop" PreviewMouseDown="btnDrop_MouseDown" PreviewMouseUp="btnDrop_MouseUp" HorizontalAlignment="Left" Width="64" />
+            <ListBox Height="186" Margin="362,48,0,0" VerticalAlignment="Top" x:Name="lstViewers" Background="Black" Foreground="#FF408080" BorderBrush="Red" BorderThickness="0" ItemsSource="{Binding UserList}" DisplayMemberPath="Username" HorizontalAlignment="Left" Width="125" Grid.RowSpan="2" />
+            <Label Content="Viewers" HorizontalAlignment="Left" Margin="362,18,0,0" VerticalAlignment="Top" Height="26" Width="96" RenderTransformOrigin="0.185,0.5" />
+            <Button Content="Pause" HorizontalAlignment="Left" Margin="492,59,0,0" Width="75" x:Name="btnPause" Click="btnPause_Click" Height="32" VerticalAlignment="Top" Grid.Row="1" />
+            <Button x:Name="btnStartChaos" Content="Start Game" HorizontalAlignment="Left" Margin="362,59,0,0" Width="125" Click="btnStartChaos_Click" Height="32" VerticalAlignment="Top" Grid.Row="1" />
+            <Button x:Name="btnCloseClaw" Content="Close Claw" Margin="512,161,0,0" VerticalAlignment="Top" MouseDown="BtnCloseClaw_MouseDown" PreviewMouseDown="BtnCloseClaw_PreviewMouseDown" PreviewMouseUp="BtnCloseClaw_PreviewMouseUp" HorizontalAlignment="Left" Width="109" />
+            <ComboBox x:Name="cmbGameModes" HorizontalAlignment="Left" Margin="20,0,0,172" VerticalAlignment="Bottom" Width="329" SelectedIndex="1" DisplayMemberPath="Name" Height="28" Grid.Row="1" />
+            <Button x:Name="btnBeltOn" Content="Belt" Margin="658,161,0,0" VerticalAlignment="Top" PreviewMouseDown="btnBeltOn_PreviewMouseDown" PreviewMouseUp="btnBeltOn_PreviewMouseUp" HorizontalAlignment="Left" Width="109" />
+            <Button x:Name="btnChatConnect" Content="Chat Connect" Margin="363,133,0,0" VerticalAlignment="Top" Click="btnChatConnect_Click" HorizontalAlignment="Left" Width="124" Grid.Row="1" />
+            <Button x:Name="btnOBSConnect" Content="OBS Connect" HorizontalAlignment="Left" Margin="362,96,0,0" VerticalAlignment="Top" Width="125" Click="btnOBSConnect_Click" Grid.Row="1" />
+            <Button x:Name="btnUp" Content="Up" Margin="512,202,0,0" VerticalAlignment="Top" PreviewMouseDown="btnUp_PreviewMouseDown" PreviewMouseUp="btnUp_PreviewMouseUp" HorizontalAlignment="Left" Width="109" Grid.RowSpan="2" />
 
-            <ComboBox x:Name="cmbEventMode" HorizontalAlignment="Left" Margin="634,312,0,0" VerticalAlignment="Top" Width="120" SelectedIndex="0" SelectionChanged="cmbEventMode_SelectionChanged" ItemsSource="{Binding ClawSettings.EventModes}" DisplayMemberPath="DisplayName" Height="28" />
-            <Button x:Name="btnSaveConfig" Content="Save Configuration" Margin="0,0,15,18" Click="btnSaveConfig_Click" Grid.Row="1" Height="32" VerticalAlignment="Bottom" HorizontalAlignment="Right" Width="162" />
-            <TabControl Margin="10,10,20,55" Grid.Row="1">
+            <ComboBox x:Name="cmbEventMode" HorizontalAlignment="Left" Margin="118,0,0,131" VerticalAlignment="Bottom" Width="120" SelectedIndex="0" SelectionChanged="cmbEventMode_SelectionChanged" ItemsSource="{Binding ClawSettings.EventModes}" DisplayMemberPath="DisplayName" Height="28" Grid.Row="1" />
+            <Button x:Name="btnSaveConfig" Content="Save Cfg" Margin="658,59,0,0" Click="btnSaveConfig_Click" Height="32" VerticalAlignment="Top" HorizontalAlignment="Left" Width="109" Grid.Row="1" />
+            <TabControl Margin="14,18,10,10" Grid.Column="1" Grid.RowSpan="2">
                 <TabItem Header="General" Padding="20,2">
                     <Grid>
 
@@ -218,8 +222,8 @@
                         <CheckBox Content="Disable Return Home" HorizontalAlignment="Left" IsChecked="{Binding EventMode.DisableReturnHome, Mode=TwoWay}" VerticalAlignment="Top" Margin="10,105,0,0" />
                         <CheckBox Content="Disable Bounty" HorizontalAlignment="Left" IsChecked="{Binding EventMode.DisableBounty, Mode=TwoWay}" VerticalAlignment="Top" Margin="10,128,0,0" />
                         <CheckBox Content="IR Triggers Win" HorizontalAlignment="Left" IsChecked="{Binding EventMode.IRTriggersWin, Mode=TwoWay}" VerticalAlignment="Top" Margin="217,128,0,0" />
-                        <xctk:IntegerUpDown Value="{Binding EventMode.WinMultiplier, Mode=TwoWay}" Margin="10,262,700,113" />
-                        <Label Content="Win Multiplier" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="66,262,0,0" />
+                        <xctk:IntegerUpDown Value="{Binding EventMode.WinMultiplier, Mode=TwoWay}" Margin="10,262,0,0" Height="26" VerticalAlignment="Top" HorizontalAlignment="Left" Width="78" />
+                        <Label Content="Win Multiplier" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="93,262,0,0" RenderTransformOrigin="-0.143,0.654" />
                         <TextBox HorizontalAlignment="Left" Height="23" TextWrapping="Wrap" Text="{Binding EventMode.CustomWinTextResource, Mode=TwoWay}" VerticalAlignment="Top" Width="78" Margin="10,201,0,0" />
                         <TextBox HorizontalAlignment="Left" Height="23" TextWrapping="Wrap" Text="{Binding EventMode.CustomFailTextResource, Mode=TwoWay}" VerticalAlignment="Top" Width="78" Margin="10,229,0,0" />
                         <Label Content="Win Text Resource" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="93,205,0,0" />
@@ -235,8 +239,8 @@
 
                         <CheckBox Content="Force Disable Greenscreen" HorizontalAlignment="Left" IsChecked="{Binding EventMode.GreenScreenOverrideOff, Mode=TwoWay}" VerticalAlignment="Top" Margin="217,174,0,0" />
                         <CheckBox Content="Disable Flipper" HorizontalAlignment="Left" IsChecked="{Binding EventMode.DisableFlipper, Mode=TwoWay}" VerticalAlignment="Top" Margin="10,174,0,0" />
-                        <xctk:IntegerUpDown Value="{Binding EventMode.QueueSizeMax, Mode=TwoWay}" Margin="10,288,700,87" />
-                        <Label Content="Max Queue Size" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="66,288,0,0" />
+                        <xctk:IntegerUpDown Value="{Binding EventMode.QueueSizeMax, Mode=TwoWay}" Margin="10,293,0,0" Height="26" VerticalAlignment="Top" HorizontalAlignment="Left" Width="78" RenderTransformOrigin="0.552,-0.077" />
+                        <Label Content="Max Queue Size" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="93,293,0,0" />
                         <Label Content="Greenscreen" HorizontalAlignment="Left" Margin="585,286,0,0" VerticalAlignment="Top" RenderTransformOrigin="-0.026,-0.077" />
                         <Button Content="Enable" HorizontalAlignment="Left" Margin="586,311,0,0" VerticalAlignment="Top" Width="80" Click="Button_Click_3" />
                         <Button Content="Disable" HorizontalAlignment="Left" Margin="671,311,0,0" VerticalAlignment="Top" Width="80" Click="Button_Click_4" />
@@ -409,7 +413,7 @@
                 </TabItem>
                 <TabItem Header="Hardware" Padding="20,2">
                     <Grid>
-                        <TabControl HorizontalAlignment="Left" Height="399" Margin="10,10,0,0" VerticalAlignment="Top" Width="716">
+                        <TabControl Margin="10,10,10,4">
                             <TabItem Header="RFID">
                                 <Grid>
 
@@ -424,7 +428,7 @@
                                     <TextBox HorizontalAlignment="Left" Height="23" Margin="114,41,0,0" TextWrapping="Wrap" Text="{Binding ClawSettings.RfidReaderPort}" VerticalAlignment="Top" Width="120" />
                                 </Grid>
                             </TabItem>
-                            <TabItem Header="Claw Controller" Margin="-1,0,-19,0">
+                            <TabItem Header="Claw Controller">
                                 <Grid>
                                     <Slider x:Name="sldrcameraLagTime" HorizontalAlignment="Left" VerticalAlignment="Top" Width="113" Maximum="5000" Minimum="1" SmallChange="50" LargeChange="50" Value="{Binding ClawSettings.CameraLagTime, Mode=TwoWay}" IsSnapToTickEnabled="True" TickFrequency="50" Margin="223,303,0,0" />
                                     <Label Content="cameraLagTime" HorizontalAlignment="Left" VerticalAlignment="Top" RenderTransformOrigin="-0.026,-0.077" Margin="219,272,0,0" />
@@ -467,7 +471,7 @@
                                     <Button x:Name="btnControllerSwitchTo" Content="Switch To" HorizontalAlignment="Left" VerticalAlignment="Top" Width="101" Margin="502,41,0,0" Click="BtnControllerSwitchTo_Click"/>
                                 </Grid>
                             </TabItem>
-                            <TabItem Header="Golf Controller" HorizontalAlignment="Left" Height="20" VerticalAlignment="Top" Width="129" Margin="18,0,-18,0">
+                            <TabItem Header="Golf Controller">
                                 <Grid>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="11*" />
@@ -509,9 +513,69 @@
                                     <Label Content="X:" HorizontalAlignment="Left" Margin="196,261,0,0" VerticalAlignment="Top" Grid.Column="1" />
                                 </Grid>
                             </TabItem>
-                            <TabItem Header="WaterGun" HorizontalAlignment="Left" Height="20" VerticalAlignment="Top" Width="88" Margin="17,0,-17,0">
+                            <TabItem Header="WaterGun">
                                 <Grid>
                                     <Button x:Name="btnWaterBotConnect" Content="Wtr Connect" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top" Width="145" Click="btnWaterBotConnect_Click" />
+                                </Grid>
+                            </TabItem>
+                            <TabItem Header="Skeeball">
+                                <Grid>
+                                    <Label Content="IP Address" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="10,10,0,0"/>
+                                    <Label Content="Port" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="10,36,0,0" RenderTransformOrigin="0.818,-0.135"/>
+                                    <TextBox HorizontalAlignment="Left" Height="22" TextWrapping="Wrap" Text="{Binding SkeeballSettings.Port, Mode=TwoWay}" VerticalAlignment="Top" Width="120" Margin="85,38,0,0"/>
+                                    <TextBox HorizontalAlignment="Left" Height="23" TextWrapping="Wrap" Text="{Binding SkeeballSettings.Address, Mode=TwoWay}" VerticalAlignment="Top" Width="120" Margin="85,10,0,0"/>
+                                    <TextBox x:Name="txtSkeeballResponse" HorizontalAlignment="Left" Height="82" TextWrapping="Wrap" Text="" VerticalAlignment="Top" Width="195" Margin="10,76,0,0"/>
+                                    <TextBox x:Name="txtSkeeballCommand" HorizontalAlignment="Left" Height="22" TextWrapping="Wrap" Text="" VerticalAlignment="Top" Width="120" Margin="10,163,0,0"/>
+                                    <Button x:Name="btnSendSkeeballCommand" Content="Send" HorizontalAlignment="Left" VerticalAlignment="Top" Width="76" Margin="135,163,0,0" RenderTransformOrigin="0.586,0.328" Height="31" Click="BtnSendSkeeballCommand_Click"/>
+                                    <Button x:Name="btnAutoHome1" Content="Auto Home" HorizontalAlignment="Left" VerticalAlignment="Top" Width="112" Margin="262,43,0,0" Click="BtnAutoHome1_Click"/>
+                                    <Button x:Name="btnSetHome" Content="Set Home" HorizontalAlignment="Left" VerticalAlignment="Top" Width="112" Margin="262,80,0,0" Click="BtnSetHome_Click"/>
+                                    <Button x:Name="btnSetLimits" Content="Set Limits" HorizontalAlignment="Left" VerticalAlignment="Top" Width="109" Margin="379,117,0,0" Click="BtnSetLimits_Click"/>
+                                    <Button x:Name="btnSetAcceleration" Content="Set Accel." HorizontalAlignment="Left" VerticalAlignment="Top" Width="109" Margin="379,43,0,0" Click="BtnSetAcceleration_Click"/>
+                                    <Button x:Name="btnSetSpeed" Content="Set Speed" HorizontalAlignment="Left" VerticalAlignment="Top" Width="109" Margin="379,80,0,0" Click="BtnSetSpeed_Click"/>
+                                    <Button x:Name="btnSetWheelSpeedBoth" Content="Set Both" HorizontalAlignment="Left" VerticalAlignment="Top" Width="109" Margin="379,307,0,0" RenderTransformOrigin="0.48,0.516" Click="BtnSetWheelSpeedBoth_Click"/>
+                                    <Button x:Name="btnSetWheelSpeed" Content="Set Speed" HorizontalAlignment="Left" VerticalAlignment="Top" Width="109" Margin="262,307,0,0" Click="BtnSetWheelSpeed_Click"/>
+                                    <ComboBox x:Name="cmbSkeeballController" HorizontalAlignment="Left" VerticalAlignment="Top" Width="154" Margin="334,10,0,0" SelectionChanged="CmbSkeeballController_SelectionChanged">
+                                        <sys:String>LR</sys:String>
+                                        <sys:String>PAN</sys:String>
+                                    </ComboBox>
+                                    <Label Content="Controller" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="262,10,0,0"/>
+                                    <Button x:Name="btnEnableScoring" Content="Enable Scoring" HorizontalAlignment="Left" VerticalAlignment="Top" Width="120" Margin="10,216,0,0" Click="BtnEnableScoring_Click"/>
+                                    <Button x:Name="btnDisableScoring" Content="Disable Scoring" HorizontalAlignment="Left" VerticalAlignment="Top" Width="108" Margin="135,216,0,0" Click="BtnDisableScoring_Click"/>
+                                    <TextBox x:Name="txtSkeeballControllerAccel" HorizontalAlignment="Left" Height="23" TextWrapping="Wrap" Text="{Binding Acceleration, Mode=TwoWay}" VerticalAlignment="Top" Width="120" Margin="618,15,0,0" RenderTransformOrigin="1.179,-0.304"/>
+                                    <Label Content="Acceleration" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="532,14,0,0"/>
+                                    <TextBox x:Name="txtSkeeballControllerSpeed" HorizontalAlignment="Left" Height="23" TextWrapping="Wrap" Text="{Binding Speed, Mode=TwoWay}" VerticalAlignment="Top" Width="120" Margin="618,46,0,0" RenderTransformOrigin="1.179,-0.304"/>
+                                    <Label Content="Speed" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="532,45,0,0"/>
+                                    <TextBox x:Name="txtSkeeballControllerLimitHigh" HorizontalAlignment="Left" Height="23" TextWrapping="Wrap" Text="{Binding LimitHigh, Mode=TwoWay}" VerticalAlignment="Top" Width="120" Margin="618,77,0,0" RenderTransformOrigin="1.179,-0.304"/>
+                                    <Label Content="Limit High" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="532,76,0,0"/>
+                                    <TextBox x:Name="txtSkeeballControllerLimitLow" HorizontalAlignment="Left" Height="23" TextWrapping="Wrap" Text="{Binding LimitLow, Mode=TwoWay}" VerticalAlignment="Top" Width="120" Margin="618,108,0,0" RenderTransformOrigin="1.179,-0.304"/>
+                                    <Label Content="Limit Low" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="532,107,0,0"/>
+                                    <ComboBox x:Name="cmbWheelController" HorizontalAlignment="Left" VerticalAlignment="Top" Width="154" Margin="334,268,0,0" SelectionChanged="CmbWheelController_SelectionChanged">
+                                        <sys:String>Left</sys:String>
+                                        <sys:String>Right</sys:String>
+                                    </ComboBox>
+                                    <Label Content="Wheel" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="262,268,0,0"/>
+                                    <TextBox x:Name="txtWheelControllerDefaultSpeed" HorizontalAlignment="Left" Height="23" TextWrapping="Wrap" Text="{Binding DefaultSpeed, Mode=TwoWay}" VerticalAlignment="Top" Width="120" Margin="618,274,0,0" RenderTransformOrigin="1.179,-0.304"/>
+                                    <Label Content="Default Speed" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="522,273,0,0"/>
+                                    <TextBox x:Name="txtWheelControllerCurrentSpeed" HorizontalAlignment="Left" Height="23" TextWrapping="Wrap" Text="{Binding CurrentSpeed, Mode=TwoWay}" VerticalAlignment="Top" Width="120" Margin="618,305,0,0" RenderTransformOrigin="1.179,-0.304"/>
+                                    <Label Content="Current Speed" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="521,304,0,0"/>
+                                    <Button x:Name="btnTurnLeft" Content="Turn Left" HorizontalAlignment="Left" VerticalAlignment="Top" Width="109" Margin="262,195,0,0" Click="BtnTurnLeft_Click"/>
+                                    <TextBox x:Name="txtSkeeballStepperMoveSteps" HorizontalAlignment="Left" Height="23" TextWrapping="Wrap" Text="10" VerticalAlignment="Top" Width="120" Margin="376,164,0,0"/>
+                                    <Label Content="Movement Steps" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="262,163,0,0"/>
+                                    <Button x:Name="btnTurnRight" Content="Turn Right" HorizontalAlignment="Left" VerticalAlignment="Top" Width="109" Margin="379,195,0,0" Click="BtnTurnRight_Click"/>
+                                    <TextBox x:Name="txtSkeeballControllerStepsNormal" HorizontalAlignment="Left" Height="23" TextWrapping="Wrap" Text="{Binding MoveStepsNormal, Mode=TwoWay}" VerticalAlignment="Top" Width="120" Margin="618,139,0,0" RenderTransformOrigin="1.179,-0.304"/>
+                                    <Label Content="Normal Steps" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="532,138,0,0"/>
+                                    <TextBox x:Name="txtSkeeballControllerStepsSmall" HorizontalAlignment="Left" Height="23" TextWrapping="Wrap" Text="{Binding MoveStepsSmall, Mode=TwoWay}" VerticalAlignment="Top" Width="120" Margin="618,164,0,0" RenderTransformOrigin="1.179,-0.304"/>
+                                    <Label Content="Small Steps" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="532,163,0,0"/>
+
+                                    <Slider x:Name="sldrBallReleaseTime" HorizontalAlignment="Left" VerticalAlignment="Top" Width="113" Maximum="50000" Minimum="1" LargeChange="50" SmallChange="5" Value="{Binding SkeeballSettings.BallReleaseDuration, Mode=TwoWay}" IsSnapToTickEnabled="True" TickFrequency="5" Margin="10,281,0,0" />
+                                    <Label Content="Ball Rls Duration" HorizontalAlignment="Left" VerticalAlignment="Top" RenderTransformOrigin="-0.026,-0.077" Margin="10,257,0,0" />
+                                    <Label x:Name="lblBallReleaseTime" HorizontalAlignment="Left" VerticalAlignment="Top" RenderTransformOrigin="0.368,-0.308" Content="{Binding Value, ElementName=sldrBallReleaseTime}" Margin="145,257,0,0" />
+                                    <Slider x:Name="sldrBallReleaseWait" HorizontalAlignment="Left" VerticalAlignment="Top" Width="113" Maximum="50000" Minimum="1" LargeChange="50" SmallChange="5" Value="{Binding SkeeballSettings.BallReleaseWaitTime, Mode=TwoWay}" IsSnapToTickEnabled="True" TickFrequency="5" Margin="10,320,0,0" />
+                                    <Label Content="Ball Rls Wait" HorizontalAlignment="Left" VerticalAlignment="Top" RenderTransformOrigin="-0.026,-0.077" Margin="10,296,0,0" />
+                                    <Label x:Name="lblBallReleaseWait" HorizontalAlignment="Left" VerticalAlignment="Top" RenderTransformOrigin="0.368,-0.308" Content="{Binding Value, ElementName=sldrBallReleaseWait}" Margin="145,296,0,0" />
+                                    <TextBox x:Name="txtWheelControllerMapSpeedLow" HorizontalAlignment="Left" Height="23" TextWrapping="Wrap" Text="{Binding MapSpeedLow, Mode=TwoWay}" VerticalAlignment="Top" Width="47" Margin="618,333,0,0" RenderTransformOrigin="1.179,-0.304"/>
+                                    <TextBox x:Name="txtWheelControllerMapSpeedHigh" HorizontalAlignment="Left" Height="23" TextWrapping="Wrap" Text="{Binding MapSpeedHigh, Mode=TwoWay}" VerticalAlignment="Top" Width="49" Margin="689,333,0,0" RenderTransformOrigin="1.179,-0.304"/>
+                                    <Label Content="Mapped Speed" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="522,335,0,0"/>
                                 </Grid>
                             </TabItem>
                         </TabControl>
@@ -552,16 +616,21 @@
                                 <Grid>
                                     <Label Content="Spam Webhook" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top" />
                                     <TextBox HorizontalAlignment="Left" Height="23" Margin="116,13,0,0" TextWrapping="Wrap" Text="{Binding DiscordSettings.SpamWebhook}" VerticalAlignment="Top" Width="120" />
-                                    <Label Content="Chat Webhook" HorizontalAlignment="Left" Margin="10,38,0,0" VerticalAlignment="Top" />
-                                    <TextBox HorizontalAlignment="Left" Height="23" Margin="116,41,0,0" TextWrapping="Wrap" Text="{Binding DiscordSettings.ChatWebhook}" VerticalAlignment="Top" Width="120" />
+                                    <Label Content="Chat Webhook" HorizontalAlignment="Left" Margin="10,51,0,0" VerticalAlignment="Top" />
+                                    <TextBox HorizontalAlignment="Left" Height="23" Margin="116,52,0,0" TextWrapping="Wrap" Text="{Binding DiscordSettings.ChatWebhook}" VerticalAlignment="Top" Width="120" />
+                                    <TextBox x:Name="txtDiscordSpam" HorizontalAlignment="Left" Height="23" Margin="282,15,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="120"/>
+                                    <TextBox x:Name="txtDiscordChat" HorizontalAlignment="Left" Height="23" Margin="282,52,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="120"/>
+                                    <Button x:Name="btnDiscordSpam" Content="Send" HorizontalAlignment="Left" Margin="424,10,0,0" VerticalAlignment="Top" Width="75" Click="BtnDiscordSpam_Click"/>
+                                    <Button x:Name="btnDiscordChat" Content="Send" HorizontalAlignment="Left" Margin="424,47,0,0" VerticalAlignment="Top" Width="75" Click="BtnDiscordChat_Click"/>
                                 </Grid>
                             </TabItem>
                             <TabItem Header="Slack" Padding="20,2">
                                 <Grid>
                                     <Label Content="Spam Webhook" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top" />
                                     <TextBox HorizontalAlignment="Left" Height="23" Margin="116,13,0,0" TextWrapping="Wrap" Text="{Binding SlackSettings.SpamWebhook}" VerticalAlignment="Top" Width="120" />
-                                    <Label Content="Chat Webhook" HorizontalAlignment="Left" Margin="10,38,0,0" VerticalAlignment="Top" />
-                                    <TextBox HorizontalAlignment="Left" Height="23" Margin="116,41,0,0" TextWrapping="Wrap" Text="{Binding SlackSettings.ChatWebhook}" VerticalAlignment="Top" Width="120" />
+                                    <Label Content="Chat Webhook" HorizontalAlignment="Left" Margin="10,49,0,0" VerticalAlignment="Top" RenderTransformOrigin="0.505,0.692" />
+                                    <TextBox HorizontalAlignment="Left" Height="23" Margin="116,52,0,0" TextWrapping="Wrap" Text="{Binding SlackSettings.ChatWebhook}" VerticalAlignment="Top" Width="120" />
+
                                 </Grid>
                             </TabItem>
                         </TabControl>
@@ -570,13 +639,13 @@
 
 
             </TabControl>
-            <Label Content="Event Mode" HorizontalAlignment="Left" Margin="629,281,0,0" VerticalAlignment="Top" Height="26" Width="79" />
-            <Button Content="Reload Configuration" Margin="0,0,188,18" Click="Button_Click" Grid.Row="1" HorizontalAlignment="Right" Width="176" Height="32" VerticalAlignment="Bottom" />
-            <Button x:Name="btnFlipper" Content="Flipper" Margin="0,234,10,0" VerticalAlignment="Top" Click="btnFlipper_Click" HorizontalAlignment="Right" Width="109" />
-            <Label Content="Reconnects" HorizontalAlignment="Right" Margin="0,234,325,0" VerticalAlignment="Top" Height="26" Width="75" />
-            <Label x:Name="lblReconects_Copy" Content="{Binding ChatReconnectAttempts}" Margin="0,242,310,0" VerticalAlignment="Top" RenderTransformOrigin="11.1,3.9" HorizontalAlignment="Right" Width="10" Height="10" />
-            <Button Content="Down" HorizontalAlignment="Right" Margin="0,183,9,0" VerticalAlignment="Top" Width="109" x:Name="btnDown" PreviewMouseUp="BtnDown_PreviewMouseUp" PreviewMouseDown="BtnDown_PreviewMouseDown" />
-            <Button Content="Do Something" HorizontalAlignment="Left" Margin="396,349,0,0" VerticalAlignment="Top" Width="125" Click="Button_Click_2" />
+            <Label Content="Event Mode" HorizontalAlignment="Left" Margin="20,0,0,131" Width="79" Height="26" VerticalAlignment="Bottom" Grid.Row="1" />
+            <Button Content="Reload Cfg" Margin="658,96,0,0" Click="Button_Click" Height="32" VerticalAlignment="Top" HorizontalAlignment="Left" Width="109" Grid.Row="1" />
+            <Label Content="Reconnects" HorizontalAlignment="Left" Margin="365,33,0,0" VerticalAlignment="Top" Height="26" Width="93" Grid.Row="1" />
+            <Label x:Name="lblReconects_Copy" Content="{Binding ChatReconnectAttempts}" Margin="0,33,275,0" VerticalAlignment="Top" RenderTransformOrigin="11.1,3.9" HorizontalAlignment="Right" Width="44" Height="26" Grid.Row="1" />
+            <Button Content="Down" Margin="658,202,0,0" VerticalAlignment="Top" x:Name="btnDown" PreviewMouseUp="BtnDown_PreviewMouseUp" PreviewMouseDown="BtnDown_PreviewMouseDown" HorizontalAlignment="Left" Width="109" Grid.RowSpan="2" />
+            <Button Content="Do Something" HorizontalAlignment="Left" Margin="365,217,0,0" VerticalAlignment="Top" Width="125" Click="Button_Click_2" Grid.Row="1" />
+            <Label Content="Game Mode" HorizontalAlignment="Left" Margin="20,0,0,200" VerticalAlignment="Bottom" Grid.Row="1"/>
         </Grid>
     </Grid>
 </Window>

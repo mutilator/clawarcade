@@ -57,6 +57,12 @@ namespace InternetClawMachine.Games.OtherGame
                 case "team trivia":
                     Votes.Add(new GameModeVote(username, GameModeType.TEAMTRIVIA, GameRoundTimer.ElapsedMilliseconds));
                     break;
+                case "rollerball":
+                    Votes.Add(new GameModeVote(username, GameModeType.SKEEBALLNORMAL, GameRoundTimer.ElapsedMilliseconds));
+                    break;
+                case "atw":
+                    Votes.Add(new GameModeVote(username, GameModeType.SKEEBALLAROUNDTHEWORLD, GameRoundTimer.ElapsedMilliseconds));
+                    break;
                     /*
                 case "single":
                     Votes.Add(new GameModeVote(Username, GameModeType.SINGLEPLAYER, GameModeTimer.ElapsedMilliseconds));
@@ -74,10 +80,10 @@ namespace InternetClawMachine.Games.OtherGame
             ChatClient.SendMessage(Configuration.Channel, Translator.GetTranslation("gameVoteHelp1", Configuration.UserList.GetUserLocalization(username)));
             ChatClient.SendMessage(Configuration.Channel, Translator.GetTranslation("gameVoteHelp2", Configuration.UserList.GetUserLocalization(username)));
             ChatClient.SendMessage(Configuration.Channel, Translator.GetTranslation("gameVoteHelp3", Configuration.UserList.GetUserLocalization(username)));
-            ChatClient.SendMessage(Configuration.Channel, string.Format(Translator.GetTranslation("gameVoteHelp4", Configuration.UserList.GetUserLocalization(username)), Configuration.ClawSettings.SinglePlayerDuration));
-            ChatClient.SendMessage(Configuration.Channel, Translator.GetTranslation("gameVoteHelp5", Configuration.UserList.GetUserLocalization(username)));
-            ChatClient.SendMessage(Configuration.Channel, Translator.GetTranslation("gameVoteHelp6", Configuration.UserList.GetUserLocalization(username)));
-            ChatClient.SendMessage(Configuration.Channel, Translator.GetTranslation("gameVoteHelp7", Configuration.UserList.GetUserLocalization(username)));
+            //ChatClient.SendMessage(Configuration.Channel, string.Format(Translator.GetTranslation("gameVoteHelp4", Configuration.UserList.GetUserLocalization(username)), Configuration.ClawSettings.SinglePlayerDuration));
+            //ChatClient.SendMessage(Configuration.Channel, Translator.GetTranslation("gameVoteHelp5", Configuration.UserList.GetUserLocalization(username)));
+            //ChatClient.SendMessage(Configuration.Channel, Translator.GetTranslation("gameVoteHelp6", Configuration.UserList.GetUserLocalization(username)));
+            //ChatClient.SendMessage(Configuration.Channel, Translator.GetTranslation("gameVoteHelp7", Configuration.UserList.GetUserLocalization(username)));
             //ChatClient.SendMessage(MainWindow._channel, "single - A single person controls the crane, randomly chosen from the pool of people that voted during the poll");
         }
 

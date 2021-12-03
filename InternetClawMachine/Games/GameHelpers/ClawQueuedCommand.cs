@@ -2,7 +2,7 @@
 
 namespace InternetClawMachine.Games.GameHelpers
 {
-    public class ClawCommand
+    public class ClawQueuedCommand : GameQueuedCommand
     {
         public IMachineControl MachineControl { set; get; }
         public ClawDirection Direction { set; get; }
@@ -15,7 +15,7 @@ namespace InternetClawMachine.Games.GameHelpers
         public double Angle { get; internal set; }
         internal ClawCommandGroup CommandGroup { get; set; }
 
-        public ClawCommand()
+        public ClawQueuedCommand()
         {
             CommandGroup = ClawCommandGroup.NONE;
         }

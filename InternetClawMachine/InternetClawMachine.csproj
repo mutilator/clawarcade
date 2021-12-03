@@ -1,5 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="12.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="..\packages\EntityFramework.6.4.4\build\EntityFramework.props" Condition="Exists('..\packages\EntityFramework.6.4.4\build\EntityFramework.props')" />
   <Import Project="..\packages\CefSharp.Common.87.1.131-pre\build\CefSharp.Common.props" Condition="Exists('..\packages\CefSharp.Common.87.1.131-pre\build\CefSharp.Common.props')" />
   <Import Project="..\packages\cef.redist.x86.87.1.13\build\cef.redist.x86.props" Condition="Exists('..\packages\cef.redist.x86.87.1.13\build\cef.redist.x86.props')" />
   <Import Project="..\packages\cef.redist.x64.87.1.13\build\cef.redist.x64.props" Condition="Exists('..\packages\cef.redist.x64.87.1.13\build\cef.redist.x64.props')" />
@@ -80,10 +81,10 @@
       <HintPath>..\packages\CefSharp.Wpf.87.1.131-pre\lib\net452\CefSharp.Wpf.dll</HintPath>
     </Reference>
     <Reference Include="EntityFramework, Version=6.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089, processorArchitecture=MSIL">
-      <HintPath>..\packages\EntityFramework.6.2.0\lib\net45\EntityFramework.dll</HintPath>
+      <HintPath>..\packages\EntityFramework.6.4.4\lib\net45\EntityFramework.dll</HintPath>
     </Reference>
     <Reference Include="EntityFramework.SqlServer, Version=6.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089, processorArchitecture=MSIL">
-      <HintPath>..\packages\EntityFramework.6.2.0\lib\net45\EntityFramework.SqlServer.dll</HintPath>
+      <HintPath>..\packages\EntityFramework.6.4.4\lib\net45\EntityFramework.SqlServer.dll</HintPath>
     </Reference>
     <Reference Include="MaterialDesignColors, Version=1.1.2.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\MaterialDesignColors.1.1.2\lib\net45\MaterialDesignColors.dll</HintPath>
@@ -112,8 +113,8 @@
     <Reference Include="Microsoft.Extensions.Logging, Version=3.0.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
       <HintPath>..\packages\Microsoft.Extensions.Logging.3.0.0-preview4.19216.2\lib\netstandard2.0\Microsoft.Extensions.Logging.dll</HintPath>
     </Reference>
-    <Reference Include="Microsoft.Extensions.Logging.Abstractions, Version=3.0.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.Extensions.Logging.Abstractions.3.0.0-preview4.19216.2\lib\netstandard2.0\Microsoft.Extensions.Logging.Abstractions.dll</HintPath>
+    <Reference Include="Microsoft.Extensions.Logging.Abstractions, Version=5.0.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.Extensions.Logging.Abstractions.5.0.0\lib\net461\Microsoft.Extensions.Logging.Abstractions.dll</HintPath>
     </Reference>
     <Reference Include="Microsoft.Extensions.Options, Version=3.0.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
       <HintPath>..\packages\Microsoft.Extensions.Options.3.0.0-preview4.19216.2\lib\netstandard2.0\Microsoft.Extensions.Options.dll</HintPath>
@@ -121,12 +122,11 @@
     <Reference Include="Microsoft.Extensions.Primitives, Version=3.0.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
       <HintPath>..\packages\Microsoft.Extensions.Primitives.3.0.0-preview4.19216.2\lib\netstandard2.0\Microsoft.Extensions.Primitives.dll</HintPath>
     </Reference>
-    <Reference Include="Newtonsoft.Json, Version=12.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
-      <HintPath>..\packages\Newtonsoft.Json.12.0.2\lib\net45\Newtonsoft.Json.dll</HintPath>
+    <Reference Include="Newtonsoft.Json, Version=13.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
+      <HintPath>..\packages\Newtonsoft.Json.13.0.1\lib\net45\Newtonsoft.Json.dll</HintPath>
     </Reference>
-    <Reference Include="obs-websocket-dotnet, Version=4.2.0.3, Culture=neutral, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>C:\Users\mutilator\Documents\GitHub\obs-websocket-dotnet-fork\obs-websocket-dotnet\bin\Release\obs-websocket-dotnet.dll</HintPath>
+    <Reference Include="obs-websocket-dotnet, Version=4.9.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\obs-websocket-dotnet.4.9.0\lib\netstandard2.0\obs-websocket-dotnet.dll</HintPath>
     </Reference>
     <Reference Include="Serilog, Version=2.0.0.0, Culture=neutral, PublicKeyToken=24c2f752a8e58a10, processorArchitecture=MSIL">
       <HintPath>..\packages\Serilog.2.8.1-dev-01054\lib\net46\Serilog.dll</HintPath>
@@ -146,14 +146,14 @@
     </Reference>
     <Reference Include="System.ComponentModel.DataAnnotations" />
     <Reference Include="System.Data" />
-    <Reference Include="System.Data.SQLite, Version=1.0.110.0, Culture=neutral, PublicKeyToken=db937bc2d44ff139, processorArchitecture=MSIL">
-      <HintPath>..\packages\System.Data.SQLite.Core.1.0.110.0\lib\net46\System.Data.SQLite.dll</HintPath>
+    <Reference Include="System.Data.SQLite, Version=1.0.114.0, Culture=neutral, PublicKeyToken=db937bc2d44ff139, processorArchitecture=MSIL">
+      <HintPath>..\packages\Stub.System.Data.SQLite.Core.NetFramework.1.0.114.0\lib\net46\System.Data.SQLite.dll</HintPath>
     </Reference>
-    <Reference Include="System.Data.SQLite.EF6, Version=1.0.110.0, Culture=neutral, PublicKeyToken=db937bc2d44ff139, processorArchitecture=MSIL">
-      <HintPath>..\packages\System.Data.SQLite.EF6.1.0.110.0\lib\net46\System.Data.SQLite.EF6.dll</HintPath>
+    <Reference Include="System.Data.SQLite.EF6, Version=1.0.114.0, Culture=neutral, PublicKeyToken=db937bc2d44ff139, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Data.SQLite.EF6.1.0.114.0\lib\net46\System.Data.SQLite.EF6.dll</HintPath>
     </Reference>
-    <Reference Include="System.Data.SQLite.Linq, Version=1.0.110.0, Culture=neutral, PublicKeyToken=db937bc2d44ff139, processorArchitecture=MSIL">
-      <HintPath>..\packages\System.Data.SQLite.Linq.1.0.110.0\lib\net46\System.Data.SQLite.Linq.dll</HintPath>
+    <Reference Include="System.Data.SQLite.Linq, Version=1.0.114.0, Culture=neutral, PublicKeyToken=db937bc2d44ff139, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Data.SQLite.Linq.1.0.114.0\lib\net46\System.Data.SQLite.Linq.dll</HintPath>
     </Reference>
     <Reference Include="System.Drawing" />
     <Reference Include="System.Interactive.Async, Version=4.0.0.0, Culture=neutral, PublicKeyToken=94bc3704cddfc263, processorArchitecture=MSIL">
@@ -210,46 +210,48 @@
     <Reference Include="System.Xaml">
       <RequiredTargetFramework>4.0</RequiredTargetFramework>
     </Reference>
-    <Reference Include="TwitchLib.Api">
-      <HintPath>J:\github\TwitchLib.Api\TwitchLib.Api\bin\Release\netstandard2.0\TwitchLib.Api.dll</HintPath>
+    <Reference Include="TwitchLib.Api, Version=3.2.3.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\TwitchLib.Api.3.2.3\lib\netstandard2.0\TwitchLib.Api.dll</HintPath>
     </Reference>
-    <Reference Include="TwitchLib.Api.Core">
-      <HintPath>J:\github\TwitchLib.Api\TwitchLib.Api\bin\Release\netstandard2.0\TwitchLib.Api.Core.dll</HintPath>
+    <Reference Include="TwitchLib.Api.Core, Version=3.2.3.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\TwitchLib.Api.Core.3.2.3\lib\netstandard2.0\TwitchLib.Api.Core.dll</HintPath>
     </Reference>
-    <Reference Include="TwitchLib.Api.Core.Enums">
-      <HintPath>J:\github\TwitchLib.Api\TwitchLib.Api\bin\Release\netstandard2.0\TwitchLib.Api.Core.Enums.dll</HintPath>
+    <Reference Include="TwitchLib.Api.Core.Enums, Version=3.2.3.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\TwitchLib.Api.Core.Enums.3.2.3\lib\netstandard2.0\TwitchLib.Api.Core.Enums.dll</HintPath>
     </Reference>
-    <Reference Include="TwitchLib.Api.Core.Interfaces">
-      <HintPath>J:\github\TwitchLib.Api\TwitchLib.Api\bin\Release\netstandard2.0\TwitchLib.Api.Core.Interfaces.dll</HintPath>
+    <Reference Include="TwitchLib.Api.Core.Interfaces, Version=3.2.3.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\TwitchLib.Api.Core.Interfaces.3.2.3\lib\netstandard2.0\TwitchLib.Api.Core.Interfaces.dll</HintPath>
     </Reference>
-    <Reference Include="TwitchLib.Api.Core.Models">
-      <HintPath>J:\github\TwitchLib.Api\TwitchLib.Api\bin\Release\netstandard2.0\TwitchLib.Api.Core.Models.dll</HintPath>
+    <Reference Include="TwitchLib.Api.Core.Models, Version=3.2.3.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\TwitchLib.Api.Core.Models.3.2.3\lib\netstandard2.0\TwitchLib.Api.Core.Models.dll</HintPath>
     </Reference>
-    <Reference Include="TwitchLib.Api.Helix">
-      <HintPath>J:\github\TwitchLib.Api\TwitchLib.Api\bin\Release\netstandard2.0\TwitchLib.Api.Helix.dll</HintPath>
+    <Reference Include="TwitchLib.Api.Helix, Version=3.2.3.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\TwitchLib.Api.Helix.3.2.3\lib\netstandard2.0\TwitchLib.Api.Helix.dll</HintPath>
     </Reference>
-    <Reference Include="TwitchLib.Api.Helix.Models">
-      <HintPath>J:\github\TwitchLib.Api\TwitchLib.Api\bin\Release\netstandard2.0\TwitchLib.Api.Helix.Models.dll</HintPath>
+    <Reference Include="TwitchLib.Api.Helix.Models, Version=3.2.3.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\TwitchLib.Api.Helix.Models.3.2.3\lib\netstandard2.0\TwitchLib.Api.Helix.Models.dll</HintPath>
     </Reference>
-    <Reference Include="TwitchLib.Client">
-      <HintPath>J:\github\TwitchLib.Client\TwitchLib.Client\bin\Release\netstandard2.0\TwitchLib.Client.dll</HintPath>
+    <Reference Include="TwitchLib.Api.V5, Version=3.2.3.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\TwitchLib.Api.V5.3.2.3\lib\netstandard2.0\TwitchLib.Api.V5.dll</HintPath>
     </Reference>
-    <Reference Include="TwitchLib.Client.Enums">
-      <HintPath>J:\github\TwitchLib.Client\TwitchLib.Client\bin\Release\netstandard2.0\TwitchLib.Client.Enums.dll</HintPath>
+    <Reference Include="TwitchLib.Api.V5.Models, Version=3.2.3.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\TwitchLib.Api.V5.Models.3.2.3\lib\netstandard2.0\TwitchLib.Api.V5.Models.dll</HintPath>
     </Reference>
-    <Reference Include="TwitchLib.Client.Models">
-      <HintPath>J:\github\TwitchLib.Client\TwitchLib.Client\bin\Release\netstandard2.0\TwitchLib.Client.Models.dll</HintPath>
+    <Reference Include="TwitchLib.Client, Version=3.2.2.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\TwitchLib.Client.3.2.2\lib\netstandard2.0\TwitchLib.Client.dll</HintPath>
     </Reference>
-    <Reference Include="TwitchLib.Communication, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>J:\github\TwitchLib.Client\TwitchLib.Client\bin\Release\netstandard2.0\TwitchLib.Communication.dll</HintPath>
+    <Reference Include="TwitchLib.Client.Enums, Version=3.2.2.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\TwitchLib.Client.Enums.3.2.2\lib\netstandard2.0\TwitchLib.Client.Enums.dll</HintPath>
+    </Reference>
+    <Reference Include="TwitchLib.Client.Models, Version=3.2.2.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\TwitchLib.Client.Models.3.2.2\lib\netstandard2.0\TwitchLib.Client.Models.dll</HintPath>
+    </Reference>
+    <Reference Include="TwitchLib.Communication, Version=1.0.3.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\TwitchLib.Communication.1.0.3\lib\netstandard2.0\TwitchLib.Communication.dll</HintPath>
     </Reference>
     <Reference Include="UIAutomationProvider" />
-    <Reference Include="websocket-sharp, Version=1.0.2.59611, Culture=neutral, PublicKeyToken=5660b08a1845a91e, processorArchitecture=MSIL">
-      <HintPath>..\packages\WebSocketSharp.1.0.3-rc11\lib\websocket-sharp.dll</HintPath>
-    </Reference>
-    <Reference Include="WebSocket4Net, Version=0.15.2.11, Culture=neutral, PublicKeyToken=eb4e154b696bf72a, processorArchitecture=MSIL">
-      <HintPath>..\packages\WebSocket4Net.0.15.2\lib\net45\WebSocket4Net.dll</HintPath>
+    <Reference Include="websocket-sharp, Version=1.0.1.0, Culture=neutral, PublicKeyToken=5660b08a1845a91e, processorArchitecture=MSIL">
+      <HintPath>..\packages\WebSocketSharp-netstandard.1.0.1\lib\net45\websocket-sharp.dll</HintPath>
     </Reference>
     <Reference Include="WindowsBase" />
     <Reference Include="PresentationCore" />
@@ -283,8 +285,12 @@
     <Compile Include="Games\ClawGame\ClawMarbles.cs" />
     <Compile Include="Games\ClawGame\ClawPlinko.cs" />
     <Compile Include="Games\ClawGame\ClawTicTacToe.cs" />
+    <Compile Include="Games\GameHelpers\GameQueuedCommand.cs" />
     <Compile Include="Games\GameHelpers\PlinkoPhase.cs" />
     <Compile Include="Games\GameHelpers\RestartVote.cs" />
+    <Compile Include="Games\GameHelpers\SkeeballExecutingCommand.cs" />
+    <Compile Include="Games\GameHelpers\SkeeballQueuedCommand.cs" />
+    <Compile Include="Games\GameHelpers\SkeeballSessionUserTracker.cs" />
     <Compile Include="Games\GameHelpers\VoteValue.cs" />
     <Compile Include="Games\GameHelpers\TeamJoinedArgs.cs" />
     <Compile Include="Games\GameHelpers\TriviaMessageMode.cs" />
@@ -297,6 +303,16 @@
     <Compile Include="Games\GameHelpers\TriviaAnswer.cs" />
     <Compile Include="Games\GameHelpers\TriviaQuestion.cs" />
     <Compile Include="Games\OBSSceneChangeEventArgs.cs" />
+    <Compile Include="Games\Skeeball\MovementCompletionMonitor.cs" />
+    <Compile Include="Games\Skeeball\SkeeballAroundTheWorld.cs" />
+    <Compile Include="Games\Skeeball\SkeeballATWPlayer.cs" />
+    <Compile Include="Games\Skeeball\SkeeballColors.cs" />
+    <Compile Include="Games\Skeeball\SkeeballNormal.cs" />
+    <Compile Include="Games\Skeeball\SkeeballGame.cs" />
+    <Compile Include="Games\Skeeball\StepperControllerSettings.cs" />
+    <Compile Include="Games\Skeeball\StepperList.cs" />
+    <Compile Include="Games\Skeeball\WheelControllerSettings.cs" />
+    <Compile Include="Games\Skeeball\WheelList.cs" />
     <Compile Include="Hardware\ClawControl\BeltEventArgs.cs" />
     <Compile Include="Hardware\ClawControl\ClawController2.cs" />
     <Compile Include="Hardware\ClawControl\ClawHomeLocation.cs" />
@@ -305,6 +321,11 @@
     <Compile Include="Hardware\ClawControl\ControllerNotConnectedException.cs" />
     <Compile Include="Hardware\ClawControl\FailsafeType.cs" />
     <Compile Include="Hardware\ClawControl\FlipperDirection.cs" />
+    <Compile Include="Hardware\Skeeball\SkeeballControllerIdentifier.cs" />
+    <Compile Include="Hardware\Skeeball\MessageQueueMessage.cs" />
+    <Compile Include="Hardware\Skeeball\SkeeballController.cs" />
+    <Compile Include="Hardware\Skeeball\SkeeballEvents.cs" />
+    <Compile Include="Hardware\Skeeball\SkeeballSensor.cs" />
     <Compile Include="PlayerQueueSizeExceeded.cs" />
     <Compile Include="Settings\ClawControllerType.cs" />
     <Compile Include="Settings\ClawMachine.cs" />
@@ -333,7 +354,7 @@
     <Compile Include="Games\Game.cs" />
     <Compile Include="Hardware\Gantry\GameGantry.cs" />
     <Compile Include="Games\OtherGame\GameModeVote.cs" />
-    <Compile Include="Games\GameHelpers\ClawCommand.cs" />
+    <Compile Include="Games\GameHelpers\ClawQueuedCommand.cs" />
     <Compile Include="Games\GameHelpers\ClawDirection.cs" />
     <Compile Include="Games\GameMode.cs" />
     <Compile Include="Games\GamePhase.cs" />
@@ -361,11 +382,15 @@
     <Compile Include="Games\GameHelpers\PlayerQueue.cs" />
     <Compile Include="Hardware\RFID\RFIDReader.cs" />
     <Compile Include="Settings\GoodGameSettings.cs" />
+    <Compile Include="Settings\IGameMachine.cs" />
     <Compile Include="Settings\ObsSceneSource.cs" />
     <Compile Include="Settings\ObsScreenSourceNames.cs" />
     <Compile Include="Settings\OBSSettings.cs" />
     <Compile Include="Settings\ReticleOption.cs" />
     <Compile Include="Games\GameHelpers\TeamNameMode.cs" />
+    <Compile Include="Settings\SkeeballScoreMatrix.cs" />
+    <Compile Include="Settings\SkeeballScoreMatrixSlot.cs" />
+    <Compile Include="Settings\SkeeballSettings.cs" />
     <Compile Include="Settings\SlackSettings.cs" />
     <Compile Include="Settings\TriviaSettings.cs" />
     <Compile Include="Settings\TwitchSettings.cs" />
@@ -440,18 +465,21 @@
   </ItemGroup>
   <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
-  <Import Project="..\packages\System.Data.SQLite.Core.1.0.110.0\build\net46\System.Data.SQLite.Core.targets" Condition="Exists('..\packages\System.Data.SQLite.Core.1.0.110.0\build\net46\System.Data.SQLite.Core.targets')" />
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>
       <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
     </PropertyGroup>
-    <Error Condition="!Exists('..\packages\System.Data.SQLite.Core.1.0.110.0\build\net46\System.Data.SQLite.Core.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\System.Data.SQLite.Core.1.0.110.0\build\net46\System.Data.SQLite.Core.targets'))" />
     <Error Condition="!Exists('..\packages\cef.redist.x64.87.1.13\build\cef.redist.x64.props')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\cef.redist.x64.87.1.13\build\cef.redist.x64.props'))" />
     <Error Condition="!Exists('..\packages\cef.redist.x86.87.1.13\build\cef.redist.x86.props')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\cef.redist.x86.87.1.13\build\cef.redist.x86.props'))" />
     <Error Condition="!Exists('..\packages\CefSharp.Common.87.1.131-pre\build\CefSharp.Common.props')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\CefSharp.Common.87.1.131-pre\build\CefSharp.Common.props'))" />
     <Error Condition="!Exists('..\packages\CefSharp.Common.87.1.131-pre\build\CefSharp.Common.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\CefSharp.Common.87.1.131-pre\build\CefSharp.Common.targets'))" />
+    <Error Condition="!Exists('..\packages\EntityFramework.6.4.4\build\EntityFramework.props')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\EntityFramework.6.4.4\build\EntityFramework.props'))" />
+    <Error Condition="!Exists('..\packages\EntityFramework.6.4.4\build\EntityFramework.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\EntityFramework.6.4.4\build\EntityFramework.targets'))" />
+    <Error Condition="!Exists('..\packages\Stub.System.Data.SQLite.Core.NetFramework.1.0.114.0\build\net46\Stub.System.Data.SQLite.Core.NetFramework.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Stub.System.Data.SQLite.Core.NetFramework.1.0.114.0\build\net46\Stub.System.Data.SQLite.Core.NetFramework.targets'))" />
   </Target>
   <Import Project="..\packages\CefSharp.Common.87.1.131-pre\build\CefSharp.Common.targets" Condition="Exists('..\packages\CefSharp.Common.87.1.131-pre\build\CefSharp.Common.targets')" />
+  <Import Project="..\packages\EntityFramework.6.4.4\build\EntityFramework.targets" Condition="Exists('..\packages\EntityFramework.6.4.4\build\EntityFramework.targets')" />
+  <Import Project="..\packages\Stub.System.Data.SQLite.Core.NetFramework.1.0.114.0\build\net46\Stub.System.Data.SQLite.Core.NetFramework.targets" Condition="Exists('..\packages\Stub.System.Data.SQLite.Core.NetFramework.1.0.114.0\build\net46\Stub.System.Data.SQLite.Core.NetFramework.targets')" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
   <Target Name="BeforeBuild">

@@ -1,6 +1,6 @@
 ﻿namespace InternetClawMachine.Settings
 {
-    public class ClawMachine
+    public class ClawMachine : IGameMachine
     {
         public string Name { get; set; }
         public int Port { get; set; }
@@ -16,6 +16,6 @@
         /// </summary>
         public string ObsScenePrefix { set; get; }
 
-        public ClawControllerType Controller { set; get; }
+        public GameControllerType Controller { set; get; }
     }
 }

@@ -5,7 +5,9 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Net.Http;
 using System.Net.NetworkInformation;
+using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
@@ -19,6 +21,7 @@ using InternetClawMachine.Games.ClawGame;
 using InternetClawMachine.Games.GameHelpers;
 using InternetClawMachine.Games.GantryGame;
 using InternetClawMachine.Games.OtherGame;
+using InternetClawMachine.Games.Skeeball;
 using InternetClawMachine.Hardware;
 using InternetClawMachine.Hardware.ClawControl;
 using InternetClawMachine.Hardware.Gantry;
@@ -239,10 +242,12 @@ namespace InternetClawMachine
             try
             {
                 Dispatcher?.BeginInvoke(new Action(() => { Configuration.UserList.Clear(); }));
+                Client.JoinChannel(Configuration.Channel);
 
                 AddDebugText("Connected: " + e.AutoJoinChannel);
                 _reconnectWaitDelay = _reconnectWaitDelayInitial;
                 StopChatConnectionWatchDog();
+
             }
             catch (Exception ex)
             {
@@ -600,6 +605,12 @@ namespace InternetClawMachine
                         case "queue":
                             StartGameModeSingleQueue(null);
                             break;
+                        case "rollerball":
+                            StartGameModeSkeeball(null);
+                            break;
+                        case "atw":
+                            StartGameModeSkeeballATW(null);
+                            break;
 
                         default:
                             Client.SendMessage(Configuration.Channel,
@@ -798,6 +809,9 @@ namespace InternetClawMachine
             cmbGameModes.Items.Add(new GameModeSelections { GameMode = GameModeType.VOTING, Name = "Vote" });
             cmbGameModes.Items.Add(new GameModeSelections { GameMode = GameModeType.DRAWING, Name = "Drawing" });
             cmbGameModes.Items.Add(new GameModeSelections { GameMode = GameModeType.GOLF, Name = "Golf" });
+            cmbGameModes.Items.Add(new GameModeSelections { GameMode = GameModeType.SKEEBALLNORMAL, Name = "Skeeball - Normal" });
+            cmbGameModes.Items.Add(new GameModeSelections { GameMode = GameModeType.SKEEBALLAROUNDTHEWORLD, Name = "Skeeball - ATW" });
+
 
             cmbGameModes.SelectedIndex = 0;
 
@@ -953,8 +967,8 @@ namespace InternetClawMachine
             if (lastSeen > 0)
             {
                 var epoch = Helpers.GetEpoch();
-                //if over a month notify me
-                if (epoch - 2592000 > lastSeen)
+                //if over 3 month notify me
+                if (epoch - (2592000*3) > lastSeen)
                 {
                     var seenTime = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc).AddSeconds(lastSeen);
                     Notifier.SendDiscordMessage(Configuration.DiscordSettings.SpamWebhook, string.Format("{0} is back! The last time they played was {1}-{2}-{3}", e.Username, seenTime.Year, seenTime.Month, seenTime.Day));
@@ -1299,6 +1313,12 @@ namespace InternetClawMachine
                         WaterBot.YawReturnHome();
                         StartGameModeWaterGunQueue(user);
                         break;
+                    case GameModeType.SKEEBALLNORMAL:
+                        StartGameModeSkeeball(null);
+                        break;
+                    case GameModeType.SKEEBALLAROUNDTHEWORLD:
+                        StartGameModeSkeeballATW(null);
+                        break;
 
                     //case GameModeType.SINGLEQUEUE:
                     default:
@@ -1309,7 +1329,7 @@ namespace InternetClawMachine
                             sldrDelay.Value = Configuration.ClawSettings.ClawMovementTime;
                         }));
 
-                        StartGameModeSingleQueue(user);
+                        StartGameModeSkeeball(user);
                         break;
                 }
             }
@@ -1333,7 +1353,7 @@ namespace InternetClawMachine
             {
                 try
                 {
-                    Task.Run(async delegate 
+                    Task.Run(delegate 
                     {
                         var vol = 9.0f / 100.0f;
                         ObsConnection.SetVolume("BackgroundMusic", vol);
@@ -1348,7 +1368,7 @@ namespace InternetClawMachine
             {
                 try
                 {
-                    Task.Run(async delegate
+                    Task.Run(delegate
                     {
                         var vol = 0f;
                         ObsConnection.SetVolume("BackgroundMusic", vol);
@@ -1684,7 +1704,10 @@ namespace InternetClawMachine
                     ((GantryGame)Game).Gantry.SetDirection(GantryAxis.X, MotorDirection.FORWARD);
                     ((GantryGame)Game).Gantry.Go(GantryAxis.X);
                     break;
-
+                case GameModeType.SKEEBALLNORMAL:
+                case GameModeType.SKEEBALLAROUNDTHEWORLD:
+                    Task.Run(async delegate () { await ((SkeeballNormal)Game).MachineControl.TurnLeft(-1); });
+                    break;
                 default:
                     (Game as ClawGame)?.GetActiveMachine().MoveForward(-1);
                     break;
@@ -1705,7 +1728,10 @@ namespace InternetClawMachine
                 case GameModeType.GOLF:
                     ((GantryGame)Game).Gantry.Stop(GantryAxis.X);
                     break;
-
+                case GameModeType.SKEEBALLNORMAL:
+                case GameModeType.SKEEBALLAROUNDTHEWORLD:
+                    Task.Run(async delegate () { await ((SkeeballNormal)Game).MachineControl.TurnLeft(0); });
+                    break;
                 default:
                     (Game as ClawGame)?.GetActiveMachine().MoveForward(0);
                     break;
@@ -1726,7 +1752,10 @@ namespace InternetClawMachine
                 case GameModeType.GOLF:
                     ((GantryGame)Game).Gantry.Stop(GantryAxis.Y);
                     break;
-
+                case GameModeType.SKEEBALLNORMAL:
+                case GameModeType.SKEEBALLAROUNDTHEWORLD:
+                    Task.Run(async delegate () { await ((SkeeballNormal)Game).MachineControl.MoveLeft(0); });
+                    break;
                 default:
                     (Game as ClawGame)?.GetActiveMachine().MoveLeft(0);
                     break;
@@ -1748,7 +1777,10 @@ namespace InternetClawMachine
                     ((GantryGame)Game).Gantry.SetDirection(GantryAxis.Y, MotorDirection.BACKWARD);
                     ((GantryGame)Game).Gantry.Go(GantryAxis.Y);
                     break;
-
+                case GameModeType.SKEEBALLNORMAL:
+                case GameModeType.SKEEBALLAROUNDTHEWORLD:
+                    Task.Run(async delegate () { await ((SkeeballNormal)Game).MachineControl.MoveLeft(-1); });
+                    break;
                 default:
                     (Game as ClawGame)?.GetActiveMachine().MoveLeft(-1);
                     break;
@@ -1770,7 +1802,10 @@ namespace InternetClawMachine
                     ((GantryGame)Game).Gantry.SetDirection(GantryAxis.Y, MotorDirection.FORWARD);
                     ((GantryGame)Game).Gantry.Go(GantryAxis.Y);
                     break;
-
+                case GameModeType.SKEEBALLNORMAL:
+                case GameModeType.SKEEBALLAROUNDTHEWORLD:
+                    Task.Run(async delegate () { await ((SkeeballNormal)Game).MachineControl.MoveRight(-1); });
+                    break;
                 default:
                     (Game as ClawGame)?.GetActiveMachine().MoveRight(-1);
                     break;
@@ -1791,7 +1826,10 @@ namespace InternetClawMachine
                 case GameModeType.GOLF:
                     ((GantryGame)Game).Gantry.Stop(GantryAxis.Y);
                     break;
-
+                case GameModeType.SKEEBALLNORMAL:
+                case GameModeType.SKEEBALLAROUNDTHEWORLD:
+                    Task.Run(async delegate () { await ((SkeeballNormal)Game).MachineControl.MoveRight(0); });
+                    break;
                 default:
                     (Game as ClawGame)?.GetActiveMachine().MoveRight(0);
                     break;
@@ -1813,7 +1851,10 @@ namespace InternetClawMachine
                     ((GantryGame)Game).Gantry.SetDirection(GantryAxis.X, MotorDirection.BACKWARD);
                     ((GantryGame)Game).Gantry.Go(GantryAxis.X);
                     break;
-
+                case GameModeType.SKEEBALLNORMAL:
+                case GameModeType.SKEEBALLAROUNDTHEWORLD:
+                    Task.Run(async delegate () { await ((SkeeballNormal)Game).MachineControl.TurnRight(-1); });
+                    break;
                 default:
                     (Game as ClawGame)?.GetActiveMachine().MoveBackward(-1);
                     break;
@@ -1833,7 +1874,10 @@ namespace InternetClawMachine
                 case GameModeType.GOLF:
                     ((GantryGame)Game).Gantry.Stop(GantryAxis.X);
                     break;
-
+                case GameModeType.SKEEBALLNORMAL:
+                case GameModeType.SKEEBALLAROUNDTHEWORLD:
+                    Task.Run(async delegate () { await ((SkeeballNormal)Game).MachineControl.TurnRight(0); });
+                    break;
                 default:
                     (Game as ClawGame)?.GetActiveMachine().MoveBackward(0);
                     break;
@@ -2009,7 +2053,12 @@ namespace InternetClawMachine
                 case GameModeType.VOTING:
                     StartGameModeVoting();
                     break;
-
+                case GameModeType.SKEEBALLNORMAL:
+                    StartGameModeSkeeball(null);
+                    break;
+                case GameModeType.SKEEBALLAROUNDTHEWORLD:
+                    StartGameModeSkeeballATW(null);
+                    break;
                 case GameModeType.BOUNTY:
                     break;
 
@@ -2032,6 +2081,28 @@ namespace InternetClawMachine
                 case GameModeType.NA:
                     break;
             }
+        }
+
+        private void StartGameModeSkeeball(string username)
+        {
+            if (Game != null)
+            {
+                EndGame();
+            }
+
+            Game = new SkeeballNormal(Client, Configuration, ObsConnection);
+            StartGame(null);
+        }
+
+        private void StartGameModeSkeeballATW(string username)
+        {
+            if (Game != null)
+            {
+                EndGame();
+            }
+
+            Game = new SkeeballAroundTheWorld(Client, Configuration, ObsConnection);
+            StartGame(null);
         }
 
         private void btnCoin_Click(object sender, RoutedEventArgs e)
@@ -2507,7 +2578,7 @@ namespace InternetClawMachine
 
         private void BtnDualStrobe_Click(object sender, RoutedEventArgs e)
         {
-            ((ClawGame)Game).PoliceStrobe(((ClawGame)Game).GetActiveMachine());
+            Task.Run(async delegate () { await ((ClawGame)Game).PoliceStrobe(((ClawGame)Game).GetActiveMachine()); });
         }
 
         private void BtnDoh_Click(object sender, RoutedEventArgs e)
@@ -2892,45 +2963,30 @@ namespace InternetClawMachine
 
         private void BtnRefreshQueueList_Click(object sender, RoutedEventArgs e)
         {
-            if (Game is ClawGame)
-            {
                 RefreshQueueList();
-            }
+            
         }
 
         private void RefreshQueueList()
         {
             lstPlayerQueue.Items.Clear();
-            foreach (var p in ((ClawGame)Game).PlayerQueue.Players)
+            foreach (var p in Game.PlayerQueue.Players)
             {
                 lstPlayerQueue.Items.Add(p);
             }
         }
 
         private void BtnRemoveFromQueue_Click(object sender, RoutedEventArgs e)
-        {
-            if (Game is ClawGame)
-            {
-                if (lstPlayerQueue.SelectedItem == null)
-                    return;
+    {
+            if (lstPlayerQueue.SelectedItem == null)
+                return;
 
-                var username = lstPlayerQueue.SelectedItem.ToString();
+            var username = lstPlayerQueue.SelectedItem.ToString();
 
-                if (Game.PlayerQueue.CurrentPlayer.ToLower() != username.ToLower())
-                {
-                    Game.PlayerQueue.RemoveSinglePlayer(username.ToLower()); //remove them from the queue if it's not their turn
-                }
-                else //otherwise they're doing it during their turn and we need to gift it to someone else
-                {
-                    var idx = Game.PlayerQueue.Index + 1;
-                    if (Game.PlayerQueue.Count <= idx)
-                        idx = 0;
-                    var newPlayer = Game.PlayerQueue.Count == 1 ? null : Game.PlayerQueue.Players[idx];
-                    if (Game is ClawSingleQueue queue)
-                        queue.GiftTurn(username.ToLower(), newPlayer);
-                }
-                RefreshQueueList();
-            }
+            
+            Game.PlayerQueue.RemoveSinglePlayer(username.ToLower()); //remove them from the queue if it's not their turn
+            RefreshQueueList();
+            
         }
 
         private void Button_Click_2(object sender, RoutedEventArgs e)
@@ -2942,7 +2998,7 @@ namespace InternetClawMachine
             setting.Visible = !setting.Visible;
             setting.Item = setting.ItemName;
             ObsConnection.SetSceneItemProperties(setting, "VideosScene");
-            ObsConnection.SetSourceSettings(activeSource.sourceName, activeSource.sourceSettings);
+            ObsConnection.SetSourceSettings(activeSource.SourceName, activeSource.Settings);
 
         }
 
@@ -2985,7 +3041,7 @@ namespace InternetClawMachine
         {
             if (Game is ClawTrivia trivia)
             {
-                trivia.NextQuestion();
+                Task.Run(async delegate () { await trivia.NextQuestion(); });
             }
         }
 
@@ -3012,7 +3068,7 @@ namespace InternetClawMachine
             {
                 try
                 {
-                    ((ClawGame)Game).PlayerQueue.AddSinglePlayer(res.Text);
+                    Game.PlayerQueue.AddSinglePlayer(res.Text);
                     RefreshQueueList();
                 }
                 catch (PlayerQueueSizeExceeded)
@@ -3111,6 +3167,175 @@ namespace InternetClawMachine
             var data = new JObject();
             data.Add("name", "CLIP-glitch5");
             Game.WsConnection.SendCommand(MediaWebSocketServer._commandMedia, data);
+        }
+
+        private void BtnDiscordSpam_Click(object sender, RoutedEventArgs e)
+        {
+            if (txtDiscordSpam.Text.Length == 0)
+                return;
+            var txtData = txtDiscordSpam.Text;
+            //send to discord
+            Notifier.SendDiscordMessage(Configuration.DiscordSettings.SpamWebhook, txtData);
+        }
+
+        private void BtnDiscordChat_Click(object sender, RoutedEventArgs e)
+        {
+            if (txtDiscordChat.Text.Length == 0)
+                return;
+            var txtData = txtDiscordChat.Text;
+            //send to discord
+            Notifier.SendDiscordMessage(Configuration.DiscordSettings.ChatWebhook, txtData);
+        }
+
+
+        private void BtnSendSkeeballCommand_Click(object sender, RoutedEventArgs e)
+        {
+            var resp = ((SkeeballGame)Game).MachineControl.SendCommand(txtSkeeballCommand.Text);
+            if (resp == null)
+                return;
+            txtSkeeballResponse.Text += "\r\n" + resp.Data;
+        }
+
+        private void BtnEnableScoring_Click(object sender, RoutedEventArgs e)
+        {
+            ((SkeeballGame)Game).MachineControl.SetScoreSensor(9, true);
+        }
+
+        private void BtnDisableScoring_Click(object sender, RoutedEventArgs e)
+        {
+            ((SkeeballGame)Game).MachineControl.SetScoreSensor(9, false);
+        }
+
+
+        private void CmbSkeeballController_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (cmbSkeeballController.SelectedItem == null)
+                return;
+
+            var controller = GetCurrentStepperController();
+
+            txtSkeeballControllerAccel.DataContext = controller;
+            txtSkeeballControllerSpeed.DataContext = controller;
+            txtSkeeballControllerLimitHigh.DataContext = controller;
+            txtSkeeballControllerLimitLow.DataContext = controller;
+            txtSkeeballControllerStepsNormal.DataContext = controller;
+            txtSkeeballControllerStepsSmall.DataContext = controller;
+        }
+
+        private StepperControllerSettings GetCurrentStepperController()
+        {
+            if (cmbSkeeballController.SelectedItem == null)
+                return null;
+
+            if ((string)cmbSkeeballController.SelectedItem == "PAN")
+                return Configuration.SkeeballSettings.Steppers.ControllerPAN;
+
+            return Configuration.SkeeballSettings.Steppers.ControllerLR;
+        }
+
+        private void CmbWheelController_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (cmbWheelController.SelectedItem == null)
+                return;
+
+            var controller = GetSelectedWheelController();
+
+            txtWheelControllerDefaultSpeed.DataContext = controller;
+            txtWheelControllerCurrentSpeed.DataContext = controller;
+            txtWheelControllerMapSpeedLow.DataContext = controller;
+            txtWheelControllerMapSpeedHigh.DataContext = controller;
+        }
+
+        private WheelControllerSettings GetSelectedWheelController()
+        {
+            if (cmbWheelController.SelectedItem == null)
+                return null;
+
+            if ((string)cmbWheelController.SelectedItem == "Right")
+                return Configuration.SkeeballSettings.Wheels.RightWheel;
+
+            return Configuration.SkeeballSettings.Wheels.LeftWheel;
+        }
+
+        private void BtnAutoHome1_Click(object sender, RoutedEventArgs e)
+        {
+            if (cmbSkeeballController.SelectedItem == null)
+                return;
+
+            var controller = GetCurrentStepperController();
+
+            Task.Run(async delegate () { await ((SkeeballGame)Game).MachineControl.AutoHome(controller.ID); });
+        }
+
+        private void BtnSetHome_Click(object sender, RoutedEventArgs e)
+        {
+            if (cmbSkeeballController.SelectedItem == null)
+                return;
+
+            var controller = GetCurrentStepperController();
+
+                Task.Run(async delegate () { await ((SkeeballGame)Game).MachineControl.SetHome(controller.ID); });
+        }
+
+        private void BtnSetAcceleration_Click(object sender, RoutedEventArgs e)
+        {
+            if (cmbSkeeballController.SelectedItem == null)
+                return;
+
+            var controller = GetCurrentStepperController();
+
+            Task.Run(async delegate () { await ((SkeeballGame)Game).MachineControl.SetAcceleration(controller.ID, controller.Acceleration); });
+        }
+
+        private void BtnSetSpeed_Click(object sender, RoutedEventArgs e)
+        {
+            if (cmbSkeeballController.SelectedItem == null)
+                return;
+
+            var controller = GetCurrentStepperController();
+
+            Task.Run(async delegate () { await ((SkeeballGame)Game).MachineControl.SetSpeed(controller.ID, controller.Speed); });
+        }
+
+        private void BtnSetLimits_Click(object sender, RoutedEventArgs e)
+        {
+            if (cmbSkeeballController.SelectedItem == null)
+                return;
+
+            var controller = GetCurrentStepperController();
+
+            Task.Run(async delegate () { await ((SkeeballGame)Game).MachineControl.SetLimit(controller.ID, controller.LimitHigh, controller.LimitLow); });
+        }
+
+        private void BtnTurnLeft_Click(object sender, RoutedEventArgs e)
+        {
+            Task.Run(async delegate () { await ((SkeeballGame)Game).MachineControl.TurnLeft(int.Parse(txtSkeeballStepperMoveSteps.Text)); });
+        }
+
+        private void BtnTurnRight_Click(object sender, RoutedEventArgs e)
+        {
+            Task.Run(async delegate () { await ((SkeeballGame)Game).MachineControl.TurnRight(int.Parse(txtSkeeballStepperMoveSteps.Text)); });
+        }
+
+        private void BtnSetWheelSpeed_Click(object sender, RoutedEventArgs e)
+        {
+            if (cmbWheelController.SelectedItem == null)
+                return;
+
+            var controller = GetSelectedWheelController();
+
+            Task.Run(async delegate () { await ((SkeeballGame)Game).MachineControl.SetWheelSpeed(controller.ID, controller.CurrentSpeed * controller.Multiplier); });
+        }
+
+        private void BtnSetWheelSpeedBoth_Click(object sender, RoutedEventArgs e)
+        {
+            var controller = Configuration.SkeeballSettings.Wheels.LeftWheel;
+
+                Task.Run(async delegate () { await ((SkeeballGame)Game).MachineControl.SetWheelSpeed(controller.ID, controller.CurrentSpeed * controller.Multiplier); });
+
+            controller = Configuration.SkeeballSettings.Wheels.RightWheel;
+
+                    Task.Run(async delegate () { await ((SkeeballGame)Game).MachineControl.SetWheelSpeed(controller.ID, controller.CurrentSpeed * controller.Multiplier); });
         }
     }
 

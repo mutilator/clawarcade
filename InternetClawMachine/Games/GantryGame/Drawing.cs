@@ -431,7 +431,7 @@ namespace InternetClawMachine.Games.GantryGame
         private void HandleSingleCommand(string username, string message)
         {
             var moveTime = Configuration.DrawingSettings.MovementTime;
-            var cmd = new ClawCommand { Direction = ClawDirection.NONE, Duration = moveTime, Timestamp = GameModeTimer.ElapsedMilliseconds, Username = username };
+            var cmd = new ClawQueuedCommand { Direction = ClawDirection.NONE, Duration = moveTime, Timestamp = GameModeTimer.ElapsedMilliseconds, Username = username };
 
             switch (message.ToLower())
             {
@@ -567,13 +567,13 @@ namespace InternetClawMachine.Games.GantryGame
                 _processingQueue = false;
                 return Task.CompletedTask;
             }
-            ClawCommand currentCommand;
+            ClawQueuedCommand currentCommand;
             //pull the latest command from the queue
             lock (CommandQueue)
             {
                 if (CommandQueue.Count > 0)
                 {
-                    currentCommand = CommandQueue[0];
+                    currentCommand = (ClawQueuedCommand)CommandQueue[0];
                     CommandQueue.RemoveAt(0);
                 }
                 else { _processingQueue = false; return Task.CompletedTask; }

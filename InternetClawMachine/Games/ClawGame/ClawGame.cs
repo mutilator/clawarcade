@@ -62,7 +62,7 @@ namespace InternetClawMachine.Games.ClawGame
         /// </summary>
         public int SessionDrops { set; get; }
 
-        public List<SessionWinTracker> SessionWinTracker { get; internal set; }
+        public List<SessionUserTracker> SessionWinTracker { get; internal set; }
 
         #endregion Properties
 
@@ -81,8 +81,9 @@ namespace InternetClawMachine.Games.ClawGame
 
         public ClawGame(IChatApi client, BotConfiguration configuration, OBSWebsocket obs) : base(client, configuration, obs)
         {
-            WsConnection = new MediaWebSocketServer(Configuration.ObsSettings.AudioManagerPort);
-            WsConnection.AddWebSocketService(Configuration.ObsSettings.AudioManagerEndpoint, () => new AudioManager(this));
+            WsConnection = new MediaWebSocketServer(Configuration.ObsSettings.AudioManagerPort, Configuration.ObsSettings.AudioManagerEndpoint);
+            Action<AudioManager> SetupService = (AudioManager) => { AudioManager.Game = this; };
+            WsConnection.AddWebSocketService(Configuration.ObsSettings.AudioManagerEndpoint, SetupService);
             WsConnection.Start();
 
             this.OBSSceneChange += ClawGame_OBSSceneChange;
@@ -98,7 +99,7 @@ namespace InternetClawMachine.Games.ClawGame
                 
                 switch (m.Controller)
                 {
-                    case ClawControllerType.TWO:
+                    case GameControllerType.CLAW_TWO:
                         machineControl = new ClawController2(m);
                         break;
                     default:
@@ -147,18 +148,11 @@ namespace InternetClawMachine.Games.ClawGame
 
             OnTeamJoined += ClawGame_OnTeamJoined;
 
-            SessionWinTracker = new List<SessionWinTracker>();
+            SessionWinTracker = new List<SessionUserTracker>();
             DurationSinglePlayer = Configuration.ClawSettings.SinglePlayerDuration;
             DurationSinglePlayerQueueNoCommand = configuration.ClawSettings.SinglePlayerQueueNoCommandDuration;
-            //refresh the browser scene source, needs done better...
             RefreshGameCancellationToken();
-            Task.Run(async delegate
-            {
-                ObsConnection.SetSourceRender("BrowserSounds", false, "VideosScene");
-                await Task.Delay(5000);
-                GameCancellationToken.Token.ThrowIfCancellationRequested();
-                ObsConnection.SetSourceRender("BrowserSounds", true, "VideosScene");
-            }, GameCancellationToken.Token);
+            ObsConnection.RefreshBrowserSource("BrowserSounds");
         }
 
         private void MachineControl_OnConnected(IMachineControl controller)
@@ -275,12 +269,8 @@ namespace InternetClawMachine.Games.ClawGame
                 var result = await Api.Helix.Clips.CreateClipAsync(Configuration.TwitchSettings.UserId);
 
                 //send to discord
-                var client = new HttpClient();
-                var url = new JObject();
-                url.Add("content", string.Format("A plush wasn't properly scanned. Here is the clip. {0}", result.CreatedClips[0].EditUrl));
-
-                var data = new StringContent(JsonConvert.SerializeObject(url), Encoding.UTF8, "application/json");
-                await client.PostAsync(Configuration.DiscordSettings.SpamWebhook, data);
+                var data = string.Format("A plush wasn't properly scanned. Here is the clip. {0}", result.CreatedClips[0].EditUrl);
+                Notifier.SendDiscordMessage(Configuration.DiscordSettings.SpamWebhook, data);
             }
             catch (Exception x)
             {
@@ -446,17 +436,8 @@ namespace InternetClawMachine.Games.ClawGame
 
                         try
                         {
-
-                            Task.Run(async delegate
-                            {
-                                //send to discord
-                                var client = new HttpClient();
-                                var url = new JObject();
-                                url.Add("content", "Emergency shutdown initiated!");
-
-                                var data = new StringContent(JsonConvert.SerializeObject(url), Encoding.UTF8, "application/json");
-                                await client.PostAsync(Configuration.DiscordSettings.ChatWebhook, data);
-                            });
+                            var data = "Emergency shutdown initiated!";
+                            Notifier.SendDiscordMessage(Configuration.DiscordSettings.ChatWebhook, data);
                         }
                         catch
                         {
@@ -921,6 +902,9 @@ namespace InternetClawMachine.Games.ClawGame
                                             desc = Translator.GetTranslation("responseCommandLeadersAll",
                                                 Configuration.UserList.GetUserLocalization(username));
                                             timestart = "0"; //first record in db, wow this is so bad..
+                                            timestart = (Helpers.GetEpoch() - (int)DateTime.UtcNow
+                                                             .Subtract(new DateTime(DateTime.Today.Year,
+                                                                 1, 1)).TotalSeconds).ToString();
                                             break;
 
                                         case "month":
@@ -944,6 +928,7 @@ namespace InternetClawMachine.Games.ClawGame
 
                                 var command = new SQLiteCommand(leadersql, Configuration.RecordsDatabase);
                                 command.Parameters.Add(new SQLiteParameter("@timestart", timestart));
+
                                 using (var leaderWins = command.ExecuteReader())
                                 {
                                     while (leaderWins.Read())
@@ -997,6 +982,16 @@ namespace InternetClawMachine.Games.ClawGame
 
                                 var wins = command.ExecuteScalar().ToString();
 
+                                sql = "SELECT count(*) FROM wins WHERE name = @username AND datetime >= @timestart";
+                                command = new SQLiteCommand(sql, Configuration.RecordsDatabase);
+                                var timestart = (Helpers.GetEpoch() - (int)DateTime.UtcNow
+                                                             .Subtract(new DateTime(DateTime.Today.Year,
+                                                                 1, 1)).TotalSeconds).ToString();
+                                command.Parameters.Add(new SQLiteParameter("@timestart", timestart));
+                                command.Parameters.Add(new SQLiteParameter("@username", username));
+
+                                var winsYear = command.ExecuteScalar().ToString();
+
                                 sql = "select count(*) FROM (select distinct guid FROM movement WHERE name = @username)";
                                 command = new SQLiteCommand(sql, Configuration.RecordsDatabase);
                                 command.Parameters.Add(new SQLiteParameter("@username", username));
@@ -1041,7 +1036,7 @@ namespace InternetClawMachine.Games.ClawGame
                                     string.Format(
                                         Translator.GetTranslation("responseCommandStats1",
                                             Configuration.UserList.GetUserLocalization(username)), username, wins, sessions,
-                                        moves, clawBux, cost));
+                                        moves, clawBux, cost, winsYear));
                                 ChatClient.SendMessage(Configuration.Channel,
                                     string.Format(
                                         Translator.GetTranslation("responseCommandStats2",
@@ -1978,7 +1973,7 @@ namespace InternetClawMachine.Games.ClawGame
             var guid = Guid.NewGuid();
             while (true) //don't use CommandQueue here to keep thread safe
             {
-                ClawCommand currentCommand;
+                ClawQueuedCommand currentCommand;
                 //pull the latest command from the queue
                 lock (CommandQueue)
                 {
@@ -1988,7 +1983,7 @@ namespace InternetClawMachine.Games.ClawGame
                         break;
                     }
 
-                    currentCommand = CommandQueue[0];
+                    currentCommand = (ClawQueuedCommand)CommandQueue[0];
                     CommandQueue.RemoveAt(0);
                 }
                 Logger.WriteLog(Logger._debugLog, guid + "Start processing: " + Thread.CurrentThread.ManagedThreadId, Logger.LogLevel.DEBUG);
@@ -1998,7 +1993,7 @@ namespace InternetClawMachine.Games.ClawGame
                 switch (currentCommand.Direction)
                 {
                     case ClawDirection.FORWARD:
-                        
+
                         if (machineControl.CurrentDirection != MovementDirection.FORWARD)
                             Logger.WriteLog(Logger._machineLog, "MOVE FORWARD");
                         if (Configuration.ClawSettings.ReverseControles)
@@ -2057,7 +2052,7 @@ namespace InternetClawMachine.Games.ClawGame
                             CommandQueue.Clear(); // remove everything else
 
                         ClawDropping?.Invoke(this, new EventArgs());
-                      
+
 
                         await machineControl.PressDrop();
 
@@ -2193,7 +2188,16 @@ namespace InternetClawMachine.Games.ClawGame
                     break;
             }
         }
+        public override void ShowHelpSub(string username)
+        {
+            base.ShowHelpSub(username);
 
+            //gameHelpSub1 = lights
+            ChatClient.SendMessage(Configuration.Channel, Configuration.CommandPrefix + Translator.GetTranslation("gameHelpSub2", Configuration.UserList.GetUserLocalization(username)));
+            ChatClient.SendMessage(Configuration.Channel, Configuration.CommandPrefix + Translator.GetTranslation("gameHelpSub3", Configuration.UserList.GetUserLocalization(username)));
+            ChatClient.SendMessage(Configuration.Channel, Configuration.CommandPrefix + Translator.GetTranslation("gameHelpSub4", Configuration.UserList.GetUserLocalization(username)));
+            ChatClient.SendMessage(Configuration.Channel, Configuration.CommandPrefix + Translator.GetTranslation("gameHelpSub5", Configuration.UserList.GetUserLocalization(username)));
+        }
         public override void StartGame(string user)
         {
             _lastSensorTrip = 0;
@@ -2935,29 +2939,7 @@ namespace InternetClawMachine.Games.ClawGame
         protected override void UpdateObsQueueDisplay()
         {
             base.UpdateObsQueueDisplay();
-            if (ObsConnection.IsConnected)
-            {
-                try
-                {
-                    if (PlayerQueue.Count > 0)
-                    {
-                        ObsConnection.SetSourceRender(Configuration.ObsScreenSourceNames.TextOverlayChat.SourceName, true);
-                        ObsConnection.SetSourceRender(Configuration.ObsScreenSourceNames.TextOverlayPlayerQueue.SourceName, true);
-                        ObsConnection.SetSourceRender(Configuration.ObsScreenSourceNames.TextOverlayPlayNotification.SourceName, false);
-                    }
-                    else //swap the !play image for the queue list if no one is in the queue
-                    {
-                        ObsConnection.SetSourceRender(Configuration.ObsScreenSourceNames.TextOverlayChat.SourceName, false);
-                        ObsConnection.SetSourceRender(Configuration.ObsScreenSourceNames.TextOverlayPlayerQueue.SourceName, false);
-                        ObsConnection.SetSourceRender(Configuration.ObsScreenSourceNames.TextOverlayPlayNotification.SourceName, true);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    var error = string.Format("ERROR {0} {1}", ex.Message, ex);
-                    Logger.WriteLog(Logger._errorLog, error);
-                }
-            }
+            
         }
 
         private void AdjustObsGreenScreenFilters()
@@ -2986,9 +2968,9 @@ namespace InternetClawMachine.Games.ClawGame
 
                 //grab filters, if they exist don't bother sending more commands
                 var sourceSettings = ObsConnection.GetSourceSettings(opt.ClipName);
-                sourceSettings.sourceSettings["file"] = opt.FilePath;
+                sourceSettings.Settings["file"] = opt.FilePath;
 
-                ObsConnection.SetSourceSettings(opt.ClipName, sourceSettings.sourceSettings);
+                ObsConnection.SetSourceSettings(opt.ClipName, sourceSettings.Settings);
                 Configuration.ClawSettings.ActiveReticle = opt;
             }
             catch (Exception x)
@@ -3131,9 +3113,9 @@ namespace InternetClawMachine.Games.ClawGame
                 {
                     var machineControl = GetActiveMachine();
                     GameCancellationToken.Token.ThrowIfCancellationRequested();
-                    ((ClawController)machineControl).SendCommandAsync("wt 500");
-                    ((ClawController)machineControl).SendCommandAsync("clap " + int.Parse(e.Subscriber.MsgParamCumulativeMonths));
-                    await Task.Delay(500 * int.Parse(e.Subscriber.MsgParamCumulativeMonths) * 2);
+                    ((ClawController)machineControl).SendCommandAsync("wt 250");
+                    ((ClawController)machineControl).SendCommandAsync("clap 1");
+                    await Task.Delay(500);
                     GameCancellationToken.Token.ThrowIfCancellationRequested();
                         
                     
@@ -3158,9 +3140,9 @@ namespace InternetClawMachine.Games.ClawGame
                     var machineControl = GetActiveMachine();
                     await PoliceStrobe(machineControl);
                     GameCancellationToken.Token.ThrowIfCancellationRequested();
-                    ((ClawController)machineControl).SendCommandAsync("wt 500");
-                    ((ClawController)machineControl).SendCommandAsync("clap " + e.ReSubscriber.Months);
-                    await Task.Delay(500 * e.ReSubscriber.Months * 2);
+                    ((ClawController)machineControl).SendCommandAsync("wt 250");
+                    ((ClawController)machineControl).SendCommandAsync("clap " + e.ReSubscriber.MsgParamCumulativeMonths);
+                    await Task.Delay(250 * e.ReSubscriber.Months * 2);
                     GameCancellationToken.Token.ThrowIfCancellationRequested();
                         
                 }
@@ -3178,7 +3160,7 @@ namespace InternetClawMachine.Games.ClawGame
             Logger.WriteLog(Logger._debugLog, string.Format("WIN CHUTE: Current player {0} in game loop {1}", PlayerQueue.CurrentPlayer, GameLoopCounterValue), Logger.LogLevel.DEBUG);
             InScanWindow = true; //allows RFID reader to accept scans
             if (sender is ClawController controller)
-                controller.RunConveyor(Configuration.ClawSettings.ConveyorRunAfterDrop); //start running belt so it's in motion when/if something drops
+                Task.Run(async delegate () { await controller.RunConveyor(Configuration.ClawSettings.ConveyorRunAfterDrop); }); //start running belt so it's in motion when/if something drops
         }
 
         private void ClawGame_OnTeamJoined(object sender, TeamJoinedArgs e)
@@ -3828,17 +3810,9 @@ namespace InternetClawMachine.Games.ClawGame
 
                 try
                 {
-                    
-                    Task.Run(async delegate
-                    {
-                        //send to discord
-                        var client = new HttpClient();
-                        var url = new JObject();
-                        url.Add("content", "Oh no I broke! Someone find my owner to fix me!");
-
-                        var data = new StringContent(JsonConvert.SerializeObject(url), Encoding.UTF8, "application/json");
-                        await client.PostAsync(Configuration.DiscordSettings.ChatWebhook, data);
-                    });
+                    //send to discord
+                    var data = "Oh no I broke! Someone find my owner to fix me!";
+                    Notifier.SendDiscordMessage(Configuration.DiscordSettings.ChatWebhook, data);
                 }
                 catch
                 {
@@ -3932,8 +3906,8 @@ namespace InternetClawMachine.Games.ClawGame
             }
             PlayClipAsync(Configuration.OBSScreenSourceNames.BountyWantedText, 9500);
             */
-            
-            PoliceStrobe(GetActiveMachine());
+
+            Task.Run(async delegate () { await PoliceStrobe(GetActiveMachine()); });
         }
 
         public IMachineControl GetActiveMachine()
@@ -4029,7 +4003,7 @@ namespace InternetClawMachine.Games.ClawGame
             var user = SessionWinTracker.FirstOrDefault(u => u.Username == winner);
             if (user == null)
             { 
-                user = new SessionWinTracker { Username = winner };
+                user = new SessionUserTracker { Username = winner };
                 SessionWinTracker.Add(user);
             }
 
@@ -4100,8 +4074,8 @@ namespace InternetClawMachine.Games.ClawGame
             SessionDrops = 0; //set to 0 for display
             RefreshWinList();
 
-            Notifier.SendEmail(Configuration.EmailAddress, "Someone won a prize: " + saying, saying);
-            Notifier.SendDiscordMessage(Configuration.DiscordSettings.SpamWebhook, winner + " won a prize: " + saying);
+            //Notifier.SendEmail(Configuration.EmailAddress, "Someone won a prize: " + saying, saying);
+            //Notifier.SendDiscordMessage(Configuration.DiscordSettings.SpamWebhook, winner + " won a prize: " + saying);
 
             //send message after a bit
             RefreshGameCancellationToken();

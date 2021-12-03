@@ -433,7 +433,7 @@ namespace InternetClawMachine.Games.ClawGame
                     }
                     else
                     {
-                        user = new SessionWinTracker { Username = username };
+                        user = new SessionUserTracker { Username = username };
                         SessionWinTracker.Add(user);
                     }
 
@@ -467,7 +467,7 @@ namespace InternetClawMachine.Games.ClawGame
             {
                 Debug.WriteLine("added command: " + Thread.CurrentThread.ManagedThreadId);
                 if (cmd != ClawDirection.NA)
-                    CommandQueue.Add(new ClawCommand
+                    CommandQueue.Add(new ClawQueuedCommand
                     {
                         Direction = cmd,
                         Duration = moveTime,

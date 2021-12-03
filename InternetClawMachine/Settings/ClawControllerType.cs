@@ -1,9 +1,10 @@
 ﻿namespace InternetClawMachine.Settings
 {
-    public enum ClawControllerType
+    public enum GameControllerType
     {
-        ONE,
-        TWO
+        CLAW_ONE,
+        CLAW_TWO,
+        SKEEBALL_ONE
        
 
     }
