@@ -12,11 +12,13 @@ namespace InternetClawMachine.Hardware.Skeeball
         EVENT_PONG = 101, //ping reply
         EVENT_GAME_RESET = 102, //send a reset event from the machine
         EVENT_BALL_RELEASED = 103, //ball released
-        EVENT_BALL_RETURNED = 104,
+        EVENT_BALL_RETURNED = 104, //ball passed ball return sensor
+        EVENT_FLAP_TRIPPED = 105, //the laser sensor tripped for the ramp
+        EVENT_FLAP_SET = 106, //The flap is set and actuator is in home position
 
         EVENT_MOVE_COMPLETE = 400, //movement given is complete
-        EVENT_LIMIT_LEFT = 401, //Event to show limit hit
-        EVENT_LIMIT_RIGHT = 402, //Event to show limit hit
+        EVENT_LIMIT_HOME = 401, //Event to show limit hit
+        EVENT_LIMIT_END = 402, //Event to show limit hit
         EVENT_POSITION = 403, //fired when position is requested
         EVENT_WHEEL_SPEED = 404, //fired when wheel speed is requested
         EVENT_HOMING_STARTED = 405, //

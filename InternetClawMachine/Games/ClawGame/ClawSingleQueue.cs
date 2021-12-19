@@ -21,18 +21,19 @@ namespace InternetClawMachine.Games.ClawGame
             CurrentDroppingPlayer = new DroppingPlayer();
             foreach (var machineControl in MachineList)
             {
-
-                machineControl.OnClawCentered += MachineControl_OnClawCentered;
-
-                ((ClawController)machineControl).OnClawRecoiled += MachineControl_OnClawRecoiled;
-                ((ClawController)machineControl).OnClawDropped += ClawSingleQueue_OnClawDropped;
+                if (machineControl is ClawController controller)
+                {
+                    controller.OnClawCentered += MachineControl_OnClawCentered;
+                    controller.OnClawRecoiled += MachineControl_OnClawRecoiled;
+                    controller.OnClawDropped += ClawSingleQueue_OnClawDropped;
+                }
             }
             StartMessage = string.Format(Translator.GetTranslation("gameClawSingleQueueStartGame", Translator._defaultLanguage), Configuration.CommandPrefix);
 
             PlayerQueue.OnJoinedQueue += PlayerQueue_OnJoinedQueue;
         }
 
-        internal virtual void ClawSingleQueue_OnClawDropped(object sender, EventArgs e)
+        internal virtual void ClawSingleQueue_OnClawDropped(IMachineControl sender)
         {
             if (ObsConnection.IsConnected && Configuration.EventMode.DropScene != null)
                 ObsConnection.SetSourceRender(Configuration.EventMode.DropScene.SourceName, true, Configuration.EventMode.DropScene.SceneName);
@@ -57,16 +58,16 @@ namespace InternetClawMachine.Games.ClawGame
             }
         }
 
-        internal virtual void MachineControl_OnClawRecoiled(object sender, EventArgs e)
+        internal virtual void MachineControl_OnClawRecoiled(IMachineControl sender)
         {
             if (Configuration.EventMode.DisableReturnHome)
             {
-                MachineControl_OnClawCentered(sender, e);
+                MachineControl_OnClawCentered(sender);
             }
             
         }
 
-        internal virtual void MachineControl_OnClawCentered(object sender, EventArgs e)
+        internal virtual void MachineControl_OnClawCentered(IMachineControl sender)
         {
             DropInCommandQueue = false;
             var msg = string.Format(Translator.GetTranslation("gameClawSingleQueueStartRoundShort", Configuration.UserList.GetUserLocalization(PlayerQueue.CurrentPlayer)), PlayerQueue.CurrentPlayer);
@@ -98,9 +99,12 @@ namespace InternetClawMachine.Games.ClawGame
 
                 if (machineControl != null)
                 {
-                    machineControl.OnClawCentered -= MachineControl_OnClawCentered;
-                    ((ClawController)machineControl).OnClawRecoiled -= MachineControl_OnClawRecoiled;
-                    ((ClawController)machineControl).OnClawDropped -= ClawSingleQueue_OnClawDropped;
+                    if (machineControl is ClawController controller)
+                    {
+                        controller.OnClawCentered -= MachineControl_OnClawCentered;
+                        controller.OnClawRecoiled -= MachineControl_OnClawRecoiled;
+                        controller.OnClawDropped -= ClawSingleQueue_OnClawDropped;
+                    }
                 }
             }
             PlayerQueue.OnJoinedQueue -= PlayerQueue_OnJoinedQueue;

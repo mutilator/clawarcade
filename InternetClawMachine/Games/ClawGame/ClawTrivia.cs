@@ -34,7 +34,7 @@ namespace InternetClawMachine.Games.ClawGame
             configuration, obs)
         {
             GameMode = GameModeType.TRIVIA;
-            CurrentDroppingPlayer = new DroppingPlayer();
+            CurrentDroppingPlayer = new CurrentActiveGamePlayer();
             foreach (var machineControl in MachineList)
             {
                 machineControl.OnClawCentered += MachineControl_OnClawCentered;
@@ -98,7 +98,7 @@ namespace InternetClawMachine.Games.ClawGame
         }
 
         internal TriviaMessageMode TriviaMessageMode { set; get; }
-        internal DroppingPlayer CurrentDroppingPlayer { set; get; }
+        internal CurrentActiveGamePlayer CurrentDroppingPlayer { set; get; }
         internal List<TriviaQuestion> TriviaQuestions { set; get; }
         public TriviaQuestion CurrentQuestion { get; set; }
         public int QuestionsAsked { get; set; }

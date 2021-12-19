@@ -13,12 +13,12 @@ namespace InternetClawMachine.Games.ClawGame
 {
     internal class ClawTeamChaos : ClawGame
     {
-        internal DroppingPlayer CurrentDroppingPlayer { set; get; }
+        internal CurrentActiveGamePlayer CurrentDroppingPlayer { set; get; }
 
         public ClawTeamChaos(IChatApi client, BotConfiguration configuration, OBSWebsocket obs) : base(client, configuration, obs)
         {
             GameMode = GameModeType.REALTIMETEAM;
-            CurrentDroppingPlayer = new DroppingPlayer();
+            CurrentDroppingPlayer = new CurrentActiveGamePlayer();
             foreach (var machineControl in MachineList)
             {
 

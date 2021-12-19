@@ -22,7 +22,7 @@ namespace InternetClawMachine.Games.ClawGame
         public ClawTeamTrivia(IChatApi client, BotConfiguration configuration, OBSWebsocket obs) : base(client, configuration, obs)
         {
             GameMode = GameModeType.TEAMTRIVIA;
-            CurrentDroppingPlayer = new DroppingPlayer();
+            CurrentDroppingPlayer = new CurrentActiveGamePlayer();
             foreach (var machineControl in MachineList)
             {
                 machineControl.OnClawCentered += MachineControl_OnClawCentered;

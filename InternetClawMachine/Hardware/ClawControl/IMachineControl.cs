@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Threading.Tasks;
 using InternetClawMachine.Games.GameHelpers;
+using InternetClawMachine.Hardware.Helpers;
 using InternetClawMachine.Settings;
 
 namespace InternetClawMachine.Hardware.ClawControl
@@ -50,28 +51,28 @@ namespace InternetClawMachine.Hardware.ClawControl
         /// <summary>
         /// Fired when claw is cover the chute
         /// </summary>
-        event EventHandler OnReturnedHome;
+        //event MachineEventHandler OnReturnedHome;
 
         /// <summary>
         /// Fired when claw returns to center of machine
         /// </summary>
-        event EventHandler OnClawCentered;
+        //event MachineEventHandler OnClawCentered;
 
 
         /// <summary>
         /// Fired when the claw starts dropping
         /// </summary>
-        event EventHandler OnClawDropping;
+        //event MachineEventHandler OnClawDropping;
 
         /// <summary>
         /// When the belt sensor sees a plush
         /// </summary>
-        event BeltEventHandler OnBreakSensorTripped;
+        //event BeltEventHandler OnChuteSensorTripped;
 
         /// <summary>
         /// Reset button on the machine is pressed to restart the game mode
         /// </summary>
-        event EventHandler OnResetButtonPressed;
+        //event MachineEventHandler OnResetButtonPressed;
 
         MovementDirection CurrentDirection { set; get; }
 

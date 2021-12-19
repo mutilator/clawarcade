@@ -53,7 +53,7 @@ namespace InternetClawMachine.Hardware.ClawControl
         private bool _alreadyTripped;
         private object _readingInputs = new object();
 
-        event BeltEventHandler IMachineControl.OnBreakSensorTripped
+        event BeltEventHandler IMachineControl.OnChuteSensorTripped
         {
             add
             {

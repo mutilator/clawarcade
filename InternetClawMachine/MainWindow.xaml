@@ -541,14 +541,14 @@
                                     <Label Content="Controller" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="262,10,0,0"/>
                                     <Button x:Name="btnEnableScoring" Content="Enable Scoring" HorizontalAlignment="Left" VerticalAlignment="Top" Width="120" Margin="10,216,0,0" Click="BtnEnableScoring_Click"/>
                                     <Button x:Name="btnDisableScoring" Content="Disable Scoring" HorizontalAlignment="Left" VerticalAlignment="Top" Width="108" Margin="135,216,0,0" Click="BtnDisableScoring_Click"/>
-                                    <TextBox x:Name="txtSkeeballControllerAccel" HorizontalAlignment="Left" Height="23" TextWrapping="Wrap" Text="{Binding Acceleration, Mode=TwoWay}" VerticalAlignment="Top" Width="120" Margin="618,15,0,0" RenderTransformOrigin="1.179,-0.304"/>
-                                    <Label Content="Acceleration" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="532,14,0,0"/>
-                                    <TextBox x:Name="txtSkeeballControllerSpeed" HorizontalAlignment="Left" Height="23" TextWrapping="Wrap" Text="{Binding Speed, Mode=TwoWay}" VerticalAlignment="Top" Width="120" Margin="618,46,0,0" RenderTransformOrigin="1.179,-0.304"/>
-                                    <Label Content="Speed" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="532,45,0,0"/>
-                                    <TextBox x:Name="txtSkeeballControllerLimitHigh" HorizontalAlignment="Left" Height="23" TextWrapping="Wrap" Text="{Binding LimitHigh, Mode=TwoWay}" VerticalAlignment="Top" Width="120" Margin="618,77,0,0" RenderTransformOrigin="1.179,-0.304"/>
-                                    <Label Content="Limit High" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="532,76,0,0"/>
-                                    <TextBox x:Name="txtSkeeballControllerLimitLow" HorizontalAlignment="Left" Height="23" TextWrapping="Wrap" Text="{Binding LimitLow, Mode=TwoWay}" VerticalAlignment="Top" Width="120" Margin="618,108,0,0" RenderTransformOrigin="1.179,-0.304"/>
-                                    <Label Content="Limit Low" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="532,107,0,0"/>
+                                    <TextBox x:Name="txtSkeeballControllerAccel" HorizontalAlignment="Left" Height="23" TextWrapping="Wrap" Text="{Binding Acceleration, Mode=TwoWay}" VerticalAlignment="Top" Width="120" Margin="635,15,0,0" RenderTransformOrigin="1.179,-0.304"/>
+                                    <Label Content="Acceleration" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,12,189,0"/>
+                                    <TextBox x:Name="txtSkeeballControllerSpeed" HorizontalAlignment="Left" Height="23" TextWrapping="Wrap" Text="{Binding Speed, Mode=TwoWay}" VerticalAlignment="Top" Width="120" Margin="635,46,0,0" RenderTransformOrigin="1.179,-0.304"/>
+                                    <Label Content="Speed" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,43,189,0"/>
+                                    <TextBox x:Name="txtSkeeballControllerLimitHigh" HorizontalAlignment="Left" Height="23" TextWrapping="Wrap" Text="{Binding LimitHigh, Mode=TwoWay}" VerticalAlignment="Top" Width="120" Margin="635,77,0,0" RenderTransformOrigin="1.179,-0.304"/>
+                                    <Label Content="Limit High" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,74,189,0"/>
+                                    <TextBox x:Name="txtSkeeballControllerLimitLow" HorizontalAlignment="Left" Height="23" TextWrapping="Wrap" Text="{Binding LimitLow, Mode=TwoWay}" VerticalAlignment="Top" Width="120" Margin="635,108,0,0" RenderTransformOrigin="1.179,-0.304"/>
+                                    <Label Content="Limit Low" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,105,189,0"/>
                                     <ComboBox x:Name="cmbWheelController" HorizontalAlignment="Left" VerticalAlignment="Top" Width="154" Margin="334,268,0,0" SelectionChanged="CmbWheelController_SelectionChanged">
                                         <sys:String>Left</sys:String>
                                         <sys:String>Right</sys:String>
@@ -562,10 +562,10 @@
                                     <TextBox x:Name="txtSkeeballStepperMoveSteps" HorizontalAlignment="Left" Height="23" TextWrapping="Wrap" Text="10" VerticalAlignment="Top" Width="120" Margin="376,164,0,0"/>
                                     <Label Content="Movement Steps" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="262,163,0,0"/>
                                     <Button x:Name="btnTurnRight" Content="Turn Right" HorizontalAlignment="Left" VerticalAlignment="Top" Width="109" Margin="379,195,0,0" Click="BtnTurnRight_Click"/>
-                                    <TextBox x:Name="txtSkeeballControllerStepsNormal" HorizontalAlignment="Left" Height="23" TextWrapping="Wrap" Text="{Binding MoveStepsNormal, Mode=TwoWay}" VerticalAlignment="Top" Width="120" Margin="618,139,0,0" RenderTransformOrigin="1.179,-0.304"/>
-                                    <Label Content="Normal Steps" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="532,138,0,0"/>
-                                    <TextBox x:Name="txtSkeeballControllerStepsSmall" HorizontalAlignment="Left" Height="23" TextWrapping="Wrap" Text="{Binding MoveStepsSmall, Mode=TwoWay}" VerticalAlignment="Top" Width="120" Margin="618,164,0,0" RenderTransformOrigin="1.179,-0.304"/>
-                                    <Label Content="Small Steps" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="532,163,0,0"/>
+                                    <TextBox x:Name="txtSkeeballControllerStepsNormal" HorizontalAlignment="Left" Height="23" TextWrapping="Wrap" Text="{Binding MoveStepsNormal, Mode=TwoWay}" VerticalAlignment="Top" Width="120" Margin="635,139,0,0" RenderTransformOrigin="1.179,-0.304"/>
+                                    <Label Content="Normal Steps" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,136,189,0"/>
+                                    <TextBox x:Name="txtSkeeballControllerStepsSmall" HorizontalAlignment="Left" Height="23" TextWrapping="Wrap" Text="{Binding MoveStepsSmall, Mode=TwoWay}" VerticalAlignment="Top" Width="120" Margin="635,169,0,0" RenderTransformOrigin="1.179,-0.304"/>
+                                    <Label Content="Small Steps" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,167,189,0"/>
 
                                     <Slider x:Name="sldrBallReleaseTime" HorizontalAlignment="Left" VerticalAlignment="Top" Width="113" Maximum="50000" Minimum="1" LargeChange="50" SmallChange="5" Value="{Binding SkeeballSettings.BallReleaseDuration, Mode=TwoWay}" IsSnapToTickEnabled="True" TickFrequency="5" Margin="10,281,0,0" />
                                     <Label Content="Ball Rls Duration" HorizontalAlignment="Left" VerticalAlignment="Top" RenderTransformOrigin="-0.026,-0.077" Margin="10,257,0,0" />
@@ -576,6 +576,8 @@
                                     <TextBox x:Name="txtWheelControllerMapSpeedLow" HorizontalAlignment="Left" Height="23" TextWrapping="Wrap" Text="{Binding MapSpeedLow, Mode=TwoWay}" VerticalAlignment="Top" Width="47" Margin="618,333,0,0" RenderTransformOrigin="1.179,-0.304"/>
                                     <TextBox x:Name="txtWheelControllerMapSpeedHigh" HorizontalAlignment="Left" Height="23" TextWrapping="Wrap" Text="{Binding MapSpeedHigh, Mode=TwoWay}" VerticalAlignment="Top" Width="49" Margin="689,333,0,0" RenderTransformOrigin="1.179,-0.304"/>
                                     <Label Content="Mapped Speed" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="522,335,0,0"/>
+                                    <Label Content="Default Position" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,198,189,0"/>
+                                    <TextBox x:Name="txtSkeeballControllerDefaultPosition" HorizontalAlignment="Left" Height="23" TextWrapping="Wrap" Text="{Binding DefaultPosition, Mode=TwoWay}" VerticalAlignment="Top" Width="120" Margin="635,197,0,0" RenderTransformOrigin="1.179,-0.304"/>
                                 </Grid>
                             </TabItem>
                         </TabControl>

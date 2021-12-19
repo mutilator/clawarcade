@@ -285,6 +285,7 @@
     <Compile Include="Games\ClawGame\ClawMarbles.cs" />
     <Compile Include="Games\ClawGame\ClawPlinko.cs" />
     <Compile Include="Games\ClawGame\ClawTicTacToe.cs" />
+    <Compile Include="Games\GameHelpers\Events.cs" />
     <Compile Include="Games\GameHelpers\GameQueuedCommand.cs" />
     <Compile Include="Games\GameHelpers\PlinkoPhase.cs" />
     <Compile Include="Games\GameHelpers\RestartVote.cs" />
@@ -321,6 +322,7 @@
     <Compile Include="Hardware\ClawControl\ControllerNotConnectedException.cs" />
     <Compile Include="Hardware\ClawControl\FailsafeType.cs" />
     <Compile Include="Hardware\ClawControl\FlipperDirection.cs" />
+    <Compile Include="Hardware\Helpers\Events.cs" />
     <Compile Include="Hardware\Skeeball\SkeeballControllerIdentifier.cs" />
     <Compile Include="Hardware\Skeeball\MessageQueueMessage.cs" />
     <Compile Include="Hardware\Skeeball\SkeeballController.cs" />

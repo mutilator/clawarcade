@@ -7,18 +7,14 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using InternetClawMachine.Games.GameHelpers;
+using InternetClawMachine.Hardware.Helpers;
 using InternetClawMachine.Settings;
 
 namespace InternetClawMachine.Hardware.ClawControl
 {
-    public delegate void ClawInfoEventArgs(IMachineControl controller, string message);
-
-    public delegate void ClawScoreEventArgs(IMachineControl controller, int slotNumber);
 
     public delegate void BeltEventHandler(IMachineControl controller, int beltNumber);
 
-    public delegate void PingSuccessEventHandler(IMachineControl controller, long latency);
-    public delegate void MachineEventHandler(IMachineControl controller);
 
     /**
      * Talk to the claw machine controller
@@ -48,69 +44,75 @@ namespace InternetClawMachine.Hardware.ClawControl
         /// <summary>
         /// Fired when claw is cover the chute
         /// </summary>
-        public event EventHandler OnReturnedHome;
+        public event MachineEventHandler OnReturnedHome;
 
         /// <summary>
         /// Fired when claw returns to center of machine
         /// </summary>
-        public event EventHandler OnClawCentered;
+        public event MachineEventHandler OnClawCentered;
 
         /// <summary>
         /// Fired when the claw is first let go
         /// </summary>
-        public event EventHandler OnClawDropping;
+        public event MachineEventHandler OnClawDropping;
 
         /// <summary>
         /// Fired when the claw reaches the bottom of the drop
         /// </summary>
-        public event EventHandler OnClawDropped;
+        public event MachineEventHandler OnClawDropped;
 
         /// <summary>
         /// Fired when the claw is fully recoiled
         /// </summary>
-        public event EventHandler OnClawRecoiled;
+        public event MachineEventHandler OnClawRecoiled;
 
-        public event EventHandler OnResetButtonPressed;
+        /// <summary>
+        /// Reset button on the machine is pressed to restart the game mode
+        /// </summary>
+        public event MachineEventHandler OnResetButtonPressed;
 
-        public event BeltEventHandler OnBreakSensorTripped;
+        /// <summary>
+        /// When the belt sensor sees a plush
+        /// </summary>
+        public event BeltEventHandler OnChuteSensorTripped;
 
-        public event EventHandler OnLimitHitForward;
+        public event MachineEventHandler OnLimitHitForward;
 
-        public event EventHandler OnLimitHitBackward;
+        public event MachineEventHandler OnLimitHitBackward;
 
-        public event EventHandler OnLimitHitLeft;
+        public event MachineEventHandler OnLimitHitLeft;
 
-        public event EventHandler OnLimitHitRight;
+        public event MachineEventHandler OnLimitHitRight;
 
-        public event EventHandler OnLimitHitUp;
+        public event MachineEventHandler OnLimitHitUp;
 
-        public event EventHandler OnLimitHitDown;
+        public event MachineEventHandler OnLimitHitDown;
 
-        public event EventHandler OnMotorTimeoutForward;
+        public event MachineEventHandler OnMotorTimeoutForward;
 
-        public event EventHandler OnMotorTimeoutBackward;
+        public event MachineEventHandler OnMotorTimeoutBackward;
 
-        public event EventHandler OnMotorTimeoutLeft;
+        public event MachineEventHandler OnMotorTimeoutLeft;
 
-        public event EventHandler OnMotorTimeoutRight;
+        public event MachineEventHandler OnMotorTimeoutRight;
 
-        public event EventHandler OnMotorTimeoutUp;
+        public event MachineEventHandler OnMotorTimeoutUp;
 
-        public event EventHandler OnMotorTimeoutDown;
+        public event MachineEventHandler OnMotorTimeoutDown;
 
-        public event EventHandler OnClawTimeout;
+        public event MachineEventHandler OnClawTimeout;
 
-        public event EventHandler OnFlipperHitForward;
+        public event MachineEventHandler OnFlipperHitForward;
 
-        public event EventHandler OnFlipperHitHome;
+        public event MachineEventHandler OnFlipperHitHome;
 
-        public event ClawInfoEventArgs OnFlipperError;
+        public event GameInfoEventArgs OnFlipperError;
 
-        public event EventHandler OnFlipperTimeout;
+        public event MachineEventHandler OnFlipperTimeout;
 
-        public event ClawInfoEventArgs OnInfoMessage;
+        public event GameInfoEventArgs OnInfoMessage;
 
-        public event ClawScoreEventArgs OnScoreSensorTripped;
+        public event GameScoreEventArgs OnScoreSensorTripped;
 
         public string IpAddress { set; get; }
         public int Port { get; set; }
@@ -154,7 +156,7 @@ namespace InternetClawMachine.Hardware.ClawControl
         internal void FireCenteredEvent()
         {
             IsClawPlayActive = false;
-            OnClawCentered?.Invoke(this, new EventArgs());
+            OnClawCentered?.Invoke(this);
         }
 
         /// <summary>
@@ -449,11 +451,11 @@ namespace InternetClawMachine.Hardware.ClawControl
                     switch (resp)
                     {
                         case ClawEvents.EVENT_BELT_SENSOR:
-                            OnBreakSensorTripped?.Invoke(this, 1);
+                            OnChuteSensorTripped?.Invoke(this, 1);
                             break;
 
                         case ClawEvents.EVENT_RESETBUTTON:
-                            OnResetButtonPressed?.Invoke(this, new EventArgs());
+                            OnResetButtonPressed?.Invoke(this);
                             break;
 
                         case ClawEvents.EVENT_PONG:
@@ -477,27 +479,27 @@ namespace InternetClawMachine.Hardware.ClawControl
                             break;
 
                         case ClawEvents.EVENT_LIMIT_LEFT:
-                            OnLimitHitLeft?.Invoke(this, new EventArgs());
+                            OnLimitHitLeft?.Invoke(this);
                             break;
 
                         case ClawEvents.EVENT_LIMIT_RIGHT:
-                            OnLimitHitRight?.Invoke(this, new EventArgs());
+                            OnLimitHitRight?.Invoke(this);
                             break;
 
                         case ClawEvents.EVENT_LIMIT_FORWARD:
-                            OnLimitHitForward?.Invoke(this, new EventArgs());
+                            OnLimitHitForward?.Invoke(this);
                             break;
 
                         case ClawEvents.EVENT_LIMIT_BACKWARD:
-                            OnLimitHitBackward?.Invoke(this, new EventArgs());
+                            OnLimitHitBackward?.Invoke(this);
                             break;
 
                         case ClawEvents.EVENT_LIMIT_UP:
-                            OnLimitHitUp?.Invoke(this, new EventArgs());
+                            OnLimitHitUp?.Invoke(this);
                             break;
 
                         case ClawEvents.EVENT_LIMIT_DOWN:
-                            OnLimitHitDown?.Invoke(this, new EventArgs());
+                            OnLimitHitDown?.Invoke(this);
                             break;
 
                         case ClawEvents.EVENT_SCORE_SENSOR:
@@ -514,7 +516,7 @@ namespace InternetClawMachine.Hardware.ClawControl
                             }
                             break;
                         case ClawEvents.EVENT_BELT2_SENSOR:
-                            OnBreakSensorTripped?.Invoke(this, 2);
+                            OnChuteSensorTripped?.Invoke(this, 2);
                             break;
                         case ClawEvents.EVENT_FLIPPER_ERROR:
                             var data = response.Substring(delims[0].Length, response.Length - delims[0].Length).Trim();
@@ -522,11 +524,11 @@ namespace InternetClawMachine.Hardware.ClawControl
                             break;
 
                         case ClawEvents.EVENT_FLIPPER_FORWARD:
-                            OnFlipperHitForward?.Invoke(this, new EventArgs());
+                            OnFlipperHitForward?.Invoke(this);
                             break;
 
                         case ClawEvents.EVENT_FLIPPER_HOME:
-                            OnFlipperHitHome?.Invoke(this, new EventArgs());
+                            OnFlipperHitHome?.Invoke(this);
 
                             break;
 
@@ -535,49 +537,49 @@ namespace InternetClawMachine.Hardware.ClawControl
                             if (_lastFlipperDirection == FlipperDirection.FLIPPER_FORWARD)
                                 Flipper(FlipperDirection.FLIPPER_HOME);
 
-                            OnFlipperTimeout?.Invoke(this, new EventArgs());
+                            OnFlipperTimeout?.Invoke(this);
 
                             break;
 
                         case ClawEvents.EVENT_FAILSAFE_LEFT:
-                            OnMotorTimeoutLeft?.Invoke(this, new EventArgs());
+                            OnMotorTimeoutLeft?.Invoke(this);
                             break;
 
                         case ClawEvents.EVENT_FAILSAFE_RIGHT:
-                            OnMotorTimeoutRight?.Invoke(this, new EventArgs());
+                            OnMotorTimeoutRight?.Invoke(this);
                             break;
 
                         case ClawEvents.EVENT_FAILSAFE_FORWARD:
-                            OnMotorTimeoutForward?.Invoke(this, new EventArgs());
+                            OnMotorTimeoutForward?.Invoke(this);
                             break;
 
                         case ClawEvents.EVENT_FAILSAFE_BACKWARD:
-                            OnMotorTimeoutBackward?.Invoke(this, new EventArgs());
+                            OnMotorTimeoutBackward?.Invoke(this);
                             break;
 
                         case ClawEvents.EVENT_FAILSAFE_UP:
-                            OnMotorTimeoutUp?.Invoke(this, new EventArgs());
+                            OnMotorTimeoutUp?.Invoke(this);
                             break;
 
                         case ClawEvents.EVENT_FAILSAFE_DOWN:
-                            OnMotorTimeoutDown?.Invoke(this, new EventArgs());
+                            OnMotorTimeoutDown?.Invoke(this);
                             break;
 
                         case ClawEvents.EVENT_FAILSAFE_CLAW:
-                            OnClawTimeout?.Invoke(this, new EventArgs());
+                            OnClawTimeout?.Invoke(this);
                             break;
 
                         case ClawEvents.EVENT_DROPPING_CLAW:
-                            OnClawDropping?.Invoke(this, new EventArgs());
+                            OnClawDropping?.Invoke(this);
                             break;
 
                         case ClawEvents.EVENT_RECOILED_CLAW:
-                            OnClawRecoiled?.Invoke(this, new EventArgs());
+                            OnClawRecoiled?.Invoke(this);
                             break;
 
                         case ClawEvents.EVENT_RETURNED_HOME: //home in the case of the machine is the win chute
                             IsClawPlayActive = false;
-                            OnReturnedHome?.Invoke(this, new EventArgs());
+                            OnReturnedHome?.Invoke(this);
                             break;
 
                         case ClawEvents.EVENT_RETURNED_CENTER: //Home in the case of the bot is the center
@@ -585,7 +587,7 @@ namespace InternetClawMachine.Hardware.ClawControl
                             break;
 
                         case ClawEvents.EVENT_DROPPED_CLAW:
-                            OnClawDropped?.Invoke(this, new EventArgs());
+                            OnClawDropped?.Invoke(this);
                             break;
 
                         case ClawEvents.EVENT_INFO:

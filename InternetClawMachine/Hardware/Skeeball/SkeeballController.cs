@@ -1,5 +1,6 @@
 ﻿using InternetClawMachine.Games.GameHelpers;
 using InternetClawMachine.Hardware.ClawControl;
+using InternetClawMachine.Hardware.Helpers;
 using InternetClawMachine.Settings;
 using System;
 using System.Collections.Generic;
@@ -15,6 +16,7 @@ namespace InternetClawMachine.Hardware.Skeeball
 {
 
     public delegate void SkeeballEventInfoArgs(SkeeballController controller, SkeeballControllerIdentifier module, int position);
+    public delegate void HomingEventInfoArgs(SkeeballController controller, SkeeballControllerIdentifier module);
 
     public class SkeeballController : IMachineControl
     {
@@ -28,21 +30,18 @@ namespace InternetClawMachine.Hardware.Skeeball
 
         public event PingSuccessEventHandler OnPingSuccess;
 
-        /// <summary>
-        /// Fired when claw is cover the chute
-        /// </summary>
-        public event EventHandler OnReturnedHome;
+        public event GameInfoEventArgs OnInfoMessage;
 
-
-        public event EventHandler OnResetButtonPressed;
-
-        public event ClawInfoEventArgs OnInfoMessage;
         public event SkeeballEventInfoArgs OnMoveComplete;
 
-        public event ClawScoreEventArgs OnScoreSensorTripped;
-        public event EventHandler OnClawCentered;
-        public event EventHandler OnClawDropping;
-        public event BeltEventHandler OnBreakSensorTripped;
+        public event MachineEventHandler OnFlapTripped;
+        public event MachineEventHandler OnFlapSet;
+
+        public event GameScoreEventArgs OnScoreSensorTripped;
+        public event BeltEventHandler OnChuteSensorTripped;
+
+        public event HomingEventInfoArgs OnHomingComplete;
+        public event HomingEventInfoArgs OnHomingStarted;
 
         public string IpAddress { set; get; }
         public int Port { get; set; }
@@ -376,22 +375,29 @@ namespace InternetClawMachine.Hardware.Skeeball
                         case SkeeballEvents.EVENT_BALL_RETURNED:
                             break;
                         case SkeeballEvents.EVENT_MOVE_COMPLETE:
-
                             OnMoveComplete?.Invoke(this, (SkeeballControllerIdentifier)int.Parse(delims[1]), int.Parse(delims[2]));
                             break;
-                        case SkeeballEvents.EVENT_LIMIT_LEFT:
+                        case SkeeballEvents.EVENT_LIMIT_HOME:
                             break;
-                        case SkeeballEvents.EVENT_LIMIT_RIGHT:
+                        case SkeeballEvents.EVENT_LIMIT_END:
                             break;
                         case SkeeballEvents.EVENT_POSITION:
                             break;
                         case SkeeballEvents.EVENT_WHEEL_SPEED:
                             break;
                         case SkeeballEvents.EVENT_HOMING_STARTED:
+                            OnHomingStarted?.Invoke(this, (SkeeballControllerIdentifier)int.Parse(delims[1]));
                             break;
                         case SkeeballEvents.EVENT_HOMING_COMPLETE:
+                            OnHomingComplete?.Invoke(this, (SkeeballControllerIdentifier)int.Parse(delims[1]));
                             break;
                         case SkeeballEvents.EVENT_MOVE_STARTED:
+                            break;
+                        case SkeeballEvents.EVENT_FLAP_TRIPPED:
+                            OnFlapTripped?.Invoke(this);
+                            break;
+                        case SkeeballEvents.EVENT_FLAP_SET:
+                            OnFlapSet?.Invoke(this);
                             break;
                     }
                 }
@@ -660,6 +666,7 @@ namespace InternetClawMachine.Hardware.Skeeball
 
         public virtual bool Init()
         {
+
             return true;
         }
 
@@ -679,7 +686,7 @@ namespace InternetClawMachine.Hardware.Skeeball
             if (!IsConnected) return;
             IsLit = on;
 
-            Task.Run(async delegate () { await SendCommandAsync("light " + (on ? 1 : 0)); });
+            Task.Run(async delegate () { await SendCommandAsync("lights " + (on ? 1 : 0)); });
             
         }
 

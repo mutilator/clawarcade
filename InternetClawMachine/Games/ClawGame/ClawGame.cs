@@ -125,7 +125,7 @@ namespace InternetClawMachine.Games.ClawGame
                 machineControl.OnFlipperHitForward += MachineControl_OnFlipperHitForward;
                 machineControl.OnFlipperHitHome += MachineControl_OnFlipperHitHome;
                 machineControl.OnFlipperTimeout += MachineControl_OnFlipperTimeout;
-                machineControl.OnBreakSensorTripped += MachineControl_OnBreakSensorTripped;
+                machineControl.OnChuteSensorTripped += MachineControl_OnChuteSensorTripped;
                 machineControl.OnResetButtonPressed += MachineControl_ResetButtonPressed;
                 machineControl.OnClawDropping += MachineControl_ClawDropping;
                 machineControl.OnClawCentered += MachineControl_OnClawCentered;
@@ -164,7 +164,7 @@ namespace InternetClawMachine.Games.ClawGame
             //The ideal fix would be to know the last machine played, if it was the machine that's reconnecting, set these to true
             DropInCommandQueue = false;
             Configuration.OverrideChat = false;
-            MachineControl_OnClawCentered(controller, new EventArgs());
+            MachineControl_OnClawCentered(controller);
         }
 
         private void ClawGame_OBSSceneChange(object sender, OBSSceneChangeEventArgs e)
@@ -293,14 +293,14 @@ namespace InternetClawMachine.Games.ClawGame
                 {
                     if (machineControl.IsConnected)
                         machineControl.Disconnect();
-                    machineControl.OnBreakSensorTripped -= MachineControl_OnBreakSensorTripped;
-                    machineControl.OnResetButtonPressed -= MachineControl_ResetButtonPressed;
-                    machineControl.OnClawDropping -= MachineControl_ClawDropping;
-                    machineControl.OnClawCentered -= MachineControl_OnClawCentered;
+                    
+                    
                     if (machineControl is ClawController controller)
                     {
-                        
-                        
+                        controller.OnChuteSensorTripped -= MachineControl_OnChuteSensorTripped;
+                        controller.OnResetButtonPressed -= MachineControl_ResetButtonPressed;
+                        controller.OnClawDropping -= MachineControl_ClawDropping;
+                        controller.OnClawCentered -= MachineControl_OnClawCentered;
                         controller.OnPingSuccess -= MachineControl_PingSuccess;
                         controller.OnPingTimeout -= MachineControl_PingTimeout;
                         controller.OnConnected -= MachineControl_OnConnected;
@@ -360,11 +360,12 @@ namespace InternetClawMachine.Games.ClawGame
                         controller.OnFlipperHitForward -= MachineControl_OnFlipperHitForward;
                         controller.OnFlipperHitHome -= MachineControl_OnFlipperHitHome;
                         controller.OnFlipperTimeout -= MachineControl_OnFlipperTimeout;
+                        controller.OnClawDropping -= MachineControl_ClawDropping;
+                        controller.OnClawCentered -= MachineControl_OnClawCentered;
+                        controller.OnChuteSensorTripped -= MachineControl_OnChuteSensorTripped;
+                        controller.OnResetButtonPressed -= MachineControl_ResetButtonPressed;
                     }
-                    machineControl.OnBreakSensorTripped -= MachineControl_OnBreakSensorTripped;
-                    machineControl.OnResetButtonPressed -= MachineControl_ResetButtonPressed;
-                    machineControl.OnClawDropping -= MachineControl_ClawDropping;
-                    machineControl.OnClawCentered -= MachineControl_OnClawCentered;
+                    
                     machineControl.Disconnect();
                 }
             }
@@ -3015,21 +3016,21 @@ namespace InternetClawMachine.Games.ClawGame
 
         }
 
-        private void MachineControl_OnClawRecoiled(object sender, EventArgs e)
+        private void MachineControl_OnClawRecoiled(IMachineControl sender)
         {
             if (Configuration.EventMode.DisableReturnHome)
             {
-                MachineControl_OnClawCentered(sender, e);
+                MachineControl_OnClawCentered(sender);
             }
         }
 
-        private void MachineControl_OnClawTimeout(object sender, EventArgs e)
+        private void MachineControl_OnClawTimeout(IMachineControl sender)
         {
             //Emailer.SendEmail(Configuration.EmailAddress, "Claw machine timeout closed", "Claw Timeout");
             Notifier.SendDiscordMessage(Configuration.DiscordSettings.SpamWebhook, "Claw machine timeout closed");
         }
 
-        private void MachineControl_OnFlipperHitForward(object sender, EventArgs e)
+        private void MachineControl_OnFlipperHitForward(IMachineControl sender)
         {
             if (Configuration.EventMode.FlipperPosition == FlipperDirection.FLIPPER_FORWARD || Configuration.EventMode.DisableFlipper)
                 return;
@@ -3046,11 +3047,11 @@ namespace InternetClawMachine.Games.ClawGame
             }, GameCancellationToken.Token);
         }
 
-        private void MachineControl_OnFlipperHitHome(object sender, EventArgs e)
+        private void MachineControl_OnFlipperHitHome(IMachineControl sender)
         {
         }
 
-        private void MachineControl_OnFlipperTimeout(object sender, EventArgs e)
+        private void MachineControl_OnFlipperTimeout(IMachineControl sender)
         {
             Notifier.SendEmail(Configuration.EmailAddress, "Flipper timeout, CHECK ASAP!!!", "Flipper Timeout");
             Notifier.SendDiscordMessage(Configuration.DiscordSettings.SpamWebhook, "Flipper timeout, CHECK ASAP!!!");
@@ -3061,42 +3062,42 @@ namespace InternetClawMachine.Games.ClawGame
             Logger.WriteLog(Logger._debugLog, message, Logger.LogLevel.TRACE);
         }
 
-        private void MachineControl_OnMotorTimeoutBackward(object sender, EventArgs e)
+        private void MachineControl_OnMotorTimeoutBackward(IMachineControl sender)
         {
             //Emailer.SendEmail(Configuration.EmailAddress, "Claw machine timeout back", "Claw Timeout");
             Notifier.SendDiscordMessage(Configuration.DiscordSettings.SpamWebhook, "Claw machine timeout back");
             ResetMachine((ClawController)sender);
         }
 
-        private void MachineControl_OnMotorTimeoutDown(object sender, EventArgs e)
+        private void MachineControl_OnMotorTimeoutDown(IMachineControl sender)
         {
             //Emailer.SendEmail(Configuration.EmailAddress, "Claw machine timeout dropping", "Claw Timeout");
             Notifier.SendDiscordMessage(Configuration.DiscordSettings.SpamWebhook, "Claw machine timeout dropping");
             ResetMachine((ClawController)sender);
         }
 
-        private void MachineControl_OnMotorTimeoutForward(object sender, EventArgs e)
+        private void MachineControl_OnMotorTimeoutForward(IMachineControl sender)
         {
             //Emailer.SendEmail(Configuration.EmailAddress, "Claw machine timeout forward", "Claw Timeout");
             Notifier.SendDiscordMessage(Configuration.DiscordSettings.SpamWebhook, "Claw machine timeout forward");
             ResetMachine((ClawController)sender);
         }
 
-        private void MachineControl_OnMotorTimeoutLeft(object sender, EventArgs e)
+        private void MachineControl_OnMotorTimeoutLeft(IMachineControl sender)
         {
             //Emailer.SendEmail(Configuration.EmailAddress, "Claw machine timeout left", "Claw Timeout");
             Notifier.SendDiscordMessage(Configuration.DiscordSettings.SpamWebhook, "Claw machine timeout left");
             ResetMachine((ClawController)sender);
         }
 
-        private void MachineControl_OnMotorTimeoutRight(object sender, EventArgs e)
+        private void MachineControl_OnMotorTimeoutRight(IMachineControl sender)
         {
             //Emailer.SendEmail(Configuration.EmailAddress, "Claw machine timeout right", "Claw Timeout");
             Notifier.SendDiscordMessage(Configuration.DiscordSettings.SpamWebhook, "Claw machine timeout right");
             ResetMachine((ClawController)sender);
         }
 
-        private void MachineControl_OnMotorTimeoutUp(object sender, EventArgs e)
+        private void MachineControl_OnMotorTimeoutUp(IMachineControl sender)
         {
             //Emailer.SendEmail(Configuration.EmailAddress, "Claw machine timeout recoiling", "Claw Timeout");
             Notifier.SendDiscordMessage(Configuration.DiscordSettings.SpamWebhook, "Claw machine timeout recoiling");
@@ -3155,7 +3156,7 @@ namespace InternetClawMachine.Games.ClawGame
             }, GameCancellationToken.Token);
         }
 
-        private void MachineControl_OnReturnedHome(object sender, EventArgs e)
+        private void MachineControl_OnReturnedHome(IMachineControl sender)
         {
             Logger.WriteLog(Logger._debugLog, string.Format("WIN CHUTE: Current player {0} in game loop {1}", PlayerQueue.CurrentPlayer, GameLoopCounterValue), Logger.LogLevel.DEBUG);
             InScanWindow = true; //allows RFID reader to accept scans
@@ -3613,12 +3614,12 @@ namespace InternetClawMachine.Games.ClawGame
             }
         }
 
-        private void MachineControl_ClawDropping(object sender, EventArgs e)
+        private void MachineControl_ClawDropping(IMachineControl sender)
         {
             SessionDrops++;
         }
 
-        private void MachineControl_OnBreakSensorTripped(IMachineControl sender, int beltNumber)
+        private void MachineControl_OnChuteSensorTripped(IMachineControl sender, int beltNumber)
         {
             var message = "Break sensor tripped";
             Logger.WriteLog(Logger._machineLog, message);
@@ -3675,7 +3676,7 @@ namespace InternetClawMachine.Games.ClawGame
         /// </summary>
         /// <param name="sender"></param>
         /// <param name="e"></param>
-        private void MachineControl_OnClawCentered(object sender, EventArgs e)
+        private void MachineControl_OnClawCentered(IMachineControl sender)
         {
 
             _failsafeCurrentResets = 0;
@@ -3708,7 +3709,7 @@ namespace InternetClawMachine.Games.ClawGame
             }, GameCancellationToken.Token);
         }
 
-        private void MachineControl_ResetButtonPressed(object sender, EventArgs e)
+        private void MachineControl_ResetButtonPressed(IMachineControl sender)
         {
             Init();
             StartGame(null);

@@ -54,7 +54,7 @@ namespace InternetClawMachine.Games.GantryGame
         /// </summary>
         public int StepsPerGrid { set; get; }
 
-        internal DroppingPlayer CurrentDroppingPlayer { set; get; }
+        internal CurrentActiveGamePlayer CurrentDroppingPlayer { set; get; }
 
         /// <summary>
         /// Current mode of the game, determines how people can interact
@@ -118,7 +118,7 @@ namespace InternetClawMachine.Games.GantryGame
         {
             _filledBlocks = new List<Rectangle>();
             HitStepLocations = new List<Coordinates>();
-            CurrentDroppingPlayer = new DroppingPlayer();
+            CurrentDroppingPlayer = new CurrentActiveGamePlayer();
             GameMode = GameModeType.GOLF;
         }
 

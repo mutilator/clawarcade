@@ -32,7 +32,7 @@ namespace InternetClawMachine.Games.Skeeball
             MachineControl.OnPingTimeout += MachineControl_OnPingTimeout;
             this.OnBallReleased += SkeeballAroundTheWorld_OnBallReleased;
             this.OnBallEscaped += SkeeballAroundTheWorld_OnBallEscaped;
-            CurrentShootingPlayer = new DroppingPlayer();
+            CurrentShootingPlayer = new CurrentActiveGamePlayer();
 
             StartMessage = string.Format(Translator.GetTranslation("gameSkeeballATWStartGame", Translator._defaultLanguage), Configuration.CommandPrefix);
 
@@ -42,12 +42,12 @@ namespace InternetClawMachine.Games.Skeeball
             DurationSinglePlayerQueueNoCommand = Configuration.ClawSettings.SinglePlayerQueueNoCommandDuration;
         }
 
-        private void SkeeballAroundTheWorld_OnBallEscaped(object sender, EventArgs e)
+        private void SkeeballAroundTheWorld_OnBallEscaped(object sender)
         {
             HandleSlotTripped(8);
         }
 
-        private void SkeeballAroundTheWorld_OnBallReleased(object sender, EventArgs e)
+        private void SkeeballAroundTheWorld_OnBallReleased(object sender)
         {
             //TODO: configure this timeout value
             //failsafe timeout incase a ball was thrown and never comes back
@@ -597,6 +597,17 @@ namespace InternetClawMachine.Games.Skeeball
 
         public override void Init()
         {
+            try
+            {
+
+                ObsConnection.SetCurrentScene(Configuration.ObsScreenSourceNames.SceneSkeeball1.SceneName);
+            }
+            catch (Exception ex)
+            {
+                var error = string.Format("ERROR {0} {1}", ex.Message, ex);
+                Logger.WriteLog(Logger._errorLog, error);
+            }
+
             base.Init();
         }
 

@@ -16,21 +16,24 @@ using System.Threading.Tasks;
 
 namespace InternetClawMachine.Games.Skeeball
 {
+
     class SkeeballGame : Game
     {
         public SkeeballController MachineControl { set; get; }
         public bool CurrentPlayerHasPlayed { get; set; }
         public List<SkeeballSessionUserTracker> SessionUserTracker { get; set; } = new List<SkeeballSessionUserTracker>();
         public int SessionBallCount { get; set; }
-        public DroppingPlayer CurrentShootingPlayer { get; set; }
+        public CurrentActiveGamePlayer CurrentShootingPlayer { get; set; }
         
 
         private MovementCompletionMonitor _controllerLRMovementWait = new MovementCompletionMonitor();
         private MovementCompletionMonitor _controllerPANMovementWait = new MovementCompletionMonitor();
-        
 
-        public event EventHandler<EventArgs> OnBallReleased;
-        public event EventHandler<EventArgs> OnBallEscaped;
+
+        public event GameEventHandler OnBallReleased;
+        public event GameEventHandler OnBallEscaped;
+
+        
 
         public SkeeballGame(IChatApi client, BotConfiguration configuration, OBSWebsocket obs) : base(client, configuration, obs)
         {
@@ -49,7 +52,7 @@ namespace InternetClawMachine.Games.Skeeball
             }
 
             OnBallEscaped += SkeeballGame_OnBallEscaped;
-            CurrentShootingPlayer = new DroppingPlayer();
+            CurrentShootingPlayer = new CurrentActiveGamePlayer();
             
             
             RefreshGameCancellationToken();
@@ -58,7 +61,7 @@ namespace InternetClawMachine.Games.Skeeball
         }
 
 
-        private void SkeeballGame_OnBallEscaped(object sender, EventArgs e)
+        private void SkeeballGame_OnBallEscaped(object sender)
         {
             //send to discord
             var data = "A ball just rocketed out of the machine!";
@@ -440,6 +443,7 @@ namespace InternetClawMachine.Games.Skeeball
             File.WriteAllText(Configuration.FileLeaderboard, "");
             MachineControl.OnMoveComplete += MachineControl_OnMoveComplete;
             MachineControl.OnControllerStartup += MachineControl_OnControllerStartup;
+            MachineControl.OnHomingComplete += MachineControl_OnHomingCompleteAsync;
             MachineControl.Connect(Configuration.SkeeballSettings.Address, Configuration.SkeeballSettings.Port);
             if (MachineControl.IsConnected)
             {
@@ -450,6 +454,20 @@ namespace InternetClawMachine.Games.Skeeball
             StopAndClearMachine();
             PlayerQueue.OnLeftQueue += PlayerQueue_OnLeftQueue;
 
+        }
+
+        private async void MachineControl_OnHomingCompleteAsync(SkeeballController controller, SkeeballControllerIdentifier module)
+        {
+            //move to default position after homed
+            switch (module)
+            {
+                case SkeeballControllerIdentifier.LR:
+                    await MachineControl.MoveTo(1, Configuration.SkeeballSettings.Steppers.ControllerLR.DefaultPosition);
+                    break;
+                case SkeeballControllerIdentifier.PAN:
+                    await MachineControl.MoveTo(2, Configuration.SkeeballSettings.Steppers.ControllerPAN.DefaultPosition);
+                    break;
+            }
         }
 
         private async void InitController()
@@ -465,6 +483,9 @@ namespace InternetClawMachine.Games.Skeeball
             await MachineControl.SetSpeed(2, Configuration.SkeeballSettings.Steppers.ControllerPAN.Speed);
             await MachineControl.SetLimit(2, Configuration.SkeeballSettings.Steppers.ControllerPAN.LimitHigh, Configuration.SkeeballSettings.Steppers.ControllerPAN.LimitLow);
             await MachineControl.AutoHome(2); //re-home
+
+
+
 
         }
 
@@ -641,7 +662,7 @@ namespace InternetClawMachine.Games.Skeeball
 
                         await machineControl.ShootBall();
 
-                        OnBallReleased?.Invoke(this, new EventArgs());
+                        OnBallReleased?.Invoke(this);
 
                         break;
 
@@ -652,7 +673,7 @@ namespace InternetClawMachine.Games.Skeeball
 
         internal virtual void InvokeBallEscaped()
         {
-            OnBallEscaped?.Invoke(this, null);
+            OnBallEscaped?.Invoke(this);
         }
 
         /// <summary>
@@ -754,7 +775,7 @@ namespace InternetClawMachine.Games.Skeeball
 
         internal void ThrowBallReleased()
         {
-            OnBallReleased?.Invoke(this, new EventArgs());
+            OnBallReleased?.Invoke(this);
         }
 
         protected override void OnGameEnded(EventArgs e)

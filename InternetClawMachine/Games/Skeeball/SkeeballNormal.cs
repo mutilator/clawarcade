@@ -31,25 +31,39 @@ namespace InternetClawMachine.Games.Skeeball
             MachineControl.OnScoreSensorTripped += MachineControl_OnScoreSensorTripped;
             MachineControl.OnConnected += MachineControl_OnConnected;
             MachineControl.OnPingTimeout += MachineControl_OnPingTimeout;
+            MachineControl.OnFlapSet += MachineControl_OnFlapSet;
             this.OnBallReleased += SkeeballNormal_BallReleased;
             this.OnBallEscaped += SkeeballNormal_OnBallEscaped;
             PlayerQueue.OnJoinedQueue += PlayerQueue_OnJoinedQueue;
+
             
             DurationSinglePlayer = Configuration.ClawSettings.SinglePlayerDuration;
             DurationSinglePlayerQueueNoCommand = Configuration.ClawSettings.SinglePlayerQueueNoCommandDuration;
 
-            CurrentShootingPlayer = new DroppingPlayer();
+            CurrentShootingPlayer = new CurrentActiveGamePlayer();
             
             StartMessage = string.Format(Translator.GetTranslation("gameSkeeballSingleQueueStartGame", Translator._defaultLanguage), Configuration.CommandPrefix);
 
+            
+
         }
 
-        private void SkeeballNormal_OnBallEscaped(object sender, EventArgs e)
+        private void MachineControl_OnFlapSet(IMachineControl controller)
+        {
+            if (PlayerQueue.CurrentPlayer == null)
+                return;
+            var sessionScoreUser = SessionUserTracker.FirstOrDefault(u => u.Username == PlayerQueue.CurrentPlayer);
+            CurrentShootingPlayer.FlapSetTriggered = true;
+            HandleNextBallStart(sessionScoreUser);
+
+        }
+
+        private void SkeeballNormal_OnBallEscaped(object sender)
         {
             HandleSlotTripped(8);
         }
 
-        private void SkeeballNormal_BallReleased(object sender, EventArgs e)
+        private void SkeeballNormal_BallReleased(object sender)
         {
             //TODO: configure this timeout value
             //failsafe timeout incase a ball was thrown and never comes back
@@ -111,8 +125,8 @@ namespace InternetClawMachine.Games.Skeeball
             var saying = "";
 
             var currentPlayer = PlayerQueue.CurrentPlayer;
-            var sessionScore = SessionUserTracker.FirstOrDefault(u => u.Username == currentPlayer);
-            var drops = sessionScore.Drops;
+            var sessionScoreUser = SessionUserTracker.FirstOrDefault(u => u.Username == currentPlayer);
+            var drops = sessionScoreUser.Drops;
 
             var userPrefs = Configuration.UserList.GetUser(currentPlayer);
             var baseColor = "0 255 0";
@@ -128,37 +142,12 @@ namespace InternetClawMachine.Games.Skeeball
                     // TODO - Add something to notify if a ball wasnt released when it was supposed to
                     return;
                 case SkeeballSensor.SLOT_BALL_RETURN:
-                    DropInCommandQueue = false;
-                    Configuration.OverrideChat = false;
-                    CurrentShootingPlayer.ShotGuid = Guid.Empty;
-                    //since players get 3 turns, we need to also check if there is no time left in the round timer
-                    if ((GameRoundTimer.IsRunning && GameRoundTimer.ElapsedMilliseconds > Configuration.ClawSettings.SinglePlayerDuration * 1000) ||(PlayerQueue.CurrentPlayer != null && PlayerQueue.CurrentPlayer == CurrentShootingPlayer.Username && GameLoopCounterValue == CurrentShootingPlayer.GameLoop && ((CurrentShootingPlayer.BallsShot >= Configuration.SkeeballSettings.BallsPerTurn) || (sessionScore != null && sessionScore.Drops%3 == 0))))
-                    {
-                        var args = new RoundEndedArgs { Username = PlayerQueue.CurrentPlayer, GameMode = GameMode, GameLoopCounterValue = GameLoopCounterValue };
-                        base.OnTurnEnded(args);
-                        var nextPlayer = PlayerQueue.GetNextPlayer();
-                        StartRound(nextPlayer);
-                    }
-
-                    else
-                    {
-                        var ballNum = Configuration.SkeeballSettings.BallsPerTurn - (sessionScore.Drops % Configuration.SkeeballSettings.BallsPerTurn) + 1;
-                        //TODO: remove manual ball displaying
-                        ObsConnection.SetSourceRender("ball " + ballNum, false);
-                        saying = string.Format(Translator.GetTranslation("gameSkeeballATWNextBall", Configuration.UserList.GetUserLocalization(currentPlayer)), currentPlayer, ballNum-1);
-                        Task.Run(async delegate
-                        {
-                            await Task.Delay(Configuration.WinNotificationDelay);
-                            GameCancellationToken.Token.ThrowIfCancellationRequested();
-                            ChatClient.SendMessage(Configuration.Channel, saying);
-                            Logger.WriteLog(Logger._debugLog, saying, Logger.LogLevel.DEBUG);
-                        }, GameCancellationToken.Token);
-                    }
+                    CurrentShootingPlayer.BallReturnTriggered = true;
+                    HandleNextBallStart(sessionScoreUser);
                     ResetScoreLights(baseColor);
-                    
                     return;
                 default:
-                    if (!sessionScore.CanScoreAgain)
+                    if (!sessionScoreUser.CanScoreAgain)
                         return;
 
                     var skeeSlot = Configuration.SkeeballSettings.ScoreMatrices[Configuration.SkeeballSettings.ActiveScoreMatrix].Matrix[(int)slot];
@@ -170,7 +159,7 @@ namespace InternetClawMachine.Games.Skeeball
                         PlayClip(skeeSlot.Scene);
                     }, GameCancellationToken.Token);
                     
-                    sessionScore.CanScoreAgain = false;
+                    sessionScoreUser.CanScoreAgain = false;
                     int mySlot=GetLightSlot(slot);
 
                     
@@ -179,23 +168,23 @@ namespace InternetClawMachine.Games.Skeeball
             }
             saying = $"[{drops}/{Configuration.SkeeballSettings.BallsPerGame}] {currentPlayer} scored {score}";
             //var sessionScore = SessionWinTracker.FirstOrDefault(u => u.Username == currentPlayer);
-            if (sessionScore != null)
+            if (sessionScoreUser != null)
             {
                 //Add the score
-                sessionScore.Score += score;
+                sessionScoreUser.Score += score;
 
                 var props = ObsConnection.GetTextGDIPlusProperties("SkeePlayerScore");
-                props.Text = sessionScore.Score.ToString();
+                props.Text = sessionScoreUser.Score.ToString();
                 props.SourceName = "SkeePlayerScore";
                 ObsConnection.SetTextGDIPlusProperties(props);
                 
                 //If this is their 9th ball, do some further checks
-                if (sessionScore.Drops >= Configuration.SkeeballSettings.BallsPerGame)
+                if (sessionScoreUser.Drops >= Configuration.SkeeballSettings.BallsPerGame)
                 {
-                    var total = sessionScore.Score;
+                    var total = sessionScoreUser.Score;
                     //Move if new high score
-                    if (sessionScore.Score > sessionScore.HighScore)
-                        sessionScore.HighScore = sessionScore.Score;
+                    if (sessionScoreUser.Score > sessionScoreUser.HighScore)
+                        sessionScoreUser.HighScore = sessionScoreUser.Score;
 
                     saying = $"[{drops}/{Configuration.SkeeballSettings.BallsPerGame}] {currentPlayer} scored {score} - total score {total}";
 
@@ -213,16 +202,16 @@ namespace InternetClawMachine.Games.Skeeball
                         Logger.WriteLog(Logger._debugLog, affirmation, Logger.LogLevel.DEBUG);
                     }, GameCancellationToken.Token);
 
-                    sessionScore.Score = 0;
+                    sessionScoreUser.Score = 0;
                     //Reset them to a new game
-                    sessionScore.Drops = 0;
-                    sessionScore.GamesPlayed++;
+                    sessionScoreUser.Drops = 0;
+                    sessionScoreUser.GamesPlayed++;
                     
                 }
 
                 Task.Run(async delegate ()
                 {
-                    await MachineControl.DisplayText(sessionScore.Score);
+                    await MachineControl.DisplayText(sessionScoreUser.Score);
                 });
                 
                 RefreshWinList();
@@ -247,6 +236,39 @@ namespace InternetClawMachine.Games.Skeeball
             }, GameCancellationToken.Token);
         }
 
+        private void HandleNextBallStart(SkeeballSessionUserTracker sessionScoreUser)
+        {
+            if (!CurrentShootingPlayer.BallReturnTriggered || !CurrentShootingPlayer.FlapSetTriggered)
+                return;
+
+            DropInCommandQueue = false;
+            Configuration.OverrideChat = false;
+            CurrentShootingPlayer.ShotGuid = Guid.Empty;
+            //since players get 3 turns, we need to also check if there is no time left in the round timer
+            if ((GameRoundTimer.IsRunning && GameRoundTimer.ElapsedMilliseconds > Configuration.ClawSettings.SinglePlayerDuration * 1000) || (PlayerQueue.CurrentPlayer != null && PlayerQueue.CurrentPlayer == CurrentShootingPlayer.Username && GameLoopCounterValue == CurrentShootingPlayer.GameLoop && ((CurrentShootingPlayer.BallsShot >= Configuration.SkeeballSettings.BallsPerTurn) || (sessionScoreUser != null && sessionScoreUser.Drops % 3 == 0))))
+            {
+                var args = new RoundEndedArgs { Username = PlayerQueue.CurrentPlayer, GameMode = GameMode, GameLoopCounterValue = GameLoopCounterValue };
+                base.OnTurnEnded(args);
+                var nextPlayer = PlayerQueue.GetNextPlayer();
+                StartRound(nextPlayer);
+            }
+
+            else
+            {
+                var ballNum = Configuration.SkeeballSettings.BallsPerTurn - (sessionScoreUser.Drops % Configuration.SkeeballSettings.BallsPerTurn) + 1;
+                //TODO: remove manual ball displaying
+                ObsConnection.SetSourceRender("ball " + ballNum, false);
+                var saying = string.Format(Translator.GetTranslation("gameSkeeballATWNextBall", Configuration.UserList.GetUserLocalization(sessionScoreUser.Username)), sessionScoreUser.Username, ballNum - 1);
+                Task.Run(async delegate
+                {
+                    await Task.Delay(Configuration.WinNotificationDelay);
+                    GameCancellationToken.Token.ThrowIfCancellationRequested();
+                    ChatClient.SendMessage(Configuration.Channel, saying);
+                    Logger.WriteLog(Logger._debugLog, saying, Logger.LogLevel.DEBUG);
+                }, GameCancellationToken.Token);
+            }
+            
+        }
 
         public override void Destroy()
         {
@@ -681,8 +703,21 @@ namespace InternetClawMachine.Games.Skeeball
 
         public override void Init()
         {
+            try
+            {
+
+                ObsConnection.SetCurrentScene(Configuration.ObsScreenSourceNames.SceneSkeeball1.SceneName);
+            }
+            catch (Exception ex)
+            {
+                var error = string.Format("ERROR {0} {1}", ex.Message, ex);
+                Logger.WriteLog(Logger._errorLog, error);
+            }
             base.Init();
             
+            
+            
+
         }
 
 
