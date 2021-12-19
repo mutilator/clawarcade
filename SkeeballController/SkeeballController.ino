@@ -58,7 +58,8 @@ void setup() {
     wifiController.begin(115200);
     initScoring();
     initExternalButtons();
-    
+    initFlap();
+
     pinMode(PIN_BALL_RETURN_STOP, OUTPUT);
     pinMode(PIN_LIGHTS, OUTPUT);
     digitalWrite(PIN_LIGHTS, HIGH);
@@ -69,6 +70,7 @@ void loop() {
     checkScoreSensors();
     checkBallRelease();
     checkExternalButtons();
+    checkFlapStuff();
     handleTerminalSerialCommands();
     handleShooterSerialCommands();
     handleDisplaySerialCommands();
@@ -215,7 +217,29 @@ void handleTerminalCommand(char incomingData[])
         Wire.endTransmission();
         
         sendFormattedResponse(EVENT_INFO, sequence, argument);
-    } else if (strcmp(command, "s") == 0) // shoot the ball
+    } else if (strcmp(command, "flap") == 0) // flap up
+    {
+        int dir = atoi(argument);
+        if (dir == -1)
+            flapUp();
+        else if (dir == 1)
+            flapDown();
+        else
+            flapStop();
+
+        sendFormattedResponse(EVENT_INFO, sequence, argument);
+    } else if (strcmp(command, "fsen") == 0) // flap sensor enable/disable
+    {
+        int isOn = atoi(argument);
+        if (isOn)
+        {
+            enableLaser();
+        } else {
+            disableLaser();
+        }
+        sendFormattedResponse(EVENT_INFO, sequence, "");
+    }
+     else if (strcmp(command, "s") == 0) // shoot the ball
     {
 
         int releaseTime = atoi(argument);
@@ -326,6 +350,7 @@ void checkBallRelease()
 //delay of 0 turns off release, -1 leaves on until you turn it off, otherwise run for that many ms
 void releaseBall(int delayTime)
 {
+    turnOnLaser(); // enable the flap sensor
     _ballReleaseDelay = delayTime;
     digitalWrite(PIN_BALL_RETURN_STOP, delayTime != 0?1:0);
     _ballReleaseActivatedTime = delayTime != 0?millis():0;

@@ -169,7 +169,6 @@ void StepperController::runToEnd()
 
 void StepperController::setHome()
 {
-    
     _homed = true;
     _stepPosition = 0l;
 }
@@ -382,6 +381,7 @@ bool StepperController::runLimitedValidations(int limited)
     } else if (limited == STEPPER_HOME_LIMIT && _autoHoming && !_autoHomingRunOut)
     {
         _autoHomingRunOut = true;
+
         //set home so there is a starting point
         this->setHome();
         
@@ -422,6 +422,11 @@ bool StepperController::step()
             _autoHoming = false;
             _autoHomingRunOut = false;
             this->stop();
+
+            //send event stating we homed
+            if (_autoHomingCompleteFunction)
+                (*_autoHomingCompleteFunction)(_stepperId);
+                
             return false;
         }
     }
@@ -611,7 +616,9 @@ int StepperController::checkLimitSwitches()
         if (!_homeSwitchThrown)
         {
             _homeSwitchThrown = true;
-            if (_limitSwitchEventHomeFunction)
+            
+            //Don't throw an end limit event if we're in auto home mode
+            if (!_autoHoming && !autoHomingRunOut && _limitSwitchEventHomeFunction)
                 (*_limitSwitchEventHomeFunction)(_stepperId);
         }
         returnCode = STEPPER_HOME_LIMIT;

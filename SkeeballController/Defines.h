@@ -21,7 +21,13 @@
 #define PIN_SCORE_ENABLE_4             38
 #define PIN_SCORE_ENABLE_5             39
 #define PIN_SCORE_ENABLE_6             40
-#define PIN_SCORE_ENASBLE_BALL_STOP             41
+#define PIN_SCORE_ENABLE_BALL_STOP     41
+
+#define PIN_LASER_SENSOR               12
+#define PIN_ACTUATOR_FWD               10
+#define PIN_ACTUATOR_REV               11
+#define PIN_LASER_ENABLE               9
+#define PIN_LATCH                      8
 
 /*
 
@@ -34,7 +40,8 @@
 #define EVENT_GAME_RESET               102 //send a reset event from the machine
 #define EVENT_BALL_RELEASED            103 //ball released
 #define EVENT_BALL_RETURNED            104 //ball passed ball return
-
+#define EVENT_FLAP_TRIPPED             105 //the laser sensor tripped for the ramp
+#define EVENT_FLAP_SET                 106 // the flap is set and the actuator is in home position
 #define EVENT_INFO                     900 //Event to show when we want to pass info back
 
 #define CONTROLLER_MODE_ONLINE         0

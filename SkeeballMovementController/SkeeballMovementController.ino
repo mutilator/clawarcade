@@ -64,6 +64,7 @@ void setup() {
     stepperLR.setEventLimitHome(eventHitHomeLimit);
     stepperLR.setEventLimitEnd(eventHitEndLimit);
     stepperLR.setEventMoveComplete(eventMoveComplete);
+    stepperLR.setEventAutoHomeComplete(eventMoveComplete);
     stepperLR.setAccel(9);
     stepperLR.setMaxSpeed(500);
     stepperLR.disableController(1);
@@ -73,6 +74,7 @@ void setup() {
     stepperPAN.setEventLimitHome(eventHitHomeLimit);
     stepperPAN.setEventLimitEnd(eventHitEndLimit);
     stepperPAN.setEventMoveComplete(eventMoveComplete);
+    stepperPAN.setEventAutoHomeComplete(eventAutoHomeComplete);
     stepperPAN.setLimits(240l, -240l);
     stepperPAN.setAccel(9);
     stepperPAN.setMaxSpeed(400);
@@ -116,11 +118,15 @@ void eventMoveComplete(int stepperId)
 
 void eventHitEndLimit(int stepperId)
 {
-    sendEvent(stepperId, EVENT_LIMIT_RIGHT);
+    sendEvent(stepperId, EVENT_LIMIT_END);
 }
 void eventHitHomeLimit(int stepperId)
 {
-    sendEvent(stepperId, EVENT_LIMIT_LEFT);
+    sendEvent(stepperId, EVENT_LIMIT_HOME);
+}
+void eventAutoHomeComplete(int stepperId)
+{
+    sendEvent(stepperId, EVENT_HOMING_COMPLETE);
 }
 
 void setWheelSpeed(int wheelId, int wheelSpeed)
@@ -516,12 +522,12 @@ void handleTerminalCommand(char incomingData[])
 }
 
 // Generates event text and sends it to the connected client
-void sendEvent(int steppperId, int event)
+void sendEvent(int stepperId, int event)
 {
     static char outputData[5];
     if (event > 0)
     {
-        sprintf(outputData, "%i", steppperId);
+        sprintf(outputData, "%i", stepperId);
         sendFormattedResponse(event, "0", outputData);
     }
 }

@@ -31,7 +31,7 @@ void initScoring()
     pinMode(PIN_SCORE_ENABLE_4, OUTPUT);
     pinMode(PIN_SCORE_ENABLE_5, OUTPUT);
     pinMode(PIN_SCORE_ENABLE_6, OUTPUT);
-    pinMode(PIN_SCORE_ENASBLE_BALL_STOP, OUTPUT);
+    pinMode(PIN_SCORE_ENABLE_BALL_STOP, OUTPUT);
     pinMode(PIN_SCORE_ENABLE_BALL_RTN, OUTPUT);
 
 }
@@ -65,7 +65,7 @@ void setScoring(int scoreSlot, bool isEnabled)
             _checkScoringSensor6 = isEnabled;
             break;
         case 7:
-            //digitalWrite(PIN_SCORE_ENASBLE_BALL_STOP, isEnabled); //no power is required for this pin
+            //digitalWrite(PIN_SCORE_ENABLE_BALL_STOP, isEnabled); //no power is required for this pin
             _checkScoringSensor7 = isEnabled;
             break;
         case 8:
@@ -87,7 +87,7 @@ void setScoring(int scoreSlot, bool isEnabled)
             digitalWrite(PIN_SCORE_ENABLE_4, isEnabled);
             digitalWrite(PIN_SCORE_ENABLE_5, isEnabled);
             digitalWrite(PIN_SCORE_ENABLE_6, isEnabled);
-            //digitalWrite(PIN_SCORE_ENASBLE_BALL_STOP, isEnabled); //no power is required for this pin
+            //digitalWrite(PIN_SCORE_ENABLE_BALL_STOP, isEnabled); //no power is required for this pin
             digitalWrite(PIN_SCORE_ENABLE_BALL_RTN, isEnabled);
             break;
         default:

@@ -110,6 +110,7 @@ class StepperController
     void (*_limitSwitchEventHomeFunction)(int stepperId); //execute when home limit switch is triggerd
     void (*_limitSwitchEventEndFunction)(int stepperId); //execute when end limit switch is triggered
     void (*_moveCompleteEventFunction)(int stepperId); //execute when current move has completed
+    void (*_autoHomingCompleteFunction)(int stepperId); //execute when current move has completed
 };
 
 #endif

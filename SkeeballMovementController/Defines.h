@@ -7,8 +7,8 @@
 #define EVENT_INFO              900 //generic info
 #define EVENT_PONG              101 //generic info
 #define EVENT_MOVE_COMPLETE     400 //movement given is complete
-#define EVENT_LIMIT_LEFT        401 //Event to show limit hit
-#define EVENT_LIMIT_RIGHT       402 //Event to show limit hit
+#define EVENT_LIMIT_HOME        401 //Event to show limit hit
+#define EVENT_LIMIT_END         402 //Event to show limit hit
 #define EVENT_POSITION          403 //fired when position is requested
 #define EVENT_WHEEL_SPEED       404 //fired when wheel speed is requested
 #define EVENT_HOMING_STARTED    405
