@@ -13,12 +13,12 @@ namespace InternetClawMachine.Games.ClawGame
 {
     internal class ClawSingleQueue : ClawGame
     {
-        internal DroppingPlayer CurrentDroppingPlayer { set; get; }
+        internal CurrentActiveGamePlayer CurrentDroppingPlayer { set; get; }
 
         public ClawSingleQueue(IChatApi client, BotConfiguration configuration, OBSWebsocket obs) : base(client, configuration, obs)
         {
             GameMode = GameModeType.SINGLEQUEUE;
-            CurrentDroppingPlayer = new DroppingPlayer();
+            CurrentDroppingPlayer = new CurrentActiveGamePlayer();
             foreach (var machineControl in MachineList)
             {
                 if (machineControl is ClawController controller)

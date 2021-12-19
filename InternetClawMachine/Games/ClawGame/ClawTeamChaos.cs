@@ -21,9 +21,11 @@ namespace InternetClawMachine.Games.ClawGame
             CurrentDroppingPlayer = new CurrentActiveGamePlayer();
             foreach (var machineControl in MachineList)
             {
-
-                machineControl.OnClawCentered += MachineControl_OnClawCentered;
-                ((ClawController)machineControl).OnClawRecoiled += ClawSingleQueue_OnClawRecoiled;
+                if (machineControl is ClawController controller)
+                {
+                    controller.OnClawCentered += MachineControl_OnClawCentered;
+                    controller.OnClawRecoiled += ClawSingleQueue_OnClawRecoiled;
+                }
             }
             StartMessage = string.Format(Translator.GetTranslation("gameClawTeamChaosStartGame", Translator._defaultLanguage), Configuration.CommandPrefix);
             PlayerQueue.OnJoinedQueue += PlayerQueue_OnJoinedQueue;
@@ -47,15 +49,15 @@ namespace InternetClawMachine.Games.ClawGame
             }
         }
 
-        private void ClawSingleQueue_OnClawRecoiled(object sender, EventArgs e)
+        private void ClawSingleQueue_OnClawRecoiled(IMachineControl sender)
         {
             if (Configuration.EventMode.DisableReturnHome)
             {
-                MachineControl_OnClawCentered(sender, e);
+                MachineControl_OnClawCentered(sender);
             }
         }
 
-        private void MachineControl_OnClawCentered(object sender, EventArgs e)
+        private void MachineControl_OnClawCentered(IMachineControl sender)
         {
             //we check to see if the return home event was fired by the person that's currently playing
             //if it has we need to move to the next player, if not we've moved on already, perhaps bad design here
@@ -71,8 +73,9 @@ namespace InternetClawMachine.Games.ClawGame
         {
             foreach (var machineControl in MachineList)
             {
-
-                machineControl.OnClawCentered -= MachineControl_OnClawCentered;
+                if (machineControl is ClawController controller)
+                    controller.OnClawCentered -= MachineControl_OnClawCentered;
+                
             }
             base.EndGame();
         }
@@ -82,8 +85,8 @@ namespace InternetClawMachine.Games.ClawGame
             base.Destroy();
             foreach (var machineControl in MachineList)
             {
-
-                machineControl.OnClawCentered -= MachineControl_OnClawCentered;
+                if (machineControl is ClawController controller)
+                    controller.OnClawCentered -= MachineControl_OnClawCentered;
             }
         }
 

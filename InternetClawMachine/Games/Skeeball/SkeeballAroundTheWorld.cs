@@ -686,8 +686,8 @@ namespace InternetClawMachine.Games.Skeeball
                 SessionUserTracker.Add(user);
                 user.WheelSpeedLeft = Configuration.SkeeballSettings.Wheels.LeftWheel.DefaultSpeed;
                 user.WheelSpeedRight = Configuration.SkeeballSettings.Wheels.RightWheel.DefaultSpeed;
-                user.LRLocation = Configuration.SkeeballSettings.Steppers.ControllerLR.DefaultPosition;
-                user.PANLocation = Configuration.SkeeballSettings.Steppers.ControllerPAN.DefaultPosition;
+                user.PositionLR = Configuration.SkeeballSettings.Steppers.ControllerLR.DefaultPosition;
+                user.PositionPAN = Configuration.SkeeballSettings.Steppers.ControllerPAN.DefaultPosition;
             }
 
             Task.Run(async delegate ()

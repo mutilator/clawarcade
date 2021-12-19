@@ -23,8 +23,11 @@ namespace InternetClawMachine.Games.ClawGame
             PlayerQueue.OnJoinedQueue += PlayerQueue_OnJoinedQueue;
             foreach (var machineControl in MachineList)
             {
-                machineControl.OnClawCentered += ClawTicTacToe_OnClawCentered;
-                machineControl.OnReturnedHome += ClawTicTacToe_OnReturnedHome;
+                if (machineControl is ClawController controller)
+                {
+                    controller.OnClawCentered += ClawTicTacToe_OnClawCentered;
+                    controller.OnReturnedHome += ClawTicTacToe_OnReturnedHome;
+                }
             }
         }
 
@@ -47,7 +50,7 @@ namespace InternetClawMachine.Games.ClawGame
             EndGame();
         }
 
-        private void ClawTicTacToe_OnReturnedHome(object sender, EventArgs e)
+        private void ClawTicTacToe_OnReturnedHome(IMachineControl sender)
         {
             //we check to see if the return home event was fired by the person that's currently playing
             //if it has we need to move to the next player, if not we've moved on already, perhaps bad design here
@@ -62,7 +65,7 @@ namespace InternetClawMachine.Games.ClawGame
             }
         }
 
-        private void ClawTicTacToe_OnClawCentered(object sender, EventArgs e)
+        private void ClawTicTacToe_OnClawCentered(IMachineControl sender)
         {
             DropInCommandQueue = false;
             Configuration.OverrideChat = false;

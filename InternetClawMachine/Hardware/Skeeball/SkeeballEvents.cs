@@ -15,6 +15,7 @@ namespace InternetClawMachine.Hardware.Skeeball
         EVENT_BALL_RETURNED = 104, //ball passed ball return sensor
         EVENT_FLAP_TRIPPED = 105, //the laser sensor tripped for the ramp
         EVENT_FLAP_SET = 106, //The flap is set and actuator is in home position
+        EVENT_CONTROLLER_MODE = 107, //when the controller mode changes an event is thrown stating the new mode
 
         EVENT_MOVE_COMPLETE = 400, //movement given is complete
         EVENT_LIMIT_HOME = 401, //Event to show limit hit

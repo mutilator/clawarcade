@@ -25,8 +25,11 @@ namespace InternetClawMachine.Games.ClawGame
             CurrentDroppingPlayer = new CurrentActiveGamePlayer();
             foreach (var machineControl in MachineList)
             {
-                machineControl.OnClawCentered += MachineControl_OnClawCentered;
-                ((ClawController)machineControl).OnClawRecoiled += ClawSingleQueue_OnClawRecoiled;
+                if (machineControl is ClawController controller)
+                {
+                    controller.OnClawCentered += MachineControl_OnClawCentered;
+                    controller.OnClawRecoiled += ClawSingleQueue_OnClawRecoiled;
+                }
             }
             StartMessage = string.Format(Translator.GetTranslation("gameClawTriviaTeamStartGame", Translator._defaultLanguage), Configuration.CommandPrefix);
             OnTeamJoined += ClawTriviaTeam_OnTeamJoined;

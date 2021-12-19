@@ -350,7 +350,7 @@
     <Compile Include="Settings\DrawingSettings.cs" />
     <Compile Include="Settings\BotConfiguration.cs" />
     <Compile Include="ClassExtensions.cs" />
-    <Compile Include="Games\GameHelpers\DroppingPlayer.cs" />
+    <Compile Include="Games\GameHelpers\CurrentActiveGamePlayer.cs" />
     <Compile Include="Hardware\RFID\Dis.cs" />
     <Compile Include="Emailer.cs" />
     <Compile Include="Games\Game.cs" />

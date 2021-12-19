@@ -399,6 +399,8 @@ namespace InternetClawMachine.Hardware.Skeeball
                         case SkeeballEvents.EVENT_FLAP_SET:
                             OnFlapSet?.Invoke(this);
                             break;
+                        case SkeeballEvents.EVENT_CONTROLLER_MODE:
+                            break;
                     }
                 }
             }

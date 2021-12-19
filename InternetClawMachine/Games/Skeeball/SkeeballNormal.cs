@@ -70,7 +70,7 @@ namespace InternetClawMachine.Games.Skeeball
             var shotGuid = CurrentShootingPlayer.ShotGuid;
 
             Task.Run(async delegate {
-                await Task.Delay(15000); //wait 7 seconds for the ball to release and score
+                await Task.Delay(20000); //wait 7 seconds for the ball to release and score
 
                 //if the current game loop matches the current shooter loop, it means the last play is still active, let's kick off the next ball
                 if (CurrentShootingPlayer.ShotGuid == shotGuid)
@@ -238,8 +238,13 @@ namespace InternetClawMachine.Games.Skeeball
 
         private void HandleNextBallStart(SkeeballSessionUserTracker sessionScoreUser)
         {
+
             if (!CurrentShootingPlayer.BallReturnTriggered || !CurrentShootingPlayer.FlapSetTriggered)
                 return;
+
+            //reset the flags for their next ball
+            CurrentShootingPlayer.BallReturnTriggered = false;
+            CurrentShootingPlayer.FlapSetTriggered = false;
 
             DropInCommandQueue = false;
             Configuration.OverrideChat = false;
@@ -802,8 +807,8 @@ namespace InternetClawMachine.Games.Skeeball
                 SessionUserTracker.Add(user);
                 user.WheelSpeedLeft = Configuration.SkeeballSettings.Wheels.LeftWheel.DefaultSpeed;
                 user.WheelSpeedRight = Configuration.SkeeballSettings.Wheels.RightWheel.DefaultSpeed;
-                user.LRLocation = Configuration.SkeeballSettings.Steppers.ControllerLR.DefaultPosition;
-                user.PANLocation = Configuration.SkeeballSettings.Steppers.ControllerPAN.DefaultPosition;
+                user.PositionLR = Configuration.SkeeballSettings.Steppers.ControllerLR.DefaultPosition;
+                user.PositionPAN = Configuration.SkeeballSettings.Steppers.ControllerPAN.DefaultPosition;
             }
 
             Task.Run(async delegate ()
