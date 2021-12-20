@@ -60,7 +60,10 @@ namespace InternetClawMachine.Games.Skeeball
 
         private void SkeeballNormal_OnBallEscaped(object sender)
         {
-            HandleSlotTripped(8);
+            //reset the flags for their next ball
+            CurrentShootingPlayer.BallReturnTriggered = true;
+            CurrentShootingPlayer.FlapSetTriggered = true;
+            HandleSlotTripped((int)SkeeballSensor.SLOT_BALL_RETURN);
         }
 
         private void SkeeballNormal_BallReleased(object sender)
@@ -70,7 +73,7 @@ namespace InternetClawMachine.Games.Skeeball
             var shotGuid = CurrentShootingPlayer.ShotGuid;
 
             Task.Run(async delegate {
-                await Task.Delay(20000); //wait 7 seconds for the ball to release and score
+                await Task.Delay(Configuration.SkeeballSettings.EjectedBallWaitTime * 1000); //wait 7 seconds for the ball to release and score
 
                 //if the current game loop matches the current shooter loop, it means the last play is still active, let's kick off the next ball
                 if (CurrentShootingPlayer.ShotGuid == shotGuid)

@@ -29,9 +29,11 @@ namespace InternetClawMachine.Games.Skeeball
             MachineControl = new SkeeballController(Configuration);
             MachineControl.OnScoreSensorTripped += MachineControl_OnScoreSensorTripped;
             MachineControl.OnConnected += MachineControl_OnConnected;
+            MachineControl.OnFlapSet += MachineControl_OnFlapSet;
             MachineControl.OnPingTimeout += MachineControl_OnPingTimeout;
             this.OnBallReleased += SkeeballAroundTheWorld_OnBallReleased;
             this.OnBallEscaped += SkeeballAroundTheWorld_OnBallEscaped;
+
             CurrentShootingPlayer = new CurrentActiveGamePlayer();
 
             StartMessage = string.Format(Translator.GetTranslation("gameSkeeballATWStartGame", Translator._defaultLanguage), Configuration.CommandPrefix);
@@ -42,9 +44,18 @@ namespace InternetClawMachine.Games.Skeeball
             DurationSinglePlayerQueueNoCommand = Configuration.ClawSettings.SinglePlayerQueueNoCommandDuration;
         }
 
+        private void MachineControl_OnFlapSet(IMachineControl controller)
+        {
+            if (PlayerQueue.CurrentPlayer == null)
+                return;
+            var sessionScoreUser = SessionUserTracker.FirstOrDefault(u => u.Username == PlayerQueue.CurrentPlayer);
+            CurrentShootingPlayer.FlapSetTriggered = true;
+            HandleNextBallStart(sessionScoreUser);
+        }
+
         private void SkeeballAroundTheWorld_OnBallEscaped(object sender)
         {
-            HandleSlotTripped(8);
+            HandleSlotTripped((int)SkeeballSensor.SLOT_BALL_RETURN);
         }
 
         private void SkeeballAroundTheWorld_OnBallReleased(object sender)
@@ -53,7 +64,7 @@ namespace InternetClawMachine.Games.Skeeball
             //failsafe timeout incase a ball was thrown and never comes back
             var shotGuid = CurrentShootingPlayer.ShotGuid;
             Task.Run(async delegate { 
-                await Task.Delay(15000); //wait seconds for the ball to release and score
+                await Task.Delay(Configuration.SkeeballSettings.EjectedBallWaitTime * 1000); //wait seconds for the ball to release and score
                 //if the current game loop matches the current shooter loop, it means the last play is still active, let's kick off the next ball
                 if (CurrentShootingPlayer.ShotGuid == shotGuid)
                 {
@@ -131,11 +142,11 @@ namespace InternetClawMachine.Games.Skeeball
             int score = 0;
 
             var currentPlayer = PlayerQueue.CurrentPlayer;
-            var sessionScore = SessionUserTracker.FirstOrDefault(u => u.Username == currentPlayer);
-            if (sessionScore == null)
+            var sessionScoreUser = SessionUserTracker.FirstOrDefault(u => u.Username == currentPlayer);
+            if (sessionScoreUser == null)
                 return;
 
-            var drops = sessionScore.Drops;
+            var drops = sessionScoreUser.Drops;
             var saying = "";
 
             switch (slot)
@@ -145,35 +156,13 @@ namespace InternetClawMachine.Games.Skeeball
                     // TODO - Add something to notify if a ball wasnt released when it was supposed to
                     return;
                 case SkeeballSensor.SLOT_BALL_RETURN:
-                    DropInCommandQueue = false;
-                    Configuration.OverrideChat = false;
-                    CurrentShootingPlayer.ShotGuid = Guid.Empty;
-                    //since players get 3 turns, we need to also check if there is no time left in the round timer
-                    if ((GameRoundTimer.IsRunning && GameRoundTimer.ElapsedMilliseconds > Configuration.ClawSettings.SinglePlayerDuration * 1000) || (PlayerQueue.CurrentPlayer != null && PlayerQueue.CurrentPlayer == CurrentShootingPlayer.Username && GameLoopCounterValue == CurrentShootingPlayer.GameLoop && ((CurrentShootingPlayer.BallsShot >= Configuration.SkeeballSettings.BallsPerTurn) || (sessionScore != null && sessionScore.Drops % Configuration.SkeeballSettings.BallsPerTurn == 0))))
-                    {
-                        var args = new RoundEndedArgs { Username = PlayerQueue.CurrentPlayer, GameMode = GameMode, GameLoopCounterValue = GameLoopCounterValue };
-                        base.OnTurnEnded(args);
-                        var nextPlayer = PlayerQueue.GetNextPlayer();
-                        StartRound(nextPlayer);
-                    }
-                    else
-                    {
-                        var ballNum = Configuration.SkeeballSettings.BallsPerTurn - (sessionScore.Drops % Configuration.SkeeballSettings.BallsPerTurn) + 1;
-                        //TODO: remove manual ball displaying
-                        ObsConnection.SetSourceRender("ball " + ballNum, true);
-                        saying = string.Format(Translator.GetTranslation("gameSkeeballATWNextBall", Configuration.UserList.GetUserLocalization(currentPlayer)), currentPlayer, ballNum -1);
-                        Task.Run(async delegate
-                        {
-                            await Task.Delay(Configuration.WinNotificationDelay);
-                            GameCancellationToken.Token.ThrowIfCancellationRequested();
-                            ChatClient.SendMessage(Configuration.Channel, saying);
-                            Logger.WriteLog(Logger._debugLog, saying, Logger.LogLevel.DEBUG);
-                        }, GameCancellationToken.Token);
-                    }
+                    CurrentShootingPlayer.BallReturnTriggered = true;
+                    HandleNextBallStart(sessionScoreUser);
+                    
 
                     return;
                 default:
-                    if (!sessionScore.CanScoreAgain)
+                    if (!sessionScoreUser.CanScoreAgain)
                         return;
                     var skeeSlot = Configuration.SkeeballSettings.ScoreMatrices[Configuration.SkeeballSettings.ActiveScoreMatrix].Matrix[(int)slot];
                     score = skeeSlot.Value;
@@ -186,19 +175,19 @@ namespace InternetClawMachine.Games.Skeeball
                     }, GameCancellationToken.Token);
 
 
-                    sessionScore.CanScoreAgain = false;
+                    sessionScoreUser.CanScoreAgain = false;
 
-                    var AtwData = (SkeeballATWPlayer)sessionScore.CustomGameData;
+                    var AtwData = (SkeeballATWPlayer)sessionScoreUser.CustomGameData;
                     var status = GetSlotStatus(AtwData, slot);
 
                     if (status == SkeeballColors.NEEDED)
                     {
                         AtwData.SlotAcquired.Add(slot);
-                        ResetScoreLights(sessionScore);
+                        ResetScoreLights(sessionScoreUser);
 
                         if (AtwData.SlotAcquired.Count == AtwData.SlotRequired.Count)
                         {
-                            sessionScore.GamesPlayed++;
+                            sessionScoreUser.GamesPlayed++;
 
                             saying = string.Format(Translator.GetTranslation("gameSkeeballATWGameOver", Configuration.UserList.GetUserLocalization(currentPlayer)), currentPlayer);
 
@@ -223,7 +212,7 @@ namespace InternetClawMachine.Games.Skeeball
 
             Task.Run(async delegate ()
             {
-                await MachineControl.DisplayText(sessionScore.Score);
+                await MachineControl.DisplayText(sessionScoreUser.Score);
             });
 
             RefreshWinList();
@@ -246,6 +235,42 @@ namespace InternetClawMachine.Games.Skeeball
                 ChatClient.SendMessage(Configuration.Channel, affirmation);
                 Logger.WriteLog(Logger._debugLog, affirmation, Logger.LogLevel.DEBUG);
             }, GameCancellationToken.Token);
+        }
+
+        private void HandleNextBallStart(SkeeballSessionUserTracker sessionScoreUser)
+        {
+            if (!CurrentShootingPlayer.BallReturnTriggered || !CurrentShootingPlayer.FlapSetTriggered)
+                return;
+
+            //reset the flags for their next ball
+            CurrentShootingPlayer.BallReturnTriggered = false;
+            CurrentShootingPlayer.FlapSetTriggered = false;
+
+            DropInCommandQueue = false;
+            Configuration.OverrideChat = false;
+            CurrentShootingPlayer.ShotGuid = Guid.Empty;
+            //since players get 3 turns, we need to also check if there is no time left in the round timer
+            if ((GameRoundTimer.IsRunning && GameRoundTimer.ElapsedMilliseconds > Configuration.ClawSettings.SinglePlayerDuration * 1000) || (PlayerQueue.CurrentPlayer != null && PlayerQueue.CurrentPlayer == CurrentShootingPlayer.Username && GameLoopCounterValue == CurrentShootingPlayer.GameLoop && ((CurrentShootingPlayer.BallsShot >= Configuration.SkeeballSettings.BallsPerTurn) || (sessionScoreUser != null && sessionScoreUser.Drops % Configuration.SkeeballSettings.BallsPerTurn == 0))))
+            {
+                var args = new RoundEndedArgs { Username = PlayerQueue.CurrentPlayer, GameMode = GameMode, GameLoopCounterValue = GameLoopCounterValue };
+                base.OnTurnEnded(args);
+                var nextPlayer = PlayerQueue.GetNextPlayer();
+                StartRound(nextPlayer);
+            }
+            else
+            {
+                var ballNum = Configuration.SkeeballSettings.BallsPerTurn - (sessionScoreUser.Drops % Configuration.SkeeballSettings.BallsPerTurn) + 1;
+                //TODO: remove manual ball displaying
+                ObsConnection.SetSourceRender("ball " + ballNum, true);
+                var saying = string.Format(Translator.GetTranslation("gameSkeeballATWNextBall", Configuration.UserList.GetUserLocalization(sessionScoreUser.Username)), sessionScoreUser.Username, ballNum - 1);
+                Task.Run(async delegate
+                {
+                    await Task.Delay(Configuration.WinNotificationDelay);
+                    GameCancellationToken.Token.ThrowIfCancellationRequested();
+                    ChatClient.SendMessage(Configuration.Channel, saying);
+                    Logger.WriteLog(Logger._debugLog, saying, Logger.LogLevel.DEBUG);
+                }, GameCancellationToken.Token);
+            }
         }
 
         internal virtual void ResetScoreLights(SkeeballSessionUserTracker sessionScore)

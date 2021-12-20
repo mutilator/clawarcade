@@ -1925,8 +1925,8 @@ namespace InternetClawMachine
         {
             LogChat("#" + Configuration.Channel, "SESSION END");
 
-            if (Client.IsConnected)
-                Client.SendMessage(Configuration.Channel, "Leaving");
+            //if (Client.IsConnected)
+            //    Client.SendMessage(Configuration.Channel, "Leaving");
 
             CloseStreams();
         }
@@ -3220,6 +3220,7 @@ namespace InternetClawMachine
             txtSkeeballControllerLimitLow.DataContext = controller;
             txtSkeeballControllerStepsNormal.DataContext = controller;
             txtSkeeballControllerStepsSmall.DataContext = controller;
+            txtSkeeballControllerDefaultPosition.DataContext = controller;
         }
 
         private StepperControllerSettings GetCurrentStepperController()

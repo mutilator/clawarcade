@@ -578,6 +578,9 @@
                                     <Label Content="Mapped Speed" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="522,335,0,0"/>
                                     <Label Content="Default Position" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,198,189,0"/>
                                     <TextBox x:Name="txtSkeeballControllerDefaultPosition" HorizontalAlignment="Left" Height="23" TextWrapping="Wrap" Text="{Binding DefaultPosition, Mode=TwoWay}" VerticalAlignment="Top" Width="120" Margin="635,197,0,0" RenderTransformOrigin="1.179,-0.304"/>
+                                    <Slider x:Name="sldrEjectedBallWait" HorizontalAlignment="Left" VerticalAlignment="Top" Width="113" Maximum="60" Minimum="1" LargeChange="2" SmallChange="1" Value="{Binding SkeeballSettings.EjectedBallWaitTime, Mode=TwoWay}" IsSnapToTickEnabled="True" TickFrequency="1" Margin="10,357,0,-4" />
+                                    <Label Content="Ejected Ball Wait" HorizontalAlignment="Left" VerticalAlignment="Top" RenderTransformOrigin="-0.026,-0.077" Margin="10,333,0,0" />
+                                    <Label x:Name="lblEjectedBallWait" HorizontalAlignment="Left" VerticalAlignment="Top" RenderTransformOrigin="0.368,-0.308" Content="{Binding Value, ElementName=sldrEjectedBallWait}" Margin="145,333,0,0" />
                                 </Grid>
                             </TabItem>
                         </TabControl>
