@@ -57,6 +57,8 @@ namespace InternetClawMachine.Games.GantryGame
                     break;
 
                 case "help":
+                case "controls":
+                case "commands":
                     ShowHelp(username);
 
                     if (isSubscriber)

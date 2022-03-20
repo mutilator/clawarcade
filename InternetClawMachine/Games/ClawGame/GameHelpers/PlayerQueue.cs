@@ -154,7 +154,7 @@ namespace InternetClawMachine.Games.GameHelpers
                 if (Players.IndexOf(username) < Index)
                     Index--;
 
-                if (Index < 0)
+                if (Index < 0 || Players.Count >= Index)
                     Index = 0;
 
                 Players.Remove(username);

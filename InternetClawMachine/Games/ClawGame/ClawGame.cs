@@ -848,6 +848,8 @@ namespace InternetClawMachine.Games.ClawGame
                         break;
 
                     case "help":
+                    case "controls":
+                    case "commands":
                         //auto update their localization if they use a command in another language
                         if (commandText != translateCommand.FinalWord)
                         {

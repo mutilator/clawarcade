@@ -219,6 +219,8 @@ namespace InternetClawMachine.Games.Skeeball
 
                     break;
                 case "help":
+                case "controls":
+                case "commands":
                     //auto update their localization if they use a command in another language
                     if (commandText != translateCommand.FinalWord)
                     {

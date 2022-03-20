@@ -78,7 +78,31 @@ namespace InternetClawMachine.Games.Skeeball
                 //if the current game loop matches the current shooter loop, it means the last play is still active, let's kick off the next ball
                 if (CurrentShootingPlayer.ShotGuid == shotGuid)
                 {
-                    InvokeBallEscaped();
+                    // If we're invoking the timeout, check if the ball return triggered.
+                    if (CurrentShootingPlayer.BallReturnTriggered)
+                    {
+
+                        //grab the user
+                        var sessionScoreUser = SessionUserTracker.FirstOrDefault(u => u.Username == CurrentShootingPlayer.Username);
+                        if (sessionScoreUser == null)
+                        {
+                            // If no user exists, throw the red flag
+                            InvokeBallEscaped();
+                            return;
+                        }
+
+                        // Otherwise handle this like we would a normal ball return
+                        CurrentShootingPlayer.FlapSetTriggered = true; // If ball return triggered then mark flap as triggered and do a handle next ball because a ball went thru
+
+                        var data = string.Format("Ball was too fast for the machine. LeftSpeed: [{0}] RightSpeed: [{1}]", sessionScoreUser.WheelSpeedLeft, sessionScoreUser.WheelSpeedRight);
+                        Notifier.SendDiscordMessage(Configuration.DiscordSettings.SpamWebhook, data);
+
+                        HandleNextBallStart(sessionScoreUser);
+                    }
+                    else
+                    {
+                        InvokeBallEscaped();
+                    }
                 }
 
             });
@@ -205,13 +229,6 @@ namespace InternetClawMachine.Games.Skeeball
                 Logger.WriteLog(Logger._debugLog, saying, Logger.LogLevel.DEBUG);
             }, GameCancellationToken.Token);
 
-            Task.Run(async delegate
-            {
-                await Task.Delay(Configuration.WinNotificationDelay);
-                GameCancellationToken.Token.ThrowIfCancellationRequested();
-                ChatClient.SendMessage(Configuration.Channel, affirmation);
-                Logger.WriteLog(Logger._debugLog, affirmation, Logger.LogLevel.DEBUG);
-            }, GameCancellationToken.Token);
         }
 
         private void HandleNextBallStart(SkeeballSessionUserTracker sessionScoreUser)
@@ -230,10 +247,14 @@ namespace InternetClawMachine.Games.Skeeball
             //since players get 3 turns, we need to also check if there is no time left in the round timer
             if ((GameRoundTimer.IsRunning && GameRoundTimer.ElapsedMilliseconds > Configuration.ClawSettings.SinglePlayerDuration * 1000) || (PlayerQueue.CurrentPlayer != null && PlayerQueue.CurrentPlayer == CurrentShootingPlayer.Username && GameLoopCounterValue == CurrentShootingPlayer.GameLoop && ((CurrentShootingPlayer.BallsShot >= Configuration.SkeeballSettings.BallsPerTurn) || (sessionScoreUser != null && sessionScoreUser.Drops % 3 == 0))))
             {
-                var args = new RoundEndedArgs { Username = PlayerQueue.CurrentPlayer, GameMode = GameMode, GameLoopCounterValue = GameLoopCounterValue };
-                base.OnTurnEnded(args);
-                var nextPlayer = PlayerQueue.GetNextPlayer();
-                StartRound(nextPlayer);
+                Task.Run(async delegate
+                {
+                    await Task.Delay(Configuration.WinNotificationDelay);
+                    var args = new RoundEndedArgs { Username = PlayerQueue.CurrentPlayer, GameMode = GameMode, GameLoopCounterValue = GameLoopCounterValue };
+                    base.OnTurnEnded(args);
+                    var nextPlayer = PlayerQueue.GetNextPlayer();
+                    StartRound(nextPlayer);
+                }, GameCancellationToken.Token);
             }
 
             else
@@ -341,6 +362,8 @@ namespace InternetClawMachine.Games.Skeeball
 
                     break;
                 case "help":
+                case "controls":
+                case "commands":
                     //auto update their localization if they use a command in another language
                     if (commandText != translateCommand.FinalWord)
                     {

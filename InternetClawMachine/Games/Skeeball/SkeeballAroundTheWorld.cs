@@ -68,14 +68,34 @@ namespace InternetClawMachine.Games.Skeeball
                 //if the current game loop matches the current shooter loop, it means the last play is still active, let's kick off the next ball
                 if (CurrentShootingPlayer.ShotGuid == shotGuid)
                 {
-                    InvokeBallEscaped();
+                    // If we're invoking the timeout, check if the ball return triggered.
+                    if (CurrentShootingPlayer.BallReturnTriggered)
+                    {
+                        
+                        // Grab the user
+                        var sessionScoreUser = SessionUserTracker.FirstOrDefault(u => u.Username == CurrentShootingPlayer.Username);
+                        if (sessionScoreUser == null)
+                        {
+                            // If no user exists, throw the red flag
+                            InvokeBallEscaped();
+                            return;
+                        }
+
+                        // Otherwise handle this like we would a normal ball return
+                        CurrentShootingPlayer.FlapSetTriggered = true; // Set flap timeout, the ball flew past and didnt trip the laser is all
+
+                        var data = string.Format("Ball was too fast for the machine. LeftSpeed: [{0}] RightSpeed: [{1}]", sessionScoreUser.WheelSpeedLeft, sessionScoreUser.WheelSpeedRight) ;
+                        Notifier.SendDiscordMessage(Configuration.DiscordSettings.SpamWebhook, data);
+
+                        // Since the ball return trigged this is a 
+                        HandleNextBallStart(sessionScoreUser);
+                    }
+                    else
+                    {
+                        InvokeBallEscaped();
+                    }
                 }
             });
-        }
-
-        private void MachineControl_OnPingTimeout(IMachineControl controller)
-        {
-            MachineControl.Connect(Configuration.SkeeballSettings.Address, Configuration.SkeeballSettings.Port);
         }
 
 
@@ -140,7 +160,6 @@ namespace InternetClawMachine.Games.Skeeball
                     CurrentShootingPlayer.BallReturnTriggered = true;
                     HandleNextBallStart(sessionScoreUser);
                     
-
                     return;
                 default:
                     if (!sessionScoreUser.CanScoreAgain)
@@ -382,6 +401,8 @@ namespace InternetClawMachine.Games.Skeeball
 
                     break;
                 case "help":
+                case "controls":
+                case "commands":
                     //auto update their localization if they use a command in another language
                     if (commandText != translateCommand.FinalWord)
                     {
