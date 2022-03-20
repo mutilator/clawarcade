@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -15,6 +16,9 @@ using System.Timers;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
+using System.Windows.Threading;
 using InternetClawMachine.Chat;
 using InternetClawMachine.Games;
 using InternetClawMachine.Games.ClawGame;
@@ -393,6 +397,13 @@ namespace InternetClawMachine
         }
 
         #endregion UI Direction Update Functions
+
+
+        DispatcherTimer bowlingImageUpdateTimer = new DispatcherTimer();
+
+        private System.Drawing.Point _bowlingCursorLocation;
+        private int _currentBowlingPin;
+
 
         /// <summary>
         /// Stop the reconnect attempt
@@ -811,6 +822,7 @@ namespace InternetClawMachine
             cmbGameModes.Items.Add(new GameModeSelections { GameMode = GameModeType.GOLF, Name = "Golf" });
             cmbGameModes.Items.Add(new GameModeSelections { GameMode = GameModeType.SKEEBALLNORMAL, Name = "Skeeball - Normal" });
             cmbGameModes.Items.Add(new GameModeSelections { GameMode = GameModeType.SKEEBALLAROUNDTHEWORLD, Name = "Skeeball - ATW" });
+            cmbGameModes.Items.Add(new GameModeSelections { GameMode = GameModeType.SKEEBALLBOWLING, Name = "Skeeball - Bowling" });
 
 
             cmbGameModes.SelectedIndex = 0;
@@ -1149,14 +1161,14 @@ namespace InternetClawMachine
         {
             var data = new JObject();
             data.Add("name", Configuration.ObsScreenSourceNames.SoundClipDoh.SourceName);
-            Game.WsConnection.SendCommand(MediaWebSocketServer._commandMedia, data);
+            Game.WsConnection.SendCommand(MediaWebSocketServer.CommandMedia, data);
         }
 
         private void PlaySadTrombone()
         {
             var data = new JObject();
             data.Add("name", Configuration.ObsScreenSourceNames.SoundClipSadTrombone.SourceName);
-            Game.WsConnection.SendCommand(MediaWebSocketServer._commandMedia, data);
+            Game.WsConnection.SendCommand(MediaWebSocketServer.CommandMedia, data);
         }
 
         private void HandleBitsMessage(OnMessageReceivedArgs e)
@@ -1319,7 +1331,9 @@ namespace InternetClawMachine
                     case GameModeType.SKEEBALLAROUNDTHEWORLD:
                         StartGameModeSkeeballATW(null);
                         break;
-
+                    case GameModeType.SKEEBALLBOWLING:
+                        StartGameModeSkeeballBowling(null);
+                        break;
                     //case GameModeType.SINGLEQUEUE:
                     default:
                         rand = new Random((int)DateTime.Now.Ticks);
@@ -1539,7 +1553,7 @@ namespace InternetClawMachine
                 EndGame();
             }
 
-            Game = new Drawing(Client, Configuration, ObsConnection);
+            Game = new GantryDrawing(Client, Configuration, ObsConnection);
             ((GantryGame)Game).Gantry = new GameGantry(Configuration.DrawingSettings.GantryIp,
                 Configuration.DrawingSettings.GantryPort);
             ((GantryGame)Game).Gantry.Connect();
@@ -1705,6 +1719,7 @@ namespace InternetClawMachine
                     ((GantryGame)Game).Gantry.Go(GantryAxis.X);
                     break;
                 case GameModeType.SKEEBALLNORMAL:
+                case GameModeType.SKEEBALLBOWLING:
                 case GameModeType.SKEEBALLAROUNDTHEWORLD:
                     Task.Run(async delegate () { await ((SkeeballNormal)Game).MachineControl.TurnLeft(-1); });
                     break;
@@ -1730,6 +1745,7 @@ namespace InternetClawMachine
                     break;
                 case GameModeType.SKEEBALLNORMAL:
                 case GameModeType.SKEEBALLAROUNDTHEWORLD:
+                case GameModeType.SKEEBALLBOWLING:
                     Task.Run(async delegate () { await ((SkeeballNormal)Game).MachineControl.TurnLeft(0); });
                     break;
                 default:
@@ -1754,6 +1770,7 @@ namespace InternetClawMachine
                     break;
                 case GameModeType.SKEEBALLNORMAL:
                 case GameModeType.SKEEBALLAROUNDTHEWORLD:
+                case GameModeType.SKEEBALLBOWLING:
                     Task.Run(async delegate () { await ((SkeeballNormal)Game).MachineControl.MoveLeft(0); });
                     break;
                 default:
@@ -1779,6 +1796,7 @@ namespace InternetClawMachine
                     break;
                 case GameModeType.SKEEBALLNORMAL:
                 case GameModeType.SKEEBALLAROUNDTHEWORLD:
+                case GameModeType.SKEEBALLBOWLING:
                     Task.Run(async delegate () { await ((SkeeballNormal)Game).MachineControl.MoveLeft(-1); });
                     break;
                 default:
@@ -1804,6 +1822,7 @@ namespace InternetClawMachine
                     break;
                 case GameModeType.SKEEBALLNORMAL:
                 case GameModeType.SKEEBALLAROUNDTHEWORLD:
+                case GameModeType.SKEEBALLBOWLING:
                     Task.Run(async delegate () { await ((SkeeballNormal)Game).MachineControl.MoveRight(-1); });
                     break;
                 default:
@@ -1828,6 +1847,7 @@ namespace InternetClawMachine
                     break;
                 case GameModeType.SKEEBALLNORMAL:
                 case GameModeType.SKEEBALLAROUNDTHEWORLD:
+                case GameModeType.SKEEBALLBOWLING:
                     Task.Run(async delegate () { await ((SkeeballNormal)Game).MachineControl.MoveRight(0); });
                     break;
                 default:
@@ -1853,6 +1873,7 @@ namespace InternetClawMachine
                     break;
                 case GameModeType.SKEEBALLNORMAL:
                 case GameModeType.SKEEBALLAROUNDTHEWORLD:
+                case GameModeType.SKEEBALLBOWLING:
                     Task.Run(async delegate () { await ((SkeeballNormal)Game).MachineControl.TurnRight(-1); });
                     break;
                 default:
@@ -1876,6 +1897,7 @@ namespace InternetClawMachine
                     break;
                 case GameModeType.SKEEBALLNORMAL:
                 case GameModeType.SKEEBALLAROUNDTHEWORLD:
+                case GameModeType.SKEEBALLBOWLING:
                     Task.Run(async delegate () { await ((SkeeballNormal)Game).MachineControl.TurnRight(0); });
                     break;
                 default:
@@ -2059,6 +2081,9 @@ namespace InternetClawMachine
                 case GameModeType.SKEEBALLAROUNDTHEWORLD:
                     StartGameModeSkeeballATW(null);
                     break;
+                case GameModeType.SKEEBALLBOWLING:
+                    StartGameModeSkeeballBowling(null);
+                    break;
                 case GameModeType.BOUNTY:
                     break;
 
@@ -2080,6 +2105,37 @@ namespace InternetClawMachine
 
                 case GameModeType.NA:
                     break;
+            }
+        }
+        private void StartGameModeSkeeballBowling(string username)
+        {
+            if (Game != null)
+            {
+                EndGame();
+            }
+
+            Game = new SkeeballBowling(Client, Configuration, ObsConnection);
+            bowlingImageUpdateTimer.Tick += BowlingImageUpdateTimer_Tick;
+            bowlingImageUpdateTimer.Interval = TimeSpan.FromMilliseconds(100);
+            bowlingImageUpdateTimer.Start();
+
+            StartGame(null);
+        }
+
+        private void BowlingImageUpdateTimer_Tick(object sender, EventArgs e)
+        {
+            if (Game is SkeeballBowling)
+            {
+                ImageSourceConverter c = new ImageSourceConverter();
+                //imgKinectDisplay.Source = (ImageSource)c.ConvertFrom(((SkeeballBowling)Game).KinectController.KinectBitmap);
+                if (((SkeeballBowling)Game).KinectController.KinectBitmap != null)
+                {
+                    imgKinectDisplay.Source = ((SkeeballBowling)Game).KinectController.KinectDirectBitmap.ToBitmapSource();
+                }
+            } else
+            {
+                bowlingImageUpdateTimer.Stop();
+                bowlingImageUpdateTimer.Tick -= BowlingImageUpdateTimer_Tick;
             }
         }
 
@@ -2536,7 +2592,7 @@ namespace InternetClawMachine
             //WSConnection.SendCommand(WSConnection.CommandMedia, data);
 
             data.Add("name", Configuration.ObsScreenSourceNames.WinAnimationDefault.SourceName);
-            Game.WsConnection.SendCommand(MediaWebSocketServer._commandMedia, data);
+            Game.WsConnection.SendCommand(MediaWebSocketServer.CommandMedia, data);
 
             /*
             SceneItemProperties props = OBSConnection.GetSceneItemProperties("CLIP-Shuttle", "RocketMan");
@@ -2585,14 +2641,14 @@ namespace InternetClawMachine
         {
             var data = new JObject();
             data.Add("name", Configuration.ObsScreenSourceNames.SoundClipDoh.SourceName);
-            Game.WsConnection.SendCommand(MediaWebSocketServer._commandMedia, data);
+            Game.WsConnection.SendCommand(MediaWebSocketServer.CommandMedia, data);
         }
 
         private void BtnTrombone_Click(object sender, RoutedEventArgs e)
         {
             var data = new JObject();
             data.Add("name", Configuration.ObsScreenSourceNames.SoundClipSadTrombone.SourceName);
-            Game.WsConnection.SendCommand(MediaWebSocketServer._commandMedia, data);
+            Game.WsConnection.SendCommand(MediaWebSocketServer.CommandMedia, data);
         }
 
         private void BtnScare_Click(object sender, RoutedEventArgs e)
@@ -3138,35 +3194,35 @@ namespace InternetClawMachine
             
             var data = new JObject();
             data.Add("name", "CLIP-glitch1");
-            Game.WsConnection.SendCommand(MediaWebSocketServer._commandMedia, data);
+            Game.WsConnection.SendCommand(MediaWebSocketServer.CommandMedia, data);
         }
 
         private void BtnGlitch2_Click(object sender, RoutedEventArgs e)
         {
             var data = new JObject();
             data.Add("name", "CLIP-glitch2");
-            Game.WsConnection.SendCommand(MediaWebSocketServer._commandMedia, data);
+            Game.WsConnection.SendCommand(MediaWebSocketServer.CommandMedia, data);
         }
 
         private void BtnGlitch3_Click(object sender, RoutedEventArgs e)
         {
             var data = new JObject();
             data.Add("name", "CLIP-glitch3");
-            Game.WsConnection.SendCommand(MediaWebSocketServer._commandMedia, data);
+            Game.WsConnection.SendCommand(MediaWebSocketServer.CommandMedia, data);
         }
 
         private void BtnGlitch4_Click(object sender, RoutedEventArgs e)
         {
             var data = new JObject();
             data.Add("name", "CLIP-glitch4");
-            Game.WsConnection.SendCommand(MediaWebSocketServer._commandMedia, data);
+            Game.WsConnection.SendCommand(MediaWebSocketServer.CommandMedia, data);
         }
 
         private void BtnGlitch5_Click(object sender, RoutedEventArgs e)
         {
             var data = new JObject();
             data.Add("name", "CLIP-glitch5");
-            Game.WsConnection.SendCommand(MediaWebSocketServer._commandMedia, data);
+            Game.WsConnection.SendCommand(MediaWebSocketServer.CommandMedia, data);
         }
 
         private void BtnDiscordSpam_Click(object sender, RoutedEventArgs e)
@@ -3337,6 +3393,120 @@ namespace InternetClawMachine
             controller = Configuration.SkeeballSettings.Wheels.RightWheel;
 
                     Task.Run(async delegate () { await ((SkeeballGame)Game).MachineControl.SetWheelSpeed(controller.ID, controller.CurrentSpeed * controller.Multiplier); });
+        }
+
+        private void BtnResetFrame_Click(object sender, RoutedEventArgs e)
+        {
+            if (Game is SkeeballBowling)
+            {
+                ((SkeeballBowling)Game).ScoreCurrentFrame();
+                
+            }
+        }
+
+        private void ImgKinectDisplay_MouseDown(object sender, MouseButtonEventArgs e)
+        {
+            if (!(Game is SkeeballBowling))
+                return;
+            var bowlingGame = ((SkeeballBowling)Game);
+
+            if (e.LeftButton != MouseButtonState.Pressed)
+                return;
+
+
+            bowlingGame.KinectController.DebugROIRectStart = new System.Drawing.Point((int)e.GetPosition(imgKinectDisplay).X, (int)e.GetPosition(imgKinectDisplay).Y);
+            bowlingGame.KinectController.DebugROIRectStop = System.Drawing.Point.Empty;
+            bowlingGame.KinectController.DebugIsDrawingROIRect = true;
+        }
+
+        private void ImgKinectDisplay_MouseUp(object sender, MouseButtonEventArgs e)
+        {
+            if (!(Game is SkeeballBowling))
+                return;
+
+            if (_currentBowlingPin > 0 && _currentBowlingPin < 11 && e.ChangedButton == MouseButton.Right)
+            {
+                Configuration.BowlingSettings.PinMatrix[_currentBowlingPin - 1].Point = new System.Drawing.Point((int)e.GetPosition(imgKinectDisplay).X, (int)e.GetPosition(imgKinectDisplay).Y);
+                _currentBowlingPin++;
+
+                Dispatcher?.BeginInvoke(new Action(() =>
+                {
+                    lblBowlingPinPosition.Content = _currentBowlingPin.ToString();
+                }));
+            }
+
+            if (e.ChangedButton == MouseButton.Right)
+                return;
+
+            var bowlingGame = ((SkeeballBowling)Game);
+            bowlingGame.KinectController.DebugROIRectStop = new System.Drawing.Point((int)e.GetPosition(imgKinectDisplay).X, (int)e.GetPosition(imgKinectDisplay).Y);
+
+            bowlingGame.KinectController.DebugIsDrawingROIRect = false;
+
+            if (bowlingGame.KinectController.DebugROIRectStop.X < bowlingGame.KinectController.DebugROIRectStart.X)
+            {
+                int stop = bowlingGame.KinectController.DebugROIRectStop.X;
+                bowlingGame.KinectController.DebugROIRectStop = new System.Drawing.Point(bowlingGame.KinectController.DebugROIRectStart.X, bowlingGame.KinectController.DebugROIRectStop.Y);
+                bowlingGame.KinectController.DebugROIRectStart = new System.Drawing.Point(stop, bowlingGame.KinectController.DebugROIRectStart.Y);
+            }
+            if (bowlingGame.KinectController.DebugROIRectStop.Y < bowlingGame.KinectController.DebugROIRectStart.Y)
+            {
+                int stop = bowlingGame.KinectController.DebugROIRectStop.Y;
+                bowlingGame.KinectController.DebugROIRectStop = new System.Drawing.Point(bowlingGame.KinectController.DebugROIRectStop.X, bowlingGame.KinectController.DebugROIRectStart.Y);
+                bowlingGame.KinectController.DebugROIRectStart = new System.Drawing.Point(bowlingGame.KinectController.DebugROIRectStart.X, stop);
+            }
+
+            var width = Math.Abs(bowlingGame.KinectController.DebugROIRectStop.X - bowlingGame.KinectController.DebugROIRectStart.X);
+            var height = Math.Abs(bowlingGame.KinectController.DebugROIRectStop.Y - bowlingGame.KinectController.DebugROIRectStart.Y);
+            if (width < 1 || height < 1)
+            {
+                width = 18;
+                height = 45;
+                bowlingGame.KinectController.DebugROIRectStop = new System.Drawing.Point(bowlingGame.KinectController.DebugROIRectStart.X + width, bowlingGame.KinectController.DebugROIRectStart.Y + height);
+            }
+            bowlingGame.KinectController.DebugROI = null;
+        }
+
+        private void ImgKinectDisplay_MouseMove(object sender, MouseEventArgs e)
+        {
+
+            if (!(Game is SkeeballBowling))
+                return;
+            var bowlingGame = ((SkeeballBowling)Game);
+
+            _bowlingCursorLocation = new System.Drawing.Point((int)e.GetPosition(imgKinectDisplay).X, (int)e.GetPosition(imgKinectDisplay).Y);
+            //if (!bowlingGame.KinectController.DebugIsDrawingROIRect)
+            //    return;
+
+            //bowlingGame.KinectController.DebugROIRectStop = new System.Drawing.Point((int)e.GetPosition(imgKinectDisplay).X, (int)e.GetPosition(imgKinectDisplay).Y);
+
+            for (int k = 0; k < Configuration.BowlingSettings.PinMatrix.Length; k++)
+            {
+                var sum = 0.0;
+                if (Configuration.BowlingSettings.PinMatrix[k].CachedAvgs.Count > 0)
+                    sum = BowlingHelpers.ReturnAverage(Configuration.BowlingSettings.PinMatrix[k]);
+
+                // If cursor is over a pin, output stats from that pin
+                if (new Rectangle(Configuration.BowlingSettings.PinMatrix[k].Point.X, Configuration.BowlingSettings.PinMatrix[k].Point.Y, Configuration.BowlingSettings.PinMatrix[k].Width, Configuration.BowlingSettings.PinMatrix[k].Height).IntersectsWith(new Rectangle(_bowlingCursorLocation, new System.Drawing.Size(1, 1))))
+                {
+                    var zcnt = Configuration.BowlingSettings.PinMatrix[k].ROI.Count(d => d == bowlingGame.KinectController._minFrameDepth);
+                    var pin = Configuration.BowlingSettings.PinMatrix[k];
+                    var msg = $"Pin {pin.Pin}\r\n[{pin.Point.X},{pin.Point.Y}]\r\nInitialReading {pin.InitialDistanceReading}\r\nCurrentReading {sum}\r\nHas {zcnt} zeroes.";
+                    Dispatcher?.BeginInvoke(new Action(() =>
+                    {
+                        txtBowlingPinDebug.Text = msg;
+                    }));
+                }
+            }
+        }
+
+        private void BtnSetPinLocations_Click(object sender, RoutedEventArgs e)
+        {
+            _currentBowlingPin = 1;
+            Dispatcher?.BeginInvoke(new Action(() =>
+            {
+                lblBowlingPinPosition.Content = _currentBowlingPin.ToString(); // update the label
+            }));
         }
     }
 

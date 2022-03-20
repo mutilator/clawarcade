@@ -8,6 +8,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using InternetClawMachine.Chat;
 using InternetClawMachine.Games.GameHelpers;
+using InternetClawMachine.Hardware;
 using InternetClawMachine.Hardware.ClawControl;
 using InternetClawMachine.Settings;
 using Newtonsoft.Json;
@@ -252,7 +253,7 @@ namespace InternetClawMachine.Games.ClawGame
 
                         var data = new JObject();
                         data.Add("name", Configuration.EventMode.TriviaSettings.OBSCorrectAnswer.SourceName);
-                        WsConnection.SendCommand(MediaWebSocketServer._commandMedia, data);
+                        WsConnection.SendCommand(MediaWebSocketServer.CommandMedia, data);
 
                         CurrentQuestion.AnsweredBy = username;
                         TriviaMessageMode = TriviaMessageMode.CLAW;
@@ -324,11 +325,11 @@ namespace InternetClawMachine.Games.ClawGame
             if (msg.Trim().Length <= 1)
             {
                 //ignore multiple drops
-                if (msg.Equals("d") && DropInCommandQueue)
+                if (msg.Equals("d") && WaitableActionInCommandQueue)
                     return;
 
                 if (msg.Equals("d"))
-                    DropInCommandQueue = true;
+                    WaitableActionInCommandQueue = true;
 
                 //if not run all directional commands
                 HandleSingleCommand(username, msg);
@@ -352,8 +353,8 @@ namespace InternetClawMachine.Games.ClawGame
             //means we only have one letter commands
             if (matches.Count > 0 && total == msg.Length && matches.Count < 10)
             {
-                if (msg.Contains("d") && !DropInCommandQueue)
-                    DropInCommandQueue = true;
+                if (msg.Contains("d") && !WaitableActionInCommandQueue)
+                    WaitableActionInCommandQueue = true;
 
                 //loop matches and queue all commands
                 var currentIndex = GameLoopCounterValue;
@@ -660,7 +661,7 @@ namespace InternetClawMachine.Games.ClawGame
 
         public override void StartRound(string username)
         {
-            DropInCommandQueue = false;
+            WaitableActionInCommandQueue = false;
             
             GameRoundTimer.Reset();
             CommandQueue.Clear();

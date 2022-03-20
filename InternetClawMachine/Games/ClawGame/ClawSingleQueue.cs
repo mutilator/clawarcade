@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using InternetClawMachine.Chat;
 using InternetClawMachine.Games.GameHelpers;
+using InternetClawMachine.Hardware;
 using InternetClawMachine.Hardware.ClawControl;
 using InternetClawMachine.Settings;
 using OBSWebsocketDotNet;
@@ -69,7 +70,7 @@ namespace InternetClawMachine.Games.ClawGame
 
         internal virtual void MachineControl_OnClawCentered(IMachineControl sender)
         {
-            DropInCommandQueue = false;
+            WaitableActionInCommandQueue = false;
             var msg = string.Format(Translator.GetTranslation("gameClawSingleQueueStartRoundShort", Configuration.UserList.GetUserLocalization(PlayerQueue.CurrentPlayer)), PlayerQueue.CurrentPlayer);
             ChatClient.SendMessage(Configuration.Channel, msg);
 
@@ -166,8 +167,8 @@ namespace InternetClawMachine.Games.ClawGame
                     //TODO fix this properly, tech debt
                     if (PlayerQueue.Count == 0)
                     {
-                        DropInCommandQueue = false;
-                        Configuration.OverrideChat = false;
+                        WaitableActionInCommandQueue = false;
+                        Configuration.IgnoreChatCommands = false;
                     }
 
                     //rather than having something constantly checking for the next player the end time of the current player is used to move to the next
@@ -254,11 +255,11 @@ namespace InternetClawMachine.Games.ClawGame
                 if (msg.Trim().Length <= 2)
                 {
                     //ignore multiple drops
-                    if (message.ToLower().Equals("d") && DropInCommandQueue)
+                    if (message.ToLower().Equals("d") && WaitableActionInCommandQueue)
                         return;
 
                     if (message.ToLower().Equals("d"))
-                        DropInCommandQueue = true;
+                        WaitableActionInCommandQueue = true;
 
                     if (!userObject.KnowsMultiple)
                     {
@@ -299,8 +300,8 @@ namespace InternetClawMachine.Games.ClawGame
                             DatabaseFunctions.WriteUserPrefs(Configuration, userObject);
                         }
 
-                        if (msg.Contains("d") && !DropInCommandQueue)
-                            DropInCommandQueue = true;
+                        if (msg.Contains("d") && !WaitableActionInCommandQueue)
+                            WaitableActionInCommandQueue = true;
 
                         //loop matches and queue all commands
                         var currentIndex = GameLoopCounterValue;
@@ -484,7 +485,7 @@ namespace InternetClawMachine.Games.ClawGame
 
         public override void StartRound(string username)
         {
-            DropInCommandQueue = false;
+            WaitableActionInCommandQueue = false;
             
             GameRoundTimer.Reset();
             CommandQueue.Clear();

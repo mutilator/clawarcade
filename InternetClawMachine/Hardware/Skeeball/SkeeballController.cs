@@ -1,4 +1,5 @@
 ﻿using InternetClawMachine.Games.GameHelpers;
+using InternetClawMachine.Hardware;
 using InternetClawMachine.Hardware.ClawControl;
 using InternetClawMachine.Hardware.Helpers;
 using InternetClawMachine.Settings;
@@ -91,8 +92,6 @@ namespace InternetClawMachine.Hardware.Skeeball
 
         public bool IsConnected => _workSocket != null && _workSocket.Connected;
 
-        ClawMachine IMachineControl.Machine { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
-        public MovementDirection CurrentDirection { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
         public bool IsBallPlayActive { get; set; }
         public long CommsTimeout { get; set; } = 2000; //how long do we wait for socket data before giving up?
         public int BallReleaseDuration { get; set; }
@@ -706,10 +705,6 @@ namespace InternetClawMachine.Hardware.Skeeball
             return await SendCommandAsync(str);
         }
 
-        public void ToggleLaser(bool on)
-        {
-            //not implemented
-        }
 
         public virtual void Strobe(int red, int blue, int green, int strobeCount, int strobeDelay)
         {
@@ -721,67 +716,6 @@ namespace InternetClawMachine.Hardware.Skeeball
             Task.Run(async delegate () { await SendCommandAsync($"uno ds {red}:{blue}:{green} {red2}:{blue2}:{green2} {strobeCount} {strobeDelay} 0"); });
         }
 
-        public Task MoveForward(int duration)
-        {
-            throw new NotImplementedException();
-        }
-
-        public Task MoveBackward(int duration)
-        {
-            throw new NotImplementedException();
-        }
-        
-        public Task MoveDown(int duration)
-        {
-            throw new NotImplementedException();
-        }
-
-        public Task MoveUp(int duration)
-        {
-            throw new NotImplementedException();
-        }
-
-        public Task PressDrop()
-        {
-            throw new NotImplementedException();
-        }
-
-        public void Flipper(FlipperDirection direction)
-        {
-            throw new NotImplementedException();
-        }
-
-        
-
-        public Task StopMove()
-        {
-            throw new NotImplementedException();
-        }
-
-        public Task RunConveyor(int duration)
-        {
-            throw new NotImplementedException();
-        }
-
-        public Task RunConveyor(int duration, int beltNumber)
-        {
-            throw new NotImplementedException();
-        }
-
-        public void SetClawPower(int percent)
-        {
-            throw new NotImplementedException();
-        }
-
-        public Task CloseClaw()
-        {
-            throw new NotImplementedException();
-        }
-
-        public Task OpenClaw()
-        {
-            throw new NotImplementedException();
-        }
 
         public async Task<SkeeballMessageQueueMessage> MoveTo(int controller, int position)
         {
@@ -924,14 +858,5 @@ namespace InternetClawMachine.Hardware.Skeeball
             throw new Exception("Unable to get data, invalid data response");
         }
 
-        Task IMachineControl.MoveLeft(int duration)
-        {
-            throw new NotImplementedException();
-        }
-
-        Task IMachineControl.MoveRight(int duration)
-        {
-            throw new NotImplementedException();
-        }
     }
 }

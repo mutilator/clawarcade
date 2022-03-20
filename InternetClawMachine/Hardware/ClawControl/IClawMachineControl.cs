@@ -6,13 +6,9 @@ using InternetClawMachine.Settings;
 
 namespace InternetClawMachine.Hardware.ClawControl
 {
-    public interface IMachineControl
+    public interface IClawMachineControl : IMachineControl
     {
         ClawMachine Machine { set; get; }
-
-        bool IsConnected { get; }
-
-        bool Init();
 
         Task MoveForward(int duration);
 
@@ -40,7 +36,6 @@ namespace InternetClawMachine.Hardware.ClawControl
 
         void ToggleLaser(bool on);
 
-        void LightSwitch(bool on);
 
         void Strobe(int red, int blue, int green, int strobeCount, int strobeDelay);
 
@@ -81,14 +76,8 @@ namespace InternetClawMachine.Hardware.ClawControl
         /// </summary>
         bool IsClawPlayActive { set; get; }
 
-        /// <summary>
-        /// If white lights are lit
-        /// </summary>
-        bool IsLit { get; }
+        
 
-        bool Connect();
-
-        void Disconnect();
         Task CloseClaw();
         Task OpenClaw();
     }

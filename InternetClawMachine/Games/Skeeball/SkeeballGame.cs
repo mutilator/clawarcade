@@ -1,5 +1,6 @@
 ﻿using InternetClawMachine.Chat;
 using InternetClawMachine.Games.GameHelpers;
+using InternetClawMachine.Hardware;
 using InternetClawMachine.Hardware.ClawControl;
 using InternetClawMachine.Hardware.Skeeball;
 using InternetClawMachine.Settings;
@@ -20,13 +21,35 @@ namespace InternetClawMachine.Games.Skeeball
     class SkeeballGame : Game
     {
         public SkeeballController MachineControl { set; get; }
+
+        /// <summary>
+        /// Flag set when a person has typed a message in chat when it's their turn to play
+        /// </summary>
         public bool CurrentPlayerHasPlayed { get; set; }
+
+        /// <summary>
+        /// Keeps track of all user data as they play the game. Allowing users to return later and finish their games in progress.
+        /// </summary>
         public List<SkeeballSessionUserTracker> SessionUserTracker { get; set; } = new List<SkeeballSessionUserTracker>();
+
+        /// <summary>
+        /// How many balls have been thrown throughout the session
+        /// </summary>
         public int SessionBallCount { get; set; }
+
+        /// <summary>
+        /// The person that's actively playing, contains all of their stats
+        /// </summary>
         public CurrentActiveGamePlayer CurrentShootingPlayer { get; set; }
         
-
+        /// <summary>
+        /// Used as a generic object for tracking if our wait for movements are complete. e.g. move forward 20 seconds may move forward 2 seconds because it hits a bumper, this flag is set to true when the movement is complete.
+        /// </summary>
         private MovementCompletionMonitor _controllerLRMovementWait = new MovementCompletionMonitor();
+
+        /// <summary>
+        /// Used as a generic object for tracking if our wait for movements are complete. e.g. move forward 20 seconds may move forward 2 seconds because it hits a bumper, this flag is set to true when the movement is complete.
+        /// </summary>
         private MovementCompletionMonitor _controllerPANMovementWait = new MovementCompletionMonitor();
 
 
@@ -41,7 +64,10 @@ namespace InternetClawMachine.Games.Skeeball
             try
             {
                 WsConnection = new MediaWebSocketServer(Configuration.ObsSettings.AudioManagerPort, Configuration.ObsSettings.AudioManagerEndpoint);
-                Action<AudioManager> SetupService = (AudioManager) => { AudioManager.Game = this; };
+
+
+                Action<AudioManager> SetupService = (AudioManager) => { AudioManager.Game = this; AudioManager.OnConnected += AudioManager_OnConnected; };
+                
                 WsConnection.AddWebSocketService(Configuration.ObsSettings.AudioManagerEndpoint, SetupService);
                 WsConnection.Start();
                 
@@ -51,7 +77,11 @@ namespace InternetClawMachine.Games.Skeeball
                 // do nothing
             }
 
+
+            PlayerQueue.OnJoinedQueue += PlayerQueue_OnJoinedQueue;
             OnBallEscaped += SkeeballGame_OnBallEscaped;
+
+
             CurrentShootingPlayer = new CurrentActiveGamePlayer();
             
             
@@ -60,6 +90,10 @@ namespace InternetClawMachine.Games.Skeeball
                 ObsConnection.RefreshBrowserSource("BrowserSounds");
         }
 
+        internal virtual void AudioManager_OnConnected(Game game)
+        {
+            
+        }
 
         private void SkeeballGame_OnBallEscaped(object sender)
         {
@@ -67,6 +101,32 @@ namespace InternetClawMachine.Games.Skeeball
             var data = "A ball just rocketed out of the machine!";
             Notifier.SendDiscordMessage(Configuration.DiscordSettings.SpamWebhook, data);
             
+        }
+
+        internal virtual void PlayerQueue_OnJoinedQueue(object sender, QueueUpdateArgs e)
+        {
+            var pos = e.Index;
+            var username = e.Username;
+
+
+            if (pos == 0)
+            {
+                StartRound(username);
+            }
+            else
+            {
+                if (pos == 1)//lol i'm so lazy
+                    ChatClient.SendMessage(Configuration.Channel, Translator.GetTranslation("gameClawCommandPlayQueueAdd1", Configuration.UserList.GetUserLocalization(username)));
+                else
+                    ChatClient.SendMessage(Configuration.Channel, string.Format(Translator.GetTranslation("gameClawCommandPlayQueueAdd2", Configuration.UserList.GetUserLocalization(username)), pos));
+            }
+            UpdateObsQueueDisplay();
+        }
+
+
+        internal virtual void MachineControl_OnPingTimeout(IMachineControl controller)
+        {
+            MachineControl.Connect(Configuration.SkeeballSettings.Address, Configuration.SkeeballSettings.Port);
         }
 
         internal virtual void ResetScoreLights(string color)
@@ -229,7 +289,7 @@ namespace InternetClawMachine.Games.Skeeball
             base.HandleMessage(username, message);
         }
 
-        internal void HandleSingleCommand(string username, string message)
+        internal virtual void HandleSingleCommand(string username, string message)
         {
             var cmd = SkeeballExecutingCommand.NA;
             var arg1 = 0;
@@ -484,9 +544,6 @@ namespace InternetClawMachine.Games.Skeeball
             await MachineControl.SetLimit(2, Configuration.SkeeballSettings.Steppers.ControllerPAN.LimitHigh, Configuration.SkeeballSettings.Steppers.ControllerPAN.LimitLow);
             await MachineControl.AutoHome(2); //re-home
 
-
-
-
         }
 
         private void MachineControl_OnControllerStartup(IMachineControl controller)
@@ -505,22 +562,6 @@ namespace InternetClawMachine.Games.Skeeball
 
         private void StopAndClearMachine()
         {
-            if (ObsConnection.IsConnected)
-            {
-                ObsConnection.SetSourceRender("ball 1", false);
-                ObsConnection.SetSourceRender("ball 2", false);
-                ObsConnection.SetSourceRender("ball 3", false);
-
-                var props = ObsConnection.GetTextGDIPlusProperties("SkeePlayerName");
-                props.Text = "";
-                props.SourceName = "SkeePlayerName";
-                ObsConnection.SetTextGDIPlusProperties(props);
-
-                props = ObsConnection.GetTextGDIPlusProperties("SkeePlayerScore");
-                props.Text = "";
-                props.SourceName = "SkeePlayerScore";
-                ObsConnection.SetTextGDIPlusProperties(props);
-            }
 
             //stop the wheels if no one is playing
             Task.Run(async delegate ()
@@ -541,8 +582,10 @@ namespace InternetClawMachine.Games.Skeeball
             data.Add("name", scene.SourceName);
 
             data.Add("duration", duration);
-            WsConnection.SendCommand(MediaWebSocketServer._commandMedia, data);
+            WsConnection.SendCommand(MediaWebSocketServer.CommandMedia, data);
         }
+
+        
 
         private void MachineControl_OnMoveComplete(SkeeballController controller, SkeeballControllerIdentifier module, int position)
         {
@@ -559,7 +602,7 @@ namespace InternetClawMachine.Games.Skeeball
 
         public override async Task ProcessCommands()
         {
-            if (Configuration.OverrideChat) //if we're currently overriding what's in the command queue, for instance when using UI controls
+            if (Configuration.IgnoreChatCommands) //if we're currently overriding what's in the command queue, for instance when using UI controls
                 return;
 
             var guid = Guid.NewGuid();
@@ -655,7 +698,7 @@ namespace InternetClawMachine.Games.Skeeball
                         break;
                     case SkeeballExecutingCommand.SHOOT:
 
-                        Configuration.OverrideChat = true;
+                        Configuration.IgnoreChatCommands = true;
                         lock (CommandQueue)
                             CommandQueue.Clear(); // remove everything else
                         CurrentShootingPlayer.ShotGuid = Guid.NewGuid();

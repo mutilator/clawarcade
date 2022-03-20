@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Threading.Tasks;
 using InternetClawMachine.Chat;
+using InternetClawMachine.Hardware;
 using InternetClawMachine.Hardware.ClawControl;
 using InternetClawMachine.Settings;
 using OBSWebsocketDotNet;
@@ -47,7 +48,7 @@ namespace InternetClawMachine.Games.ClawGame
 
         public override void StartRound(string username)
         {
-            DropInCommandQueue = false;
+            WaitableActionInCommandQueue = false;
             
             GameRoundTimer.Reset();
             GameLoopCounterValue++; //increment the counter for this persons turn

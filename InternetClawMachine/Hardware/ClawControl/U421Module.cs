@@ -5,7 +5,7 @@ using InternetClawMachine.Settings;
 
 namespace InternetClawMachine.Hardware.ClawControl
 {
-    internal class U421Module : IMachineControl
+    internal class U421Module : IClawMachineControl
     {
         /// <summary>
         /// in ms, how long it takes the crane to fully drop and return to home position

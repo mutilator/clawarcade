@@ -9,7 +9,7 @@ using OBSWebsocketDotNet;
 
 namespace InternetClawMachine.Games.GantryGame
 {
-    internal class Drawing : GantryGame
+    internal class GantryDrawing : GantryGame
     {
         private int _x;
         private int _y;
@@ -61,7 +61,7 @@ namespace InternetClawMachine.Games.GantryGame
             get => _a;
         }
 
-        public Drawing(IChatApi client, BotConfiguration configuration, OBSWebsocket obs) : base(client, configuration, obs)
+        public GantryDrawing(IChatApi client, BotConfiguration configuration, OBSWebsocket obs) : base(client, configuration, obs)
         {
             GameMode = GameModeType.DRAWING;
             Gantry.PositionReturned += Gantry_PositionReturned;
@@ -562,7 +562,7 @@ namespace InternetClawMachine.Games.GantryGame
         /// </summary>
         public override Task ProcessCommands()
         {
-            if (Configuration.OverrideChat) //if we're currently overriding what's in the command queue, for instance when using UI controls
+            if (Configuration.IgnoreChatCommands) //if we're currently overriding what's in the command queue, for instance when using UI controls
             {
                 _processingQueue = false;
                 return Task.CompletedTask;

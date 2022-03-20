@@ -122,6 +122,7 @@
     <Reference Include="Microsoft.Extensions.Primitives, Version=3.0.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
       <HintPath>..\packages\Microsoft.Extensions.Primitives.3.0.0-preview4.19216.2\lib\netstandard2.0\Microsoft.Extensions.Primitives.dll</HintPath>
     </Reference>
+    <Reference Include="Microsoft.Kinect, Version=1.8.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL" />
     <Reference Include="Newtonsoft.Json, Version=13.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
       <HintPath>..\packages\Newtonsoft.Json.13.0.1\lib\net45\Newtonsoft.Json.dll</HintPath>
     </Reference>
@@ -285,29 +286,35 @@
     <Compile Include="Games\ClawGame\ClawMarbles.cs" />
     <Compile Include="Games\ClawGame\ClawPlinko.cs" />
     <Compile Include="Games\ClawGame\ClawTicTacToe.cs" />
-    <Compile Include="Games\GameHelpers\Events.cs" />
-    <Compile Include="Games\GameHelpers\GameQueuedCommand.cs" />
-    <Compile Include="Games\GameHelpers\PlinkoPhase.cs" />
-    <Compile Include="Games\GameHelpers\RestartVote.cs" />
-    <Compile Include="Games\GameHelpers\SkeeballExecutingCommand.cs" />
-    <Compile Include="Games\GameHelpers\SkeeballQueuedCommand.cs" />
-    <Compile Include="Games\GameHelpers\SkeeballSessionUserTracker.cs" />
-    <Compile Include="Games\GameHelpers\VoteValue.cs" />
-    <Compile Include="Games\GameHelpers\TeamJoinedArgs.cs" />
-    <Compile Include="Games\GameHelpers\TriviaMessageMode.cs" />
-    <Compile Include="Games\GameHelpers\GameModeSelections.cs" />
+    <Compile Include="Games\ClawGame\GameHelpers\BowlingFramePinCount.cs" />
+    <Compile Include="Games\ClawGame\GameHelpers\BowlingPin.cs" />
+    <Compile Include="Games\ClawGame\GameHelpers\BowlingPlayer.cs" />
+    <Compile Include="Games\ClawGame\GameHelpers\DirectBitmap.cs" />
+    <Compile Include="Games\ClawGame\GameHelpers\Events.cs" />
+    <Compile Include="Games\ClawGame\GameHelpers\GameQueuedCommand.cs" />
+    <Compile Include="Games\ClawGame\GameHelpers\PlinkoPhase.cs" />
+    <Compile Include="Games\ClawGame\GameHelpers\RestartVote.cs" />
+    <Compile Include="Games\ClawGame\GameHelpers\SkeeballExecutingCommand.cs" />
+    <Compile Include="Games\ClawGame\GameHelpers\SkeeballQueuedCommand.cs" />
+    <Compile Include="Games\ClawGame\GameHelpers\SkeeballSessionUserTracker.cs" />
+    <Compile Include="Games\ClawGame\GameHelpers\VoteValue.cs" />
+    <Compile Include="Games\ClawGame\GameHelpers\TeamJoinedArgs.cs" />
+    <Compile Include="Games\ClawGame\GameHelpers\TriviaMessageMode.cs" />
+    <Compile Include="Games\ClawGame\GameHelpers\GameModeSelections.cs" />
     <Compile Include="Games\ClawGame\ClawTrivia.cs" />
     <Compile Include="Games\ClawGame\ClawTeamTrivia.cs" />
     <Compile Include="Games\ClawGame\ClawTeamChaos.cs" />
-    <Compile Include="Games\GameHelpers\GameTeam.cs" />
-    <Compile Include="Games\GameHelpers\ListShuffle.cs" />
-    <Compile Include="Games\GameHelpers\TriviaAnswer.cs" />
-    <Compile Include="Games\GameHelpers\TriviaQuestion.cs" />
+    <Compile Include="Games\ClawGame\GameHelpers\GameTeam.cs" />
+    <Compile Include="Games\ClawGame\GameHelpers\ListShuffle.cs" />
+    <Compile Include="Games\ClawGame\GameHelpers\TriviaAnswer.cs" />
+    <Compile Include="Games\ClawGame\GameHelpers\TriviaQuestion.cs" />
     <Compile Include="Games\OBSSceneChangeEventArgs.cs" />
     <Compile Include="Games\Skeeball\MovementCompletionMonitor.cs" />
+    <Compile Include="Games\Skeeball\ScoreTrackingLocation.cs" />
     <Compile Include="Games\Skeeball\SkeeballAroundTheWorld.cs" />
     <Compile Include="Games\Skeeball\SkeeballATWPlayer.cs" />
     <Compile Include="Games\Skeeball\SkeeballColors.cs" />
+    <Compile Include="Games\Skeeball\SkeeballBowling.cs" />
     <Compile Include="Games\Skeeball\SkeeballNormal.cs" />
     <Compile Include="Games\Skeeball\SkeeballGame.cs" />
     <Compile Include="Games\Skeeball\StepperControllerSettings.cs" />
@@ -319,23 +326,27 @@
     <Compile Include="Hardware\ClawControl\ClawHomeLocation.cs" />
     <Compile Include="Hardware\ClawControl\ClawMode.cs" />
     <Compile Include="Hardware\ClawControl\ClawPing.cs" />
-    <Compile Include="Hardware\ClawControl\ControllerNotConnectedException.cs" />
+    <Compile Include="Hardware\ControllerNotConnectedException.cs" />
     <Compile Include="Hardware\ClawControl\FailsafeType.cs" />
     <Compile Include="Hardware\ClawControl\FlipperDirection.cs" />
+    <Compile Include="Hardware\ClawControl\IClawMachineControl.cs" />
     <Compile Include="Hardware\Helpers\Events.cs" />
+    <Compile Include="Games\ClawGame\GameHelpers\BowlingHelpers.cs" />
+    <Compile Include="Hardware\KinectBowling\KinectBowlingController.cs" />
     <Compile Include="Hardware\Skeeball\SkeeballControllerIdentifier.cs" />
     <Compile Include="Hardware\Skeeball\MessageQueueMessage.cs" />
     <Compile Include="Hardware\Skeeball\SkeeballController.cs" />
     <Compile Include="Hardware\Skeeball\SkeeballEvents.cs" />
     <Compile Include="Hardware\Skeeball\SkeeballSensor.cs" />
     <Compile Include="PlayerQueueSizeExceeded.cs" />
+    <Compile Include="Settings\BowlingConfig.cs" />
     <Compile Include="Settings\ClawControllerType.cs" />
     <Compile Include="Settings\ClawMachine.cs" />
     <Compile Include="Settings\DiscordSettings.cs" />
     <Compile Include="Settings\EventModeArgs.cs" />
     <Compile Include="Settings\EventModeSettings.cs" />
-    <Compile Include="Games\GameHelpers\PlayWinClipEventArgs.cs" />
-    <Compile Include="Games\GameHelpers\Bounty.cs" />
+    <Compile Include="Games\ClawGame\GameHelpers\PlayWinClipEventArgs.cs" />
+    <Compile Include="Games\ClawGame\GameHelpers\Bounty.cs" />
     <Compile Include="Hardware\ClawControl\ClawController.cs" />
     <Compile Include="Hardware\ClawControl\ClawEvents.cs" />
     <Compile Include="Helpers.cs" />
@@ -350,23 +361,23 @@
     <Compile Include="Settings\DrawingSettings.cs" />
     <Compile Include="Settings\BotConfiguration.cs" />
     <Compile Include="ClassExtensions.cs" />
-    <Compile Include="Games\GameHelpers\CurrentActiveGamePlayer.cs" />
+    <Compile Include="Games\ClawGame\GameHelpers\CurrentActiveGamePlayer.cs" />
     <Compile Include="Hardware\RFID\Dis.cs" />
     <Compile Include="Emailer.cs" />
     <Compile Include="Games\Game.cs" />
     <Compile Include="Hardware\Gantry\GameGantry.cs" />
     <Compile Include="Games\OtherGame\GameModeVote.cs" />
-    <Compile Include="Games\GameHelpers\ClawQueuedCommand.cs" />
-    <Compile Include="Games\GameHelpers\ClawDirection.cs" />
+    <Compile Include="Games\ClawGame\GameHelpers\ClawQueuedCommand.cs" />
+    <Compile Include="Games\ClawGame\GameHelpers\ClawDirection.cs" />
     <Compile Include="Games\GameMode.cs" />
     <Compile Include="Games\GamePhase.cs" />
     <Compile Include="Games\ClawGame\ClawChaos.cs" />
-    <Compile Include="Games\GameHelpers\ClawCommandGroup.cs" />
+    <Compile Include="Games\ClawGame\GameHelpers\ClawCommandGroup.cs" />
     <Compile Include="Games\ClawGame\ClawGame.cs" />
     <Compile Include="Games\ClawGame\ClawSingleQueue.cs" />
     <Compile Include="Games\GantryGame\GantryGame.cs" />
     <Compile Include="Games\GantryGame\Golf.cs" />
-    <Compile Include="Games\GantryGame\Drawing.cs" />
+    <Compile Include="Games\GantryGame\GantryDrawing.cs" />
     <Compile Include="Games\ClawGame\ClawSingleQuickQueue.cs" />
     <Compile Include="Games\GantryGame\GolfHelpers\AStar.cs" />
     <Compile Include="Games\GantryGame\GolfHelpers\PathMapper.cs" />
@@ -380,8 +391,8 @@
     <Compile Include="InputBox.cs" />
     <Compile Include="Chat\InterfaceChatAPI.cs" />
     <Compile Include="Logger.cs" />
-    <Compile Include="Games\GameHelpers\MovementDirection.cs" />
-    <Compile Include="Games\GameHelpers\PlayerQueue.cs" />
+    <Compile Include="Games\ClawGame\GameHelpers\MovementDirection.cs" />
+    <Compile Include="Games\ClawGame\GameHelpers\PlayerQueue.cs" />
     <Compile Include="Hardware\RFID\RFIDReader.cs" />
     <Compile Include="Settings\GoodGameSettings.cs" />
     <Compile Include="Settings\IGameMachine.cs" />
@@ -389,7 +400,7 @@
     <Compile Include="Settings\ObsScreenSourceNames.cs" />
     <Compile Include="Settings\OBSSettings.cs" />
     <Compile Include="Settings\ReticleOption.cs" />
-    <Compile Include="Games\GameHelpers\TeamNameMode.cs" />
+    <Compile Include="Games\ClawGame\GameHelpers\TeamNameMode.cs" />
     <Compile Include="Settings\SkeeballScoreMatrix.cs" />
     <Compile Include="Settings\SkeeballScoreMatrixSlot.cs" />
     <Compile Include="Settings\SkeeballSettings.cs" />
@@ -409,7 +420,7 @@
     <Compile Include="Translator.cs" />
     <Compile Include="UserPrefs.cs" />
     <Compile Include="WebServer.cs" />
-    <Compile Include="Games\GameHelpers\WinTracker.cs" />
+    <Compile Include="Games\ClawGame\GameHelpers\WinTracker.cs" />
     <Compile Include="WinRedemptionOption.cs" />
     <Page Include="MainWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
@@ -419,7 +430,7 @@
       <DependentUpon>App.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="Hardware\ClawControl\IMachineControl.cs" />
+    <Compile Include="Hardware\IMachineControl.cs" />
     <Compile Include="MainWindow.xaml.cs">
       <DependentUpon>MainWindow.xaml</DependentUpon>
       <SubType>Code</SubType>

@@ -2,6 +2,7 @@
 using System.Threading.Tasks;
 using InternetClawMachine.Chat;
 using InternetClawMachine.Games.GameHelpers;
+using InternetClawMachine.Hardware;
 using InternetClawMachine.Hardware.ClawControl;
 using InternetClawMachine.Settings;
 using OBSWebsocketDotNet;
@@ -57,8 +58,8 @@ namespace InternetClawMachine.Games.ClawGame
 
             if (PlayerQueue.CurrentPlayer != null && PlayerQueue.CurrentPlayer == CurrentDroppingPlayer.Username && GameLoopCounterValue == CurrentDroppingPlayer.GameLoop)
             {
-                DropInCommandQueue = false;
-                Configuration.OverrideChat = false;
+                WaitableActionInCommandQueue = false;
+                Configuration.IgnoreChatCommands = false;
                 base.OnTurnEnded(new RoundEndedArgs { Username = PlayerQueue.CurrentPlayer, GameMode = GameMode, GameLoopCounterValue = GameLoopCounterValue });
                 var nextPlayer = PlayerQueue.GetNextPlayer();
                 StartRound(nextPlayer);
@@ -67,8 +68,8 @@ namespace InternetClawMachine.Games.ClawGame
 
         private void ClawTicTacToe_OnClawCentered(IMachineControl sender)
         {
-            DropInCommandQueue = false;
-            Configuration.OverrideChat = false;
+            WaitableActionInCommandQueue = false;
+            Configuration.IgnoreChatCommands = false;
             //Get the current players position in the queue
 
             foreach (var machineControl in MachineList)
@@ -126,7 +127,7 @@ namespace InternetClawMachine.Games.ClawGame
 
         public override void StartRound(string username)
         {
-            DropInCommandQueue = false;
+            WaitableActionInCommandQueue = false;
             
             GameRoundTimer.Reset();
             GameLoopCounterValue++; //increment the counter for this persons turn

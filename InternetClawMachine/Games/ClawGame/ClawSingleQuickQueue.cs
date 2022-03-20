@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Threading.Tasks;
 using InternetClawMachine.Chat;
+using InternetClawMachine.Hardware;
 using InternetClawMachine.Hardware.ClawControl;
 using InternetClawMachine.Settings;
 using OBSWebsocketDotNet;
@@ -31,21 +32,21 @@ namespace InternetClawMachine.Games.ClawGame
                 ((ClawController)machineControl).OnReturnedHome += ClawSingleQuickQueue_OnReturnedHome;
         }
 
-        internal override void ClawSingleQueue_OnClawDropped(IMachineControl controller)
+        internal override void ClawSingleQueue_OnClawDropped(IMachineControl sender)
         {
             if (ObsConnection.IsConnected && Configuration.EventMode.DropScene != null)
                 ObsConnection.SetSourceRender(Configuration.EventMode.DropScene.SourceName, true, Configuration.EventMode.DropScene.SceneName);
         }
 
-        internal override void MachineControl_OnClawRecoiled(IMachineControl controller)
+        internal override void MachineControl_OnClawRecoiled(IMachineControl sender)
         {
             if (Configuration.EventMode.DisableReturnHome)
             {
-                MachineControl_OnClawCentered(controller);
+                MachineControl_OnClawCentered(sender);
             }
         }
 
-        internal override void MachineControl_OnClawCentered(IMachineControl controller)
+        internal override void MachineControl_OnClawCentered(IMachineControl sender)
         {
             if (ObsConnection.IsConnected && Configuration.EventMode.DropScene != null)
             {
@@ -57,8 +58,8 @@ namespace InternetClawMachine.Games.ClawGame
 
             //we check to see if the return home event was fired by the person that's currently playing
             //if it has we need to move to the next player, if not we've moved on already, perhaps bad design here
-            DropInCommandQueue = false;
-            Configuration.OverrideChat = false;
+            WaitableActionInCommandQueue = false;
+            Configuration.IgnoreChatCommands = false;
             if (PlayerQueue.CurrentPlayer != null && PlayerQueue.CurrentPlayer == CurrentDroppingPlayer.Username && GameLoopCounterValue == CurrentDroppingPlayer.GameLoop
             && Configuration.EventMode.ClawMode == ClawMode.NORMAL)
             {
@@ -69,7 +70,7 @@ namespace InternetClawMachine.Games.ClawGame
 
         }
 
-        private void ClawSingleQuickQueue_OnReturnedHome(IMachineControl controller)
+        private void ClawSingleQuickQueue_OnReturnedHome(IMachineControl sender)
         {
             //we check to see if the return home event was fired by the person that's currently playing
             //if it has we need to move to the next player, if not we've moved on already, perhaps bad design here
@@ -77,8 +78,8 @@ namespace InternetClawMachine.Games.ClawGame
             if (PlayerQueue.CurrentPlayer != null && PlayerQueue.CurrentPlayer == CurrentDroppingPlayer.Username && GameLoopCounterValue == CurrentDroppingPlayer.GameLoop
             && Configuration.EventMode.ClawMode == ClawMode.TARGETING)
             {
-                DropInCommandQueue = false;
-                Configuration.OverrideChat = false;
+                WaitableActionInCommandQueue = false;
+                Configuration.IgnoreChatCommands = false;
                 base.OnTurnEnded(new RoundEndedArgs { Username = PlayerQueue.CurrentPlayer, GameMode = GameMode, GameLoopCounterValue = GameLoopCounterValue });
                 var nextPlayer = PlayerQueue.GetNextPlayer();
                 StartRound(nextPlayer);
@@ -87,7 +88,7 @@ namespace InternetClawMachine.Games.ClawGame
 
         public override void StartRound(string username)
         {
-            DropInCommandQueue = false;
+            WaitableActionInCommandQueue = false;
             
             GameRoundTimer.Reset();
             GameLoopCounterValue++; //increment the counter for this persons turn

@@ -1,4 +1,5 @@
-﻿using InternetClawMachine.Hardware.ClawControl;
+﻿using InternetClawMachine.Hardware;
+using InternetClawMachine.Hardware.ClawControl;
 using System;
 using System.Collections.Generic;
 using System.Linq;

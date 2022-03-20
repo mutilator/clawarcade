@@ -41,5 +41,6 @@
         public ObsSceneSource BountyWantedBlank = new ObsSceneSource { SourceName = "WANTED-BLANK", Type = ObsSceneSourceType.IMAGE, SceneName = "VideosScene" };
 
         public ObsSceneSource SceneSkeeball1 = new ObsSceneSource { SceneName = "Skeeball" };
+        public ObsSceneSource SceneSkeeballBowling = new ObsSceneSource { SceneName = "SkeeballBowling" };
     }
 }

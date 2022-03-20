@@ -8,6 +8,7 @@ using System.Web.Configuration;
 using System.Windows.Documents;
 using InternetClawMachine.Chat;
 using InternetClawMachine.Games.GameHelpers;
+using InternetClawMachine.Hardware;
 using InternetClawMachine.Hardware.ClawControl;
 using InternetClawMachine.Settings;
 using OBSWebsocketDotNet;
@@ -259,8 +260,8 @@ namespace InternetClawMachine.Games.ClawGame
                 if (!CurrentPlayerScoringTimer.IsCancellationRequested)
                     CurrentPlayerScoringTimer.Cancel();
 
-                DropInCommandQueue = false;
-                Configuration.OverrideChat = false;
+                WaitableActionInCommandQueue = false;
+                Configuration.IgnoreChatCommands = false;
 
                 if (PlayerQueue.CurrentPlayer != null)
                 {
@@ -377,8 +378,8 @@ namespace InternetClawMachine.Games.ClawGame
         {
             //we check to see if the return home event was fired by the person that's currently playing
             //if it has we need to move to the next player, if not we've moved on already, perhaps bad design here
-            DropInCommandQueue = false;
-            Configuration.OverrideChat = false;
+            WaitableActionInCommandQueue = false;
+            Configuration.IgnoreChatCommands = false;
 
             if (CurrentPhase == PlinkoPhase.GRABBING)
             {
@@ -411,10 +412,10 @@ namespace InternetClawMachine.Games.ClawGame
             if (PlayerQueue.CurrentPlayer != null && PlayerQueue.CurrentPlayer == CurrentDroppingPlayer.Username && GameLoopCounterValue == CurrentDroppingPlayer.GameLoop
             && Configuration.EventMode.ClawMode == ClawMode.TARGETING)
             {
-                if (!DropInCommandQueue) //if it returned home and a drop wasnt sent, don't let them send anything
+                if (!WaitableActionInCommandQueue) //if it returned home and a drop wasnt sent, don't let them send anything
                 {
-                    DropInCommandQueue = true;
-                    Configuration.OverrideChat = true;
+                    WaitableActionInCommandQueue = true;
+                    Configuration.IgnoreChatCommands = true;
                 }
 
 
@@ -428,8 +429,8 @@ namespace InternetClawMachine.Games.ClawGame
                 {
                     
                     await Task.Delay(10000);
-                    DropInCommandQueue = false;
-                    Configuration.OverrideChat = false;
+                    WaitableActionInCommandQueue = false;
+                    Configuration.IgnoreChatCommands = false;
                     if (CurrentPlayerScoringTimer.IsCancellationRequested)
                         return;
                     base.OnTurnEnded(new RoundEndedArgs
@@ -446,7 +447,7 @@ namespace InternetClawMachine.Games.ClawGame
 
         public override void StartRound(string username)
         {
-            DropInCommandQueue = false;
+            WaitableActionInCommandQueue = false;
             
             GameRoundTimer.Reset();
             GameLoopCounterValue++; //increment the counter for this persons turn

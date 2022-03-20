@@ -40,6 +40,7 @@ namespace InternetClawMachine.Settings
         public WaterGunSettings WaterGunSettings { set; get; }
         public DrawingSettings DrawingSettings { set; get; }
         public ObsScreenSourceNames ObsScreenSourceNames { set; get; }
+        public BowlingConfig BowlingSettings { set; get; }
 
         public string ErrorLogPrefix { set; get; }
         public string MachineLogPrefix { set; get; }
@@ -139,7 +140,7 @@ namespace InternetClawMachine.Settings
         /// <summary>
         /// Stops the commands from processing
         /// </summary>
-        public bool OverrideChat { set; get; }
+        public bool IgnoreChatCommands { set; get; }
 
         //do we use twitch?
         public bool UsingTwitch { set; get; }
@@ -184,7 +185,7 @@ namespace InternetClawMachine.Settings
 
             //ObsScreenSourceNames = new ObsScreenSourceNames();
             Coords = new Coordinates();
-            OverrideChat = false;
+            IgnoreChatCommands = false;
             ReconnectAttempts = 0;
             ChatReconnectAttempts = 0;
             UserList.Clear();

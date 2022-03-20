@@ -13,7 +13,7 @@ using InternetClawMachine.Settings;
 namespace InternetClawMachine.Hardware.ClawControl
 {
 
-    public delegate void BeltEventHandler(IMachineControl controller, int beltNumber);
+    public delegate void BeltEventHandler(IClawMachineControl controller, int beltNumber);
 
 
     /**
@@ -30,7 +30,7 @@ namespace InternetClawMachine.Hardware.ClawControl
      *
      */
 
-    internal class ClawController : IMachineControl
+    internal class ClawController : IClawMachineControl
     {
 
         public event MachineEventHandler OnDisconnected;

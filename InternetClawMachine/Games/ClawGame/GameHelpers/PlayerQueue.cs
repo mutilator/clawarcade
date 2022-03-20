@@ -18,9 +18,21 @@ namespace InternetClawMachine.Games.GameHelpers
         public event EventHandler<QueueUpdateArgs> OnJoinedQueue;
 
         /// <summary>
+        /// Fires before a player is added to the queue
+        /// </summary>
+        public event EventHandler<QueueUpdateArgs> OnJoiningQueue;
+
+        /// <summary>
         /// Fired when someone leaves the queue
         /// </summary>
         public event EventHandler<QueueUpdateArgs> OnLeftQueue;
+
+        /// <summary>
+        /// Fires before a player is removed from the queue
+        /// </summary>
+        public event EventHandler<QueueUpdateArgs> OnLeavingQueue;
+
+
 
         #endregion Events
 
@@ -40,6 +52,7 @@ namespace InternetClawMachine.Games.GameHelpers
 
             if (!Players.Contains(username))
             {
+                OnJoiningQueue?.Invoke(this, new QueueUpdateArgs(QueueUpdateType.JOINING, username, -1));
                 Players.Add(username);
                 OnChangedQueue?.Invoke(this, new QueueUpdateArgs(QueueUpdateType.JOINED, username, Players.IndexOf(username)));
                 OnJoinedQueue?.Invoke(this, new QueueUpdateArgs(QueueUpdateType.JOINED, username, Players.IndexOf(username)));
@@ -58,9 +71,10 @@ namespace InternetClawMachine.Games.GameHelpers
             {
                 throw new PlayerQueueSizeExceeded("Queue is full");
             }
-            if (!Players.Contains(username))
+
+            if (!Players.Contains(username) && Players.Count > index)
             {
-                //TODO - validation
+                OnJoiningQueue?.Invoke(this, new QueueUpdateArgs(QueueUpdateType.JOINING, username, -1));
                 Players.Insert(index, username);
                 OnChangedQueue?.Invoke(this, new QueueUpdateArgs(QueueUpdateType.JOINED, username, Players.IndexOf(username)));
                 OnJoinedQueue?.Invoke(this, new QueueUpdateArgs(QueueUpdateType.JOINED, username, Players.IndexOf(username)));
@@ -115,6 +129,10 @@ namespace InternetClawMachine.Games.GameHelpers
         /// <param name="username"></param>
         internal void RemoveSinglePlayer(string username)
         {
+            if (!Players.Contains(username))
+                return;
+
+            OnLeavingQueue?.Invoke(this, new QueueUpdateArgs(QueueUpdateType.LEAVING, username, Players.IndexOf(username)));
             if (PrivateRemovePlayer(username))
             {
                 OnChangedQueue?.Invoke(this, new QueueUpdateArgs(QueueUpdateType.LEFT, username, -1));
@@ -131,8 +149,9 @@ namespace InternetClawMachine.Games.GameHelpers
         {
             if (Players.Contains(username))
             {
-                //if the player removed comes at or before the current index, decrease by 1
-                if (Players.IndexOf(username) <= Index)
+                // If the player removed before the current index, decrease by 1 to keep the selected player index accurate
+                // If index if player is current player, as soon as the player is removed the CurrentPlayer is now the next player automatically
+                if (Players.IndexOf(username) < Index)
                     Index--;
 
                 if (Index < 0)
@@ -175,10 +194,10 @@ namespace InternetClawMachine.Games.GameHelpers
                     if (idxOfNew < Index)
                         repIdx--;
 
-                    PrivateRemovePlayer(nickname); //remove this person from the queue if they exist
+                    RemoveSinglePlayer(nickname); //remove this person from the queue if they exist
                 }
                 //else the person doesnt already exist, just put them in place of user
-                PrivateRemovePlayer(user); //remove the gifter from the queue
+                RemoveSinglePlayer(user); //remove the gifter from the queue
                 Players.Insert(repIdx, nickname);
                 
                 OnChangedQueue?.Invoke(this, new QueueUpdateArgs(QueueUpdateType.MOVED, nickname, -1));
@@ -260,6 +279,8 @@ namespace InternetClawMachine.Games.GameHelpers
         JOINED,
         LEFT,
         CLEARED,
-        MOVED
+        MOVED,
+        JOINING,
+        LEAVING
     }
 }

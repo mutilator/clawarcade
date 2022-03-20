@@ -4,7 +4,7 @@ namespace InternetClawMachine.Games.GameHelpers
 {
     public class ClawQueuedCommand : GameQueuedCommand
     {
-        public IMachineControl MachineControl { set; get; }
+        public IClawMachineControl MachineControl { set; get; }
         public ClawDirection Direction { set; get; }
         public int Duration { set; get; }
         public string Username { set; get; }

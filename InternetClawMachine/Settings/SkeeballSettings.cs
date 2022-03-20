@@ -13,7 +13,7 @@ namespace InternetClawMachine.Settings
         /// <summary>
         /// Which skeeball machine is active?
         /// </summary>
-        public IMachineControl ActiveMachine { set; get; }
+        public IClawMachineControl ActiveMachine { set; get; }
         /// <summary>
         /// Address of the machine
         /// </summary>

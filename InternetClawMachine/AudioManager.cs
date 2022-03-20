@@ -1,11 +1,14 @@
 ﻿using InternetClawMachine.Games;
+using InternetClawMachine.Games.GameHelpers;
 using WebSocketSharp;
 using WebSocketSharp.Server;
 
 namespace InternetClawMachine
 {
+
     internal class AudioManager : WebSocketBehavior
     {
+        internal event GameEventHandler OnConnected;
 
         public AudioManager()
         {
@@ -36,6 +39,7 @@ namespace InternetClawMachine
         protected override void OnOpen()
         {
             base.OnOpen();
+            OnConnected?.Invoke(Game);
         }
     }
 }

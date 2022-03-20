@@ -11,6 +11,7 @@ using System.Threading.Tasks;
 using System.Windows;
 using InternetClawMachine.Chat;
 using InternetClawMachine.Games.GameHelpers;
+using InternetClawMachine.Hardware;
 using InternetClawMachine.Hardware.ClawControl;
 using InternetClawMachine.Hardware.RFID;
 using InternetClawMachine.Settings;
@@ -53,7 +54,7 @@ namespace InternetClawMachine.Games.ClawGame
         /// <summary>
         /// Claw machine control interface
         /// </summary>
-        public List<IMachineControl> MachineList { get; set; }
+        public List<IClawMachineControl> MachineList { get; set; }
 
         public List<PlushieObject> PlushieTags { set; get; } = new List<PlushieObject>();
 
@@ -88,7 +89,7 @@ namespace InternetClawMachine.Games.ClawGame
 
             this.OBSSceneChange += ClawGame_OBSSceneChange;
 
-            MachineList = new List<IMachineControl>();
+            MachineList = new List<IClawMachineControl>();
             foreach(var m in Configuration.ClawSettings.ClawMachines)
             {
                 if (!m.IsAvailable)
@@ -162,8 +163,8 @@ namespace InternetClawMachine.Games.ClawGame
             //if disconnected it will not receive the return to center event and therefor not release a persons play
             //there is also code that will clear these two flags if the queue is empty and a person joins the queue
             //The ideal fix would be to know the last machine played, if it was the machine that's reconnecting, set these to true
-            DropInCommandQueue = false;
-            Configuration.OverrideChat = false;
+            WaitableActionInCommandQueue = false;
+            Configuration.IgnoreChatCommands = false;
             MachineControl_OnClawCentered(controller);
         }
 
@@ -533,7 +534,7 @@ namespace InternetClawMachine.Games.ClawGame
                                     data.Add("name", clip);
 
                                     data.Add("duration", duration);
-                                    WsConnection.SendCommand(MediaWebSocketServer._commandMedia, data);
+                                    WsConnection.SendCommand(MediaWebSocketServer.CommandMedia, data);
                                     break;
                                 }
                             }
@@ -1767,7 +1768,7 @@ namespace InternetClawMachine.Games.ClawGame
             }
         }
 
-        internal IMachineControl GetProperMachine(UserPrefs userPrefs)
+        internal IClawMachineControl GetProperMachine(UserPrefs userPrefs)
         {
             if (userPrefs == null)
                 return GetActiveMachine();
@@ -1871,7 +1872,6 @@ namespace InternetClawMachine.Games.ClawGame
             }
             
 
-            //set the greenscreen override
             Configuration.ClawSettings.GreenScreenOverrideOff = eventConfig.GreenScreenOverrideOff;
             if (Configuration.ClawSettings.GreenScreenOverrideOff)
             {
@@ -1917,12 +1917,13 @@ namespace InternetClawMachine.Games.ClawGame
                 var currentscene = ObsConnection.GetCurrentScene().Name;
 
                 // TODO - pull this from config
-                var scenes = new[] { "Claw 1", "Claw 2", "Claw 3" };
+                var scenes = Configuration.ClawSettings.WireFrameList.Select(w => w.SceneName).Distinct();
+                //var scenes = new[] { "Claw 1", "Claw 2", "Claw 3", "Machine2Claw 3", "Machine2Claw 3", "Machine2Claw 3" };
 
                 //skin all scenes
-                for (var i = 0; i < scenes.Length; i++)
+                foreach(var sceneName in scenes)
                 {
-                    ObsConnection.SetCurrentScene(scenes[i]);
+                    ObsConnection.SetCurrentScene(sceneName);
 
                     //Fix greenscreen
                     foreach (var bg in Configuration.ClawSettings.ObsGreenScreenOptions)
@@ -1960,7 +1961,7 @@ namespace InternetClawMachine.Games.ClawGame
                 }
 
                 //reset current scene
-                ObsConnection.SetCurrentScene(currentscene);
+                ObsConnection.SetCurrentScene(scenes.First());
             }
         }
 
@@ -1969,7 +1970,7 @@ namespace InternetClawMachine.Games.ClawGame
         /// </summary>
         public override async Task ProcessCommands()
         {
-            if (Configuration.OverrideChat) //if we're currently overriding what's in the command queue, for instance when using UI controls
+            if (Configuration.IgnoreChatCommands) //if we're currently overriding what's in the command queue, for instance when using UI controls
                 return;
             var guid = Guid.NewGuid();
             while (true) //don't use CommandQueue here to keep thread safe
@@ -2048,7 +2049,7 @@ namespace InternetClawMachine.Games.ClawGame
                         if (machineControl.CurrentDirection != MovementDirection.DROP)
                             Logger.WriteLog(Logger._machineLog, "MOVE DOWN");
 
-                        Configuration.OverrideChat = true;
+                        Configuration.IgnoreChatCommands = true;
                         lock (CommandQueue)
                             CommandQueue.Clear(); // remove everything else
 
@@ -2094,7 +2095,7 @@ namespace InternetClawMachine.Games.ClawGame
             }
         }
 
-        public void RunBelt(IMachineControl machineControl, int milliseconds)
+        public void RunBelt(IClawMachineControl machineControl, int milliseconds)
         {
             try
             {
@@ -2130,7 +2131,7 @@ namespace InternetClawMachine.Games.ClawGame
             }
         }
 
-        public void RunBelt2(IMachineControl machineControl, int milliseconds)
+        public void RunBelt2(IClawMachineControl machineControl, int milliseconds)
         {
             try
             {
@@ -2166,12 +2167,12 @@ namespace InternetClawMachine.Games.ClawGame
             }
         }
 
-        public void RunBelt(IMachineControl machineControl, string seconds)
+        public void RunBelt(IClawMachineControl machineControl, string seconds)
         {
             RunBelt(machineControl, seconds, 1);
         }
 
-        public void RunBelt(IMachineControl machineControl, string seconds, int beltNum)
+        public void RunBelt(IClawMachineControl machineControl, string seconds, int beltNum)
         {
             if (!int.TryParse(seconds, out var secs))
                 return;
@@ -2299,7 +2300,7 @@ namespace InternetClawMachine.Games.ClawGame
                     data.Add("name", winclip); //name of clip to play
                     data.Add("duration", duration); //max 8 seconds for a win animation
 
-                    WsConnection.SendCommand(MediaWebSocketServer._commandMedia, data);
+                    WsConnection.SendCommand(MediaWebSocketServer.CommandMedia, data);
                 }
                 else if (Configuration.EventMode.EventMode == EventMode.SPECIAL && (winAnimation != null && pointsToAdd > 0 || Configuration.EventMode.FailAnimation != null && pointsToAdd < 0)) //if they didnt have a custom animation but an event is going on with a custom animation
                 {
@@ -2310,7 +2311,7 @@ namespace InternetClawMachine.Games.ClawGame
                         data.Add("name", winAnimation.SourceName);
                         if (winAnimation.Duration > 0)
                             data.Add("duration", winAnimation.Duration);
-                        WsConnection.SendCommand(MediaWebSocketServer._commandMedia, data);
+                        WsConnection.SendCommand(MediaWebSocketServer.CommandMedia, data);
                     }
                     else
                     {
@@ -2325,7 +2326,7 @@ namespace InternetClawMachine.Games.ClawGame
                             data.Add("name", failAnimation.SourceName);
                             if (failAnimation.Duration > 0)
                                 data.Add("duration", failAnimation.Duration);
-                            WsConnection.SendCommand(MediaWebSocketServer._commandMedia, data);
+                            WsConnection.SendCommand(MediaWebSocketServer.CommandMedia, data);
                         }
                     }
                 }
@@ -2349,7 +2350,7 @@ namespace InternetClawMachine.Games.ClawGame
                                 data.Add("name", scannedPlush.WinStream);
                                 data.Add("duration", 38000);
 
-                                WsConnection.SendCommand(MediaWebSocketServer._commandMedia, data);
+                                WsConnection.SendCommand(MediaWebSocketServer.CommandMedia, data);
                             }
                         }
                         catch (Exception ex)
@@ -2378,7 +2379,7 @@ namespace InternetClawMachine.Games.ClawGame
                             data.Add("name", scannedPlush.WinStream);
                         }
 
-                        WsConnection.SendCommand(MediaWebSocketServer._commandMedia, data);
+                        WsConnection.SendCommand(MediaWebSocketServer.CommandMedia, data);
                     }
                 }
 
@@ -2388,7 +2389,7 @@ namespace InternetClawMachine.Games.ClawGame
                     data.Add("name", winAnimation.SourceName);
                     if (winAnimation.Duration > 0)
                         data.Add("name", winAnimation.Duration);
-                    WsConnection.SendCommand(MediaWebSocketServer._commandMedia, data);
+                    WsConnection.SendCommand(MediaWebSocketServer.CommandMedia, data);
                 }
             }
             catch (Exception ex)
@@ -2490,7 +2491,7 @@ namespace InternetClawMachine.Games.ClawGame
             }
         }
 
-        internal async Task PoliceStrobe(IMachineControl machineControl)
+        internal async Task PoliceStrobe(IClawMachineControl machineControl)
         {
             //STROBE CODE
             try
@@ -2605,7 +2606,7 @@ namespace InternetClawMachine.Games.ClawGame
             }
         }
 
-        internal async void RunStrobe(IMachineControl machineControl, int red, int blue, int green, int strobeCount, int strobeDelay)
+        internal async void RunStrobe(IClawMachineControl machineControl, int red, int blue, int green, int strobeCount, int strobeDelay)
         {
             if (machineControl == null)
                 return;
@@ -3233,7 +3234,7 @@ namespace InternetClawMachine.Games.ClawGame
                 var rng = rnd.Next(5) + 1;
                 var data = new JObject();
                 data.Add("name", "CLIP-glitch" + rng);
-                WsConnection.SendCommand(MediaWebSocketServer._commandMedia, data);
+                WsConnection.SendCommand(MediaWebSocketServer.CommandMedia, data);
             }
         }
 
@@ -3496,7 +3497,7 @@ namespace InternetClawMachine.Games.ClawGame
             return null;
         }
 
-        private void HandleBlackLightMode(IMachineControl machineControl)
+        private void HandleBlackLightMode(IClawMachineControl machineControl)
         {
             //adjust settings on load for game
             if (Configuration.ClawSettings.BlackLightMode)
@@ -3687,7 +3688,7 @@ namespace InternetClawMachine.Games.ClawGame
             
 
             //listen for chat input again
-            Configuration.OverrideChat = false;
+            Configuration.IgnoreChatCommands = false;
 
             //create a secondary list so people get credit for wins
             var copy = new string[WinnersList.Count];
@@ -3887,7 +3888,7 @@ namespace InternetClawMachine.Games.ClawGame
             else //use the blank poster if nothing is defined
                 data.Add("name", Configuration.ObsScreenSourceNames.BountyWantedBlank.SourceName);
 
-            WsConnection.SendCommand(MediaWebSocketServer._commandMedia, data);
+            WsConnection.SendCommand(MediaWebSocketServer.CommandMedia, data);
 
             /*
             var props = OBSConnection.GetTextGDIPlusProperties(Configuration.OBSScreenSourceNames.BountyWantedText.SourceName);
@@ -3911,7 +3912,7 @@ namespace InternetClawMachine.Games.ClawGame
             Task.Run(async delegate () { await PoliceStrobe(GetActiveMachine()); });
         }
 
-        public IMachineControl GetActiveMachine()
+        public IClawMachineControl GetActiveMachine()
         {
             foreach(var machineControl in MachineList)
             {
@@ -3948,7 +3949,7 @@ namespace InternetClawMachine.Games.ClawGame
                 data.Add("name", Configuration.ObsScreenSourceNames.BountyEndScreen.SourceName);
                 //data.Add("duration", 14000);
 
-                WsConnection.SendCommand(MediaWebSocketServer._commandMedia, data);
+                WsConnection.SendCommand(MediaWebSocketServer.CommandMedia, data);
 
                 //reset to no bounty
                 Bounty = null;
@@ -4106,7 +4107,7 @@ namespace InternetClawMachine.Games.ClawGame
 
         #endregion Methods
 
-        public IMachineControl GetNamedMachine(string machineInfoName)
+        public IClawMachineControl GetNamedMachine(string machineInfoName)
         {
             return MachineList.FirstOrDefault(cm => cm.Machine.Name.Equals(machineInfoName));
         }

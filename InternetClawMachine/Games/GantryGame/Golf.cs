@@ -941,7 +941,7 @@ namespace InternetClawMachine.Games.GantryGame
         public override Task ProcessCommands()
         {
             ClawQueuedCommand currentQueueCommand;
-            if (Configuration.OverrideChat) //if we're currently overriding what's in the command queue, for instance when using UI controls
+            if (Configuration.IgnoreChatCommands) //if we're currently overriding what's in the command queue, for instance when using UI controls
             {
                 _processingQueue = false;
                 return Task.CompletedTask;

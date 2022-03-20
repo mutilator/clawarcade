@@ -87,9 +87,9 @@ namespace InternetClawMachine.Games
         public BotConfiguration Configuration { get; set; }
 
         /// <summary>
-        /// Simple flag to tell the game that there is an upcoming drop command and not allow further drop commands
+        /// Simple flag to tell the game that there is an upcoming waitable command and not allow further commands of this nature. e.g. drop of claw or shoot of skeeball
         /// </summary>
-        public bool DropInCommandQueue { set; get; }
+        public bool WaitableActionInCommandQueue { set; get; }
 
         /// <summary>
         /// A counter to provide a unique ID number for each user play
@@ -157,6 +157,11 @@ namespace InternetClawMachine.Games
         /// Websocket server
         /// </summary>
         public MediaWebSocketServer WsConnection { set; get; }
+
+        /// <summary>
+        /// Websocket interface actions
+        /// </summary>
+        internal AudioManager AudioManager { set; get; }
 
         #endregion Properties
 
@@ -342,7 +347,7 @@ namespace InternetClawMachine.Games
             var data = new JObject();
             data.Add("name", scare.SourceName);
             data.Add("duration", scare.Duration);
-            WsConnection.SendCommand(MediaWebSocketServer._commandMedia, data);
+            WsConnection.SendCommand(MediaWebSocketServer.CommandMedia, data);
         }
 
         public virtual void ShowHelp(string username)

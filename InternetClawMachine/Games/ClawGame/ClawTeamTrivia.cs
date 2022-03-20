@@ -343,7 +343,7 @@ namespace InternetClawMachine.Games.ClawGame
 
                         var data = new JObject();
                         data.Add("name", Configuration.EventMode.TriviaSettings.OBSCorrectAnswer.SourceName);
-                        WsConnection.SendCommand(MediaWebSocketServer._commandMedia, data);
+                        WsConnection.SendCommand(MediaWebSocketServer.CommandMedia, data);
 
                         TriviaMessageMode = TriviaMessageMode.CLAW;
 
@@ -480,11 +480,11 @@ namespace InternetClawMachine.Games.ClawGame
             if (msg.Trim().Length <= 2)
             {
                 //ignore multiple drops
-                if (msg.Equals("d") && DropInCommandQueue)
+                if (msg.Equals("d") && WaitableActionInCommandQueue)
                     return;
 
                 if (msg.Equals("d"))
-                    DropInCommandQueue = true;
+                    WaitableActionInCommandQueue = true;
 
                 //if not run all directional commands
                 HandleSingleCommand(username, msg);

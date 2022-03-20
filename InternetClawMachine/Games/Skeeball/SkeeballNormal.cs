@@ -10,6 +10,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using InternetClawMachine.Chat;
 using InternetClawMachine.Games.GameHelpers;
+using InternetClawMachine.Hardware;
 using InternetClawMachine.Hardware.ClawControl;
 using InternetClawMachine.Hardware.Skeeball;
 using InternetClawMachine.Settings;
@@ -34,7 +35,6 @@ namespace InternetClawMachine.Games.Skeeball
             MachineControl.OnFlapSet += MachineControl_OnFlapSet;
             this.OnBallReleased += SkeeballNormal_BallReleased;
             this.OnBallEscaped += SkeeballNormal_OnBallEscaped;
-            PlayerQueue.OnJoinedQueue += PlayerQueue_OnJoinedQueue;
 
             
             DurationSinglePlayer = Configuration.ClawSettings.SinglePlayerDuration;
@@ -82,31 +82,6 @@ namespace InternetClawMachine.Games.Skeeball
                 }
 
             });
-        }
-
-        private void MachineControl_OnPingTimeout(IMachineControl controller)
-        {
-            MachineControl.Connect(Configuration.SkeeballSettings.Address, Configuration.SkeeballSettings.Port);
-        }
-
-        private void PlayerQueue_OnJoinedQueue(object sender, QueueUpdateArgs e)
-        {
-            var pos = e.Index;
-            var username = e.Username;
-
-
-            if (pos == 0)
-            {
-                StartRound(username);
-            }
-            else
-            {
-                if (pos == 1)//lol i'm so lazy
-                    ChatClient.SendMessage(Configuration.Channel, Translator.GetTranslation("gameClawCommandPlayQueueAdd1", Configuration.UserList.GetUserLocalization(username)));
-                else
-                    ChatClient.SendMessage(Configuration.Channel, string.Format(Translator.GetTranslation("gameClawCommandPlayQueueAdd2", Configuration.UserList.GetUserLocalization(username)), pos));
-            }
-            UpdateObsQueueDisplay();
         }
 
         private void MachineControl_OnConnected(IMachineControl controller)
@@ -249,8 +224,8 @@ namespace InternetClawMachine.Games.Skeeball
             CurrentShootingPlayer.BallReturnTriggered = false;
             CurrentShootingPlayer.FlapSetTriggered = false;
 
-            DropInCommandQueue = false;
-            Configuration.OverrideChat = false;
+            WaitableActionInCommandQueue = false;
+            Configuration.IgnoreChatCommands = false;
             CurrentShootingPlayer.ShotGuid = Guid.Empty;
             //since players get 3 turns, we need to also check if there is no time left in the round timer
             if ((GameRoundTimer.IsRunning && GameRoundTimer.ElapsedMilliseconds > Configuration.ClawSettings.SinglePlayerDuration * 1000) || (PlayerQueue.CurrentPlayer != null && PlayerQueue.CurrentPlayer == CurrentShootingPlayer.Username && GameLoopCounterValue == CurrentShootingPlayer.GameLoop && ((CurrentShootingPlayer.BallsShot >= Configuration.SkeeballSettings.BallsPerTurn) || (sessionScoreUser != null && sessionScoreUser.Drops % 3 == 0))))
@@ -349,8 +324,8 @@ namespace InternetClawMachine.Games.Skeeball
                     //TODO fix this properly, tech debt
                     if (PlayerQueue.Count == 0)
                     {
-                        DropInCommandQueue = false;
-                        Configuration.OverrideChat = false;
+                        WaitableActionInCommandQueue = false;
+                        Configuration.IgnoreChatCommands = false;
                     }
 
                     //rather than having something constantly checking for the next player the end time of the current player is used to move to the next
@@ -543,11 +518,11 @@ namespace InternetClawMachine.Games.Skeeball
                 if (msg.Trim().Length <= 2)
                 {
                     //ignore multiple drops
-                    if (message.ToLower().Equals("s") && DropInCommandQueue)
+                    if (message.ToLower().Equals("s") && WaitableActionInCommandQueue)
                         return;
 
                     if (message.ToLower().Equals("s"))
-                        DropInCommandQueue = true;
+                        WaitableActionInCommandQueue = true;
 
                     if (!userObject.KnowsMultiple)
                     {
@@ -624,8 +599,8 @@ namespace InternetClawMachine.Games.Skeeball
 
                         
 
-                        if (msg.Contains("s") && !DropInCommandQueue)
-                            DropInCommandQueue = true;
+                        if (msg.Contains("s") && !WaitableActionInCommandQueue)
+                            WaitableActionInCommandQueue = true;
 
                         //loop matches and queue all commands
                         var currentIndex = GameLoopCounterValue;
@@ -724,15 +699,14 @@ namespace InternetClawMachine.Games.Skeeball
             base.Init();
             
             
-            
+            if (MachineControl.IsConnected)
+            {
+                //enable laser trip when ball shoots
+                MachineControl.SendCommand("fsen 1");
+            }
 
         }
 
-
-        internal void ThrowBallReleased()
-        {
-            base.ThrowBallReleased();
-        }
 
 
         public override void ShowHelp(string username)
@@ -758,7 +732,7 @@ namespace InternetClawMachine.Games.Skeeball
         public override void StartRound(string username)
         {
             base.StartRound(username);
-            DropInCommandQueue = false;
+            WaitableActionInCommandQueue = false;
 
             GameRoundTimer.Reset();
             GameLoopCounterValue++; //increment the counter for this persons turn
@@ -774,8 +748,8 @@ namespace InternetClawMachine.Games.Skeeball
             }
 
             //NOTE: possibly allows other people to throw the ball if timed just right to steal the last turn from the previous player
-            DropInCommandQueue = false;
-            Configuration.OverrideChat = false;
+            WaitableActionInCommandQueue = false;
+            Configuration.IgnoreChatCommands = false;
 
             var userPrefs = Configuration.UserList.GetUser(username);
             if (userPrefs == null)

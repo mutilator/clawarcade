@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using InternetClawMachine.Chat;
 using InternetClawMachine.Games.GameHelpers;
+using InternetClawMachine.Hardware;
 using InternetClawMachine.Hardware.ClawControl;
 using InternetClawMachine.Settings;
 using OBSWebsocketDotNet;
@@ -192,11 +193,11 @@ namespace InternetClawMachine.Games.ClawGame
             if (msg.Trim().Length <= 2)
             {
                 //ignore multiple drops
-                if (message.ToLower().Equals("d") && DropInCommandQueue)
+                if (message.ToLower().Equals("d") && WaitableActionInCommandQueue)
                     return;
 
                 if (message.ToLower().Equals("d"))
-                    DropInCommandQueue = true;
+                    WaitableActionInCommandQueue = true;
 
                 //if not run all directional commands
                 HandleSingleCommand(username, message);
@@ -383,7 +384,7 @@ namespace InternetClawMachine.Games.ClawGame
 
         public override void StartRound(string username)
         {
-            DropInCommandQueue = false;
+            WaitableActionInCommandQueue = false;
             var userPrefs = Configuration.UserList.GetUser(username);
             var machineControl = GetProperMachine(userPrefs);
             machineControl.InsertCoinAsync();

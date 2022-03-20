@@ -7,10 +7,12 @@ namespace InternetClawMachine
 {
     public class MediaWebSocketServer : WebSocketServer
     {
-        public static string _commandSound = "sound";
-        public static string _commandPoster = "poster";
-        public static string _commandVideo = "video";
-        public static string _commandMedia = "media";
+        public static string CommandSound { get; } = "sound";
+        public static string CommandPoster { get; } = "poster";
+        public static string CommandVideo { get; } = "video";
+        public static string CommandMedia { get; } = "media";
+        public static string CommandBowlingPlayerUpdate { get; } = "playerUpdate";
+        public static string CommandBowlingPlayerRemove { get; } = "playerRemove";
 
         public string Path { get; set; }
 
