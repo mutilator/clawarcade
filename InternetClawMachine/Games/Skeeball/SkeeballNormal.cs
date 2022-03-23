@@ -196,13 +196,7 @@ namespace InternetClawMachine.Games.Skeeball
                     var affirmationList = File.ReadAllLines(Configuration.SkeeballSettings.FileAffirmations); //TODO - move this to init?
                     affirmation = string.Format(affirmationList[random.Next(affirmationList.Length)], currentPlayer);
 
-                    Task.Run(async delegate
-                    {
-                        await Task.Delay(Configuration.WinNotificationDelay);
-                        GameCancellationToken.Token.ThrowIfCancellationRequested();
-                        //ChatClient.SendMessage(Configuration.Channel, affirmation);
-                        Logger.WriteLog(Logger._debugLog, affirmation, Logger.LogLevel.DEBUG);
-                    }, GameCancellationToken.Token);
+                    
 
                     sessionScoreUser.Score = 0;
                     //Reset them to a new game
@@ -227,6 +221,13 @@ namespace InternetClawMachine.Games.Skeeball
                 GameCancellationToken.Token.ThrowIfCancellationRequested();
                 ChatClient.SendMessage(Configuration.Channel, saying);
                 Logger.WriteLog(Logger._debugLog, saying, Logger.LogLevel.DEBUG);
+
+                if (!string.IsNullOrEmpty(affirmation))
+                {
+                    ChatClient.SendMessage(Configuration.Channel, affirmation);
+                    Logger.WriteLog(Logger._debugLog, affirmation, Logger.LogLevel.DEBUG);
+                }
+                    
             }, GameCancellationToken.Token);
 
         }

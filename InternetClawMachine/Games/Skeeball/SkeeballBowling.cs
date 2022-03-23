@@ -67,8 +67,7 @@ namespace InternetClawMachine.Games.Skeeball
                 var balls = bowlingPlayerData.Frames.FindAll(f => f.FrameNumber == bowlingPlayerData.CurrentFrame);
                 if (balls.Count > 0)
                 {
-                    BowlingHelpers.ProcessPins(Configuration.BowlingSettings.PinMatrix, bowlingPlayerData);
-                    _throwTracker = SkeeballScoreTrackingLocation.WAITING; //make sure we set it to wait for a button press
+                    ScoreCurrentFrame();
 
                     var msg = string.Format(Translator.GetTranslation("gameSkeeballBowlingTimedOut", Configuration.UserList.GetUserLocalization(e.Username)), e.Username);
 
@@ -631,7 +630,17 @@ namespace InternetClawMachine.Games.Skeeball
             HandleSingleCommand(username, "mt " + user.PositionLR);
             HandleSingleCommand(username, "pt " + user.PositionPAN);
 
-            UpdateOBSBowlingPlayer((BowlingPlayer)(user.CustomGameData));
+            var bowlerData = (BowlingPlayer)(user.CustomGameData);
+
+            // If the bowler finished their 10th frame, reset their game so they can bowl again
+            // This allows their score to remain on screen until they begin a new game
+            if (bowlerData.CurrentFrame == -1)
+            {
+                bowlerData.ResetGame();
+                ClearOBSBowlingPlayer(bowlerData.Username);
+            }
+
+            UpdateOBSBowlingPlayer(bowlerData);
 
             Task.Run(async delegate
             {
@@ -759,10 +768,46 @@ namespace InternetClawMachine.Games.Skeeball
             // Re-score the frame
             BowlingHelpers.ProcessPins(Configuration.BowlingSettings.PinMatrix, bowlingPlayerData);
 
+            var newCurrentFrame = bowlingPlayerData.CurrentFrame;
+
             // Check if adding this score rolled them to the next frame, if so start a round over/skip to next person
-            if (bowlingPlayerData.CurrentFrame != initialCurrentFrame)
+            if (newCurrentFrame != initialCurrentFrame)
             {
+                if (newCurrentFrame == -1)
+                {
+                    var score = bowlingPlayerData.GetScore(BowlingHelpers.MaximumFrameCount);
+                    var saying = string.Format(Translator.GetTranslation("gameSkeeballBowlingGameOver", Configuration.UserList.GetUserLocalization(bowlingPlayerData.Username)), bowlingPlayerData.Username, score);
+
+                    // Update high score
+                    user.HighScore = score > user.HighScore ? score : user.HighScore;
+                    user.GamesPlayed++;
+
+
+                    
+
+                    //affirmation
+                    var random = new Random();
+                    var affirmationList = File.ReadAllLines(Configuration.SkeeballSettings.FileAffirmations); //TODO - move this to init?
+                    var affirmation = string.Format(affirmationList[random.Next(affirmationList.Length)], bowlingPlayerData.Username);
+
+                    Task.Run(async delegate
+                    {
+                        await Task.Delay(Configuration.WinNotificationDelay);
+                        GameCancellationToken.Token.ThrowIfCancellationRequested();
+                        ChatClient.SendMessage(Configuration.Channel, saying);
+                        Logger.WriteLog(Logger._debugLog, saying, Logger.LogLevel.DEBUG);
+
+                        if (!string.IsNullOrEmpty(affirmation))
+                        {
+                            ChatClient.SendMessage(Configuration.Channel, affirmation);
+                            Logger.WriteLog(Logger._debugLog, affirmation, Logger.LogLevel.DEBUG);
+                        }
+
+                    }, GameCancellationToken.Token);
+                }
                 _throwTracker = SkeeballScoreTrackingLocation.WAITING;
+
+
             } else { 
                 // Start ball two
                 StartRound(CurrentShootingPlayer.Username);
@@ -802,7 +847,7 @@ namespace InternetClawMachine.Games.Skeeball
                 frameData.Add("Slot1", "");
                 frameData.Add("Slot2", "");
 
-                frameData.Add("FrameTotal", player.GetScore(frame));
+                frameData.Add("FrameTotal", currentScore);
                 frameData.Add("FrameNumber", frame);
                 frameData.Add("Active", currentFrame == frame && player.Username == PlayerQueue.CurrentPlayer); //only show active frame if they're also active player 
 
@@ -854,6 +899,17 @@ namespace InternetClawMachine.Games.Skeeball
             WsConnection.SendCommand(MediaWebSocketServer.CommandBowlingPlayerRemove, data);
         }
 
+        private void ClearOBSBowlingPlayer(string username)
+        {
+            var playerData = new JObject();
+            playerData.Add("UserName", username);
+
+            var data = new JObject();
+            data.Add("playerData", playerData);
+
+            WsConnection.SendCommand(MediaWebSocketServer.CommandBowlingPlayerClear, data);
+        }
+
         private int getBallSlotPosition(int ball, int frame, int frameTotal, int pins)
         {
             if (frame == BowlingHelpers.MaximumFrameCount && ball == 1 && pins == BowlingHelpers.StrikePinCount) // position to slot 0 if first ball is a strike on 10th frame
@@ -877,7 +933,7 @@ namespace InternetClawMachine.Games.Skeeball
         private string getPinDisplay(int ballSlot, int pins, int frameTotal)
         {
             var displayPins = pins.ToString();
-            if (pins == BowlingHelpers.StrikePinCount && (ballSlot == 0 || ballSlot == 2))
+            if (pins == BowlingHelpers.StrikePinCount)
                 displayPins = "X";
             else if (frameTotal == BowlingHelpers.SparePinCount && ballSlot == 2) // Regular frame total is 10 it's a spare
                 displayPins = "/";
@@ -888,6 +944,8 @@ namespace InternetClawMachine.Games.Skeeball
 
             return displayPins;
         }
+
+
 
         protected override void OnGameEnded(EventArgs e)
         {

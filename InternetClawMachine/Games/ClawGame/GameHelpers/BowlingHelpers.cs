@@ -170,16 +170,14 @@ namespace InternetClawMachine.Games.GameHelpers
                     }
                 }
             }
+            
 
             //if (ScoringTimer.ElapsedMilliseconds > _pinFallWaitDelay && ScoringTimer.IsRunning)
             //{
-                // When this timer is stopped we stop looking for pins that are down
-                // Do not reset the timer here so we hold the proper elapsed time to ensure we're not counting pins that fall later
-                // Once the timer is reset we start looking at pin counts again
-                //ScoringTimer.Stop();
-
-            // Tally how many pins are down
-            var pinCount = pinMatrix.Count(p => p.Fallen);
+            // When this timer is stopped we stop looking for pins that are down
+            // Do not reset the timer here so we hold the proper elapsed time to ensure we're not counting pins that fall later
+            // Once the timer is reset we start looking at pin counts again
+            //ScoringTimer.Stop();
 
             // Grab the frame number we're assigning this to, NextFrame is a calculation based on the previously thrown ball
             var scoringFrame = player.CurrentFrame;
@@ -189,10 +187,25 @@ namespace InternetClawMachine.Games.GameHelpers
 
             var ballNumber = balls.Count + 1;
 
+            // Tally how many pins are down
+            var pinCount = pinMatrix.Count(p => p.Fallen);
+
+            /* Used for testing scoring without camera connected
+            var random = new Random();
+            if (ballNumber == 1)
+                pinCount = random.Next(11);
+            else if (ballNumber == 2)
+                pinCount = balls[0].PinCount + (random.Next(11 - balls[0].PinCount));
+            else if (ballNumber == 3)
+                pinCount = 10;
+            */
+
             // If there is already a ball thrown this frame, extra calculations occur
             if (balls.Count > 0)
             {
                 if (scoringFrame == MaximumFrameCount && balls.Count == 1 && balls[0].PinCount == StrikePinCount) // If 10th frame and second ball and first was a strike, dont subtract count
+                    pinCount = pinCount - 0;
+                else if (scoringFrame == MaximumFrameCount && balls.Count == 2 && balls[1].PinCount == StrikePinCount) // If 10th frame and 2 balls thrown already, subtract the second ball
                     pinCount = pinCount - 0;
                 else if (scoringFrame == MaximumFrameCount && balls.Count == 2) // If 10th frame and 2 balls thrown already, subtract the second ball
                     pinCount = pinCount - balls[1].PinCount;

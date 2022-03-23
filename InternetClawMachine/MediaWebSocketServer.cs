@@ -13,6 +13,7 @@ namespace InternetClawMachine
         public static string CommandMedia { get; } = "media";
         public static string CommandBowlingPlayerUpdate { get; } = "playerUpdate";
         public static string CommandBowlingPlayerRemove { get; } = "playerRemove";
+        public static string CommandBowlingPlayerClear { get; } = "playerClear";
 
         public string Path { get; set; }
 
