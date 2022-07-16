@@ -566,6 +566,8 @@ namespace InternetClawMachine.Games.Skeeball
 
                         if (msg.Contains("s") && !WaitableActionInCommandQueue)
                             WaitableActionInCommandQueue = true;
+                        else if (msg.Contains("s") && WaitableActionInCommandQueue)
+                            return;
 
                         //loop matches and queue all commands
                         var currentIndex = GameLoopCounterValue;

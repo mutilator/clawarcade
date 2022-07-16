@@ -615,16 +615,19 @@ namespace InternetClawMachine.Games.Skeeball
                         if (PlayerQueue.Count == 0)
                             ChatClient.SendMessage(Configuration.Channel, string.Format(Translator.GetTranslation("gameClawResponseNoQueue", Configuration.UserList.GetUserLocalization(username)), Configuration.CommandPrefix));
 
+                        // Check if the person knows how to send multiple commands, if they're here they obviously do so set it true so we don't remind them how to do it
                         if (!userObject.KnowsMultiple)
                         {
                             userObject.KnowsMultiple = true;
                             DatabaseFunctions.WriteUserPrefs(Configuration, userObject);
                         }
 
-                        
+
 
                         if (msg.Contains("s") && !WaitableActionInCommandQueue)
                             WaitableActionInCommandQueue = true;
+                        else if (msg.Contains("s") && WaitableActionInCommandQueue)
+                            return;
 
                         //loop matches and queue all commands
                         var currentIndex = GameLoopCounterValue;

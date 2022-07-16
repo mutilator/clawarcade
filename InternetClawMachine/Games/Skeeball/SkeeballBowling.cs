@@ -67,7 +67,10 @@ namespace InternetClawMachine.Games.Skeeball
                 var balls = bowlingPlayerData.Frames.FindAll(f => f.FrameNumber == bowlingPlayerData.CurrentFrame);
                 if (balls.Count > 0)
                 {
-                    ScoreCurrentFrame();
+                    // TODO: fix bug when they leave early after a strike in the first frame of 10th
+
+                    // Forced foul when they leave early
+                    ScoreCurrentFrame(0);
 
                     var msg = string.Format(Translator.GetTranslation("gameSkeeballBowlingTimedOut", Configuration.UserList.GetUserLocalization(e.Username)), e.Username);
 
@@ -86,6 +89,7 @@ namespace InternetClawMachine.Games.Skeeball
                     user = SessionUserTracker.First(u => u.Username == player);
                 else
                 {
+                    
                     user = new SkeeballSessionUserTracker { Username = player };
                     SessionUserTracker.Add(user);
                     user.CustomGameData = new BowlingPlayer(player);
@@ -722,7 +726,7 @@ namespace InternetClawMachine.Games.Skeeball
             OnRoundStarted(new RoundStartedArgs { Username = username, GameMode = GameMode });
         }
 
-        public void ScoreCurrentFrame()
+        public void ScoreCurrentFrame(int forcedPinCount = -1)
         {
             // Reset fallen pins that are back in place
             foreach (var pin in Configuration.BowlingSettings.PinMatrix)
@@ -766,7 +770,7 @@ namespace InternetClawMachine.Games.Skeeball
             var initialCurrentFrame = bowlingPlayerData.CurrentFrame;
 
             // Re-score the frame
-            BowlingHelpers.ProcessPins(Configuration.BowlingSettings.PinMatrix, bowlingPlayerData);
+            BowlingHelpers.ProcessPins(Configuration.BowlingSettings.PinMatrix, bowlingPlayerData, forcedPinCount);
 
             var newCurrentFrame = bowlingPlayerData.CurrentFrame;
 
@@ -783,7 +787,7 @@ namespace InternetClawMachine.Games.Skeeball
                     user.GamesPlayed++;
 
 
-                    
+                    RefreshWinList();
 
                     //affirmation
                     var random = new Random();

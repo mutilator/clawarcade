@@ -116,7 +116,7 @@ namespace InternetClawMachine.Games.GameHelpers
 
         
 
-        internal static void ProcessPins(BowlingPin[] pinMatrix, BowlingPlayer player)
+        internal static void ProcessPins(BowlingPin[] pinMatrix, BowlingPlayer player, int forcedPinCount = 1)
         {
             // Process the pins
             for (int k = 0; k < pinMatrix.Length; k++)
@@ -190,6 +190,10 @@ namespace InternetClawMachine.Games.GameHelpers
             // Tally how many pins are down
             var pinCount = pinMatrix.Count(p => p.Fallen);
 
+            //forcing a score, ignore what we saw down
+            if (forcedPinCount >= 0)
+                pinCount = forcedPinCount;
+
             /* Used for testing scoring without camera connected
             var random = new Random();
             if (ballNumber == 1)
@@ -200,7 +204,7 @@ namespace InternetClawMachine.Games.GameHelpers
                 pinCount = 10;
             */
 
-            // If there is already a ball thrown this frame, extra calculations occur
+                // If there is already a ball thrown this frame, extra calculations occur
             if (balls.Count > 0)
             {
                 if (scoringFrame == MaximumFrameCount && balls.Count == 1 && balls[0].PinCount == StrikePinCount) // If 10th frame and second ball and first was a strike, dont subtract count

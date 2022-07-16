@@ -147,9 +147,9 @@ namespace InternetClawMachine.Games.Skeeball
             var slotNum = (int)slot - 1;
             if (slotNum == 8)
                 slotNum = 4;
-            else if (slotNum == 6)
+            else if (slotNum == 4)
                 slotNum = 5;
-            else if (slotNum == 7)
+            else if (slotNum == 5)
                 slotNum = 6;
             return slotNum;
         }
